@@ -1,3 +1,6 @@
 Flask==1.1.1
+Flask-Bcrypt==0.7.1
+Flask-JWT-Extended==3.21.0
 Flask-Script==2.0.6
+Flask-SQLAlchemy==2.4.0
 PyJWT==1.7.1
