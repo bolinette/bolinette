@@ -3,7 +3,7 @@ import os
 
 from flask_sqlalchemy import SQLAlchemy
 
-from bolinette import app, env, logger
+from bolinette import env, logger
 
 db = SQLAlchemy()
 
@@ -19,6 +19,7 @@ def create_db_uri(_app):
     exit(1)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = create_db_uri(app)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-db.init_app(app)
+def init_db(app):
+    app.config['SQLALCHEMY_DATABASE_URI'] = create_db_uri(app)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+    db.init_app(app)

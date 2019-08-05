@@ -3,12 +3,17 @@ from functools import wraps
 
 from flask import Blueprint, Response
 
-from bolinette import app
-
 
 class Namespace:
+    namespaces = []
+
     def __init__(self, name, url):
         self.blueprint = Blueprint(name, __name__, url_prefix='/api' + url)
+
+    @staticmethod
+    def init_namespaces(app):
+        for namespace in Namespace.namespaces:
+            app.register_blueprint(namespace)
 
     def route(self, rule, **options):
         def wrapper(func):
@@ -22,4 +27,4 @@ class Namespace:
         return wrapper
 
     def register(self):
-        app.register_blueprint(self.blueprint)
+        Namespace.namespaces.append(self.blueprint)

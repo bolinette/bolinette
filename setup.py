@@ -8,13 +8,13 @@ setup(
         'bolinette.models',
         'bolinette.services'
     ],
-    version='0.0.2',
+    version='0.0.3',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',
     author_email='pierrechat89@hotmail.fr',
     url='https://github.com/TheCaptainCat/bolinette',
-    download_url='https://github.com/TheCaptainCat/bolinette/archive/0.0.2.tar.gz',
+    download_url='https://github.com/TheCaptainCat/bolinette/archive/0.0.3.tar.gz',
     keywords=['Flask', 'Bolinette', 'Web', 'Framework'],
     install_requires=[
         'Flask==1.1.1',

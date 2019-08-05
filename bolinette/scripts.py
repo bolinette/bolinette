@@ -1,6 +1,6 @@
 from flask_script import Command
 
-from bolinette import db, transaction, manager
+from bolinette import db, transaction
 import bolinette.models
 
 
@@ -18,5 +18,6 @@ class ResetDb(Command):
         InitDb().run()
 
 
-manager.add_command('initdb', InitDb())
-manager.add_command('resetdb', ResetDb())
+def init_commands(manager):
+    manager.add_command('initdb', InitDb())
+    manager.add_command('resetdb', ResetDb())
