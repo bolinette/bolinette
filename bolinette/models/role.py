@@ -1,4 +1,4 @@
-from flasque import db
+from bolinette import db
 
 
 class Role(db.Model):

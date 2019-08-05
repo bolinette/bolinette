@@ -1,15 +1,15 @@
 from flask_script import Command
 
-from flasque import db, transaction, manager
-import flasque.models
+from bolinette import db, transaction, manager
+import bolinette.models
 
 
 class InitDb(Command):
     def run(self):
         db.create_all()
         with transaction:
-            db.session.add(flasque.models.Role(name='root'))
-            db.session.add(flasque.models.Role(name='admin'))
+            db.session.add(bolinette.models.Role(name='root'))
+            db.session.add(bolinette.models.Role(name='admin'))
 
 
 class ResetDb(Command):

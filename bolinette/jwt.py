@@ -3,9 +3,9 @@ import datetime
 import jwt.exceptions as jwt_exceptions
 from flask_jwt_extended import JWTManager, exceptions as jwt_extended_exceptions
 
-from flasque import app, response, env
-from flasque.exceptions import APIError
-from flasque.services import user_service
+from bolinette import app, response, env
+from bolinette.exceptions import APIError
+from bolinette.services import user_service
 
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_COOKIE_SECURE'] = False

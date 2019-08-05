@@ -1,5 +1,5 @@
-from flasque.models import Role
-from flasque.services import BaseService
+from bolinette.models import Role
+from bolinette.services import BaseService
 
 
 class RoleService(BaseService):

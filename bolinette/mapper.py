@@ -1,4 +1,4 @@
-from flasque.exceptions import ParamConflictError
+from bolinette.exceptions import ParamConflictError
 
 
 class Mapper:

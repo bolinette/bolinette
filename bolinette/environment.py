@@ -1,6 +1,6 @@
 import os
 
-from flasque import logger
+from bolinette import logger
 
 
 class Environment:

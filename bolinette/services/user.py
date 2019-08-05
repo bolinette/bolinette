@@ -1,6 +1,6 @@
-from flasque import bcrypt
-from flasque.models import User
-from flasque.services import BaseService
+from bolinette import bcrypt
+from bolinette.models import User
+from bolinette.services import BaseService
 
 
 class UserService(BaseService):

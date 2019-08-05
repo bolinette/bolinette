@@ -3,7 +3,7 @@ import os
 
 from flask_sqlalchemy import SQLAlchemy
 
-from flasque import app, env, logger
+from bolinette import app, env, logger
 
 db = SQLAlchemy()
 

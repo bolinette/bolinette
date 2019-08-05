@@ -1,4 +1,4 @@
-from flasque.exceptions import ParamMissingError, ParamConflictError
+from bolinette.exceptions import ParamMissingError, ParamConflictError
 
 
 class Validator:

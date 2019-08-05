@@ -1,5 +1,5 @@
-from flasque import validate, db, mapper
-from flasque.exceptions import EntityNotFoundError
+from bolinette import validate, db, mapper
+from bolinette.exceptions import EntityNotFoundError
 
 _services = {}
 

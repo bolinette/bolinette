@@ -4,8 +4,8 @@ from functools import wraps
 from flask import abort, Response
 from sqlalchemy.exc import SQLAlchemyError
 
-from flasque import db, response
-from flasque.exceptions import APIError
+from bolinette import db, response
+from bolinette.exceptions import APIError
 
 
 class Transaction:

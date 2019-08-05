@@ -3,7 +3,7 @@ from functools import wraps
 
 from flask import Blueprint, Response
 
-from flasque import app
+from bolinette import app
 
 
 class Namespace:

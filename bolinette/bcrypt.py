@@ -1,5 +1,5 @@
 from flask_bcrypt import Bcrypt
 
-from flasque import app
+from bolinette import app
 
 bcrypt = Bcrypt(app)

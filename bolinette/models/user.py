@@ -1,4 +1,4 @@
-from flasque import db, marshalling
+from bolinette import db, marshalling
 
 users_roles = db.Table('users_roles',
                        db.Column('u_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),

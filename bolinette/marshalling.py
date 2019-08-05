@@ -3,7 +3,7 @@ from functools import wraps
 
 from flask import request, abort, Response
 
-from flasque import validate, response, mapper
+from bolinette import validate, response, mapper
 
 _registered_defs = {}
 

@@ -3,10 +3,10 @@ from flask_jwt_extended import (create_access_token, create_refresh_token, set_a
                                 set_refresh_cookies, get_jwt_identity, jwt_refresh_token_required,
                                 jwt_required)
 
-from flasque import Namespace, response, transactional
-from flasque.exceptions import EntityNotFoundError
-from flasque.marshalling import expects, returns
-from flasque.services import user_service
+from bolinette import Namespace, response, transactional
+from bolinette.exceptions import EntityNotFoundError
+from bolinette.marshalling import expects, returns
+from bolinette.services import user_service
 
 ns = Namespace('user', '/user')
 
