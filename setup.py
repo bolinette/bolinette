@@ -8,7 +8,7 @@ setup(
         'bolinette.models',
         'bolinette.services'
     ],
-    version='0.0.4',
+    version='0.0.5',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',
