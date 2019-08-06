@@ -5,9 +5,9 @@ _services = {}
 
 
 class BaseService:
-    def __init__(self, model):
+    def __init__(self, model, name):
         self.model = model
-        self.name = model.__name__.lower()
+        self.name = name
         _services[model] = self
 
     def service(self, model):

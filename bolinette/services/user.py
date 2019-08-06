@@ -5,7 +5,7 @@ from bolinette.services import BaseService
 
 class UserService(BaseService):
     def __init__(self):
-        super().__init__(User)
+        super().__init__(User, 'user')
 
     def get_by_username(self, username):
         return self.get_by('username', username)
