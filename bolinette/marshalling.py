@@ -97,14 +97,13 @@ def expects(model, key='default'):
                 message, code = response.internal_server_error(
                     f'marshalling.unknown_definition:{def_key}')
                 abort(Response(json.dumps(message), code, mimetype='application/json'))
-            validate.payload(definition, payload)
-            kwargs['payload'] = payload
+            kwargs['payload'] = validate.payload(definition, payload)
             return func(*args, **kwargs)
         return inner
     return wrapper
 
 
-def returns(model, key='default'):
+def returns(model, key='default', as_list=False):
     def wrapper(func):
         @wraps(func)
         def inner(*args, **kwargs):
@@ -116,7 +115,10 @@ def returns(model, key='default'):
                 abort(Response(json.dumps(message), code, mimetype='application/json'))
             res, code = func(*args, **kwargs)
             if res.get('data') is not None:
-                res['data'] = marshall(definition, res['data'])
+                if as_list:
+                    res['data'] = [marshall(definition, r) for r in res['data']]
+                else:
+                    res['data'] = marshall(definition, res['data'])
             return res, code
         return inner
     return wrapper

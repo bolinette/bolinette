@@ -20,16 +20,19 @@ class BaseService:
         return entity
 
     def get_by(self, key, value):
+        return self.model.query.filter_by(**{key: value}).all()
+
+    def get_first_by(self, key, value):
         entity = self.model.query.filter_by(**{key: value}).first()
         if entity is None:
             raise EntityNotFoundError(model=self.name, key=key, value=value)
         return entity
 
-    def get_by_criteria(self, criteria, key, value):
-        entity = self.model.query.filter(criteria).first()
-        if entity is None:
-            raise EntityNotFoundError(model=self.name, key=key, value=value)
-        return entity
+    def get_by_criteria(self, criteria):
+        return self.model.query.filter(criteria).all()
+
+    def get_all(self):
+        return self.model.query.all()
 
     def create(self, **kwargs):
         params = validate.model(self.model, kwargs)

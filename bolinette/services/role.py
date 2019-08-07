@@ -7,7 +7,7 @@ class RoleService(BaseService):
         super().__init__(Role, 'role')
 
     def get_by_name(self, name):
-        return self.get_by('name', name)
+        return self.get_first_by('name', name)
 
 
 role_service = RoleService()

@@ -8,10 +8,10 @@ class UserService(BaseService):
         super().__init__(User, 'user')
 
     def get_by_username(self, username):
-        return self.get_by('username', username)
+        return self.get_first_by('username', username)
 
     def get_by_email(self, email):
-        return self.get_by('email', email)
+        return self.get_first_by('email', email)
 
     def check_password(self, user, password):
         return bcrypt.check_password_hash(user.password, password)
