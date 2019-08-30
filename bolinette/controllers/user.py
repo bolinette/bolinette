@@ -1,7 +1,7 @@
 from flask import after_this_request
-from flask_jwt_extended import (create_access_token, create_refresh_token, set_access_cookies,
-                                set_refresh_cookies, get_jwt_identity, jwt_refresh_token_required,
-                                jwt_required)
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies,
+    get_jwt_identity, jwt_refresh_token_required, jwt_required, unset_jwt_cookies)
 
 from bolinette import Namespace, response, transactional
 from bolinette.exceptions import EntityNotFoundError
@@ -40,6 +40,15 @@ def login(payload):
                 return resp
             return response.ok('user.login.success')
     return response.unauthorized('user.login.wrong_credentials')
+
+
+@ns.route('/logout', methods=['POST'])
+def logout():
+    @after_this_request
+    def unset_cookies(resp):
+        unset_jwt_cookies(resp)
+        return resp
+    return response.ok('user.logout.success')
 
 
 @ns.route('/register', methods=['POST'])

@@ -1,3 +1,4 @@
+from enum import Enum
 import json
 from functools import wraps
 
@@ -9,7 +10,7 @@ _registered_responses = {}
 _registered_payloads = {}
 
 
-def get_def(collection, key):
+def _get_def(collection, key):
     d = collection.get(key)
     if d is None:
         message, code = response.internal_server_error(
@@ -18,19 +19,37 @@ def get_def(collection, key):
     return d
 
 
+def get_response(key):
+    return _get_def(_registered_responses, key)
+
+
+def get_payload(key):
+    return _get_def(_registered_payloads, key)
+
+
+class Type(Enum):
+    String = 0
+    Integer = 1
+    Float = 2
+    Date = 3
+    Email = 4
+    Password = 5
+
+
 class MarshallingObject:
     pass
 
 
 class Field(MarshallingObject):
-    def __init__(self, name, **kwargs):
+    def __init__(self, field_type, name, **kwargs):
+        self.type = field_type
         self.name = name
         self.required = kwargs.get('required', False)
         self.function = kwargs.get('function')
         self.formatting = kwargs.get('formatting')
 
     def __repr__(self):
-        return f'<MarshallingField {self.name}>'
+        return f'<MarshallingField {self.name}:{self.type.name}>'
 
 
 class List(MarshallingObject):
@@ -49,7 +68,7 @@ class Definition(MarshallingObject):
         self.initialized = False
 
     def __repr__(self):
-        return f'<MarshallingModel {self.name}>'
+        return f'<MarshallingModel {self.key}>'
 
 
 def register(model, name):
@@ -79,7 +98,7 @@ def marshall(definition, entity):
             data[field.name] = value
         elif isinstance(field, Definition):
             if not field.initialized:
-                d = get_def(_registered_responses, field.key)
+                d = get_response(field.key)
                 field.initialized = True
                 field.fields = d.fields
             data[field.name] = marshall(field, getattr(entity, field.name))
@@ -92,7 +111,7 @@ def expects(model, key='default'):
         def inner(*args, **kwargs):
             payload = request.get_json(silent=True) or {}
             def_key = f'{model}.{key}'
-            definition = get_def(_registered_payloads, def_key)
+            definition = get_payload(def_key)
             if definition is None:
                 message, code = response.internal_server_error(
                     f'marshalling.unknown_definition:{def_key}')
@@ -108,7 +127,7 @@ def returns(model, key='default', as_list=False):
         @wraps(func)
         def inner(*args, **kwargs):
             def_key = f'{model}.{key}'
-            definition = get_def(_registered_responses, def_key)
+            definition = get_response(def_key)
             if definition is None:
                 message, code = response.internal_server_error(
                     f'marshalling.unknown_definition:{def_key}')

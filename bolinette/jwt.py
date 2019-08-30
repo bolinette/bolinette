@@ -36,3 +36,8 @@ def user_loader_callback(identity):
         return user_service.get_by_username(identity)
     except APIError:
         return None
+
+
+@jwt.unauthorized_loader
+def unauthorized(msg):
+    return response.unauthorized(msg)

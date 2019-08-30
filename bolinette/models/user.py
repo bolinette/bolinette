@@ -19,23 +19,23 @@ class User(db.Model):
     @staticmethod
     def payloads():
         yield 'register', [
-            marshalling.Field('username', required=True),
-            marshalling.Field('email', required=True),
-            marshalling.Field('password', required=True)
+            marshalling.Field(marshalling.Type.String, 'username', required=True),
+            marshalling.Field(marshalling.Type.Email, 'email', required=True),
+            marshalling.Field(marshalling.Type.Password, 'password', required=True)
         ]
         yield 'login', [
-            marshalling.Field('username', required=True),
-            marshalling.Field('password', required=True)
+            marshalling.Field(marshalling.Type.String, 'username', required=True),
+            marshalling.Field(marshalling.Type.Password, 'password', required=True)
         ]
 
     @staticmethod
     def responses():
         yield 'private', [
-            marshalling.Field('username', required=True),
-            marshalling.Field('email', required=True)
+            marshalling.Field(marshalling.Type.String, 'username', required=True),
+            marshalling.Field(marshalling.Type.Email, 'email', required=True)
         ]
         yield 'public', [
-            marshalling.Field('username', required=True)
+            marshalling.Field(marshalling.Type.String, 'username', required=True)
         ]
 
     def __repr__(self):

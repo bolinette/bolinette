@@ -12,17 +12,17 @@ class Book(db.Model):
     @staticmethod
     def payloads():
         yield 'default', [
-            marshalling.Field('name', required=True),
-            marshalling.Field('owner_id', required=True)
+            marshalling.Field(marshalling.Type.String, 'name', required=True),
+            marshalling.Field(marshalling.Type.Integer, 'owner_id', required=True)
         ]
 
     @staticmethod
     def responses():
         yield 'default', [
-            marshalling.Field('name', required=True)
+            marshalling.Field(marshalling.Type.String, 'name', required=True)
         ]
         yield 'complete', [
-            marshalling.Field('name', required=True),
+            marshalling.Field(marshalling.Type.String, 'name', required=True),
             marshalling.Definition('owner', 'user.public')
         ]
 
