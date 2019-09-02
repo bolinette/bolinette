@@ -48,6 +48,15 @@ class TestClient:
         self.parse_cookies(res.headers)
         return json.loads(res.data)
 
+    def patch(self, path, data=None):
+        if data is None:
+            data = {}
+        payload = self.payload(data=json.dumps(data),
+                               content_type='application/json')
+        res = self.client.patch(f'/api{path}', **payload)
+        self.parse_cookies(res.headers)
+        return json.loads(res.data)
+
     def get(self, path):
         return json.loads(self.client.get(f'/api{path}', **self.payload()).data)
 

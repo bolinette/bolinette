@@ -2,7 +2,7 @@ import random
 import string
 
 from bolinette import db
-from bolinette.marshalling import get_payload, Type
+from bolinette.marshalling import get_payload, types
 
 
 def _random_lower(rng, length):
@@ -22,14 +22,14 @@ def create_mock(m_id, model, key='default'):
     definition = get_payload(f'{model}.{key}')
     mock = {}
     for field in definition.fields:
-        if field.type == Type.String:
+        if isinstance(field.type, types.classes.String):
             mock[field.name] = _random_lower(rng, 15)
-        elif field.type == Type.Email:
+        elif isinstance(field.type, types.classes.Email):
             mock[field.name] = f'{_random_lower(rng, 10)}@{_random_lower(rng, 5)}.com'
-        elif field.type == Type.Password:
+        elif isinstance(field.type, types.classes.Password):
             mock[field.name] = (_random_lower(rng, 10) + str(_random_int(rng, 1, 100)) +
                                 _random_symbols(rng, 1))
-        elif field.type == Type.Integer:
+        elif isinstance(field.type, types.classes.Integer):
             mock[field.name] = _random_int(rng, 1, 100)
     return mock
 

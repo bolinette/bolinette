@@ -20,12 +20,14 @@ class Validator:
             raise ParamConflictError(params=errors)
         return valid
 
-    def payload(self, definition, params):
+    def payload(self, definition, params, update=False):
         errors = []
         valid = {}
         for field in definition.fields:
+            if update and field.name not in params:
+                continue
             value = params.get(field.name, None)
-            if field.required and (value is None or len(value) <= 0):
+            if field.required and (value is None or len(str(value)) <= 0):
                 errors.append(field.name)
             valid[field.name] = value
         if len(errors) > 0:
