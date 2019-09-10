@@ -5,10 +5,12 @@ setup(
     packages=[
         'bolinette',
         'bolinette.controllers',
+        'bolinette.marshalling',
         'bolinette.models',
-        'bolinette.services'
+        'bolinette.services',
+        'bolinette.testing'
     ],
-    version='0.0.6',
+    version='0.0.7',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',
