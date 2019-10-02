@@ -1,11 +1,12 @@
 from flask import after_this_request
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies,
-    get_jwt_identity, jwt_refresh_token_required, jwt_required, unset_jwt_cookies)
+    get_jwt_identity, jwt_refresh_token_required, unset_jwt_cookies,
+    current_user, jwt_required, jwt_optional)
 
 from bolinette import Namespace, response, transactional
 from bolinette.exceptions import EntityNotFoundError
-from bolinette.marshalling import expects, returns
+from bolinette.marshalling import expects, returns, marshall, get_response
 from bolinette.services import user_service
 
 ns = Namespace('user', '/user')
@@ -16,10 +17,25 @@ ns = Namespace('user', '/user')
 @returns('user', 'private')
 @transactional
 def me():
-    return response.ok('OK', user_service.get_by_username(get_jwt_identity()))
+    return response.ok('OK', current_user)
+
+
+@ns.route('/info', methods=['GET'])
+@jwt_optional
+@transactional
+def info():
+    identity = get_jwt_identity()
+    u_info = {
+        'is_logged_in': identity is not None
+    }
+    if identity is not None:
+        u_info['user'] = marshall(get_response('user.private'),
+                                  user_service.get_by_username(identity))
+    return response.ok('OK', u_info)
 
 
 @ns.route('/login', methods=['POST'])
+@returns('user', 'private')
 @transactional
 @expects('user', 'login')
 def login(payload):
@@ -38,7 +54,7 @@ def login(payload):
                 set_access_cookies(resp, access_token)
                 set_refresh_cookies(resp, refresh_token)
                 return resp
-            return response.ok('user.login.success')
+            return response.ok('user.login.success', user)
     return response.unauthorized('user.login.wrong_credentials')
 
 

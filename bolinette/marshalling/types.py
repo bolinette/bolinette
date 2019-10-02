@@ -15,6 +15,10 @@ class Float(MarshallingType):
     pass
 
 
+class Boolean(MarshallingType):
+    pass
+
+
 class Date(MarshallingType):
     pass
 
@@ -37,6 +41,7 @@ class TypesClasses:
     String = String
     Integer = Integer
     Float = Float
+    Boolean = Boolean
     Date = Date
     Email = Email
     Password = Password
@@ -57,6 +62,10 @@ class Types:
     @property
     def float(self):
         return Float()
+
+    @property
+    def boolean(self):
+        return Boolean()
 
     @property
     def date(self):

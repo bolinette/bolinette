@@ -21,11 +21,19 @@ class Environment:
                     self.env[args[0]] = var
         except FileNotFoundError:
             logger.warning('No .env file found')
-        app.config['ENV'] = self.env.get('ENV', 'development')
+        self.load_defaults(app)
+        app.config['ENV'] = self.env['ENV']
         debug = self.env.get('DEBUG')
         app.config['DEBUG'] = app.config['ENV'] == 'development' if debug is None \
             else debug == 'True'
         app.secret_key = self.env.get('SECRET_KEY')
+        app.static_folder = self.env['WEBAPP_FOLDER']
+
+    def load_defaults(self, app):
+        if 'WEBAPP_FOLDER' not in self.env:
+            self.env['WEBAPP_FOLDER'] = os.path.join(app.root_path, '..', 'webapp', 'dist')
+        if 'ENV' not in self.env:
+            self.env['ENV'] = 'development'
 
     def __getitem__(self, key):
         item = self.env.get(key, None)

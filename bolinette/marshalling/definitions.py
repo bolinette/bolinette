@@ -38,7 +38,6 @@ def register(model, name):
             definition = Definition(name, f'{name}.{key}')
             for field in payload:
                 definition.fields.append(field)
-            definition.initialized = True
             collection[definition.key] = definition
     if hasattr(model, 'payloads'):
         create_defs(_registered_payloads, model.payloads())
@@ -48,7 +47,7 @@ def register(model, name):
         _registered_models[name] = model
 
 
-def marshall(definition, entity):
+def marshall(definition, entity, skip_none=False):
     data = {}
     for field in definition.fields:
         if isinstance(field, Field):
@@ -58,13 +57,11 @@ def marshall(definition, entity):
                 value = getattr(entity, field.name, None)
             if field.formatting is not None:
                 value = field.formatting(value)
-            data[field.name] = value
+            if not skip_none or value is not None:
+                data[field.name] = value
         elif isinstance(field, Definition):
-            if not field.initialized:
-                d = get_response(field.key)
-                field.initialized = True
-                field.fields = d.fields
-            data[field.name] = marshall(field, getattr(entity, field.name))
+            d = get_response(field.key)
+            data[field.name] = marshall(d, getattr(entity, field.name))
     return data
 
 

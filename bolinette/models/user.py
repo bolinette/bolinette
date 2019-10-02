@@ -31,11 +31,11 @@ class User(db.Model):
     @staticmethod
     def responses():
         yield 'private', [
-            marshalling.Field(marshalling.types.string, 'username', required=True),
-            marshalling.Field(marshalling.types.email, 'email', required=True)
+            marshalling.Field(marshalling.types.string, 'username'),
+            marshalling.Field(marshalling.types.email, 'email')
         ]
         yield 'public', [
-            marshalling.Field(marshalling.types.string, 'username', required=True)
+            marshalling.Field(marshalling.types.string, 'username')
         ]
 
     def __repr__(self):

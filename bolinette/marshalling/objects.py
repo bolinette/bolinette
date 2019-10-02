@@ -27,7 +27,6 @@ class Definition(MarshallingObject):
         self.fields = []
         self.name = name
         self.key = key
-        self.initialized = False
 
     def __repr__(self):
         return f'<MarshallingModel {self.key}>'
