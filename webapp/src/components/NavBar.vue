@@ -8,25 +8,26 @@
 
     <div class="flex-grow-1"></div>
 
-    <v-skeleton-loader v-if="loading" class="loader-right-margin" type="chip"></v-skeleton-loader>
-    <v-skeleton-loader v-if="loading" type="chip"></v-skeleton-loader>
+    <v-skeleton-loader class="loader-right-margin" type="chip" v-if="loading"></v-skeleton-loader>
+    <v-skeleton-loader type="chip" v-if="loading"></v-skeleton-loader>
 
-    <v-btn v-if="!loading" icon>
+    <v-btn icon v-if="!loading">
       <v-icon>mdi-magnify</v-icon>
     </v-btn>
 
     <user-menu v-if="!loading"/>
 
-    <v-btn v-if="!loading && !logged" @click="openLogin()" text>
+    <v-btn @click="openLogin()" text v-if="!loading && !logged">
       Login
     </v-btn>
   </v-app-bar>
 </template>
 
 <script lang="ts">
-  import { Component, Vue } from 'vue-property-decorator';
   import UserMenu from '@/components/UserMenu.vue';
   import { uiStateModule, userModule } from '@/store';
+  import { Component, Vue } from 'vue-property-decorator';
+
 
   @Component({
     components: {UserMenu},

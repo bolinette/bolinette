@@ -14,8 +14,9 @@
 </template>
 
 <script lang="ts">
-  import { Component, Vue } from 'vue-property-decorator';
   import { uiStateModule } from '@/store';
+  import { Component, Vue } from 'vue-property-decorator';
+
 
   @Component
   export default class Drawer extends Vue {

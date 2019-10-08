@@ -1,14 +1,13 @@
+import User from '@/models/User';
+import ApiRequest from '@/utils/ApiRequest';
+import ApiResponse from '@/utils/ApiResponse';
 import _ from 'lodash';
 import { Action, Module, Mutation, VuexModule } from 'vuex-module-decorators';
 
-import User from '@/models/User';
-import ApiResponse from '@/utils/ApiResponse';
-import ApiRequest from '@/utils/ApiRequest';
 
 @Module({name: 'user'})
 export default class UserStore extends VuexModule {
   private _currentUser: User | null = null;
-
   private _loadingUserInfo: boolean = true;
 
   public get currentUser(): User | null {

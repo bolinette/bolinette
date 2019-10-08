@@ -35,10 +35,11 @@
 </template>
 
 <script lang="ts">
-  import { Component, Vue, Watch } from 'vue-property-decorator';
   import User from '@/models/User';
   import { uiStateModule, userModule } from '@/store';
   import ApiRequest from '@/utils/ApiRequest';
+  import { Component, Vue, Watch } from 'vue-property-decorator';
+
 
   @Component
   export default class LoginForm extends Vue {

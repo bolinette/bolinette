@@ -18,31 +18,31 @@
       <v-card class="top-margin">
         <v-card-title>Change your username</v-card-title>
         <v-card-text>
-          <v-text-field v-model="username" label="First name" required></v-text-field>
+          <v-text-field label="First name" required v-model="username"></v-text-field>
         </v-card-text>
         <v-card-actions>
-          <v-btn text @click="saveUsername()">Save</v-btn>
+          <v-btn @click="saveUsername()" text>Save</v-btn>
         </v-card-actions>
       </v-card>
       <v-card class="top-margin">
         <v-card-title>Change your email</v-card-title>
         <v-card-text>
-          <v-text-field v-model="email" label="Email" type="email" required></v-text-field>
+          <v-text-field label="Email" required type="email" v-model="email"></v-text-field>
         </v-card-text>
         <v-card-actions>
-          <v-btn text @click="saveEmail()">Save</v-btn>
+          <v-btn @click="saveEmail()" text>Save</v-btn>
         </v-card-actions>
       </v-card>
       <v-card class="top-margin">
         <v-card-title>Change your password</v-card-title>
         <v-card-text>
-          <v-text-field v-model="password" label="Password" :error-messages="passwordErrors"
-                        type="password" required @change="checkPassword"></v-text-field>
-          <v-text-field v-model="password2" label="Confirm password"
-                        type="password" required @change="checkPassword"></v-text-field>
+          <v-text-field :error-messages="passwordErrors" @change="checkPassword" label="Password"
+                        required type="password" v-model="password"></v-text-field>
+          <v-text-field @change="checkPassword" label="Confirm password"
+                        required type="password" v-model="password2"></v-text-field>
         </v-card-text>
         <v-card-actions>
-          <v-btn text @click="savePassword()">Save</v-btn>
+          <v-btn @click="savePassword()" text>Save</v-btn>
         </v-card-actions>
       </v-card>
     </div>
@@ -50,10 +50,11 @@
 </template>
 
 <script lang="ts">
-  import { Component, Vue } from 'vue-property-decorator';
-  import ApiRequest from '@/utils/ApiRequest';
   import User from '@/models/User';
   import { userModule } from '@/store';
+  import ApiRequest from '@/utils/ApiRequest';
+  import { Component, Vue } from 'vue-property-decorator';
+
 
   @Component
   export default class Account extends Vue {

@@ -1,15 +1,13 @@
+import { getCookie } from '@/plugins/cookies';
+import { uiStateModule } from '@/store';
+import ApiResponse from '@/utils/ApiResponse';
+import Env from '@/utils/Env';
 import _ from 'lodash';
 
-import Env from '@/utils/Env';
-import ApiResponse from '@/utils/ApiResponse';
-import { uiStateModule } from '@/store';
-import { getCookie } from '@/plugins/cookies';
 
 export default class ApiRequest<T> {
   private readonly _method: string;
-
   private readonly _path: string;
-
   private _body: T | null;
 
   public constructor(path: string, method: string) {
@@ -73,7 +71,8 @@ export default class ApiRequest<T> {
     });
   }
 
-  private async doFetch<R>(body: string | FormData | null, headers: Headers, params: Partial<FetchParams<R>>) {
+  private async doFetch<R>(body: string | FormData | null, headers: Headers,
+                           params: Partial<FetchParams<R>>) {
     const init: object = {
       body,
       credentials: 'include',
@@ -121,12 +120,8 @@ export default class ApiRequest<T> {
 
 export interface FetchParams<T> {
   error: (errors: string[]) => void;
-
   finally: () => void;
-
   openLogin: boolean;
-
   refresh: boolean;
-
   success: (res: ApiResponse<T>) => void;
 }

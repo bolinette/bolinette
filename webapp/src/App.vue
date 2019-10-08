@@ -2,7 +2,7 @@
   <v-app id="bolinette">
     <nav-bar @toggle-drawer="toggleLeftDrawer()"/>
 
-    <drawer />
+    <drawer/>
 
     <login-form ref="login"/>
 
@@ -19,11 +19,12 @@
 </template>
 
 <script lang="ts">
-  import { Component, Vue } from 'vue-property-decorator';
   import Drawer from '@/components/Drawer.vue';
-  import NavBar from '@/components/NavBar.vue';
   import LoginForm from '@/components/LoginForm.vue';
+  import NavBar from '@/components/NavBar.vue';
   import { uiStateModule, userModule } from '@/store';
+  import { Component, Vue } from 'vue-property-decorator';
+
 
   @Component({
     components: {

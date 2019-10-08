@@ -34,9 +34,10 @@
 </template>
 
 <script lang="ts">
-  import { Component, Vue } from 'vue-property-decorator';
-  import { uiStateModule, userModule } from '@/store';
   import User from '@/models/User';
+  import { uiStateModule, userModule } from '@/store';
+  import { Component, Vue } from 'vue-property-decorator';
+
 
   @Component
   export default class UserMenu extends Vue {
