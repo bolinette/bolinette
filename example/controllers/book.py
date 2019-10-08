@@ -23,7 +23,7 @@ def get_book(book_id):
 @transactional
 @expects('book')
 def create_book(payload):
-    return response.created('book.created', book_service.create(**payload))
+    return response.created('book.created', book_service.create(payload))
 
 
 @ns.route('/<book_id>', methods=['PUT'])
@@ -32,7 +32,7 @@ def create_book(payload):
 @expects('book', update=True)
 def update_book(book_id, payload):
     book = book_service.get(book_id)
-    return response.ok('book.updated', book_service.update(book, **payload))
+    return response.ok('book.updated', book_service.update(book, payload))
 
 
 @ns.route('/<book_id>', methods=['DELETE'])

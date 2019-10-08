@@ -1,3 +1,8 @@
+import json
+
+import flask
+
+
 class Response:
     def build_message(self, code, status, messages=None, data=None):
         if messages is None:
@@ -39,6 +44,9 @@ class Response:
 
     def internal_server_error(self, messages=None, data=None):
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)
+
+    def abort(self, message, code):
+        flask.abort(flask.Response(json.dumps(message), code, content_type='application/json'))
 
 
 response = Response()

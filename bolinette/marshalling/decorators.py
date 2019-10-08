@@ -1,7 +1,6 @@
-import json
 from functools import wraps
 
-from flask import request, abort, Response
+from flask import request
 
 from bolinette import response, validate
 from bolinette.marshalling import get_payload, get_response, marshall
@@ -16,9 +15,8 @@ def expects(model, key='default', update=False):
             def_key = f'{model}.{key}'
             definition = get_payload(def_key)
             if definition is None:
-                message, code = response.internal_server_error(
-                    f'marshalling.unknown_definition:{def_key}')
-                abort(Response(json.dumps(message), code, mimetype='application/json'))
+                response.abort(*response.internal_server_error(
+                    f'marshalling.unknown_definition:{def_key}'))
             kwargs['payload'] = validate.payload(definition, payload, update)
             link_foreign_entities(definition, payload)
             return func(*args, **kwargs)
@@ -30,14 +28,13 @@ def returns(model, key='default', **options):
     def wrapper(func):
         @wraps(func)
         def inner(*args, **kwargs):
-            as_list = options.get('as_list')
+            as_list = options.get('as_list', False)
             skip_none = options.get('skip_none', False)
             def_key = f'{model}.{key}'
             definition = get_response(def_key)
             if definition is None:
-                message, code = response.internal_server_error(
-                    f'marshalling.unknown_definition:{def_key}')
-                abort(Response(json.dumps(message), code, mimetype='application/json'))
+                response.abort(*response.internal_server_error(
+                    f'marshalling.unknown_definition:{def_key}'))
             res, code = func(*args, **kwargs)
             if res.get('data') is not None:
                 if as_list:

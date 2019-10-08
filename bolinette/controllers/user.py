@@ -2,36 +2,48 @@ from flask import after_this_request
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies,
     get_jwt_identity, jwt_refresh_token_required, unset_jwt_cookies,
-    current_user, jwt_required, jwt_optional)
+    current_user, jwt_required, fresh_jwt_required)
 
 from bolinette import Namespace, response, transactional
 from bolinette.exceptions import EntityNotFoundError
-from bolinette.marshalling import expects, returns, marshall, get_response
+from bolinette.marshalling import expects, returns
 from bolinette.services import user_service
 
 ns = Namespace('user', '/user')
 
 
 @ns.route('/me', methods=['GET'])
-@jwt_required
+@fresh_jwt_required
 @returns('user', 'private')
 @transactional
 def me():
     return response.ok('OK', current_user)
 
 
+@ns.route('/me', methods=['PUT'])
+@fresh_jwt_required
+@returns('user', 'private')
+@transactional
+@expects('user', 'register', update=True)
+def update_user(payload):
+    user = user_service.get_by_username(get_jwt_identity())
+    user = user_service.update(user, payload)
+    access_token = create_access_token(identity=user.username, fresh=True)
+    refresh_token = create_refresh_token(identity=user.username)
+    @after_this_request
+    def set_login_cookies(resp):
+        set_access_cookies(resp, access_token)
+        set_refresh_cookies(resp, refresh_token)
+        return resp
+    return response.ok('user.updated', user)
+
+
 @ns.route('/info', methods=['GET'])
-@jwt_optional
+@jwt_required
+@returns('user', 'public')
 @transactional
 def info():
-    identity = get_jwt_identity()
-    u_info = {
-        'is_logged_in': identity is not None
-    }
-    if identity is not None:
-        u_info['user'] = marshall(get_response('user.private'),
-                                  user_service.get_by_username(identity))
-    return response.ok('OK', u_info)
+    return response.ok('OK', current_user)
 
 
 @ns.route('/login', methods=['POST'])
@@ -72,7 +84,7 @@ def logout():
 @transactional
 @expects('user', 'register')
 def register(payload):
-    user = user_service.create(**payload)
+    user = user_service.create(payload)
     return response.created('User successfully registered', user)
 
 

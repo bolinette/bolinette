@@ -34,14 +34,14 @@ class BaseService:
     def get_all(self):
         return self.model.query.all()
 
-    def create(self, **kwargs):
-        params = validate.model(self.model, kwargs)
+    def create(self, params):
+        params = validate.model(self.model, params)
         entity = self.model(**params)
         db.session.add(entity)
         return entity
 
-    def update(self, entity, **kwargs):
-        mapper.update(self.model, entity, kwargs)
+    def update(self, entity, params):
+        mapper.update(self.model, entity, params)
         return entity
 
     def delete(self, entity):

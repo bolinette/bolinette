@@ -1,7 +1,5 @@
-import json
 from functools import wraps
 
-from flask import abort, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from bolinette import db, response
@@ -24,15 +22,13 @@ class Transaction:
                 if exc_val.type == APIError.Type.NOT_FOUND:
                     message, code = response.not_found(exc_val.messages)
             if message is not None and code is not None:
-                abort(Response(json.dumps(message), code, mimetype='application/json'))
-
+                response.abort(message, code)
         else:
             try:
                 db.session.commit()
             except SQLAlchemyError:
                 db.session.rollback()
-                message, code = response.internal_server_error('global.internal_error')
-                abort(Response(json.dumps(message), code, mimetype='application/json'))
+                response.abort(*response.internal_server_error('global.internal_error'))
 
 
 transaction = Transaction()

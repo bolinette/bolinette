@@ -1,7 +1,3 @@
-import json
-
-from flask import Response, abort
-
 from bolinette import response, marshalling
 from bolinette.exceptions import EntityNotFoundError
 from bolinette.marshalling import Definition, Field
@@ -14,9 +10,7 @@ _registered_payloads = {}
 def _get_def(collection, key):
     d = collection.get(key)
     if d is None:
-        message, code = response.internal_server_error(
-            f'marshalling.unknown_definition:{key}')
-        abort(Response(json.dumps(message), code, mimetype='application/json'))
+        response.abort(*response.internal_server_error(f'marshalling.unknown_definition:{key}'))
     return d
 
 

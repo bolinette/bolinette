@@ -39,5 +39,15 @@ def user_loader_callback(identity):
 
 
 @jwt.unauthorized_loader
-def unauthorized(msg):
-    return response.unauthorized(msg)
+def unauthorized(_):
+    return response.unauthorized('user.unauthorized')
+
+
+@jwt.expired_token_loader
+def expired_token(_):
+    return response.unauthorized('user.token.expired')
+
+
+@jwt.needs_fresh_token_loader
+def need_fresh_token():
+    return response.unauthorized('user.token.fresh_required')
