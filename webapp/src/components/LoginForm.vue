@@ -22,12 +22,12 @@
       <v-card-actions>
         <div class="flex-grow-1"></div>
 
-        <v-btn @click="isOpen = false" color="red" text>
+        <v-btn @click="isOpen = false" text>
           Cancel
         </v-btn>
 
-        <v-btn @click="login()" color="green darken-1" text>
-          Agree
+        <v-btn @click="login()" color="blue">
+          Log in
         </v-btn>
       </v-card-actions>
     </v-card>

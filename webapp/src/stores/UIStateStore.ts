@@ -1,6 +1,7 @@
-import { Module, Mutation, VuexModule } from 'vuex-module-decorators';
+import { Action, Module, Mutation, VuexModule } from 'vuex-module-decorators';
 
 import vuetify from '@/plugins/vuetify';
+import { getCookie, setCookie } from '@/plugins/cookies';
 
 @Module({name: 'ui'})
 export default class UIStateStore extends VuexModule {
@@ -18,6 +19,17 @@ export default class UIStateStore extends VuexModule {
   public setDarkTheme(value: boolean) {
     this._darkTheme = value;
     vuetify.framework.theme.dark = value;
+    setCookie('blnt-theme', value ? 'dark' : 'light');
+  }
+
+  @Action
+  public initTheme() {
+    const theme = getCookie('blnt-theme');
+    if (theme) {
+      this.context.commit('setDarkTheme', theme === 'dark');
+    } else {
+      setCookie('blnt-theme', 'light');
+    }
   }
 
   public get loginForm(): boolean {

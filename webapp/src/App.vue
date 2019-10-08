@@ -35,7 +35,7 @@
   export default class App extends Vue {
     public created(): void {
       userModule.info();
-      uiStateModule.setDarkTheme(false);
+      uiStateModule.initTheme();
     }
 
     public toggleLeftDrawer() {

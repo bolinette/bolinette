@@ -1,9 +1,9 @@
 import _ from 'lodash';
-import Vue from 'vue';
 
 import Env from '@/utils/Env';
 import ApiResponse from '@/utils/ApiResponse';
 import { uiStateModule } from '@/store';
+import { getCookie } from '@/plugins/cookies';
 
 export default class ApiRequest<T> {
   private readonly _method: string;
@@ -39,7 +39,7 @@ export default class ApiRequest<T> {
     const headers = new Headers({
       Accept: 'application/json',
     });
-    const token = Vue.prototype.$cookies.get('csrf_access_token');
+    const token = getCookie('csrf_access_token');
     if (token) {
       headers.set('X-CSRF-TOKEN', token);
     }
@@ -56,7 +56,7 @@ export default class ApiRequest<T> {
   }
 
   private async refreshToken<R>(params: Partial<FetchParams<R>>, errors: string[]) {
-    const token = Vue.prototype.$cookies.get('csrf_refresh_token');
+    const token = getCookie('csrf_refresh_token');
     if (_.isNil(token)) {
       return params.error && params.error(errors);
     }
