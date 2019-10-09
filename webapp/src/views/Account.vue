@@ -74,7 +74,7 @@
     public username: string = '';
     public usernameRules: Array<(v: string) => boolean | string> = [
       (v) => !!v || 'Username is required',
-      (v) => !!v && (v || '').length > 5 || 'Username must be 3 characters long',
+      (v) => (v || '').length > 2 || 'Username must be 3 characters long',
     ];
     public usernameValid: boolean = true;
     public email: string = '';

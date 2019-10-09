@@ -3,7 +3,7 @@
     <v-app-bar-nav-icon @click.stop="$emit('toggle-drawer')"></v-app-bar-nav-icon>
 
     <v-toolbar-title @click="$router.push({name:'home'}).catch((err) => {})">
-      Your Bolinette App
+      <span class="blnt-menu-title">Your Bolinette App</span>
     </v-toolbar-title>
 
     <div class="flex-grow-1"></div>
@@ -48,6 +48,10 @@
 </script>
 
 <style lang="scss" scoped>
+  .blnt-menu-title {
+    cursor: pointer;
+  }
+
   .blt-right-menu {
     white-space: nowrap;
   }
