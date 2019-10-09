@@ -10,6 +10,8 @@
       <router-view/>
     </v-content>
 
+    <toasts/>
+
     <v-footer app>
       <span>Bolinette</span>
       <div class="flex-grow-1"></div>
@@ -22,6 +24,7 @@
   import Drawer from '@/components/Drawer.vue';
   import LoginForm from '@/components/LoginForm.vue';
   import NavBar from '@/components/NavBar.vue';
+  import Toasts from '@/components/toast/Toasts.vue';
   import { uiStateModule, userModule } from '@/store';
   import { Component, Vue } from 'vue-property-decorator';
 
@@ -31,6 +34,7 @@
       Drawer,
       NavBar,
       LoginForm,
+      Toasts,
     },
   })
   export default class App extends Vue {

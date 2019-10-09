@@ -4,7 +4,7 @@
       <v-card-title class="headline">Log in</v-card-title>
 
       <v-card-text>
-        <v-form v-model="valid">
+        <v-form>
           <v-text-field
             label="Username"
             required
@@ -16,6 +16,7 @@
             type="password"
             v-model="password"
           ></v-text-field>
+          <form-errors :errors="errors"/>
         </v-form>
       </v-card-text>
 
@@ -35,18 +36,23 @@
 </template>
 
 <script lang="ts">
+  import FormErrors from '@/components/FormErrors.vue';
   import User from '@/models/User';
   import { uiStateModule, userModule } from '@/store';
   import ApiRequest from '@/utils/ApiRequest';
   import { Component, Vue, Watch } from 'vue-property-decorator';
 
 
-  @Component
+  @Component({
+    components: {
+      FormErrors,
+    },
+  })
   export default class LoginForm extends Vue {
-    public valid: boolean = false;
     public loggedIn: boolean = false;
     public username: string = '';
     public password: string = '';
+    public errors: string[] = [];
 
     public get isOpen(): boolean {
       return uiStateModule.loginForm;
@@ -71,9 +77,7 @@
     }
 
     public login(): void {
-      if (!this.valid) {
-        return;
-      }
+      this.errors = [];
       const request = new ApiRequest<any>('/user/login', 'POST');
       request.body = {
         username: this.username,
@@ -88,8 +92,8 @@
           }
           this.isOpen = false;
         },
-        error: () => {
-          this.isOpen = false;
+        error: (errors) => {
+          this.errors.push(...errors);
         },
       });
     }

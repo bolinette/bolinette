@@ -1,4 +1,5 @@
 import User from '@/models/User';
+import { userModule } from '@/store';
 import ApiRequest from '@/utils/ApiRequest';
 import ApiResponse from '@/utils/ApiResponse';
 import _ from 'lodash';
@@ -38,10 +39,10 @@ export default class UserStore extends VuexModule {
     await new ApiRequest('/user/info', 'GET')
         .fetch<User>({
           success: (res: ApiResponse<User>) => {
-            this.context.commit('setUser', res.data);
+            userModule.setUser(res.data);
           },
           finally: () => {
-            this.context.commit('loadingUserState', false);
+            userModule.loadingUserState(false);
           },
         });
   }

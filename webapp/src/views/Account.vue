@@ -16,34 +16,42 @@
     </div>
     <div v-if="!loading && !error">
       <v-card class="top-margin">
-        <v-card-title>Change your username</v-card-title>
-        <v-card-text>
-          <v-text-field label="First name" required v-model="username"></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="saveUsername()" text>Save</v-btn>
-        </v-card-actions>
+        <v-form ref="username" v-model="usernameValid">
+          <v-card-title>Change your username</v-card-title>
+          <v-card-text>
+            <v-text-field :rules="usernameRules" label="Username"
+                          required v-model="username"></v-text-field>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn :disabled="!usernameValid" @click="saveUsername()" text>Save</v-btn>
+          </v-card-actions>
+        </v-form>
       </v-card>
       <v-card class="top-margin">
-        <v-card-title>Change your email</v-card-title>
-        <v-card-text>
-          <v-text-field label="Email" required type="email" v-model="email"></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="saveEmail()" text>Save</v-btn>
-        </v-card-actions>
+        <v-form ref="email" v-model="emailValid">
+          <v-card-title>Change your email</v-card-title>
+          <v-card-text>
+            <v-text-field :rules="emailRules" label="Email" required
+                          type="email" v-model="email"></v-text-field>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn :disabled="!emailValid" @click="saveEmail()" text>Save</v-btn>
+          </v-card-actions>
+        </v-form>
       </v-card>
       <v-card class="top-margin">
-        <v-card-title>Change your password</v-card-title>
-        <v-card-text>
-          <v-text-field :error-messages="passwordErrors" @change="checkPassword" label="Password"
-                        required type="password" v-model="password"></v-text-field>
-          <v-text-field @change="checkPassword" label="Confirm password"
-                        required type="password" v-model="password2"></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="savePassword()" text>Save</v-btn>
-        </v-card-actions>
+        <v-form ref="password" v-model="passwordValid">
+          <v-card-title>Change your password</v-card-title>
+          <v-card-text>
+            <v-text-field :rules="passwordRules" label="Password" required
+                          type="password" v-model="password"></v-text-field>
+            <v-text-field :rules="password2Rules" label="Confirm password" required
+                          type="password" v-model="password2"></v-text-field>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn :disabled="!passwordValid" @click="savePassword()" text>Save</v-btn>
+          </v-card-actions>
+        </v-form>
       </v-card>
     </div>
   </v-container>
@@ -58,13 +66,35 @@
 
   @Component
   export default class Account extends Vue {
+    public $refs!: {
+      username: HTMLFormElement, email: HTMLFormElement, password: HTMLFormElement,
+    };
     public loading: boolean = true;
     public error: boolean = false;
     public username: string = '';
+    public usernameRules: Array<(v: string) => boolean | string> = [
+      (v) => !!v || 'Username is required',
+      (v) => !!v && (v || '').length > 5 || 'Username must be 3 characters long',
+    ];
+    public usernameValid: boolean = true;
     public email: string = '';
+    public emailRules: Array<(v: string) => boolean | string> = [
+      (v) => !!v || 'Email is required', (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
+    ];
+    public emailValid: boolean = true;
     public password: string = '';
     public password2: string = '';
-    public passwordErrors: string[] = [];
+    public passwordRules: Array<(v: string) => boolean | string> = [
+      (v) => !!v || 'Password is required',
+      (v) => !!v && (v || '').length > 5 || 'Password must be 6 characters long',
+    ];
+    public passwordValid: boolean = true;
+
+    public get password2Rules(): Array<(v: string) => boolean | string> {
+      return [
+        (v) => (!!v && v) === this.password || 'Passwords must match',
+      ];
+    }
 
     public created() {
       this.loadPrivateUserInfo();
@@ -87,24 +117,20 @@
       });
     }
 
-    public checkPassword() {
-      if (this.password === this.password2) {
-        this.passwordErrors = [];
-      } else {
-        this.passwordErrors = ['Passwords don\'t match'];
+    public saveUsername() {
+      if (this.$refs.username.validate()) {
+        this.sendUpdate({username: this.username});
       }
     }
 
-    public saveUsername() {
-      this.sendUpdate({username: this.username});
-    }
-
     public saveEmail() {
-      this.sendUpdate({email: this.email});
+      if (this.$refs.email.validate()) {
+        this.sendUpdate({email: this.email});
+      }
     }
 
     public savePassword() {
-      if (this.passwordErrors.length === 0) {
+      if (this.$refs.password.validate()) {
         this.sendUpdate({password: this.password});
       }
     }
