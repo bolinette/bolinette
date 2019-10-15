@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="blnt-error-line" v-for="error of errors">
+    <div class="mt-3 red--text" v-for="error of errors">
       {{error}}
     </div>
   </div>
@@ -17,8 +17,5 @@
 </script>
 
 <style lang="scss" scoped>
-  .blnt-error-line {
-    color: red;
-    margin-top: 10px;
-  }
+
 </style>

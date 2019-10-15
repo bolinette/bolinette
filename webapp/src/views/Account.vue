@@ -2,9 +2,9 @@
   <v-container fluid>
     <h1>My account</h1>
     <div v-if="loading">
-      <v-skeleton-loader class="top-margin" type="article"></v-skeleton-loader>
-      <v-skeleton-loader class="top-margin" type="article"></v-skeleton-loader>
-      <v-skeleton-loader class="top-margin" type="article"></v-skeleton-loader>
+      <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
+      <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
+      <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
     </div>
     <div v-if="error">
       <p>You need to reenter your credentials to modify your personal info.</p>
@@ -15,7 +15,7 @@
       </p>
     </div>
     <div v-if="!loading && !error">
-      <v-card class="top-margin">
+      <v-card class="mt-5">
         <v-form ref="username" v-model="usernameValid">
           <v-card-title>Change your username</v-card-title>
           <v-card-text>
@@ -27,7 +27,7 @@
           </v-card-actions>
         </v-form>
       </v-card>
-      <v-card class="top-margin">
+      <v-card class="mt-5">
         <v-form ref="email" v-model="emailValid">
           <v-card-title>Change your email</v-card-title>
           <v-card-text>
@@ -39,7 +39,7 @@
           </v-card-actions>
         </v-form>
       </v-card>
-      <v-card class="top-margin">
+      <v-card class="mt-5">
         <v-form ref="password" v-model="passwordValid">
           <v-card-title>Change your password</v-card-title>
           <v-card-text>
@@ -148,7 +148,5 @@
 </script>
 
 <style lang="scss" scoped>
-  .top-margin {
-    margin-top: 15px;
-  }
+
 </style>

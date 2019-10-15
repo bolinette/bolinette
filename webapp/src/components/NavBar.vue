@@ -8,7 +8,7 @@
 
     <div class="flex-grow-1"></div>
 
-    <v-skeleton-loader class="loader-right-margin" type="chip" v-if="loading"></v-skeleton-loader>
+    <v-skeleton-loader class="mr-5" type="chip" v-if="loading"></v-skeleton-loader>
     <v-skeleton-loader type="chip" v-if="loading"></v-skeleton-loader>
 
     <v-btn icon v-if="!loading">
@@ -54,9 +54,5 @@
 
   .blt-right-menu {
     white-space: nowrap;
-  }
-
-  .loader-right-margin {
-    margin-right: 15px;
   }
 </style>
