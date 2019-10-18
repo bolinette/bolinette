@@ -35,6 +35,7 @@ export default class UserStore extends VuexModule {
   public addToast(params: ToastOptions) {
     const toast = new ToastData(toastModule.id, params);
     toastModule.pushToast(toast);
+    toastModule.setId(toastModule.id + 1);
     setTimeout(() => {
       toastModule.removeToast(toast);
     }, toast.duration);

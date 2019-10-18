@@ -1,4 +1,5 @@
 import User from '@/models/User';
+import router from '@/router';
 import { userModule } from '@/store';
 import ApiRequest from '@/utils/ApiRequest';
 import ApiResponse from '@/utils/ApiResponse';
@@ -24,7 +25,7 @@ export default class UserStore extends VuexModule {
   }
 
   @Mutation
-  public setUser(user: User) {
+  public setUser(user: User | null) {
     this._currentUser = user;
   }
 
@@ -35,7 +36,7 @@ export default class UserStore extends VuexModule {
 
   @Action
   public async info() {
-    this.context.commit('loadingUserState', true);
+    userModule.loadingUserState(true);
     await new ApiRequest('/user/info', 'GET')
         .fetch<User>({
           success: (res: ApiResponse<User>) => {
@@ -43,6 +44,17 @@ export default class UserStore extends VuexModule {
           },
           finally: () => {
             userModule.loadingUserState(false);
+          },
+        });
+  }
+
+  @Action
+  public async logout() {
+    await new ApiRequest('/user/logout', 'POST')
+        .fetch({
+          success: (res: ApiResponse<string>) => {
+            userModule.setUser(null);
+            router.push({name: 'home'}).catch(() => '');
           },
         });
   }

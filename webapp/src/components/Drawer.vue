@@ -1,12 +1,12 @@
 <template>
-  <v-navigation-drawer app clipped v-model="open">
+  <v-navigation-drawer app v-model="open">
     <v-list dense>
-      <v-list-item>
+      <v-list-item @click="$router.push({name: 'about'}).catch(() => {})">
         <v-list-item-action>
-          <v-icon>mdi-settings</v-icon>
+          <v-icon>mdi-help-box</v-icon>
         </v-list-item-action>
         <v-list-item-content>
-          <v-list-item-title>Option</v-list-item-title>
+          <v-list-item-title>About</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
     </v-list>

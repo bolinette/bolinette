@@ -1,5 +1,5 @@
 <template>
-  <v-alert :type="toast.type" dismissible>
+  <v-alert :type="toast.type" dismissible border="top">
     {{toast.message}}
   </v-alert>
 </template>

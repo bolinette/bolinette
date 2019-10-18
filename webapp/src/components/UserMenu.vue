@@ -7,28 +7,36 @@
       </v-btn>
     </template>
 
-    <v-list v-if="loggedIn">
-      <v-list-item @click="$router.push('account').catch(() => {})">
-        <v-list-item-icon>
-          <v-icon>mdi-account-box</v-icon>
-        </v-list-item-icon>
-        <v-list-item-title>
-          Manage account
-        </v-list-item-title>
-      </v-list-item>
-    </v-list>
-
-    <v-divider v-if="loggedIn"/>
-
     <v-list>
-      <v-list-item @click="toggleTheme()">
-        <v-list-item-icon>
-          <v-icon>mdi-invert-colors</v-icon>
-        </v-list-item-icon>
-        <v-list-item-title>
-          Invert colors
-        </v-list-item-title>
-      </v-list-item>
+      <div v-if="loggedIn">
+        <v-list-item @click="$router.push('account').catch(() => {})">
+          <v-list-item-icon>
+            <v-icon>mdi-account-box</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>
+            Manage account
+          </v-list-item-title>
+        </v-list-item>
+        <v-list-item @click="logout()">
+          <v-list-item-icon>
+            <v-icon>mdi-logout</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>
+            Log out
+          </v-list-item-title>
+        </v-list-item>
+        <v-divider/>
+      </div>
+      <div>
+        <v-list-item @click="toggleTheme()">
+          <v-list-item-icon>
+            <v-icon>mdi-invert-colors</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>
+            Invert colors
+          </v-list-item-title>
+        </v-list-item>
+      </div>
     </v-list>
   </v-menu>
 </template>
@@ -51,6 +59,10 @@
 
     public toggleTheme() {
       uiStateModule.setDarkTheme(!uiStateModule.darkTheme);
+    }
+
+    public logout() {
+      userModule.logout();
     }
   }
 </script>

@@ -1,65 +1,69 @@
 <template>
   <v-container fluid>
-    <h1>My account</h1>
-    <div v-if="loading">
-      <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
-      <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
-      <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
-    </div>
-    <div v-if="error">
-      <p>You need to reenter your credentials to modify your personal info.</p>
-      <p>
-        <v-btn @click="loadPrivateUserInfo()">
-          Log in
-        </v-btn>
-      </p>
-    </div>
-    <div v-if="!loading && !error">
-      <v-card class="mt-5">
-        <v-form ref="username" v-model="usernameValid">
-          <v-card-title>Change your username</v-card-title>
-          <v-card-text>
-            <v-text-field :rules="usernameRules" label="Username"
-                          required v-model="username"></v-text-field>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn :disabled="!usernameValid" @click="saveUsername()" text>Save</v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card>
-      <v-card class="mt-5">
-        <v-form ref="email" v-model="emailValid">
-          <v-card-title>Change your email</v-card-title>
-          <v-card-text>
-            <v-text-field :rules="emailRules" label="Email" required
-                          type="email" v-model="email"></v-text-field>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn :disabled="!emailValid" @click="saveEmail()" text>Save</v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card>
-      <v-card class="mt-5">
-        <v-form ref="password" v-model="passwordValid">
-          <v-card-title>Change your password</v-card-title>
-          <v-card-text>
-            <v-text-field :rules="passwordRules" label="Password" required
-                          type="password" v-model="password"></v-text-field>
-            <v-text-field :rules="password2Rules" label="Confirm password" required
-                          type="password" v-model="password2"></v-text-field>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn :disabled="!passwordValid" @click="savePassword()" text>Save</v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card>
-    </div>
+    <v-row justify="center">
+      <v-col md="6">
+        <h1>My account</h1>
+        <div v-if="loading">
+          <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
+          <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
+          <v-skeleton-loader class="mt-5" type="article"></v-skeleton-loader>
+        </div>
+        <div v-if="error">
+          <p>You need to reenter your credentials to modify your personal info.</p>
+          <p>
+            <v-btn @click="loadPrivateUserInfo()">
+              Log in
+            </v-btn>
+          </p>
+        </div>
+        <div v-if="!loading && !error">
+          <v-card class="mt-5">
+            <v-form ref="username" v-model="usernameValid">
+              <v-card-title>Change your username</v-card-title>
+              <v-card-text>
+                <v-text-field :rules="usernameRules" label="Username"
+                              required v-model="username"></v-text-field>
+              </v-card-text>
+              <v-card-actions>
+                <v-btn :disabled="!usernameValid" @click="saveUsername()" text>Save</v-btn>
+              </v-card-actions>
+            </v-form>
+          </v-card>
+          <v-card class="mt-5">
+            <v-form ref="email" v-model="emailValid">
+              <v-card-title>Change your email</v-card-title>
+              <v-card-text>
+                <v-text-field :rules="emailRules" label="Email" required
+                              type="email" v-model="email"></v-text-field>
+              </v-card-text>
+              <v-card-actions>
+                <v-btn :disabled="!emailValid" @click="saveEmail()" text>Save</v-btn>
+              </v-card-actions>
+            </v-form>
+          </v-card>
+          <v-card class="mt-5">
+            <v-form ref="password" v-model="passwordValid">
+              <v-card-title>Change your password</v-card-title>
+              <v-card-text>
+                <v-text-field :rules="passwordRules" label="Password" required
+                              type="password" v-model="password"></v-text-field>
+                <v-text-field :rules="password2Rules" label="Confirm password" required
+                              type="password" v-model="password2"></v-text-field>
+              </v-card-text>
+              <v-card-actions>
+                <v-btn :disabled="!passwordValid" @click="savePassword()" text>Save</v-btn>
+              </v-card-actions>
+            </v-form>
+          </v-card>
+        </div>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 
 <script lang="ts">
   import User from '@/models/User';
-  import { userModule } from '@/store';
+  import { toastModule, userModule } from '@/store';
   import ApiRequest from '@/utils/ApiRequest';
   import { Component, Vue } from 'vue-property-decorator';
 
@@ -141,6 +145,9 @@
       request.fetch<User>({
         success: (res) => {
           userModule.setUser(res.data);
+          for (const message of res.messages) {
+            toastModule.addToast({message, type: 'success'});
+          }
         },
       });
     }

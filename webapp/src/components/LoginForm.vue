@@ -38,7 +38,7 @@
 <script lang="ts">
   import FormErrors from '@/components/FormErrors.vue';
   import User from '@/models/User';
-  import { uiStateModule, userModule } from '@/store';
+  import { toastModule, uiStateModule, userModule } from '@/store';
   import ApiRequest from '@/utils/ApiRequest';
   import { Component, Vue, Watch } from 'vue-property-decorator';
 
@@ -91,6 +91,7 @@
             uiStateModule.loginCallback();
           }
           this.isOpen = false;
+          toastModule.addToast({type: 'success', message: 'Welcome back!'});
         },
         error: (errors) => {
           this.errors.push(...errors);

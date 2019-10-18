@@ -1,6 +1,6 @@
 <template>
   <v-container class="fill-height blnt-home-container" fluid>
-    <v-row align="center" justify="center">
+    <v-row>
       <v-col>
         <img alt="Bolinette Logo" class="blnt-logo" src="../assets/bolinette-dark.png" v-if="dark">
         <img alt="Bolinette Logo" class="blnt-logo" src="../assets/bolinette.png" v-else>
