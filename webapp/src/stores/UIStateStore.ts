@@ -1,5 +1,6 @@
 import { getCookie, setCookie } from '@/plugins/cookies';
 import vuetify from '@/plugins/vuetify';
+import { uiStateModule } from '@/store';
 import { Action, Module, Mutation, VuexModule } from 'vuex-module-decorators';
 
 
@@ -42,7 +43,7 @@ export default class UIStateStore extends VuexModule {
   public initTheme() {
     const theme = getCookie('blnt-theme');
     if (theme) {
-      this.context.commit('setDarkTheme', theme === 'dark');
+      uiStateModule.setDarkTheme(theme === 'dark');
     } else {
       setCookie('blnt-theme', 'light');
     }
