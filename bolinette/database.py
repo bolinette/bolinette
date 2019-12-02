@@ -12,7 +12,7 @@ def create_db_uri(_app):
     dbms = env.get('DBMS', 'SQLITE').lower()
     if dbms == 'sqlite':
         return 'sqlite:///' + os.path.join(_app.instance_path,
-                                           env.get('SQLITE_FILE', f'database.{_app.env}.db'))
+                                           env.get('SQLITE_FILE', f'{_app.env}.db'))
     if dbms == 'memory':
         return 'sqlite://'
     logger.error(f'Unknown database system "{dbms}"')

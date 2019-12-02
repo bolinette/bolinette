@@ -1,45 +1,87 @@
 import os
+from configparser import SafeConfigParser
 
 from bolinette import logger
 
 
 class Environment:
+    @staticmethod
+    def keys(app):
+        return {
+            'APP_NAME': 'DEFAULT_NAME',
+            'APP_DESC': 'DEFAULT_DESCRIPTION',
+            'APP_VERSION': '0.0.1',
+            'DBMS': 'SQLITE',
+            'DEBUG': 'True',
+            'JWT_SECRET_KEY': '',
+            'SECRET_KEY': '',
+            'WEBAPP_FOLDER': os.path.join(app.root_path, '..', 'webapp', 'dist')
+        }
+    
+    @staticmethod
+    def read_env_file(f):
+        return '[DEFAULT]\n' + f.read()
+
     def __init__(self):
         self.env = {}
 
-    def init(self, app):
-        try:
-            with app.open_instance_resource('.env') as f:
-                for line in f:
-                    line = line.decode('utf-8').replace(os.linesep, '')
-                    args = line.split('=')
-                    if len(args) != 2 or args[1] == '':
-                        continue
-                    var = os.environ.get(args[0], None)
-                    if var is None:
-                        var = args[1]
-                    self.env[args[0]] = var
-        except FileNotFoundError:
-            logger.warning('No .env file found')
-        self.load_defaults(app)
+    def init(self, app, exec_env='development'):
+        self.env = Environment.keys(app)
+        self.env['ENV'] = exec_env
+        env_stack = [
+            self.load_from_os(),
+            self.load_from_file(app, f'{exec_env}.local.env'),
+            self.load_from_file(app, f'{exec_env}.env')
+        ]
+        self.override_env(env_stack)
+        self.set_app_config(app)
+
+    def set_app_config(self, app):
         app.config['ENV'] = self.env['ENV']
         debug = self.env.get('DEBUG')
         app.config['DEBUG'] = app.config['ENV'] == 'development' if debug is None \
             else debug == 'True'
+        secret_key = self.env.get('SECRET_KEY')
+        if secret_key is None or len(secret_key) == 0:
+            logger.warning('No secret key set! '
+                           'Put this "SECRET_KEY=your_secret_key" '
+                           f'in instance/{self.env["ENV"]}.local.env')
         app.secret_key = self.env.get('SECRET_KEY')
         app.static_folder = self.env['WEBAPP_FOLDER']
+    
+    def load_from_os(self):
+        keys = {}
+        for key in os.environ:
+            if key.startswith('BLNT_'):
+                keys[key[5:]] = os.environ[key]
+        return keys
+    
+    def load_from_file(self, app, file_name):
+        config = SafeConfigParser()
+        try:
+            with open(os.path.join(app.instance_path, file_name), 'r') as f:
+                config.read_string(Environment.read_env_file(f))
+                if (file_env := config['DEFAULT']) is not None:
+                    return file_env
+                else:
+                    return {}
+        except FileNotFoundError:
+            return {}
 
-    def load_defaults(self, app):
-        if 'WEBAPP_FOLDER' not in self.env:
-            self.env['WEBAPP_FOLDER'] = os.path.join(app.root_path, '..', 'webapp', 'dist')
-        if 'ENV' not in self.env:
-            self.env['ENV'] = 'development'
+    def override_env(self, stack):
+        for key in self.env:
+            override = self.parse_sources(key, stack)
+            if override is not None:
+                self.env[key] = override
+    
+    def parse_sources(self, key, stack):
+        for source in stack:
+            if key in source:
+                return source[key]
+        return None
 
     def __getitem__(self, key):
-        item = self.env.get(key, None)
-        if item is None:
-            item = os.environ.get(key, None)
-        return item
+        return self.env.get(key, None)
 
     def __setitem__(self, key, value):
         self.env[key] = value

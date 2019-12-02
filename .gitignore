@@ -47,7 +47,7 @@ target/
 .python-version
 celerybeat-schedule
 *.sage.py
-instance/.env
+*.local.env
 *.db
 .venv
 env/
@@ -60,5 +60,6 @@ venv.bak/
 .ropeproject
 /site
 .mypy_cache/
-# IDEA
+# IDE
 .idea/
+.vscode/
