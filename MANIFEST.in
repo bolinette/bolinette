@@ -1,2 +1,4 @@
 include README
 include LICENSE.txt
+include bolinette/cli/nodes.yml
+recursive-include bolinette/cli/files *

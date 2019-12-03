@@ -5,6 +5,9 @@ setup(
     name='Bolinette',
     packages=[
         'bolinette',
+        'bolinette.cli',
+        'bolinette.cli.commands',
+        'bolinette.cli.nodes',
         'bolinette.controllers',
         'bolinette.marshalling',
         'bolinette.models',

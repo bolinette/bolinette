@@ -1,0 +1,61 @@
+- name: new
+  type: node
+  desc: >-
+    Main command to create files
+  children:
+    - name: api
+      type: command
+      desc: >-
+        Creates a brand new bolinette app
+      command: create_api
+      args:
+        - name: module
+          desc: >-
+            The name of the Python module, must be in snake case.
+          type: inline
+        - name: name
+          desc: >-
+            The display name of your API
+          type: ask
+          required: true
+        - name: desc
+          desc: >-
+            The description of your API
+          type: ask
+          default: My wonderful API
+      params:
+        bolinette: 0.0.7
+    - name: model
+      type: command
+      desc: >-
+        Creates a new database model
+      command: create_model
+      args:
+        - name: name
+          type: inline
+          desc: >-
+            The name of the Python module, must be in snake case.
+        - name: controller
+          type: flag
+          flag: c
+          desc: >-
+            Create the controller too.
+        - name: service
+          type: flag
+          flag: s
+          desc: >-
+            Create the service too
+- name: run
+  type: node
+  desc: >-
+    Main command to run scripts
+  children:
+    - name: server
+      type: command
+      desc: >-
+        Run the API server
+      command: run_server
+- name: runserver
+  type: command
+  command: run_server
+  hidden: true
