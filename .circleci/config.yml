@@ -1,0 +1,44 @@
+version: 2.1
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - deploy:
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+jobs:
+  deploy:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - restore_cache:
+          key: pip-packages-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv venv
+            source venv/bin/activate
+            make install
+      - save_cache:
+          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}
+          paths:
+            - venv
+      - run:
+          name: init .pypirc
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+      - run:
+          name: create packages
+          command: |
+            make package
+      - run:
+          name: upload to pypi
+          command: |
+            source venv/bin/activate
+            twine upload dist/*

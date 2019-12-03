@@ -1,3 +1,4 @@
+import setuptools
 from distutils.core import setup
 
 setup(
@@ -10,7 +11,7 @@ setup(
         'bolinette.services',
         'bolinette.testing'
     ],
-    version='0.0.8',
+    version='0.0.9',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',
@@ -31,5 +32,8 @@ setup(
         'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.7',
+    ],
+    setup_requires=[
+        'wheel'
     ],
 )
