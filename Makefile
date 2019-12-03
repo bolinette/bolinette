@@ -10,4 +10,4 @@ package:
 	python setup.py bdist_wheel
 
 tests:
-    pytest
+	pytest
