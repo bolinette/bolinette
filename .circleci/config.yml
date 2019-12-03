@@ -19,13 +19,18 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python dependencies
+          name: Install python dependencies
           command: |
             python3 -m venv venv
             source venv/bin/activate
             make install
       - run:
-          name: run tests
+          name: Create local .env
+          command: |
+            echo -e "SECRET_KEY=$(openssl rand -base64 32)" >> ~/instance/development.local.env
+            echo -e "JWT_SECRET_KEY=$(openssl rand -base64 32)" >> ~/instance/development.local.env
+      - run:
+          name: Run tests
           command: |
             source venv/bin/activate
             pytest
@@ -35,23 +40,23 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python dependencies
+          name: Install python dependencies
           command: |
             python3 -m venv venv
             source venv/bin/activate
             make install
       - run:
-          name: init .pypirc
+          name: Init .pypirc
           command: |
             echo -e "[pypi]" >> ~/.pypirc
             echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
             echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
       - run:
-          name: create packages
+          name: Create packages
           command: |
             make package
       - run:
-          name: upload to pypi
+          name: Upload to pypi
           command: |
             source venv/bin/activate
             twine upload dist/*
