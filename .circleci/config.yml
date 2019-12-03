@@ -27,8 +27,8 @@ jobs:
       - run:
           name: Create local .env
           command: |
-            echo -e "SECRET_KEY=$(openssl rand -base64 32)" >> ~/instance/development.local.env
-            echo -e "JWT_SECRET_KEY=$(openssl rand -base64 32)" >> ~/instance/development.local.env
+            echo -e "SECRET_KEY=$(openssl rand -base64 32)" >> ./instance/development.local.env
+            echo -e "JWT_SECRET_KEY=$(openssl rand -base64 32)" >> ./instance/development.local.env
       - run:
           name: Run tests
           command: |
@@ -48,9 +48,9 @@ jobs:
       - run:
           name: Init .pypirc
           command: |
-            echo -e "[pypi]" >> ~/.pypirc
-            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
-            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+            echo -e "[pypi]" >> ./.pypirc
+            echo -e "username = $PYPI_USERNAME" >> ./.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ./.pypirc
       - run:
           name: Create packages
           command: |
