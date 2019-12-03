@@ -1,5 +1,5 @@
 import os
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 
 from bolinette import logger
 
@@ -25,10 +25,13 @@ class Environment:
     def __init__(self):
         self.env = {}
 
-    def init(self, app, exec_env='development'):
+    def init(self, app, **options):
+        exec_env = options.get('exec_env', 'development')
+        overrides = options.get('overrides', {})
         self.env = Environment.keys(app)
         self.env['ENV'] = exec_env
         env_stack = [
+            overrides,
             self.load_from_os(),
             self.load_from_file(app, f'{exec_env}.local.env'),
             self.load_from_file(app, f'{exec_env}.env')
@@ -57,7 +60,7 @@ class Environment:
         return keys
     
     def load_from_file(self, app, file_name):
-        config = SafeConfigParser()
+        config = ConfigParser()
         try:
             with open(os.path.join(app.instance_path, file_name), 'r') as f:
                 config.read_string(Environment.read_env_file(f))

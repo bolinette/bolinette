@@ -3,6 +3,7 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
+      - testing
       - deploy:
           filters:
             tags:
@@ -10,23 +11,32 @@ workflows:
             branches:
               ignore: /.*/
 jobs:
-  deploy:
+  testing:
     docker:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - restore_cache:
-          key: pip-packages-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}
       - run:
           name: install python dependencies
           command: |
             python3 -m venv venv
             source venv/bin/activate
             make install
-      - save_cache:
-          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}
-          paths:
-            - venv
+      - run:
+          name: run tests
+          command: |
+            make tests
+  deploy:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv venv
+            source venv/bin/activate
+            make install
       - run:
           name: init .pypirc
           command: |

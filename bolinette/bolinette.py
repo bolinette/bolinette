@@ -10,11 +10,12 @@ from bolinette.scripts import init_commands
 
 
 class Bolinette:
-    def __init__(self, name):
+    def __init__(self, name, **options):
+        env_overrides = options.get('env', {})
         self.app = Flask(name, static_url_path='')
         CORS(self.app, supports_credentials=True)
         self.manager = Manager(self.app)
-        env.init(self.app)
+        env.init(self.app, overrides=env_overrides)
         init_jwt(self.app)
         init_db(self.app)
         init_routes(self.app)
