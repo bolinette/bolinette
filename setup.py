@@ -24,10 +24,16 @@ setup(
     install_requires=[
         'Flask==1.1.1',
         'Flask-Bcrypt==0.7.1',
-        'Flask-JWT-Extended==3.21.0',
+        'Flask-Cors==3.0.8',
+        'Flask-JWT-Extended==3.24.1',
         'Flask-Script==2.0.6',
-        'Flask-SQLAlchemy==2.4.0',
-        'PyJWT==1.7.1'
+        'Flask-SQLAlchemy==2.4.1',
+        'Jinja2==2.10.3',
+        'PyJWT==1.7.1',
+        'pytest==5.3.1',
+        'PyYAML==5.2',
+        'SQLAlchemy==1.3.11',
+        'twine==3.1.1',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -43,5 +49,5 @@ setup(
         'console_scripts': [
             'blnt=bolinette.cli:main'
         ]
-    }
+    },
 )
