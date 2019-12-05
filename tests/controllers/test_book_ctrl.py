@@ -25,10 +25,10 @@ def set_up():
     insert(Book, set_owner(create_mock(3, 'book'), 2))
 
 
-def assert_equal_books(b1, b2, owner):
-    assert b1['name'] == b2['name']
-    assert b1['pages'] == b2['pages']
-    assert b1['owner']['username'] == owner['username']
+def equal_books(b1, b2, owner):
+    return (b1['name'] == b2['name'] and
+            b1['pages'] == b2['pages'] and
+            b1['owner']['username'] == owner['username'])
 
 
 @bolitest(before=set_up)
@@ -45,7 +45,7 @@ def test_get_book(client):
 
     rv = client.get('/book/1')
     assert rv['code'] == 200
-    assert_equal_books(rv['data'], book1, user1)
+    assert equal_books(rv['data'], book1, user1)
 
 
 @bolitest(before=set_up)
@@ -55,7 +55,7 @@ def test_get_book2(client):
 
     rv = client.get('/book/3')
     assert rv['code'] == 200
-    assert_equal_books(rv['data'], book3, user2)
+    assert equal_books(rv['data'], book3, user2)
 
 
 @bolitest(before=set_up)
@@ -71,7 +71,7 @@ def test_create_book(client):
 
     rv = client.post('/book', book4)
     assert rv['code'] == 201
-    assert_equal_books(rv['data'], book4, user1)
+    assert equal_books(rv['data'], book4, user1)
 
 
 @bolitest(before=set_up)
@@ -99,7 +99,7 @@ def test_update_book(client):
 
     rv = client.put('/book/1', book5)
     assert rv['code'] == 200
-    assert_equal_books(rv['data'], book5, user2)
+    assert equal_books(rv['data'], book5, user2)
 
 
 @bolitest(before=set_up)

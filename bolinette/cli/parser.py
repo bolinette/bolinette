@@ -9,7 +9,7 @@ from bolinette.cli.nodes import Node, Command
 
 
 class Parser:
-    def __init__(self, cwd, bolinette):
+    def __init__(self, cwd, bolinette=None):
         cli_env['cwd'] = cwd
         cli_env['origin'] = os.path.dirname(os.path.realpath(__file__))
         cli_env['bolinette'] = bolinette
