@@ -14,7 +14,7 @@ setup(
         'bolinette.services',
         'bolinette.testing'
     ],
-    version='0.0.10',
+    version='0.0.11',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',
