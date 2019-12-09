@@ -1,5 +1,7 @@
 clean:
-	rm -rf dist/*
+	rm -rf *.egg-info
+	rm -rf build
+	rm -rf dist
 
 install:
 	pip install --upgrade pip

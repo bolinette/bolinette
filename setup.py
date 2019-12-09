@@ -1,20 +1,15 @@
-import setuptools
-from distutils.core import setup
+from setuptools import setup, find_packages
+
+
+def project_packages(module):
+    return [m for m in find_packages() if m.startswith(module)]
+
 
 setup(
     name='Bolinette',
-    packages=[
-        'bolinette',
-        'bolinette.cli',
-        'bolinette.cli.commands',
-        'bolinette.cli.nodes',
-        'bolinette.controllers',
-        'bolinette.marshalling',
-        'bolinette.models',
-        'bolinette.services',
-        'bolinette.testing'
-    ],
-    version='0.0.12',
+    packages=project_packages('bolinette'),
+    include_package_data= True,
+    version='0.0.13',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',
