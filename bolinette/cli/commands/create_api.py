@@ -1,7 +1,3 @@
-import os
-import virtualenv
-import subprocess
-
 from bolinette.cli import cli_env, utils
 
 
