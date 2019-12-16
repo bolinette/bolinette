@@ -9,10 +9,6 @@
         Creates a brand new bolinette app
       command: create_api
       args:
-        - name: module
-          desc: >-
-            The name of the Python module, must be in snake case.
-          type: inline
         - name: name
           desc: >-
             The display name of your API

@@ -1,6 +1,8 @@
 import os
 import random
 import string
+import subprocess
+import re
 
 import yaml
 from jinja2 import Template
@@ -27,7 +29,7 @@ def render(path, params):
 
 def copy(origin, dest, params):
     content = render(origin, params)
-    write(dest, content)
+    write(re.sub(r'.jinja2$', '', dest), content)
 
 
 def random_string(length):
@@ -37,3 +39,22 @@ def random_string(length):
 def read_manifest(path):
     with open(join(path, 'manifest.bolinette.yaml')) as f:
         return yaml.safe_load(f)
+
+
+def run_shell_command(command, args, out_fn):
+    process = subprocess.Popen([command, *args], stdout=subprocess.PIPE)
+    for line in iter(process.stdout.readline, ''):
+        if len(line) > 0:
+            out_fn(line.rstrip().decode('utf-8'))
+        else:
+            break
+
+
+def render_directory(origin, dest, params):
+    if not os.path.exists(dest):
+        mkdir(dest)
+    for f in os.listdir(origin):
+        if os.path.isdir(join(origin, f)):
+            render_directory(join(origin, f), join(dest, f), params)
+        if os.path.isfile(join(origin, f)):
+            copy(join(origin, f), join(dest, f), params)

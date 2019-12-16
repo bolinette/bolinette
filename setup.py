@@ -9,7 +9,7 @@ setup(
     name='Bolinette',
     packages=project_packages('bolinette'),
     include_package_data= True,
-    version='0.0.13',
+    version='0.0.14',
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',

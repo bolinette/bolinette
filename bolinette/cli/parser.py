@@ -69,7 +69,7 @@ class Parser:
         return valid
 
     def ask_params(self, command):
-        for ask in command.ask:
+        for ask in [a for a in command.ask if a.value is None]:
             text = ask.name
             if ask.desc is not None:
                 text += f' ({ask.desc})'
@@ -81,7 +81,9 @@ class Parser:
             while True:
                 print(text)
                 value = input(prompt)
-                if not not value or (not value and ask.default is not None):
+                if not value and ask.default is not None:
+                    value = ask.default
+                if not not value:
                     break
             if not not value:
                 ask.value = value
@@ -92,10 +94,10 @@ class Parser:
         while index < len(argv):
             current = argv[index]
             if current.startswith('--'):
-                for arg in command.args:
+                for arg in command.args + command.ask:
                     if current == '--' + arg.name:
-                        if current + 1 < len(argv):
-                            arg.value = current
+                        if index + 1 < len(argv):
+                            arg.value = argv[index + 1]
                             skip = True
                         else:
                             arg.missing = True

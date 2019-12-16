@@ -3,7 +3,7 @@ class Ask:
         self.name = name
         self.required = required
         self.default = default
-        self.value = default
+        self.value = None
         self.desc = desc
 
     def __repr__(self):

@@ -23,13 +23,10 @@ class Loader:
     def load_command(command):
         c = Command(command['name'], command['command'], command.get('desc'),
                     command.get('params', {}), command.get('hidden', False))
-        if 'inline' in command:
-            c.inline = [Loader.load_inline(a) for a in command['args'] if a['type'] == 'inline']
-        if 'ask' in command:
-            c.ask = [Loader.load_ask(a) for a in command['args'] if a['type'] == 'ask']
         if 'args' in command:
+            c.inline = [Loader.load_inline(a) for a in command['args'] if a['type'] == 'inline']
+            c.ask = [Loader.load_ask(a) for a in command['args'] if a['type'] == 'ask']
             c.args = [Loader.load_argument(a) for a in command['args'] if a['type'] == 'arg']
-        if 'flags' in command:
             c.flags = [Loader.load_flag(a) for a in command['args'] if a['type'] == 'flag']
         return c
 
