@@ -1,6 +1,6 @@
 # Bolinette
 
-Bolinette is a framework built around the Flask micro-framework
+Bolinette is a framework built around the Flask micro-framework.
 
 ## Install
 
@@ -17,17 +17,17 @@ mkdir my_project && cd my_project
 
 ### Install Bolinette
 
-With a virtual environment
+With a virtual environment:
 ```shell script
 python3.8 -m venv venv && source venv/bin/activate && pip install pip --upgrade && pip install bolinette
 ```
 
-Globally, with admin rights
+Globally, with admin rights:
 ```shell script
 pip install pip --upgrade && pip install bolinette
 ```
 
-## Use the bolinette CLI
+## Use the Bolinette CLI
 
 Whether you use the virtualenv or global method, you can use the CLI with the `blnt` command. If you are using
 a virtualenv, be sure to activate it before using the CLI.
