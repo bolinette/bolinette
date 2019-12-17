@@ -30,11 +30,13 @@ def update_user(payload):
     user = user_service.update(user, payload)
     access_token = create_access_token(identity=user.username, fresh=True)
     refresh_token = create_refresh_token(identity=user.username)
+
     @after_this_request
     def set_login_cookies(resp):
         set_access_cookies(resp, access_token)
         set_refresh_cookies(resp, refresh_token)
         return resp
+
     return response.ok('user.updated', user)
 
 
@@ -61,11 +63,13 @@ def login(payload):
         if user_service.check_password(user, password):
             access_token = create_access_token(identity=user.username, fresh=True)
             refresh_token = create_refresh_token(identity=user.username)
+
             @after_this_request
             def set_login_cookies(resp):
                 set_access_cookies(resp, access_token)
                 set_refresh_cookies(resp, refresh_token)
                 return resp
+
             return response.ok('user.login.success', user)
     return response.unauthorized('user.login.wrong_credentials')
 
@@ -76,6 +80,7 @@ def logout():
     def unset_cookies(resp):
         unset_jwt_cookies(resp)
         return resp
+
     return response.ok('user.logout.success')
 
 
@@ -93,10 +98,12 @@ def register(payload):
 def refresh():
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity, fresh=False)
+
     @after_this_request
     def reset_cookies(resp):
         set_access_cookies(resp, access_token)
         return resp
+
     return response.ok('user.token.refreshed')
 
 

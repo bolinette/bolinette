@@ -1,9 +1,11 @@
-
 import os
+from functools import wraps
 
 from flask_sqlalchemy import SQLAlchemy
 
 from bolinette import env, logger
+
+_seeder_funcs = []
 
 db = SQLAlchemy()
 
@@ -23,3 +25,18 @@ def init_db(app):
     app.config['SQLALCHEMY_DATABASE_URI'] = create_db_uri(app)
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
     db.init_app(app)
+
+
+def seeder(func):
+    _seeder_funcs.append(func)
+
+    @wraps(func)
+    def inner(*args, **kwargs):
+        func(*args, **kwargs)
+
+    return inner
+
+
+def run_seeders():
+    for func in _seeder_funcs:
+        func()

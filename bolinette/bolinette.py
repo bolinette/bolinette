@@ -6,7 +6,6 @@ from bolinette import env, Namespace
 from bolinette.database import init_db
 from bolinette.jwt import init_jwt
 from bolinette.routes import init_routes
-from bolinette.scripts import init_commands
 
 
 class Bolinette:
@@ -19,5 +18,4 @@ class Bolinette:
         init_jwt(self.app)
         init_db(self.app)
         init_routes(self.app)
-        init_commands(self.manager)
         Namespace.init_namespaces(self.app)

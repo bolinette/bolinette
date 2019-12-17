@@ -55,3 +55,19 @@
   type: command
   command: run_server
   hidden: true
+- name: init
+  type: node
+  desc: >-
+    Main command to initialize data
+  children:
+    - name: db
+      type: command
+      command: init_db
+      desc: >-
+        Deletes all data from environment database and resets tables
+      args:
+        - name: seed
+          type: flag
+          flag: s
+          desc: >-
+            Runs the seeders

@@ -1,4 +1,4 @@
-from bolinette import db
+from bolinette import db, seeder
 
 
 class Role(db.Model):
@@ -9,3 +9,9 @@ class Role(db.Model):
 
     def __repr__(self):
         return f'<Role {self.name}>'
+
+
+@seeder
+def role_seeder():
+    db.session.add(Role(name='root'))
+    db.session.add(Role(name='admin'))

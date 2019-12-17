@@ -18,7 +18,7 @@ def bolitest(**options):
             db.create_all()
             if 'before' in options and callable(options['before']):
                 options['before']()
-            return func(*args, **kwargs)
+            yield func(*args, **kwargs)
             if 'after' in options and callable(options['after']):
                 options['after']()
             db.drop_all()
