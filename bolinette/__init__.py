@@ -12,4 +12,4 @@ import bolinette.controllers
 from bolinette.bolinette import Bolinette
 
 
-version = '0.0.16'
+version = '0.0.17'

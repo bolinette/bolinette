@@ -53,7 +53,7 @@
           flag: s
           desc: >-
             Runs the seeders
-    - name: api
+    - name: app
       type: command
       desc: >-
         Creates a brand new bolinette app, only works if no Bolinette manifest is present

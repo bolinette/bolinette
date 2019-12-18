@@ -6,7 +6,6 @@ def create_api(**options):
     cwd = cli_env['cwd']
     origin = utils.join(cli_env['origin'], 'files')
     manifest = utils.read_manifest(cwd)
-    print(origin)
     if manifest is not None:
         console.error('Manifest file found, it seems Bolinette has already been initialized!')
     else:
@@ -19,4 +18,4 @@ def create_api(**options):
             'desc': api_desc,
             'blnt_version': version
         }
-        # utils.render_directory(utils.join(origin, 'api'), cwd, params)
+        utils.render_directory(utils.join(origin, 'api'), cwd, params)
