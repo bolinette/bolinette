@@ -59,6 +59,7 @@ jobs:
       - run:
           name: Create packages
           command: |
+            source venv/bin/activate
             make package
       - run:
           name: Upload to pypi
