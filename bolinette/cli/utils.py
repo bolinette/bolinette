@@ -37,8 +37,11 @@ def random_string(length):
 
 
 def read_manifest(path):
-    with open(join(path, 'manifest.bolinette.yaml')) as f:
-        return yaml.safe_load(f)
+    try:
+        with open(join(path, 'manifest.blnt.yml')) as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        return None
 
 
 def run_shell_command(command, args, out_fn):

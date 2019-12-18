@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+import bolinette
+
 
 def project_packages(module):
     return [m for m in find_packages() if m.startswith(module)]
@@ -9,7 +11,7 @@ setup(
     name='Bolinette',
     packages=project_packages('bolinette'),
     include_package_data= True,
-    version='0.0.15',
+    version=bolinette.version,
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',

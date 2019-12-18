@@ -3,24 +3,6 @@
   desc: >-
     Main command to create files
   children:
-    - name: api
-      type: command
-      desc: >-
-        Creates a brand new bolinette app
-      command: create_api
-      args:
-        - name: name
-          desc: >-
-            The display name of your API
-          type: ask
-          required: true
-        - name: desc
-          desc: >-
-            The description of your API
-          type: ask
-          default: My wonderful API
-      params:
-        bolinette: 0.0.7
     - name: model
       type: command
       desc: >-
@@ -71,3 +53,19 @@
           flag: s
           desc: >-
             Runs the seeders
+    - name: api
+      type: command
+      desc: >-
+        Creates a brand new bolinette app, only works if no Bolinette manifest is present
+      command: create_api
+      args:
+        - name: name
+          desc: >-
+            The display name of your API
+          type: ask
+          required: true
+        - name: desc
+          desc: >-
+            The description of your API
+          type: ask
+          default: My wonderful API
