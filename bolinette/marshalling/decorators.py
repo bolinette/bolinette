@@ -7,7 +7,7 @@ from bolinette.marshalling import get_payload, get_response, marshall
 from bolinette.marshalling.definitions import link_foreign_entities
 
 
-def expects(model, key='default', update=False):
+def expects(model, key='default', patch=False):
     def wrapper(func):
         @wraps(func)
         def inner(*args, **kwargs):
@@ -17,7 +17,7 @@ def expects(model, key='default', update=False):
             if definition is None:
                 response.abort(*response.internal_server_error(
                     f'marshalling.unknown_definition:{def_key}'))
-            kwargs['payload'] = validate.payload(definition, payload, update)
+            kwargs['payload'] = validate.payload(definition, payload, patch)
             link_foreign_entities(definition, payload)
             return func(*args, **kwargs)
         return inner

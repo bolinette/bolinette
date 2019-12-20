@@ -29,10 +29,19 @@ def create_book(payload):
 @ns.route('/<book_id>', methods=['PUT'])
 @returns('book', 'complete')
 @transactional
-@expects('book', update=True)
+@expects('book')
 def update_book(book_id, payload):
     book = book_service.get(book_id)
     return response.ok('book.updated', book_service.update(book, payload))
+
+
+@ns.route('/<book_id>', methods=['PATCH'])
+@returns('book', 'complete')
+@transactional
+@expects('book', patch=True)
+def patch_book(book_id, payload):
+    book = book_service.get(book_id)
+    return response.ok('book.updated', book_service.patch(book, payload))
 
 
 @ns.route('/<book_id>', methods=['DELETE'])

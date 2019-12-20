@@ -24,7 +24,7 @@ def me():
 @fresh_jwt_required
 @returns('user', 'private')
 @transactional
-@expects('user', 'register', update=True)
+@expects('user', 'register', patch=True)
 def update_user(payload):
     user = user_service.get_by_username(get_jwt_identity())
     user = user_service.update(user, payload)

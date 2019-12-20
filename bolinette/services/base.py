@@ -43,6 +43,10 @@ class BaseService:
     def update(self, entity, params):
         mapper.update(self.model, entity, params)
         return entity
+    
+    def patch(self, entity, params):
+        mapper.update(self.model, entity, params, patch=True)
+        return entity
 
     def delete(self, entity):
         db.session.delete(entity)

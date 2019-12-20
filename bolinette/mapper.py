@@ -2,11 +2,11 @@ from bolinette.exceptions import ParamConflictError
 
 
 class Mapper:
-    def update(self, model, entity, params):
+    def update(self, model, entity, params, patch=False):
         errors = []
         for column in model.__table__.columns:
             key = column.key
-            if key not in params:
+            if column.primary_key or (key not in params and patch):
                 continue
             original = getattr(entity, key)
             new = params.get(key, None)

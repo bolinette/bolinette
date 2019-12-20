@@ -95,36 +95,49 @@ def test_create_book_user_not_found(client):
 @bolitest(before=set_up)
 def test_update_book(client):
     user2 = create_mock(2, 'user', 'register')
-    book5 = set_owner(create_mock(1, 'book'), 2)
+    book1 = set_owner(create_mock(1, 'book'), 2)
 
-    rv = client.put('/book/1', book5)
+    rv = client.put('/book/1', book1)
     assert rv['code'] == 200
-    assert equal_books(rv['data'], book5, user2)
+    assert equal_books(rv['data'], book1, user2)
+
+
+@bolitest(before=set_up)
+def test_update_book_bad_request(client):
+    rv = client.put('/book/1', {'name': 'new book name'})
+    assert rv['code'] == 400
+    assert 'param.required:pages' in rv['messages']
+    assert 'param.required:owner_id' in rv['messages']
 
 
 @bolitest(before=set_up)
 def test_update_book_not_found(client):
-    rv = client.put('/book/4', {'name': 'new book name'})
+    rv = client.patch('/book/4', {'name': 'new book name'})
     assert rv['code'] == 404
 
 
 @bolitest(before=set_up)
-def test_partial_update_book(client):
-    rv = client.put('/book/1', {'name': 'new book name'})
+def test_patch_book(client):
+    user1 = create_mock(1, 'user', 'register')
+    book1 = set_owner(create_mock(1, 'book'), 1)
+
+    rv = client.patch('/book/1', {'name': 'new book name'})
     assert rv['code'] == 200
     assert rv['data']['name'] == 'new book name'
+    assert rv['data']['pages'] == book1['pages']
+    assert rv['data']['owner']['username'] == user1['username']
 
 
 @bolitest(before=set_up)
-def test_partial_update_book_bad_request(client):
-    rv = client.put('/book/1', {'name': ''})
+def test_patch_book_bad_request(client):
+    rv = client.patch('/book/1', {'name': ''})
     assert rv['code'] == 400
     assert 'param.required:name' in rv['messages']
 
 
 @bolitest(before=set_up)
 def test_update_book_user_not_found(client):
-    rv = client.put('/book/1', {'owner_id': 3})
+    rv = client.patch('/book/1', {'owner_id': 3})
     assert rv['code'] == 404
     assert 'user.not_found:id:3' in rv['messages']
 

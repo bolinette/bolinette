@@ -26,9 +26,9 @@ class Transaction:
         else:
             try:
                 db.session.commit()
-            except SQLAlchemyError:
+            except SQLAlchemyError as err:
                 db.session.rollback()
-                response.abort(*response.internal_server_error('global.internal_error'))
+                response.abort(*response.internal_server_error(f'global.internal_error:{err}'))
 
 
 transaction = Transaction()
