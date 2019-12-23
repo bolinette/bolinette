@@ -18,7 +18,7 @@ def expects(model, key='default', patch=False):
                 response.abort(*response.internal_server_error(
                     f'marshalling.unknown_definition:{def_key}'))
             kwargs['payload'] = validate.payload(definition, payload, patch)
-            link_foreign_entities(definition, payload)
+            link_foreign_entities(definition, kwargs['payload'])
             return func(*args, **kwargs)
         return inner
     return wrapper

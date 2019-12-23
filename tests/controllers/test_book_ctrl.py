@@ -1,34 +1,27 @@
 import pytest
 
-from bolinette import bcrypt
-from bolinette.models import User
 from bolinette.testing import client, bolitest, create_mock, insert
 
-from example.models import Book
+from example.models import Book, Person
 
 
-def salt_password(mock):
-    mock['password'] = bcrypt.generate_password_hash(mock['password'])
-    return mock
-
-
-def set_owner(mock, owner_id):
-    mock['owner_id'] = owner_id
+def set_author(mock, author_id):
+    mock['author_id'] = author_id
     return mock
 
 
 def set_up():
-    insert(User, salt_password(create_mock(1, 'user', 'register')))
-    insert(User, salt_password(create_mock(2, 'user', 'register')))
-    insert(Book, set_owner(create_mock(1, 'book'), 1))
-    insert(Book, set_owner(create_mock(2, 'book'), 1))
-    insert(Book, set_owner(create_mock(3, 'book'), 2))
+    insert(Person, create_mock(1, 'person'))
+    insert(Person, create_mock(2, 'person'))
+    insert(Book, set_author(create_mock(1, 'book'), 1))
+    insert(Book, set_author(create_mock(2, 'book'), 1))
+    insert(Book, set_author(create_mock(3, 'book'), 2))
 
 
-def equal_books(b1, b2, owner):
+def equal_books(b1, b2, author):
     return (b1['name'] == b2['name'] and
             b1['pages'] == b2['pages'] and
-            b1['owner']['username'] == owner['username'])
+            b1['author']['name'] == author['name'])
 
 
 @bolitest(before=set_up)
@@ -40,22 +33,22 @@ def test_get_books(client):
 
 @bolitest(before=set_up)
 def test_get_book(client):
-    user1 = create_mock(1, 'user', 'register')
-    book1 = set_owner(create_mock(1, 'book'), 1)
+    author1 = create_mock(1, 'person')
+    book1 = set_author(create_mock(1, 'book'), 1)
 
     rv = client.get('/book/1')
     assert rv['code'] == 200
-    assert equal_books(rv['data'], book1, user1)
+    assert equal_books(rv['data'], book1, author1)
 
 
 @bolitest(before=set_up)
 def test_get_book2(client):
-    user2 = create_mock(2, 'user', 'register')
-    book3 = set_owner(create_mock(3, 'book'), 2)
+    author2 = create_mock(2, 'person')
+    book3 = set_author(create_mock(3, 'book'), 2)
 
     rv = client.get('/book/3')
     assert rv['code'] == 200
-    assert equal_books(rv['data'], book3, user2)
+    assert equal_books(rv['data'], book3, author2)
 
 
 @bolitest(before=set_up)
@@ -66,12 +59,12 @@ def test_get_book_not_found(client):
 
 @bolitest(before=set_up)
 def test_create_book(client):
-    user1 = create_mock(1, 'user', 'register')
-    book4 = set_owner(create_mock(4, 'book'), 1)
+    author1 = create_mock(1, 'person')
+    book4 = set_author(create_mock(4, 'book'), 1)
 
     rv = client.post('/book', book4)
     assert rv['code'] == 201
-    assert equal_books(rv['data'], book4, user1)
+    assert equal_books(rv['data'], book4, author1)
 
 
 @bolitest(before=set_up)
@@ -80,26 +73,26 @@ def test_create_book_bad_request(client):
     assert rv['code'] == 400
     assert 'param.required:name' in rv['messages']
     assert 'param.required:pages' in rv['messages']
-    assert 'param.required:owner_id' in rv['messages']
+    assert 'param.required:author_id' in rv['messages']
 
 
 @bolitest(before=set_up)
-def test_create_book_user_not_found(client):
-    book4 = set_owner(create_mock(4, 'book'), 3)
+def test_create_book_author_not_found(client):
+    book4 = set_author(create_mock(4, 'book'), 3)
 
     rv = client.post('/book', book4)
     assert rv['code'] == 404
-    assert 'user.not_found:id:3' in rv['messages']
+    assert 'person.not_found:id:3' in rv['messages']
 
 
 @bolitest(before=set_up)
 def test_update_book(client):
-    user2 = create_mock(2, 'user', 'register')
-    book1 = set_owner(create_mock(1, 'book'), 2)
+    author2 = create_mock(2, 'person')
+    book1 = set_author(create_mock(1, 'book'), 2)
 
     rv = client.put('/book/1', book1)
     assert rv['code'] == 200
-    assert equal_books(rv['data'], book1, user2)
+    assert equal_books(rv['data'], book1, author2)
 
 
 @bolitest(before=set_up)
@@ -107,7 +100,7 @@ def test_update_book_bad_request(client):
     rv = client.put('/book/1', {'name': 'new book name'})
     assert rv['code'] == 400
     assert 'param.required:pages' in rv['messages']
-    assert 'param.required:owner_id' in rv['messages']
+    assert 'param.required:author_id' in rv['messages']
 
 
 @bolitest(before=set_up)
@@ -118,14 +111,14 @@ def test_update_book_not_found(client):
 
 @bolitest(before=set_up)
 def test_patch_book(client):
-    user1 = create_mock(1, 'user', 'register')
-    book1 = set_owner(create_mock(1, 'book'), 1)
+    author1 = create_mock(1, 'person')
+    book1 = set_author(create_mock(1, 'book'), 1)
 
     rv = client.patch('/book/1', {'name': 'new book name'})
     assert rv['code'] == 200
     assert rv['data']['name'] == 'new book name'
     assert rv['data']['pages'] == book1['pages']
-    assert rv['data']['owner']['username'] == user1['username']
+    assert rv['data']['author']['name'] == author1['name']
 
 
 @bolitest(before=set_up)
@@ -136,10 +129,10 @@ def test_patch_book_bad_request(client):
 
 
 @bolitest(before=set_up)
-def test_update_book_user_not_found(client):
-    rv = client.patch('/book/1', {'owner_id': 3})
+def test_update_book_author_not_found(client):
+    rv = client.patch('/book/1', {'author_id': 3})
     assert rv['code'] == 404
-    assert 'user.not_found:id:3' in rv['messages']
+    assert 'person.not_found:id:3' in rv['messages']
 
 
 @bolitest(before=set_up)

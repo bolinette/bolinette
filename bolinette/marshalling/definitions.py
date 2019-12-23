@@ -1,6 +1,5 @@
 from bolinette import response, marshalling
 from bolinette.exceptions import EntityNotFoundError
-from bolinette.marshalling import Definition, Field
 
 _registered_models = {}
 _registered_responses = {}
@@ -29,7 +28,7 @@ def get_model(name):
 def register(model, name):
     def create_defs(collection, params):
         for key, payload in params:
-            definition = Definition(name, name, key)
+            definition = marshalling.Definition(name, name, key)
             for field in payload:
                 definition.fields.append(field)
             collection[definition.key] = definition
@@ -44,7 +43,7 @@ def register(model, name):
 def marshall(definition, entity, skip_none=False):
     data = {}
     for field in definition.fields:
-        if isinstance(field, Field):
+        if isinstance(field, marshalling.Field):
             if field.function is not None:
                 value = field.function(entity)
             else:
@@ -53,9 +52,12 @@ def marshall(definition, entity, skip_none=False):
                 value = field.formatting(value)
             if not skip_none or value is not None:
                 data[field.name] = value
-        elif isinstance(field, Definition):
+        elif isinstance(field, marshalling.Definition):
             d = get_response(field.key)
             data[field.name] = marshall(d, getattr(entity, field.name))
+        elif isinstance(field, marshalling.List):
+            d = get_response(field.element.key)
+            data[field.name] = [marshall(d, e) for e in getattr(entity, field.name)]
     return data
 
 

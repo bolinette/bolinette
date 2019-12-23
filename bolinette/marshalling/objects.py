@@ -15,11 +15,12 @@ class Field(MarshallingObject):
 
 
 class List(MarshallingObject):
-    def __init__(self, element):
+    def __init__(self, name, element):
+        self.name = name
         self.element = element
 
     def __repr__(self):
-        return f'<MarshallingList [{repr(self.element)}]>'
+        return f'<MarshallingList {self.name}:[{repr(self.element)}]>'
 
 
 class Definition(MarshallingObject):
