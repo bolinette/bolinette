@@ -29,7 +29,7 @@ def get_model(name):
 def register(model, name):
     def create_defs(collection, params):
         for key, payload in params:
-            definition = Definition(name, f'{name}.{key}')
+            definition = Definition(name, name, key)
             for field in payload:
                 definition.fields.append(field)
             collection[definition.key] = definition
