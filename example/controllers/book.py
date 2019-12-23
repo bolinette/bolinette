@@ -1,55 +1,13 @@
-from bolinette import Namespace, transactional, response
-from bolinette.marshalling import returns, expects
+from bolinette import Namespace
 from example.services import book_service
 
-ns = Namespace('book', '/book')
+ns = Namespace(book_service, '/book')
 
-
-@ns.route('')
-@returns('book', as_list=True)
-def get_books():
-    return response.ok('OK', book_service.get_all())
-
-
-@ns.route('/<book_id>', methods=['GET'])
-@returns('book', 'complete')
-@transactional
-def get_book(book_id):
-    return response.ok('OK', book_service.get(book_id))
-
-
-@ns.route('', methods=['POST'])
-@returns('book', 'complete')
-@transactional
-@expects('book')
-def create_book(payload):
-    return response.created('book.created', book_service.create(payload))
-
-
-@ns.route('/<book_id>', methods=['PUT'])
-@returns('book', 'complete')
-@transactional
-@expects('book')
-def update_book(book_id, payload):
-    book = book_service.get(book_id)
-    return response.ok('book.updated', book_service.update(book, payload))
-
-
-@ns.route('/<book_id>', methods=['PATCH'])
-@returns('book', 'complete')
-@transactional
-@expects('book', patch=True)
-def patch_book(book_id, payload):
-    book = book_service.get(book_id)
-    return response.ok('book.updated', book_service.patch(book, payload))
-
-
-@ns.route('/<book_id>', methods=['DELETE'])
-@returns('book', 'complete')
-@transactional
-def delete_book(book_id):
-    book = book_service.get(book_id)
-    return response.ok('book.deleted', book_service.delete(book))
-
+ns.defaults.get_all()
+ns.defaults.get_one('complete')
+ns.defaults.create('complete')
+ns.defaults.update('complete')
+ns.defaults.patch('complete')
+ns.defaults.delete('complete')
 
 ns.register()

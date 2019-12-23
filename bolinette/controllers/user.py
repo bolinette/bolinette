@@ -9,7 +9,7 @@ from bolinette.exceptions import EntityNotFoundError
 from bolinette.marshalling import expects, returns
 from bolinette.services import user_service
 
-ns = Namespace('user', '/user')
+ns = Namespace(user_service, '/user')
 
 
 @ns.route('/me', methods=['GET'])

@@ -3,12 +3,16 @@ from functools import wraps
 
 from flask import Blueprint, Response
 
+from bolinette.namespaces import Defaults
+
 
 class Namespace:
     namespaces = []
 
-    def __init__(self, name, url):
-        self.blueprint = Blueprint(name, __name__, url_prefix='/api' + url)
+    def __init__(self, service, url):
+        self.service = service
+        self.model = service.name
+        self.blueprint = Blueprint(self.model, __name__, url_prefix='/api' + url)
 
     @staticmethod
     def init_namespaces(app):
@@ -31,3 +35,7 @@ class Namespace:
 
     def register(self):
         Namespace.namespaces.append(self.blueprint)
+    
+    @property
+    def defaults(self):
+        return Defaults(self)

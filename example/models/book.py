@@ -29,7 +29,7 @@ class Book(db.Model):
         yield 'complete', [
             marshalling.Field(marshalling.types.string, 'name', required=True),
             marshalling.Field(marshalling.types.integer, 'pages', required=True),
-            marshalling.Definition('owner', 'user.public')
+            marshalling.Definition('owner', 'user', 'public')
         ]
 
 

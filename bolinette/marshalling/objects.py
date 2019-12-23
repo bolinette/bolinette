@@ -23,10 +23,10 @@ class List(MarshallingObject):
 
 
 class Definition(MarshallingObject):
-    def __init__(self, name, key):
+    def __init__(self, name, model, key):
         self.fields = []
         self.name = name
-        self.key = key
+        self.key = f'{model}.{key}'
 
     def __repr__(self):
         return f'<MarshallingModel {self.key}>'
