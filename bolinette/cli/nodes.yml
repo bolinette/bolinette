@@ -12,7 +12,7 @@
         - name: name
           type: inline
           desc: >-
-            The name of the Python module, must be in snake case.
+            The name of the model.
         - name: controller
           type: flag
           flag: c
@@ -23,6 +23,31 @@
           flag: s
           desc: >-
             Create the service too
+    - name: service
+      type: command
+      desc: >-
+        Creates a new service, requires a model first
+      command: create_service
+      args:
+        - name: name
+          type: inline
+          desc: >-
+            The name of the model.
+        - name: controller
+          type: flag
+          flag: c
+          desc: >-
+            Create the controller too.
+    - name: controller
+      type: command
+      desc: >-
+        Creates a new controller, requires a model and a service first
+      command: create_controller
+      args:
+        - name: name
+          type: inline
+          desc: >-
+            The name of the Python module, must be in snake case.
 - name: run
   type: node
   desc: >-
@@ -59,6 +84,10 @@
         Creates a brand new bolinette app, only works if no Bolinette manifest is present
       command: create_api
       args:
+        - name: module
+          type: inline
+          desc: >-
+            The name of the python module, in snake case
         - name: name
           desc: >-
             The display name of your API

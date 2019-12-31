@@ -1,0 +1,23 @@
+from bolinette import db, marshalling
+
+
+class {{class}}(db.Model):
+    __tablename__ = '{{plural}}'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+
+    @staticmethod
+    def payloads():
+        yield 'default', [
+            marshalling.Field(marshalling.types.string, 'name', required=True)
+        ]
+
+    @staticmethod
+    def responses():
+        yield 'default', [
+            marshalling.Field(marshalling.types.string, 'name', required=True)
+        ]
+
+
+marshalling.register({{class}}, '{{name}}')

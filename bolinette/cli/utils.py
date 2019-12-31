@@ -3,6 +3,7 @@ import random
 import string
 import subprocess
 import re
+import importlib
 
 import yaml
 from jinja2 import Template
@@ -12,12 +13,21 @@ def mkdir(path):
     os.makedirs(path)
 
 
+def rename(path, new_path):
+    os.rename(path, new_path)
+
+
 def join(*args):
     return os.path.join(*args)
 
 
 def write(path, content):
     with open(path, mode='w+') as file:
+        file.write(content)
+
+
+def append(path, content):
+    with open(path, mode='a+') as file:
         file.write(content)
 
 
@@ -61,3 +71,12 @@ def render_directory(origin, dest, params):
             render_directory(join(origin, f), join(dest, f), params)
         if os.path.isfile(join(origin, f)):
             copy(join(origin, f), join(dest, f), params)
+
+
+def pickup_blnt(cwd):
+    manifest = read_manifest(cwd)
+    if manifest is not None:
+        module = importlib.import_module(manifest.get('module'))
+        blnt = getattr(module, 'blnt', None)
+        return blnt
+    return None

@@ -11,11 +11,14 @@ def create_api(**options):
     else:
         api_name = options.get('name')
         api_desc = options.get('desc')
+        api_module = options.get('module')
         params = {
             'secret_key': utils.random_string(64),
             'jwt_secret_key': utils.random_string(64),
+            'module': api_module,
             'name': api_name,
             'desc': api_desc,
             'blnt_version': version
         }
         utils.render_directory(utils.join(origin, 'api'), cwd, params)
+        utils.rename(utils.join(cwd, 'server'), utils.join(cwd, api_module))
