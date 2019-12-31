@@ -30,4 +30,4 @@ def create_model(**options):
         utils.copy(utils.join(origin, 'model.py.jinja2'),
                    utils.join(path, 'models', f'{model_name}.py'), params)
         utils.append(utils.join(path, 'models', '__init__.py'),
-                     f'from {module}.models.{model_name} import {class_name}')
+                     f'from {module}.models.{model_name} import {class_name}\n')

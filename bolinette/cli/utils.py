@@ -4,9 +4,21 @@ import string
 import subprocess
 import re
 import importlib
+import sys
 
 import yaml
-from jinja2 import Template
+from jinja2 import Environment, BaseLoader
+
+
+class StreamLoader(BaseLoader):
+    def __init__(self):
+        super().__init__('')
+    
+    def get_source(self, env, template):
+        return template
+
+
+jinja_env = Environment(loader=StreamLoader(), keep_trailing_newline=True)
 
 
 def mkdir(path):
@@ -33,7 +45,7 @@ def append(path, content):
 
 def render(path, params):
     with open(path) as file:
-        template = Template(file.read())
+        template = jinja_env.get_template(file.read())
         return template.render(**params)
 
 
@@ -76,6 +88,8 @@ def render_directory(origin, dest, params):
 def pickup_blnt(cwd):
     manifest = read_manifest(cwd)
     if manifest is not None:
+        if cwd not sys.path:
+            sys.path = [cwd] + sys.path
         module = importlib.import_module(manifest.get('module'))
         blnt = getattr(module, 'blnt', None)
         return blnt
