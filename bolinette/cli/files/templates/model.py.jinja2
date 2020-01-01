@@ -1,8 +1,8 @@
 from bolinette import db, marshalling
 
 
-class {{class}}(db.Model):
-    __tablename__ = '{{plural}}'
+class {{ class }}(db.Model):
+    __tablename__ = '{{ plural }}'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
@@ -20,4 +20,4 @@ class {{class}}(db.Model):
         ]
 
 
-marshalling.register({{class}}, '{{name}}')
+marshalling.register({{ class }}, '{{ name }}')

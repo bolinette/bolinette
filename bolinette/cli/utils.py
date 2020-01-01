@@ -1,13 +1,13 @@
+import importlib
 import os
 import random
+import re
 import string
 import subprocess
-import re
-import importlib
 import sys
 
-import yaml
 import jinja2
+import yaml
 
 
 def mkdir(path):
@@ -35,9 +35,8 @@ def append(path, content):
 def render(path, params):
     template_path, template_name = os.path.split(path)
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=template_path), keep_trailing_newline=True)
-    with open(path) as file:
-        template = jinja_env.get_template(template_name)
-        return template.render(**params)
+    template = jinja_env.get_template(template_name)
+    return template.render(**params)
 
 
 def copy(origin, dest, params):

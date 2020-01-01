@@ -1,0 +1,13 @@
+from bolinette import Namespace
+from {{ module }}.services import {{ name }}_service
+
+ns = Namespace({{ name }}_service, '/{{ name }}')
+
+ns.defaults.get_all()
+ns.defaults.get_one()
+ns.defaults.create()
+ns.defaults.update()
+ns.defaults.patch()
+ns.defaults.delete()
+
+ns.register()

@@ -1,10 +1,10 @@
-import os
-
-import pydash
 import inflect
+import pydash
 
 from bolinette import console
 from bolinette.cli import cli_env, utils
+from bolinette.cli.commands.create_controller import create_controller
+from bolinette.cli.commands.create_service import create_service
 
 
 def create_model(**options):
@@ -31,3 +31,9 @@ def create_model(**options):
                    utils.join(path, 'models', f'{model_name}.py'), params)
         utils.append(utils.join(path, 'models', '__init__.py'),
                      f'from {module}.models.{model_name} import {class_name}\n')
+
+        if options.get('service', False):
+            create_service(name=model_name)
+
+        if options.get('controller', False):
+            create_controller(name=model_name)

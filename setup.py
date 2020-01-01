@@ -10,7 +10,7 @@ def project_packages(module):
 setup(
     name='Bolinette',
     packages=project_packages('bolinette'),
-    include_package_data= True,
+    include_package_data=True,
     version=bolinette.version,
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
@@ -25,11 +25,13 @@ setup(
         'Flask-JWT-Extended==3.24.1',
         'Flask-Script==2.0.6',
         'Flask-SQLAlchemy==2.4.1',
+        'inflect==4.0.0',
         'Jinja2==2.10.3',
+        'pydash==4.7.6',
         'PyJWT==1.7.1',
-        'pytest==5.3.1',
+        'pytest==5.3.2',
         'PyYAML==5.2',
-        'SQLAlchemy==1.3.11',
+        'SQLAlchemy==1.3.12',
         'twine==3.1.1',
     ],
     classifiers=[
@@ -42,7 +44,7 @@ setup(
     setup_requires=[
         'wheel'
     ],
-    entry_points= {
+    entry_points={
         'console_scripts': [
             'blnt=bolinette.cli:main'
         ]
