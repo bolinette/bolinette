@@ -1,9 +1,8 @@
 import json
-from functools import wraps
 
 from flask import Blueprint, Response
 
-from bolinette.namespaces import Defaults
+from bolinette.namespaces import Defaults, Route
 
 
 class Namespace:
@@ -20,18 +19,16 @@ class Namespace:
             app.register_blueprint(namespace)
 
     def route(self, rule, **options):
-        def wrapper(func):
-            endpoint = options.pop("endpoint", func.__name__)
-            self.blueprint.add_url_rule(rule, endpoint, func, **options)
+        def inner(func):
+            endpoint = options.get('endpoint', func.__name__)
+            methods = options.get('methods', ['GET'])
+            expects = options.get('expects', None)
+            returns = options.get('returns', None)
+            route_rules = Route(func, rule, endpoint, methods, expects, returns)
+            self.blueprint.add_url_rule(rule, endpoint, route_rules.process, methods=methods)
+            return func
 
-            @wraps(func)
-            def inner(*args, **kwargs):
-                res, code = func(*args, **kwargs)
-                return Response(json.dumps(res), code, mimetype='application/json')
-
-            return inner
-
-        return wrapper
+        return inner
 
     def register(self):
         Namespace.namespaces.append(self.blueprint)

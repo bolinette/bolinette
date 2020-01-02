@@ -40,7 +40,9 @@ def register(model, name):
         _registered_models[name] = model
 
 
-def marshall(definition, entity, skip_none=False):
+def marshall(definition, entity, skip_none=False, as_list=False):
+    if as_list:
+        return [marshall(definition, e, skip_none, False) for e in entity]
     data = {}
     for field in definition.fields:
         if isinstance(field, marshalling.Field):
@@ -54,10 +56,10 @@ def marshall(definition, entity, skip_none=False):
                 data[field.name] = value
         elif isinstance(field, marshalling.Definition):
             d = get_response(field.key)
-            data[field.name] = marshall(d, getattr(entity, field.name))
+            data[field.name] = marshall(d, getattr(entity, field.name), skip_none, False)
         elif isinstance(field, marshalling.List):
             d = get_response(field.element.key)
-            data[field.name] = [marshall(d, e) for e in getattr(entity, field.name)]
+            data[field.name] = marshall(d, getattr(entity, field.name), skip_none, True)
     return data
 
 

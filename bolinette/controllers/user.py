@@ -6,25 +6,24 @@ from flask_jwt_extended import (
 
 from bolinette import Namespace, response, transactional
 from bolinette.exceptions import EntityNotFoundError
-from bolinette.marshalling import expects, returns
 from bolinette.services import user_service
 
 ns = Namespace(user_service, '/user')
 
 
-@ns.route('/me', methods=['GET'])
+@ns.route('/me',
+          methods=['GET'],
+          returns={'model': 'user', 'key': 'private'})
 @fresh_jwt_required
-@returns('user', 'private')
-@transactional
 def me():
     return response.ok('OK', current_user)
 
 
-@ns.route('/me', methods=['PUT'])
+@ns.route('/me',
+          methods=['PUT'],
+          returns={'model': 'user', 'key': 'private'},
+          expects={'model': 'user', 'key': 'register', 'patch': True})
 @fresh_jwt_required
-@returns('user', 'private')
-@transactional
-@expects('user', 'register', patch=True)
 def update_user(payload):
     user = user_service.get_by_username(get_jwt_identity())
     user = user_service.update(user, payload)
@@ -40,19 +39,22 @@ def update_user(payload):
     return response.ok('user.updated', user)
 
 
-@ns.route('/info', methods=['GET'])
+@ns.route('/info',
+          methods=['GET'],
+          returns={'model': 'user', 'key': 'public'})
 @jwt_required
-@returns('user', 'public')
-@transactional
 def info():
     return response.ok('OK', current_user)
 
 
-@ns.route('/login', methods=['POST'])
-@returns('user', 'private')
-@transactional
-@expects('user', 'login')
+@ns.route('/login',
+          methods=['POST'],
+          returns={'model': 'user', 'key': 'private'},
+          expects={'model': 'user', 'key': 'login'})
 def login(payload):
+    """
+    Logs the user in with the provided credentials
+    """
     username = payload['username']
     password = payload['password']
     try:
@@ -74,7 +76,8 @@ def login(payload):
     return response.unauthorized('user.login.wrong_credentials')
 
 
-@ns.route('/logout', methods=['POST'])
+@ns.route('/logout',
+          methods=['POST'])
 def logout():
     @after_this_request
     def unset_cookies(resp):
@@ -84,16 +87,17 @@ def logout():
     return response.ok('user.logout.success')
 
 
-@ns.route('/register', methods=['POST'])
-@returns('user', 'private')
-@transactional
-@expects('user', 'register')
+@ns.route('/register',
+          methods=['POST'],
+          returns={'model': 'user', 'key': 'private'},
+          expects={'model': 'user', 'key': 'register'})
 def register(payload):
     user = user_service.create(payload)
     return response.created('User successfully registered', user)
 
 
-@ns.route('/token/refresh', methods=['POST'])
+@ns.route('/token/refresh',
+          methods=['POST'])
 @jwt_refresh_token_required
 def refresh():
     identity = get_jwt_identity()
