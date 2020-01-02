@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_cors import CORS
-from flask_script import Manager
 
 from bolinette import env, Namespace
 from bolinette.database import init_db
@@ -13,7 +12,6 @@ class Bolinette:
         env_overrides = options.get('env', {})
         self.app = Flask(name, static_url_path='')
         CORS(self.app, supports_credentials=True)
-        self.manager = Manager(self.app)
         env.init(self.app, overrides=env_overrides)
         init_jwt(self.app)
         init_db(self.app)

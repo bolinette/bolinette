@@ -13,6 +13,8 @@ class Environment:
             'APP_VERSION': '0.0.1',
             'DBMS': 'SQLITE',
             'DEBUG': 'True',
+            'FLASK_HOST': '127.0.0.1',
+            'FLASK_PORT': '5000',
             'JWT_SECRET_KEY': '',
             'SECRET_KEY': '',
             'WEBAPP_FOLDER': os.path.join(app.root_path, '..', 'webapp', 'dist')
