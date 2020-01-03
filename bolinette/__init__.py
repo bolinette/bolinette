@@ -13,4 +13,4 @@ import bolinette.controllers
 from bolinette.bolinette import Bolinette
 
 
-version = '0.0.20'
+version = '0.1.0'
