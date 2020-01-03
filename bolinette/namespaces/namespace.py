@@ -11,6 +11,7 @@ class Namespace:
     def __init__(self, service, url):
         self.service = service
         self.model = service.name
+        self.url = url
         self.blueprint = Blueprint(self.model, __name__, url_prefix='/api' + url)
 
     @staticmethod
@@ -24,7 +25,7 @@ class Namespace:
             methods = options.get('methods', ['GET'])
             expects = options.get('expects', None)
             returns = options.get('returns', None)
-            route_rules = Route(func, rule, endpoint, methods, expects, returns)
+            route_rules = Route(func, self.url, rule, endpoint, methods, expects, returns)
             self.blueprint.add_url_rule(rule, endpoint, route_rules.process, methods=methods)
             return func
 
