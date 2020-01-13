@@ -1,1 +1,1 @@
-from bolinette.templating.templating import render
+from bolinette.templating.templating import render, render_directory
