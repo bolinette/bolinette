@@ -1,8 +1,7 @@
-import json
-
 from flask import request, Response
 
 from bolinette import transaction, marshalling, validate, docs
+from bolinette.namespaces import serializers
 
 
 class Route:
@@ -15,6 +14,11 @@ class Route:
         self.expects = expects
         self.returns = returns
         docs.add_route(self)
+    
+    def serialize(self, response):
+        mime = request.headers.get('Accept', 'application/json')
+        serializer = serializers.get(mime) or serializers.default
+        return serializer.serialize(response), serializer.mime
     
     def process(self, *args, **kwargs):
         with transaction:
@@ -33,4 +37,5 @@ class Route:
                 res['data'] = marshalling.marshall(
                     ret_def, res['data'], self.returns.get('skip_none', False),
                     self.returns.get('as_list', False))
-        return Response(json.dumps(res), code, mimetype='application/json')
+        res, mime = self.serialize(res)
+        return Response(res, code, mimetype=mime)
