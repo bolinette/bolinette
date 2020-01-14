@@ -19,12 +19,21 @@ class Bolinette:
         env_overrides = options.get('env', {})
         self.app = Flask(name, static_url_path='')
         CORS(self.app, supports_credentials=True)
-        env.init(self.app, overrides=env_overrides)
+        env.init(self, overrides=env_overrides)
         init_jwt(self.app)
-        init_db(self.app)
+        init_db(self)
         init_routes(self.app)
         init_docs(self.app)
         Namespace.init_namespaces(self.app)
+
+    def instance_path(self, *path):
+        return self.root_path('instance', *path)
+
+    def root_path(self, *path):
+        return paths.join(self.cwd, *path)
+
+    def internal_path(self, *path):
+        return paths.join(self.origin, *path)
 
 
 def pickup_blnt(cwd):

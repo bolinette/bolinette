@@ -6,7 +6,7 @@ from bolinette import logger
 
 class Environment:
     @staticmethod
-    def keys(app):
+    def keys(bolinette):
         return {
             'APP_NAME': 'DEFAULT_NAME',
             'APP_DESC': 'DEFAULT_DESCRIPTION',
@@ -17,7 +17,7 @@ class Environment:
             'FLASK_PORT': '5000',
             'JWT_SECRET_KEY': '',
             'SECRET_KEY': '',
-            'WEBAPP_FOLDER': os.path.join(app.root_path, '..', 'webapp', 'dist')
+            'WEBAPP_FOLDER': bolinette.root_path('webapp', 'dist')
         }
     
     @staticmethod
@@ -27,19 +27,19 @@ class Environment:
     def __init__(self):
         self.env = {}
 
-    def init(self, app, **options):
+    def init(self, bolinette, **options):
         exec_env = options.get('exec_env', 'development')
         overrides = options.get('overrides', {})
-        self.env = Environment.keys(app)
+        self.env = Environment.keys(bolinette)
         self.env['ENV'] = exec_env
         env_stack = [
             overrides,
             self.load_from_os(),
-            self.load_from_file(app, f'{exec_env}.local.env'),
-            self.load_from_file(app, f'{exec_env}.env')
+            self.load_from_file(bolinette, f'{exec_env}.local.env'),
+            self.load_from_file(bolinette, f'{exec_env}.env')
         ]
         self.override_env(env_stack)
-        self.set_app_config(app)
+        self.set_app_config(bolinette.app)
 
     def set_app_config(self, app):
         app.config['ENV'] = self.env['ENV']
@@ -61,10 +61,10 @@ class Environment:
                 keys[key[5:]] = os.environ[key]
         return keys
     
-    def load_from_file(self, app, file_name):
+    def load_from_file(self, bolinette, file_name):
         config = ConfigParser()
         try:
-            with open(os.path.join(app.instance_path, file_name), 'r') as f:
+            with open(bolinette.instance_path(file_name), 'r') as f:
                 config.read_string(Environment.read_env_file(f))
                 if (file_env := config['DEFAULT']) is not None:
                     return file_env

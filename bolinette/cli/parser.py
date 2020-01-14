@@ -1,5 +1,4 @@
 import importlib
-import os
 
 import yaml
 
@@ -16,7 +15,7 @@ class Parser:
         self.nodes = self.parse_nodes()
 
     def parse_nodes(self):
-        with open(os.path.join(self.bolinette.origin, 'cli', 'nodes.yml')) as f:
+        with open(self.bolinette.internal_path('cli', 'nodes.yml')) as f:
             return Loader.load_nodes(yaml.safe_load(f))
 
     def execute(self, argv, cur_node=None, index=1):

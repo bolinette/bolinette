@@ -8,8 +8,8 @@ def create_controller(bolinette, **options):
         console.error('No manifest found')
     else:
         module = manifest.get('module')
-        path = paths.join(bolinette.cwd, module)
-        origin = paths.join(bolinette.origin, 'cli', 'files', 'templates')
+        path = bolinette.root_path(module)
+        origin = bolinette.internal_path('cli', 'files', 'templates')
 
         model_name = options.get('name')
 

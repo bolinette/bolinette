@@ -4,7 +4,7 @@ from bolinette.fs import paths, templating
 
 def create_api(bolinette, **options):
     manifest = paths.read_manifest(bolinette.cwd)
-    origin = paths.join(bolinette.origin, 'cli', 'files')
+    origin = bolinette.internal_path('cli', 'files')
     if manifest is not None:
         console.error('Manifest file found, it seems Bolinette has already been initialized!')
     else:
