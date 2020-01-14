@@ -3,19 +3,20 @@ import os
 
 import yaml
 
-from bolinette.cli import cli_env, Loader, utils
+from bolinette import pickup_blnt, Bolinette
+from bolinette.cli import Loader
 from bolinette.cli.nodes import Node, Command
+from bolinette.fs import paths
 
 
 class Parser:
-    def __init__(self, cwd, bolinette=None):
-        cli_env['cwd'] = cwd
-        cli_env['origin'] = os.path.dirname(os.path.realpath(__file__))
-        cli_env['bolinette'] = bolinette or utils.pickup_blnt(cwd)
+    def __init__(self):
+        self.bolinette = pickup_blnt(paths.cwd()) or Bolinette(__name__, env={'SECRET_KEY': 'blnt_cli'})
+        assert self.bolinette is not None
         self.nodes = self.parse_nodes()
 
     def parse_nodes(self):
-        with open(os.path.join(cli_env['origin'], 'nodes.yml')) as f:
+        with open(os.path.join(self.bolinette.origin, 'cli', 'nodes.yml')) as f:
             return Loader.load_nodes(yaml.safe_load(f))
 
     def execute(self, argv, cur_node=None, index=1):
@@ -126,7 +127,7 @@ class Parser:
     def run_command(self, command):
         module = importlib.import_module('bolinette.cli.commands.' + command.command)
         func = getattr(module, command.command)
-        params = {}
+        params = {'bolinette': self.bolinette}
         for param in command.inline + command.ask + command.flags + command.args:
             params[param.name] = param.value
         for param in command.params:

@@ -1,11 +1,16 @@
 import os
-import re
+import random
+import string
 
 import yaml
 
 
 def cwd():
     return os.getcwd()
+
+
+def random_string(length):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def mkdir(path):
@@ -28,18 +33,13 @@ def split(path):
     return os.path.split(path)
 
 
-def write(path, content):
-    with open(path, mode='w+') as file:
+def write(path, content, mode='w+'):
+    with open(path, mode=mode) as file:
         file.write(content)
 
 
 def append(path, content):
-    with open(path, mode='a+') as file:
-        file.write(content)
-
-
-def copy(dest, content):
-    write(re.sub(r'\.jinja2$', '', dest), content)
+    write(path, content, mode='a+')
 
 
 def read_manifest(path):

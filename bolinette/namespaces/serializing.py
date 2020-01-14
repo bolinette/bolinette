@@ -1,7 +1,7 @@
 import json
 import dicttoxml
 
-from bolinette.templating import render
+from bolinette.fs import render
 
 
 class Serializer:

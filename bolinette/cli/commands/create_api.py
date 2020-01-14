@@ -1,11 +1,10 @@
 from bolinette import console, version
-from bolinette.cli import cli_env, utils
+from bolinette.fs import paths, templating
 
 
-def create_api(**options):
-    cwd = cli_env['cwd']
-    origin = utils.join(cli_env['origin'], 'files')
-    manifest = utils.read_manifest(cwd)
+def create_api(bolinette, **options):
+    manifest = paths.read_manifest(bolinette.cwd)
+    origin = paths.join(bolinette.origin, 'cli', 'files')
     if manifest is not None:
         console.error('Manifest file found, it seems Bolinette has already been initialized!')
     else:
@@ -13,12 +12,12 @@ def create_api(**options):
         api_desc = options.get('desc')
         api_module = options.get('module')
         params = {
-            'secret_key': utils.random_string(64),
-            'jwt_secret_key': utils.random_string(64),
+            'secret_key': paths.random_string(64),
+            'jwt_secret_key': paths.random_string(64),
             'module': api_module,
             'name': api_name,
             'desc': api_desc,
             'blnt_version': version
         }
-        utils.render_directory(utils.join(origin, 'api'), cwd, params)
-        utils.rename(utils.join(cwd, 'server'), utils.join(cwd, api_module))
+        templating.render_directory(paths.join(origin, 'api'), bolinette.cwd, params)
+        paths.rename(paths.join(bolinette.cwd, 'server'), paths.join(bolinette.cwd, api_module))

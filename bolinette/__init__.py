@@ -10,7 +10,7 @@ from bolinette.namespaces import Namespace
 from bolinette.mapper import mapper
 from bolinette.jwt import jwt
 import bolinette.controllers
-from bolinette.bolinette import Bolinette
+from bolinette.bolinette import Bolinette, pickup_blnt
 
 
-version = '0.1.0'
+version = '0.1.1'

@@ -3,4 +3,4 @@ include LICENSE.txt
 include manifest.blnt.yml
 include bolinette/cli/nodes.yml
 recursive-include bolinette/cli/files *
-recursive-include bolinette/templating/files *
+recursive-include bolinette/fs/files *

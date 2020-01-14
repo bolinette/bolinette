@@ -1,3 +1,6 @@
+import importlib
+import sys
+
 from flask import Flask
 from flask_cors import CORS
 
@@ -6,7 +9,7 @@ from bolinette.database import init_db
 from bolinette.jwt import init_jwt
 from bolinette.routes import init_routes
 from bolinette.documentation import init_docs
-from bolinette.templating import paths
+from bolinette.fs import paths
 
 
 class Bolinette:
@@ -22,6 +25,14 @@ class Bolinette:
         init_routes(self.app)
         init_docs(self.app)
         Namespace.init_namespaces(self.app)
-    
-    def instance_file(self, path):
-        return None
+
+
+def pickup_blnt(cwd):
+    manifest = paths.read_manifest(cwd)
+    if manifest is not None:
+        if cwd not in sys.path:
+            sys.path = [cwd] + sys.path
+        module = importlib.import_module(manifest.get('module'))
+        blnt = getattr(module, 'blnt', None)
+        return blnt
+    return None

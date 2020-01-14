@@ -1,16 +1,15 @@
 from bolinette import console
-from bolinette.cli import cli_env, utils
+from bolinette.fs import paths, templating
 
 
-def create_controller(**options):
-    cwd = cli_env['cwd']
-    manifest = utils.read_manifest(cwd)
+def create_controller(bolinette, **options):
+    manifest = paths.read_manifest(bolinette.cwd)
     if manifest is None:
         console.error('No manifest found')
     else:
         module = manifest.get('module')
-        path = utils.join(cwd, module)
-        origin = utils.join(cli_env['origin'], 'files', 'templates')
+        path = paths.join(bolinette.cwd, module)
+        origin = paths.join(bolinette.origin, 'cli', 'files', 'templates')
 
         model_name = options.get('name')
 
@@ -19,7 +18,7 @@ def create_controller(**options):
             'name': model_name
         }
 
-        utils.copy(utils.join(origin, 'controller.py.jinja2'),
-                   utils.join(path, 'controllers', f'{model_name}.py'), params)
-        utils.append(utils.join(path, 'controllers', '__init__.py'),
+        templating.copy(paths.join(origin, 'controller.py.jinja2'),
+                        paths.join(path, 'controllers', f'{model_name}.py'), params)
+        paths.append(paths.join(path, 'controllers', '__init__.py'),
                      f'from {module}.controllers.{model_name} import ns as {model_name}_namespace\n')

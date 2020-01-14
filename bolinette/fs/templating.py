@@ -1,19 +1,13 @@
 import os
+import re
 
 import jinja2
 
-from bolinette.templating import paths
+from bolinette.fs import paths
 
 
-def get_default_path():
-    return paths.join(paths.dirname(__file__), 'files')
-
-
-def render(path, params, base_path=None):
-    if base_path is None:
-        base_path = get_default_path()
-    complete_path = paths.join(base_path, path)
-    template_path, template_name = paths.split(complete_path)
+def render(path, params):
+    template_path, template_name = paths.split(path)
     jinja_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(searchpath=template_path),
         keep_trailing_newline=True,
@@ -24,6 +18,11 @@ def render(path, params, base_path=None):
     return template.render(**params)
 
 
+def copy(origin, dest, params):
+    content = render(origin, params)
+    paths.write(re.sub(r'\.jinja2$', '', dest), content)
+
+
 def render_directory(origin, dest, params):
     if not os.path.exists(dest):
         paths.mkdir(dest)
@@ -31,5 +30,4 @@ def render_directory(origin, dest, params):
         if os.path.isdir(paths.join(origin, f)):
             render_directory(paths.join(origin, f), paths.join(dest, f), params)
         if os.path.isfile(paths.join(origin, f)):
-            content = render(origin, params)
-            paths.copy(paths.join(dest, f), content)
+            copy(paths.join(origin, f), paths.join(dest, f), params)
