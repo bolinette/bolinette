@@ -1,6 +1,4 @@
-import json
-
-from flask import Blueprint, Response
+from flask import Blueprint
 
 from bolinette.namespaces import Defaults, Route
 

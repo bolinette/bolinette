@@ -38,8 +38,7 @@ def append(path, content):
         file.write(content)
 
 
-def copy(origin, dest, params):
-    content = render(origin, params)
+def copy(dest, content):
     write(re.sub(r'\.jinja2$', '', dest), content)
 
 

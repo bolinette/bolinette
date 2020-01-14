@@ -28,7 +28,8 @@ def render_directory(origin, dest, params):
     if not os.path.exists(dest):
         paths.mkdir(dest)
     for f in os.listdir(origin):
-        if os.path.isdir(join(origin, f)):
-            render_directory(join(origin, f), join(dest, f), params)
-        if os.path.isfile(join(origin, f)):
-            paths.copy(join(origin, f), join(dest, f), params)
+        if os.path.isdir(paths.join(origin, f)):
+            render_directory(paths.join(origin, f), paths.join(dest, f), params)
+        if os.path.isfile(paths.join(origin, f)):
+            content = render(origin, params)
+            paths.copy(paths.join(dest, f), content)

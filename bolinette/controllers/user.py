@@ -4,7 +4,7 @@ from flask_jwt_extended import (
     get_jwt_identity, jwt_refresh_token_required, unset_jwt_cookies,
     current_user, jwt_required, fresh_jwt_required)
 
-from bolinette import Namespace, response, transactional
+from bolinette import Namespace, response
 from bolinette.exceptions import EntityNotFoundError
 from bolinette.services import user_service
 

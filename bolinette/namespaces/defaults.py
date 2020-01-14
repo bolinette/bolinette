@@ -1,4 +1,4 @@
-from bolinette import transactional, response
+from bolinette import response
 
 
 class Defaults:

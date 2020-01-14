@@ -38,16 +38,16 @@ class XMLSerializer(Serializer):
 
 
 class Serializers:
-    def __init__(self, serializers=None):
+    def __init__(self, functions=None):
         self.priorities = []
         self.serializers = {}
-        if serializers is not None:
-            for serializer in serializers:
+        if functions is not None:
+            for serializer in functions:
                 self.add(serializer)
     
     def add(self, serializer):
         self.serializers[serializer.mime] = serializer
-        self.priorities = sorted(self.priorities + [serializer], key= lambda s: s.priority)
+        self.priorities = sorted(self.priorities + [serializer], key=lambda s: s.priority)
     
     def get(self, mime):
         return self.serializers.get(mime, None)
