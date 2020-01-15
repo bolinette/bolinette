@@ -20,13 +20,13 @@ def me():
 
 
 @ns.route('/me',
-          methods=['PUT'],
+          methods=['PATCH'],
           returns={'model': 'user', 'key': 'private'},
           expects={'model': 'user', 'key': 'register', 'patch': True})
 @fresh_jwt_required
 def update_user(payload):
     user = user_service.get_by_username(get_jwt_identity())
-    user = user_service.update(user, payload)
+    user = user_service.patch(user, payload)
     access_token = create_access_token(identity=user.username, fresh=True)
     refresh_token = create_refresh_token(identity=user.username)
 
