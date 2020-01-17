@@ -6,6 +6,7 @@ from bolinette.response import response
 from bolinette.transaction import transaction, transactional
 from bolinette.validator import validate
 from bolinette.documentation import docs
+from bolinette.access import AccessToken
 from bolinette.namespaces import Namespace
 from bolinette.mapper import mapper
 from bolinette.jwt import jwt

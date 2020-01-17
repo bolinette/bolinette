@@ -1,10 +1,9 @@
 from flask import after_this_request
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies,
-    get_jwt_identity, jwt_refresh_token_required, unset_jwt_cookies,
-    current_user, jwt_required, fresh_jwt_required)
-
-from bolinette import Namespace, response
+    get_jwt_identity, unset_jwt_cookies, current_user
+)
+from bolinette import Namespace, response, AccessToken
 from bolinette.exceptions import EntityNotFoundError
 from bolinette.services import user_service
 
@@ -13,17 +12,17 @@ ns = Namespace(user_service, '/user')
 
 @ns.route('/me',
           methods=['GET'],
+          access=AccessToken.Fresh,
           returns={'model': 'user', 'key': 'private'})
-@fresh_jwt_required
 def me():
     return response.ok('OK', current_user)
 
 
 @ns.route('/me',
           methods=['PATCH'],
+          access=AccessToken.Fresh,
           returns={'model': 'user', 'key': 'private'},
           expects={'model': 'user', 'key': 'register', 'patch': True})
-@fresh_jwt_required
 def update_user(payload):
     user = user_service.get_by_username(get_jwt_identity())
     user = user_service.patch(user, payload)
@@ -41,8 +40,8 @@ def update_user(payload):
 
 @ns.route('/info',
           methods=['GET'],
+          access=AccessToken.Required,
           returns={'model': 'user', 'key': 'public'})
-@jwt_required
 def info():
     return response.ok('OK', current_user)
 
@@ -97,8 +96,8 @@ def register(payload):
 
 
 @ns.route('/token/refresh',
-          methods=['POST'])
-@jwt_refresh_token_required
+          methods=['POST'],
+          access=AccessToken.Refresh)
 def refresh():
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity, fresh=False)

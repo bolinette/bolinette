@@ -100,3 +100,31 @@ def test_register_conflict(client):
     assert rv['code'] == 409
     assert f'param.conflict:username:{user1["username"]}' in rv['messages']
     assert f'param.conflict:email:{user1["email"]}' in rv['messages']
+
+
+@bolitest(before=set_up)
+def test_change_username(client):
+    user1 = create_mock(1, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.patch('/user/me', {'username': 'new_username'})
+    assert rv['code'] == 200
+    assert rv['data']['username'] == 'new_username'
+    assert rv['data']['email'] == user1['email']
+
+
+@bolitest(before=set_up)
+def test_change_password(client):
+    user1 = create_mock(1, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.patch('/user/me', {'password': 'new_password'})
+
+    client.post('/user/logout')
+    rv = client.post('/user/login', {'username': user1['username'], 'password': 'new_password'})
+
+    rv = client.get('/user/me')
+
+    assert rv['code'] == 200

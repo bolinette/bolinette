@@ -1,16 +1,17 @@
 from flask import request, Response
 
-from bolinette import transaction, marshalling, validate, docs
+from bolinette import transaction, marshalling, validate, docs, AccessToken
 from bolinette.namespaces import serializers
 
 
 class Route:
-    def __init__(self, func, base_url, url, endpoint, methods, expects, returns):
+    def __init__(self, func, base_url, url, endpoint, methods, access, expects, returns):
         self.func = func
         self.base_url = base_url
         self.url = url
         self.endpoint = endpoint
         self.methods = methods
+        self.access = access
         self.expects = expects
         self.returns = returns
         docs.add_route(self)
@@ -21,6 +22,7 @@ class Route:
         return serializer.serialize(response), serializer.mime
     
     def process(self, *args, **kwargs):
+        self.access.check()
         with transaction:
             if self.expects is not None:
                 payload = request.get_json(silent=True) or {}

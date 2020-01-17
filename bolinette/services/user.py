@@ -24,6 +24,11 @@ class UserService(BaseService):
         if 'password' in params:
             params['password'] = bcrypt.generate_password_hash(params['password'])
         return super().update(entity, params)
+    
+    def patch(self, entity, params):
+        if 'password' in params:
+            params['password'] = bcrypt.generate_password_hash(params['password'])
+        return super().patch(entity, params)
 
 
 user_service = UserService()

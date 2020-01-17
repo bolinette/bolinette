@@ -1,5 +1,6 @@
 from flask import Blueprint
 
+from bolinette import AccessToken
 from bolinette.namespaces import Defaults, Route
 
 
@@ -21,9 +22,10 @@ class Namespace:
         def inner(func):
             endpoint = options.get('endpoint', func.__name__)
             methods = options.get('methods', ['GET'])
+            access = options.get('access', AccessToken.All)
             expects = options.get('expects', None)
             returns = options.get('returns', None)
-            route_rules = Route(func, self.url, rule, endpoint, methods, expects, returns)
+            route_rules = Route(func, self.url, rule, endpoint, methods, access, expects, returns)
             self.blueprint.add_url_rule(rule, endpoint, route_rules.process, methods=methods)
             return func
 
