@@ -18,10 +18,16 @@ def set_up():
     insert(Book, set_author(create_mock(3, 'book'), 2))
 
 
-def equal_books(b1, b2, author):
+def big_set_up():
+    insert(Person, create_mock(1, 'person'))
+    for i in range(100):
+        insert(Book, set_author(create_mock(i, 'book'), 1))
+
+
+def equal_books(b1, b2, author=None):
     return (b1['name'] == b2['name'] and
             b1['pages'] == b2['pages'] and
-            b1['author']['name'] == author['name'])
+            b1['author']['name'] == author['name'] if author is not None else True)
 
 
 @bolitest(before=set_up)
@@ -29,6 +35,18 @@ def test_get_books(client):
     rv = client.get('/book')
     assert rv['code'] == 200
     assert len(rv['data']) == 3
+
+
+@bolitest(before=big_set_up)
+def test_get_books_paginated(client):
+    rv = client.get('/book?page=1')
+    assert rv['code'] == 200
+    assert len(rv['data']) == 20
+    assert rv['pagination']['page'] == 1
+    assert rv['pagination']['per_page'] == 20
+    assert rv['pagination']['total'] == 100
+    for i in range(20):
+        assert equal_books(rv['data'][i], create_mock(i, 'book'))
 
 
 @bolitest(before=set_up)

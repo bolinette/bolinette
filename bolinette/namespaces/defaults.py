@@ -12,8 +12,8 @@ class Defaults:
                     methods=['GET'],
                     endpoint=f'get_all_{self.model}',
                     returns={'model': self.model, 'key': returns, 'as_list': True})
-        def route():
-            return response.ok('OK', self.service.get_all())
+        def route(**params):
+            return response.ok('OK', self.service.get_all(params))
     
     def get_one(self, returns='default'):
         @self.route('/<id>',
