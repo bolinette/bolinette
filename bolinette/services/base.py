@@ -31,12 +31,9 @@ class BaseService:
     def get_by_criteria(self, criteria):
         return self.model.query.filter(criteria).all()
 
-    def get_all(self, params):
-        if 'page' in params['args'] or 'per_page' in params['args']:
-            return self.model.query.paginate(
-                page=int(params['args'].get('page', 1)),
-                per_page=int(params['args'].get('per_page', 20)),
-                error_out=False)
+    def get_all(self, pagination=None):
+        if pagination is not None:
+            return self.model.query.paginate(**pagination)
         return self.model.query.all()
 
     def create(self, params):

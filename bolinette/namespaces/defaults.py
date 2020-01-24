@@ -13,7 +13,14 @@ class Defaults:
                     endpoint=f'get_all_{self.model}',
                     returns={'model': self.model, 'key': returns, 'as_list': True})
         def route(**params):
-            return response.ok('OK', self.service.get_all(params))
+            pagination = None
+            if 'page' in params['args'] or 'per_page' in params['args']:
+                pagination = {
+                    'page': int(params['args'].get('page', 1)),
+                    'per_page': int(params['args'].get('per_page', 20)),
+                    'error_out': False
+                }
+            return response.ok('OK', self.service.get_all(pagination))
     
     def get_one(self, returns='default'):
         @self.route('/<id>',
