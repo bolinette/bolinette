@@ -33,7 +33,7 @@ class Namespace:
 
     def register(self):
         Namespace.namespaces.append(self.blueprint)
-    
+
     @property
     def defaults(self):
         return Defaults(self)

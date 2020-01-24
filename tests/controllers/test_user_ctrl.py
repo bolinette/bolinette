@@ -19,12 +19,12 @@ def test_login_failed(client):
     user1 = create_mock(1, 'user', 'register')
 
     rv = client.post('/user/login', {'username': user1['username'],
-                                            'password': user1['password'][:-1]})
+                                     'password': user1['password'][:-1]})
     assert rv['code'] == 401
     assert 'user.login.wrong_credentials' in rv['messages']
 
     rv = client.post('/user/login', {'username': user1['username'] + "2",
-                                            'password': user1['password']})
+                                     'password': user1['password']})
     assert rv['code'] == 401
     assert 'user.login.wrong_credentials' in rv['messages']
 
@@ -53,7 +53,7 @@ def test_access_user_info(client):
     assert rv['code'] == 200
     assert rv['data'].get('username') == user1['username']
     assert rv['data'].get('email') == user1['email']
-    assert rv['data'].get('password') == None
+    assert rv['data'].get('password') is None
 
 
 @bolitest(before=set_up)

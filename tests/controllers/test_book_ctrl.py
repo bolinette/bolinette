@@ -25,9 +25,9 @@ def big_set_up():
 
 
 def equal_books(b1, b2, author=None):
-    return (b1['name'] == b2['name'] and
-            b1['pages'] == b2['pages'] and
-            b1['author']['name'] == author['name'] if author is not None else True)
+    return (b1['name'] == b2['name']
+            and b1['pages'] == b2['pages']
+            and b1['author']['name'] == author['name'] if author is not None else True)
 
 
 @bolitest(before=set_up)

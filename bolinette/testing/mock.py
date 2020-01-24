@@ -27,8 +27,8 @@ def create_mock(m_id, model, key='default'):
         elif isinstance(field.type, types.classes.Email):
             mock[field.name] = f'{_random_lower(rng, 10)}@{_random_lower(rng, 5)}.com'
         elif isinstance(field.type, types.classes.Password):
-            mock[field.name] = (_random_lower(rng, 10) + str(_random_int(rng, 1, 100)) +
-                                _random_symbols(rng, 1))
+            mock[field.name] = (_random_lower(rng, 10) + str(_random_int(rng, 1, 100))
+                                + _random_symbols(rng, 1))
         elif isinstance(field.type, types.classes.Integer):
             mock[field.name] = _random_int(rng, 1, 100)
     return mock

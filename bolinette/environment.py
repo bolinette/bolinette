@@ -19,7 +19,7 @@ class Environment:
             'SECRET_KEY': '',
             'WEBAPP_FOLDER': bolinette.root_path('webapp', 'dist')
         }
-    
+
     @staticmethod
     def read_env_file(f):
         return '[DEFAULT]\n' + f.read()
@@ -53,14 +53,14 @@ class Environment:
                            f'in instance/{self.env["ENV"]}.local.env')
         app.secret_key = self.env.get('SECRET_KEY')
         app.static_folder = self.env['WEBAPP_FOLDER']
-    
+
     def load_from_os(self):
         keys = {}
         for key in os.environ:
             if key.startswith('BLNT_'):
                 keys[key[5:]] = os.environ[key]
         return keys
-    
+
     def load_from_file(self, bolinette, file_name):
         config = ConfigParser()
         try:
@@ -78,7 +78,7 @@ class Environment:
             override = self.parse_sources(key, stack)
             if override is not None:
                 self.env[key] = override
-    
+
     def parse_sources(self, key, stack):
         for source in stack:
             if key in source:

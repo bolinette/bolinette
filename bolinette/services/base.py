@@ -1,3 +1,5 @@
+from sqlalchemy import desc
+
 from bolinette import validate, db, mapper
 from bolinette.exceptions import EntityNotFoundError
 
@@ -31,10 +33,13 @@ class BaseService:
     def get_by_criteria(self, criteria):
         return self.model.query.filter(criteria).all()
 
-    def get_all(self, pagination=None):
+    def get_all(self, pagination=None, order_by=[]):
+        query = self.model.query
+        if len(order_by) > 0:
+            query = BaseService.build_order_by(self.model, query, order_by)
         if pagination is not None:
-            return self.model.query.paginate(**pagination)
-        return self.model.query.all()
+            return query.paginate(**pagination)
+        return query.all()
 
     def create(self, params):
         params = validate.model(self.model, params)
@@ -45,7 +50,7 @@ class BaseService:
     def update(self, entity, params):
         mapper.update(self.model, entity, params)
         return entity
-    
+
     def patch(self, entity, params):
         mapper.update(self.model, entity, params, patch=True)
         return entity
@@ -53,3 +58,15 @@ class BaseService:
     def delete(self, entity):
         db.session.delete(entity)
         return entity
+
+    @staticmethod
+    def build_order_by(model, query, params):
+        order_by_query = []
+        for col_name, way in params:
+            if hasattr(model, col_name):
+                column = getattr(model, col_name)
+                if way:
+                    order_by_query.append(column)
+                else:
+                    order_by_query.append(desc(column))
+        return query.order_by(*order_by_query)

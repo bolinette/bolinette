@@ -18,7 +18,7 @@ logger = Logger()
 class Console:
     def print(self, text):
         print(text)
-    
+
     def error(self, text):
         print(text, file=sys.stderr)
 

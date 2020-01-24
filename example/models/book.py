@@ -9,7 +9,7 @@ class Book(db.Model):
     pages = db.Column(db.Integer, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('people.id'), nullable=False)
     author = db.relationship('Person', foreign_keys='Book.author_id',
-                            backref='books', lazy=False)
+                             backref='books', lazy=False)
 
     @staticmethod
     def payloads():

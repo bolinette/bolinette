@@ -45,14 +45,14 @@ class Serializers:
         if functions is not None:
             for serializer in functions:
                 self.add(serializer)
-    
+
     def add(self, serializer):
         self.serializers[serializer.mime] = serializer
         self.priorities = sorted(self.priorities + [serializer], key=lambda s: s.priority)
-    
+
     def get(self, mime):
         return self.serializers.get(mime, None)
-    
+
     @property
     def default(self):
         return self.priorities[0]
