@@ -1,5 +1,6 @@
 import json
 import dicttoxml
+from htmlmin import minify
 
 from bolinette.fs import render
 
@@ -18,7 +19,7 @@ class HTMLSerializer(Serializer):
         super().__init__('text/html', 0)
 
     def serialize(self, response):
-        return render('default.html.jinja2', {'response': response})
+        return minify(render('default.html.jinja2', {'response': response}))
 
 
 class JSONSerializer(Serializer):

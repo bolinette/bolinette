@@ -26,6 +26,7 @@ setup(
         'Flask-JWT-Extended==3.24.1',
         'Flask-Script==2.0.6',
         'Flask-SQLAlchemy==2.4.1',
+        'htmlmin==0.1.12',
         'inflect==4.0.0',
         'Jinja2==2.10.3',
         'pydash==4.7.6',

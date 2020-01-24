@@ -8,6 +8,8 @@ from bolinette.fs import paths
 
 def render(path, params):
     template_path, template_name = paths.split(path)
+    if not len(template_path):
+        template_path = paths.join(paths.dirname(__file__), 'files')
     jinja_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(searchpath=template_path),
         keep_trailing_newline=True,
