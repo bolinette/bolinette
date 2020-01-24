@@ -16,12 +16,12 @@ class Route:
         self.expects = expects
         self.returns = returns
         docs.add_route(self)
-    
+
     def serialize(self, response):
         mime = request.headers.get('Accept', 'application/json')
         serializer = serializers.get(mime) or serializers.default
         return serializer.serialize(response), serializer.mime
-    
+
     def process(self, *args, **kwargs):
         self.access.check()
         payload = request.get_json(silent=True) or {}
@@ -37,12 +37,12 @@ class Route:
             res, code = self.func(*args, **kwargs)
 
         if isinstance(res['data'], Pagination):
-                res['pagination'] = {
-                    'page': res['data'].page,
-                    'per_page': res['data'].per_page,
-                    'total': res['data'].total,
-                }
-                res['data'] = res['data'].items
+            res['pagination'] = {
+                'page': res['data'].page,
+                'per_page': res['data'].per_page,
+                'total': res['data'].total,
+            }
+            res['data'] = res['data'].items
 
         if self.returns is not None:
             def_key = f'{self.returns["model"]}.{self.returns["key"]}'

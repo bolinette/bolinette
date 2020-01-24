@@ -6,7 +6,7 @@ class Defaults:
         self.model = namespace.model
         self.service = namespace.service
         self.route = namespace.route
-    
+
     def get_all(self, returns='default'):
         @self.route('',
                     methods=['GET'],
@@ -14,14 +14,22 @@ class Defaults:
                     returns={'model': self.model, 'key': returns, 'as_list': True})
         def route(**params):
             pagination = None
+            order_by = []
             if 'page' in params['args'] or 'per_page' in params['args']:
                 pagination = {
                     'page': int(params['args'].get('page', 1)),
                     'per_page': int(params['args'].get('per_page', 20)),
                     'error_out': False
                 }
-            return response.ok('OK', self.service.get_all(pagination))
-    
+            if 'order_by' in params['args']:
+                columns = params['args']['order_by'].split(',')
+                for column in columns:
+                    order_args = column.split(':')
+                    col_name = order_args[0]
+                    order_way = order_args[1] if len(order_args) > 1 else 'asc'
+                    order_by.append((col_name, order_way == 'asc'))
+            return response.ok('OK', self.service.get_all(pagination, order_by))
+
     def get_one(self, returns='default'):
         @self.route('/<id>',
                     methods=['GET'],
@@ -30,7 +38,7 @@ class Defaults:
         def route(**params):
             m_id = params.get('id')
             return response.ok('OK', self.service.get(m_id))
-    
+
     def create(self, returns='default', expects='default'):
         @self.route('',
                     methods=['POST'],
@@ -40,7 +48,7 @@ class Defaults:
         def route(**params):
             payload = params.get('payload')
             return response.created(f'{self.model}.created', self.service.create(payload))
-    
+
     def update(self, returns='default', expects='default'):
         @self.route('/<id>',
                     methods=['PUT'],
@@ -52,7 +60,7 @@ class Defaults:
             payload = params.get('payload')
             entity = self.service.get(m_id)
             return response.ok(f'{self.model}.updated', self.service.update(entity, payload))
-    
+
     def patch(self, returns='default', expects='default'):
         @self.route('/<id>',
                     methods=['PATCH'],
@@ -64,7 +72,7 @@ class Defaults:
             payload = params.get('payload')
             entity = self.service.get(m_id)
             return response.ok(f'{self.model}.updated', self.service.patch(entity, payload))
-        
+
     def delete(self, returns='default'):
         @self.route('/<id>',
                     methods=['DELETE'],
