@@ -1,3 +1,5 @@
+import inspect
+
 from flask import request, Response
 from flask_sqlalchemy import Pagination
 
@@ -6,6 +8,10 @@ from bolinette.namespaces import serializers
 
 
 class Route:
+    @staticmethod
+    def _func_accepts_keywords(func):
+        return any(param for param in inspect.signature(func).parameters.values() if param.kind == param.VAR_KEYWORD)
+
     def __init__(self, func, base_url, url, endpoint, methods, access, expects, returns):
         self.func = func
         self.base_url = base_url
@@ -25,7 +31,8 @@ class Route:
     def process(self, *args, **kwargs):
         self.access.check()
         payload = request.get_json(silent=True) or {}
-        kwargs['args'] = dict(request.args)
+        if len(request.args) and Route._func_accepts_keywords(self.func):
+            kwargs['args'] = dict(request.args)
         with transaction:
             if self.expects is not None:
                 def_key = f'{self.expects["model"]}.{self.expects["key"]}'
@@ -36,7 +43,7 @@ class Route:
 
             res, code = self.func(*args, **kwargs)
 
-        if isinstance(res['data'], Pagination):
+        if res.get('data') is not None and isinstance(res['data'], Pagination):
             res['pagination'] = {
                 'page': res['data'].page,
                 'per_page': res['data'].per_page,

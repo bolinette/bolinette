@@ -15,19 +15,20 @@ class Defaults:
         def route(**params):
             pagination = None
             order_by = []
-            if 'page' in params['args'] or 'per_page' in params['args']:
-                pagination = {
-                    'page': int(params['args'].get('page', 1)),
-                    'per_page': int(params['args'].get('per_page', 20)),
-                    'error_out': False
-                }
-            if 'order_by' in params['args']:
-                columns = params['args']['order_by'].split(',')
-                for column in columns:
-                    order_args = column.split(':')
-                    col_name = order_args[0]
-                    order_way = order_args[1] if len(order_args) > 1 else 'asc'
-                    order_by.append((col_name, order_way == 'asc'))
+            if 'args' in params:
+                if 'page' in params['args'] or 'per_page' in params['args']:
+                    pagination = {
+                        'page': int(params['args'].get('page', 1)),
+                        'per_page': int(params['args'].get('per_page', 20)),
+                        'error_out': False
+                    }
+                if 'order_by' in params['args']:
+                    columns = params['args']['order_by'].split(',')
+                    for column in columns:
+                        order_args = column.split(':')
+                        col_name = order_args[0]
+                        order_way = order_args[1] if len(order_args) > 1 else 'asc'
+                        order_by.append((col_name, order_way == 'asc'))
             return response.ok('OK', self.service.get_all(pagination, order_by))
 
     def get_one(self, returns='default'):
