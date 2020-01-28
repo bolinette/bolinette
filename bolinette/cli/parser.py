@@ -80,6 +80,8 @@ class Parser:
             while True:
                 print(text)
                 value = input(prompt)
+                if not value and not ask.required:
+                    break
                 if not value and ask.default is not None:
                     value = ask.default
                 if not not value:

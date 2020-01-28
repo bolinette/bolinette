@@ -48,6 +48,26 @@
           type: inline
           desc: >-
             The name of the Python module, must be in snake case.
+    - name: user
+      type: command
+      desc: >-
+        Creates a new user from the CLI
+      command: create_user
+      args:
+        - name: username
+          type: inline
+          desc: >-
+            The new user's username
+        - name: email
+          desc: >-
+            The new user's email address
+          type: ask
+          required: false
+        - name: roles
+          desc: >-
+            Which roles assign to this user? (Comma-separated role names)
+          type: ask
+          required: false
 - name: run
   type: node
   desc: >-
