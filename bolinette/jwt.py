@@ -21,13 +21,11 @@ def init_jwt(app):
     app.config['JWT_SECRET_KEY'] = env['JWT_SECRET_KEY']
     jwt.init_app(app)
 
-    @app.errorhandler(jwt_extended_exceptions.JWTExtendedException)
     def handle_auth_error(e):
         return response.unauthorized(str(e))
 
-    @app.errorhandler(jwt_exceptions.PyJWTError)
-    def handle_auth_error(e):
-        return response.unauthorized(str(e))
+    app.errorhandler(jwt_extended_exceptions.JWTExtendedException)(handle_auth_error)
+    app.errorhandler(jwt_exceptions.PyJWTError)(handle_auth_error)
 
 
 @jwt.user_loader_callback_loader
