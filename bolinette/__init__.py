@@ -14,4 +14,4 @@ import bolinette.controllers
 from bolinette.bolinette import Bolinette, pickup_blnt
 
 
-version = '0.1.3'
+version = '0.1.4'
