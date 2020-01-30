@@ -4,7 +4,7 @@ from flask import request, Response
 from flask_sqlalchemy import Pagination
 
 from bolinette import transaction, marshalling, validate, docs, AccessToken
-from bolinette.namespaces import serializers
+from bolinette.namespaces import serialize
 
 
 class Route:
@@ -22,11 +22,6 @@ class Route:
         self.expects = expects
         self.returns = returns
         docs.add_route(self)
-
-    def serialize(self, response):
-        mime = request.headers.get('Accept', 'application/json')
-        serializer = serializers.get(mime) or serializers.default
-        return serializer.serialize(response), serializer.mime
 
     def process(self, *args, **kwargs):
         self.access.check()
@@ -59,5 +54,5 @@ class Route:
                     ret_def, res['data'], self.returns.get('skip_none', False),
                     self.returns.get('as_list', False))
 
-        res, mime = self.serialize(res)
+        res, mime = serialize(res)
         return Response(res, code, mimetype=mime)

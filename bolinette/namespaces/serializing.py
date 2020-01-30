@@ -1,6 +1,7 @@
 import json
 import dicttoxml
 from htmlmin import minify
+from flask import request
 
 from bolinette.fs import render
 
@@ -63,3 +64,9 @@ serializers = Serializers([
     JSONSerializer(),
     XMLSerializer(),
 ])
+
+
+def serialize(response):
+    mime = request.headers.get('Accept', 'application/json')
+    serializer = serializers.get(mime) or serializers.default
+    return serializer.serialize(response), serializer.mime
