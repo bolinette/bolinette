@@ -24,7 +24,7 @@ class List(MarshallingObject):
 
 
 class Definition(MarshallingObject):
-    def __init__(self, name, model, key):
+    def __init__(self, name, model, key='default'):
         self.fields = []
         self.name = name
         self.key = f'{model}.{key}'

@@ -1,4 +1,4 @@
-from bolinette import db, seeder
+from bolinette import db, seeder, marshalling
 
 
 class Role(db.Model):
@@ -9,6 +9,15 @@ class Role(db.Model):
 
     def __repr__(self):
         return f'<Role {self.name}>'
+
+    @staticmethod
+    def responses():
+        yield [
+            marshalling.Field(marshalling.types.string, 'name')
+        ]
+
+
+marshalling.register(Role, 'role')
 
 
 @seeder

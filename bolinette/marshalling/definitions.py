@@ -27,7 +27,12 @@ def get_model(name):
 
 def register(model, name):
     def create_defs(collection, params):
-        for key, payload in params:
+        for param in params:
+            if isinstance(param, list):
+                key = 'default'
+                payload = param
+            else:
+                key, payload = param
             definition = marshalling.Definition(name, name, key)
             for field in payload:
                 definition.fields.append(field)

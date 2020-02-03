@@ -13,7 +13,7 @@ class Book(db.Model):
 
     @staticmethod
     def payloads():
-        yield 'default', [
+        yield [
             marshalling.Field(marshalling.types.string, 'name', required=True),
             marshalling.Field(marshalling.types.integer, 'pages', required=True),
             marshalling.Field(marshalling.types.foreign_key('person', 'id'),
@@ -22,14 +22,14 @@ class Book(db.Model):
 
     @staticmethod
     def responses():
-        yield 'default', [
+        yield [
             marshalling.Field(marshalling.types.string, 'name', required=True),
             marshalling.Field(marshalling.types.integer, 'pages', required=True)
         ]
         yield 'complete', [
             marshalling.Field(marshalling.types.string, 'name', required=True),
             marshalling.Field(marshalling.types.integer, 'pages', required=True),
-            marshalling.Definition('author', 'person', 'default')
+            marshalling.Definition('author', 'person')
         ]
 
 

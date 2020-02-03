@@ -9,18 +9,18 @@ class Person(db.Model):
 
     @staticmethod
     def payloads():
-        yield 'default', [
+        yield [
             marshalling.Field(marshalling.types.string, 'name', required=True)
         ]
 
     @staticmethod
     def responses():
-        yield 'default', [
+        yield [
             marshalling.Field(marshalling.types.string, 'name', required=True)
         ]
         yield 'complete', [
             marshalling.Field(marshalling.types.string, 'name', required=True),
-            marshalling.List('books', marshalling.Definition('book', 'book', 'default'))
+            marshalling.List('books', marshalling.Definition('book', 'book'))
         ]
 
 

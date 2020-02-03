@@ -35,7 +35,8 @@ class User(db.Model):
             marshalling.Field(marshalling.types.email, 'email')
         ]
         yield 'public', [
-            marshalling.Field(marshalling.types.string, 'username')
+            marshalling.Field(marshalling.types.string, 'username'),
+            marshalling.List('roles', marshalling.Definition('role', 'role'))
         ]
 
     def __repr__(self):
