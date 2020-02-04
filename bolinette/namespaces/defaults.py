@@ -28,7 +28,7 @@ class Defaults:
             return response.ok('OK', self.service.get_all(pagination, order_by))
 
         self.route('', methods=['GET'], endpoint=f'get_all_{self.model}',
-                   returns={'model': self.model, 'key': returns, 'as_list': True})(route)
+                   returns=self.route.returns(self.model, returns, as_list=True))(route)
 
     def get_one(self, returns='default'):
         def route(**params):
@@ -36,7 +36,7 @@ class Defaults:
             return response.ok('OK', self.service.get(m_id))
 
         self.route('/<id>', methods=['GET'], endpoint=f'get_one_{self.model}',
-                   returns={'model': self.model, 'key': returns})(route)
+                   returns=self.route.returns(self.model, returns))(route)
 
     def create(self, returns='default', expects='default'):
         def route(**params):
@@ -44,8 +44,8 @@ class Defaults:
             return response.created(f'{self.model}.created', self.service.create(payload))
 
         self.route('', methods=['POST'], endpoint=f'create_{self.model}',
-                   returns={'model': self.model, 'key': returns},
-                   expects={'model': self.model, 'key': expects})(route)
+                   returns=self.route.returns(self.model, returns),
+                   expects=self.route.expects(self.model, expects))(route)
 
     def update(self, returns='default', expects='default'):
         def route(**params):
@@ -55,8 +55,8 @@ class Defaults:
             return response.ok(f'{self.model}.updated', self.service.update(entity, payload))
 
         self.route('/<id>', methods=['PUT'], endpoint=f'update_{self.model}',
-                   returns={'model': self.model, 'key': returns},
-                   expects={'model': self.model, 'key': expects})(route)
+                   returns=self.route.returns(self.model, returns),
+                   expects=self.route.expects(self.model, expects))(route)
 
     def patch(self, returns='default', expects='default'):
         def route(**params):
@@ -66,8 +66,8 @@ class Defaults:
             return response.ok(f'{self.model}.updated', self.service.patch(entity, payload))
 
         self.route('/<id>', methods=['PATCH'], endpoint=f'patch_{self.model}',
-                   returns={'model': self.model, 'key': returns},
-                   expects={'model': self.model, 'key': expects, 'patch': True})(route)
+                   returns=self.route.returns(self.model, returns),
+                   expects=self.route.expects(self.model, expects, patch=True))(route)
 
     def delete(self, returns='default'):
         def route(**params):
@@ -76,4 +76,4 @@ class Defaults:
             return response.ok(f'{self.model}.deleted', self.service.delete(entity))
 
         self.route('/<id>', methods=['DELETE'], endpoint=f'delete_{self.model}',
-                   returns={'model': self.model, 'key': returns})(route)
+                   returns=self.route.returns(self.model, returns))(route)

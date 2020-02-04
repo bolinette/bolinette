@@ -8,6 +8,7 @@ def role_seeder():
         role_service.create({'name': 'root'})
         role_service.create({'name': 'admin'})
 
+
 @seeder
 def dev_user_seeder():
     if env['ENV'] == 'development':
