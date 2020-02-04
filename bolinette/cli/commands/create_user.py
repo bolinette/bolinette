@@ -30,8 +30,13 @@ def create_user(bolinette, **options):
                         console.error(f'Role "{role_name}" does not exist')
                         exit(1)
             try:
-                user_service.create({'username': username, 'password': password,
-                                     'roles': roles, 'email': email})
+                user = user_service.create({
+                    'username': username,
+                    'password': password,
+                    'email': email
+                })
+                for role in roles:
+                    user.roles.append(role)
             except ParamConflictError as ex:
                 for message in ex.messages:
                     console.error(f'Conflict: {message.split(":")[1]} already exists')

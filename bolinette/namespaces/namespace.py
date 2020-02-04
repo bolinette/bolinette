@@ -25,7 +25,9 @@ class Namespace:
             access = options.get('access', AccessToken.All)
             expects = options.get('expects', None)
             returns = options.get('returns', None)
-            route_rules = Route(func, self.url, rule, endpoint, methods, access, expects, returns)
+            roles = options.get('roles', [])
+            route_rules = Route(func, self.url, rule, endpoint, methods,
+                                access, expects, returns, roles)
             self.blueprint.add_url_rule(rule, endpoint, route_rules.process, methods=methods)
             return func
 

@@ -110,4 +110,13 @@ def refresh():
     return response.ok('user.token.refreshed')
 
 
+@ns.route('',
+          methods=['GET'],
+          access=AccessToken.Fresh,
+          roles=['admin'],
+          returns={'model': 'user', 'key': 'public', 'as_list': True})
+def get_users():
+    return response.ok('OK', user_service.get_all())
+
+
 ns.register()

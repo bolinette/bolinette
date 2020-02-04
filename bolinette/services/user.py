@@ -4,6 +4,10 @@ from bolinette.services import BaseService
 
 
 class UserService(BaseService):
+    @staticmethod
+    def encrypt_password(password):
+        return bcrypt.generate_password_hash(password).decode('utf-8')
+
     def __init__(self):
         super().__init__(User, 'user')
 
@@ -17,17 +21,17 @@ class UserService(BaseService):
         return bcrypt.check_password_hash(user.password, password)
 
     def create(self, params):
-        params['password'] = bcrypt.generate_password_hash(params['password'])
+        params['password'] = UserService.encrypt_password(params['password'])
         return super().create(params)
 
     def update(self, entity, params):
         if 'password' in params:
-            params['password'] = bcrypt.generate_password_hash(params['password'])
+            params['password'] = UserService.encrypt_password(params['password'])
         return super().update(entity, params)
 
     def patch(self, entity, params):
         if 'password' in params:
-            params['password'] = bcrypt.generate_password_hash(params['password'])
+            params['password'] = UserService.encrypt_password(params['password'])
         return super().patch(entity, params)
 
 

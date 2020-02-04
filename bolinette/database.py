@@ -16,6 +16,8 @@ def create_db_uri(bolinette):
         return 'sqlite:///' + bolinette.instance_path(env.get('SQLITE_FILE', f'{bolinette.app.env}.db'))
     if dbms == 'memory':
         return 'sqlite://'
+    if dbms == 'postgresql':
+        return 'postgresql://' + env['DB_URL']
     logger.error(f'Unknown database system "{dbms}"')
     exit(1)
 

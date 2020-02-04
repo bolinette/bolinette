@@ -1,4 +1,4 @@
-from bolinette import db, seeder, marshalling
+from bolinette import db, marshalling
 
 
 class Role(db.Model):
@@ -18,9 +18,3 @@ class Role(db.Model):
 
 
 marshalling.register(Role, 'role')
-
-
-@seeder
-def role_seeder():
-    db.session.add(Role(name='root'))
-    db.session.add(Role(name='admin'))

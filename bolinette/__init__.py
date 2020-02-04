@@ -11,6 +11,7 @@ from bolinette.namespaces import Namespace
 from bolinette.mapper import mapper
 from bolinette.jwt import jwt
 import bolinette.controllers
+import bolinette.seeders
 from bolinette.bolinette import Bolinette, pickup_blnt
 
 

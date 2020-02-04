@@ -12,7 +12,7 @@ class Route:
     def _func_accepts_keywords(func):
         return any(param for param in inspect.signature(func).parameters.values() if param.kind == param.VAR_KEYWORD)
 
-    def __init__(self, func, base_url, url, endpoint, methods, access, expects, returns):
+    def __init__(self, func, base_url, url, endpoint, methods, access, expects, returns, roles):
         self.func = func
         self.base_url = base_url
         self.url = url
@@ -21,10 +21,11 @@ class Route:
         self.access = access
         self.expects = expects
         self.returns = returns
+        self.roles = roles
         docs.add_route(self)
 
     def process(self, *args, **kwargs):
-        self.access.check()
+        self.access.check(self.roles)
         payload = request.get_json(silent=True) or {}
         if len(request.args) and Route._func_accepts_keywords(self.func):
             kwargs['args'] = dict(request.args)

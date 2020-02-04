@@ -12,6 +12,7 @@ class Environment:
             'APP_DESC': 'DEFAULT_DESCRIPTION',
             'APP_VERSION': '0.0.1',
             'DBMS': 'SQLITE',
+            'DB_URL': '',
             'DEBUG': 'True',
             'FLASK_HOST': '127.0.0.1',
             'FLASK_PORT': '5000',
