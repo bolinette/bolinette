@@ -35,10 +35,11 @@ class NamespaceRoute:
         def inner(func):
             endpoint = options.get('endpoint', func.__name__)
             methods = options.get('methods', ['GET'])
-            access = options.get('access', AccessToken.All)
+            roles = options.get('roles', [])
+            access = options.get('access', (AccessToken.Required if len(roles)
+                                            else AccessToken.Optional))
             expects = options.get('expects', None)
             returns = options.get('returns', None)
-            roles = options.get('roles', [])
             route_rules = Route(func, self.namespace.url, rule, endpoint, methods,
                                 access, expects, returns, roles)
             self.namespace.blueprint.add_url_rule(

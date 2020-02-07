@@ -1,6 +1,9 @@
 from enum import Enum, unique, auto
 
-import flask_jwt_extended
+from flask_jwt_extended import (
+    verify_jwt_in_request, verify_jwt_in_request_optional, verify_fresh_jwt_in_request,
+    verify_jwt_refresh_token_in_request, current_user
+)
 
 from bolinette import response
 
@@ -14,7 +17,7 @@ class AccessToken(Enum):
     Refresh = auto()
 
     def check_roles(self, roles):
-        user_roles = set(map(lambda r: r.name, flask_jwt_extended.current_user.roles))
+        user_roles = set(map(lambda r: r.name, current_user.roles))
         if 'root' not in user_roles and not len(user_roles.intersection(set(roles))):
             response.abort(*response.forbidden(f'user.forbidden:{",".join(roles)}'))
 
@@ -26,8 +29,8 @@ class AccessToken(Enum):
 
 _functions = {
     AccessToken.All.value: lambda: None,
-    AccessToken.Optional.value: flask_jwt_extended.verify_jwt_in_request_optional,
-    AccessToken.Required.value: flask_jwt_extended.verify_jwt_in_request,
-    AccessToken.Fresh.value: flask_jwt_extended.verify_fresh_jwt_in_request,
-    AccessToken.Refresh.value: flask_jwt_extended.verify_jwt_refresh_token_in_request
+    AccessToken.Optional.value: verify_jwt_in_request_optional,
+    AccessToken.Required.value: verify_jwt_in_request,
+    AccessToken.Fresh.value: verify_fresh_jwt_in_request,
+    AccessToken.Refresh.value: verify_jwt_refresh_token_in_request
 }

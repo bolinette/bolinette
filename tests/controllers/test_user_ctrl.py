@@ -1,7 +1,7 @@
 import pytest
 
 from bolinette import bcrypt
-from bolinette.models import User
+from bolinette.models import User, Role
 from bolinette.testing import client, bolitest, create_mock, insert
 
 
@@ -12,6 +12,13 @@ def salt_password(mock):
 
 def set_up():
     insert(User, salt_password(create_mock(1, 'user', 'register')))
+
+
+def admin_set_up():
+    admin = insert(Role, {'name': 'admin'})
+    user1 = insert(User, salt_password(create_mock(1, 'user', 'register')))
+    user1.roles.append(admin)
+    insert(User, salt_password(create_mock(2, 'user', 'register')))
 
 
 @bolitest(before=set_up)
@@ -126,5 +133,26 @@ def test_change_password(client):
     rv = client.post('/user/login', {'username': user1['username'], 'password': 'new_password'})
 
     rv = client.get('/user/me')
-
     assert rv['code'] == 200
+
+
+@bolitest(before=admin_set_up)
+def test_get_users(client):
+    user1 = create_mock(1, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.get('/user')
+    assert rv['code'] == 200
+    assert len(rv['data']) == 2
+
+
+@bolitest(before=admin_set_up)
+def test_get_users_forbidden(client):
+    user1 = create_mock(2, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.get('/user')
+    assert rv['code'] == 403
+    assert 'user.forbidden:admin' in rv['messages']

@@ -18,6 +18,7 @@ def bolitest(**options):
             db.create_all()
             if 'before' in options and callable(options['before']):
                 options['before']()
+            db.session.commit()
             func(*args, **kwargs)
             if 'after' in options and callable(options['after']):
                 options['after']()

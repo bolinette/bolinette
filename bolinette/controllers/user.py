@@ -13,7 +13,7 @@ ns = Namespace(user_service, '/user')
 @ns.route('/me',
           methods=['GET'],
           access=AccessToken.Fresh,
-          returns={'model': 'user', 'key': 'private'})
+          returns=ns.route.returns('user', 'private'))
 def me():
     return response.ok('OK', current_user)
 
@@ -21,8 +21,8 @@ def me():
 @ns.route('/me',
           methods=['PATCH'],
           access=AccessToken.Fresh,
-          returns={'model': 'user', 'key': 'private'},
-          expects={'model': 'user', 'key': 'register', 'patch': True})
+          returns=ns.route.returns('user', 'private'),
+          expects=ns.route.expects('user', 'register', patch=True))
 def update_user(payload):
     user = user_service.get_by_username(get_jwt_identity())
     user = user_service.patch(user, payload)
@@ -41,15 +41,15 @@ def update_user(payload):
 @ns.route('/info',
           methods=['GET'],
           access=AccessToken.Required,
-          returns={'model': 'user', 'key': 'public'})
+          returns=ns.route.returns('user'))
 def info():
     return response.ok('OK', current_user)
 
 
 @ns.route('/login',
           methods=['POST'],
-          returns={'model': 'user', 'key': 'private'},
-          expects={'model': 'user', 'key': 'login'})
+          returns=ns.route.returns('user', 'private'),
+          expects=ns.route.expects('user', 'login'))
 def login(payload):
     """
     Logs the user in with the provided credentials
@@ -88,8 +88,8 @@ def logout():
 
 @ns.route('/register',
           methods=['POST'],
-          returns={'model': 'user', 'key': 'private'},
-          expects={'model': 'user', 'key': 'register'})
+          returns=ns.route.returns('user', 'private'),
+          expects=ns.route.expects('user', 'register'))
 def register(payload):
     user = user_service.create(payload)
     return response.created('User successfully registered', user)
@@ -110,13 +110,7 @@ def refresh():
     return response.ok('user.token.refreshed')
 
 
-@ns.route('',
-          methods=['GET'],
-          access=AccessToken.Fresh,
-          roles=['admin'],
-          returns={'model': 'user', 'key': 'public', 'as_list': True})
-def get_users():
-    return response.ok('OK', user_service.get_all())
+ns.defaults.get_all('private', roles=['admin'])
 
 
 ns.register()

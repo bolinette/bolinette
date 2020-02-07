@@ -14,7 +14,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
 
     roles = db.relationship('Role', secondary=users_roles, lazy='subquery',
-                            backref=db.backref('pages', lazy=True))
+                            backref=db.backref('users', lazy=True))
 
     @staticmethod
     def payloads():
@@ -30,12 +30,12 @@ class User(db.Model):
 
     @staticmethod
     def responses():
+        yield [
+            marshalling.Field(marshalling.types.string, 'username')
+        ]
         yield 'private', [
             marshalling.Field(marshalling.types.string, 'username'),
-            marshalling.Field(marshalling.types.email, 'email')
-        ]
-        yield 'public', [
-            marshalling.Field(marshalling.types.string, 'username'),
+            marshalling.Field(marshalling.types.email, 'email'),
             marshalling.List('roles', marshalling.Definition('role', 'role'))
         ]
 

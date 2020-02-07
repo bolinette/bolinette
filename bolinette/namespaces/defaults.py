@@ -7,7 +7,15 @@ class Defaults:
         self.service = namespace.service
         self.route = namespace.route
 
-    def get_all(self, returns='default'):
+    def _process_access_options(self, options):
+        access_options = {}
+        if 'access' in options:
+            access_options['access'] = options['access']
+        if 'roles' in options:
+            access_options['roles'] = options['roles']
+        return access_options
+
+    def get_all(self, returns='default', **options):
         def route(**params):
             pagination = None
             order_by = []
@@ -27,53 +35,89 @@ class Defaults:
                         order_by.append((col_name, order_way == 'asc'))
             return response.ok('OK', self.service.get_all(pagination, order_by))
 
-        self.route('', methods=['GET'], endpoint=f'get_all_{self.model}',
-                   returns=self.route.returns(self.model, returns, as_list=True))(route)
+        access_options = self._process_access_options(options)
+        self.route('',
+                   methods=['GET'],
+                   endpoint=f'get_all_{self.model}',
+                   returns=self.route.returns(self.model, returns, as_list=True),
+                   **access_options)(route)
 
-    def get_one(self, returns='default'):
+    def get_one(self, returns='default', **options):
         def route(**params):
             m_id = params.get('id')
             return response.ok('OK', self.service.get(m_id))
 
-        self.route('/<id>', methods=['GET'], endpoint=f'get_one_{self.model}',
-                   returns=self.route.returns(self.model, returns))(route)
+        access_options = self._process_access_options(options)
+        self.route('/<id>',
+                   methods=['GET'],
+                   endpoint=f'get_one_{self.model}',
+                   returns=self.route.returns(self.model, returns),
+                   **access_options)(route)
 
-    def create(self, returns='default', expects='default'):
+    def get_first_by(self, key, returns='default', **options):
+        def route(**params):
+            m_id = params.get('id')
+            return response.ok('OK', self.service.get_first_by(key, m_id))
+
+        access_options = self._process_access_options(options)
+        self.route('/<id>',
+                   methods=['GET'],
+                   endpoint=f'get_one_{self.model}',
+                   returns=self.route.returns(self.model, returns),
+                   **access_options)(route)
+
+    def create(self, returns='default', expects='default', **options):
         def route(**params):
             payload = params.get('payload')
             return response.created(f'{self.model}.created', self.service.create(payload))
 
-        self.route('', methods=['POST'], endpoint=f'create_{self.model}',
+        access_options = self._process_access_options(options)
+        self.route('',
+                   methods=['POST'],
+                   endpoint=f'create_{self.model}',
                    returns=self.route.returns(self.model, returns),
-                   expects=self.route.expects(self.model, expects))(route)
+                   expects=self.route.expects(self.model, expects),
+                   **access_options)(route)
 
-    def update(self, returns='default', expects='default'):
+    def update(self, returns='default', expects='default', **options):
         def route(**params):
             m_id = params.get('id')
             payload = params.get('payload')
             entity = self.service.get(m_id)
             return response.ok(f'{self.model}.updated', self.service.update(entity, payload))
 
-        self.route('/<id>', methods=['PUT'], endpoint=f'update_{self.model}',
+        access_options = self._process_access_options(options)
+        self.route('/<id>',
+                   methods=['PUT'],
+                   endpoint=f'update_{self.model}',
                    returns=self.route.returns(self.model, returns),
-                   expects=self.route.expects(self.model, expects))(route)
+                   expects=self.route.expects(self.model, expects),
+                   **access_options)(route)
 
-    def patch(self, returns='default', expects='default'):
+    def patch(self, returns='default', expects='default', **options):
         def route(**params):
             m_id = params.get('id')
             payload = params.get('payload')
             entity = self.service.get(m_id)
             return response.ok(f'{self.model}.updated', self.service.patch(entity, payload))
 
-        self.route('/<id>', methods=['PATCH'], endpoint=f'patch_{self.model}',
+        access_options = self._process_access_options(options)
+        self.route('/<id>',
+                   methods=['PATCH'],
+                   endpoint=f'patch_{self.model}',
                    returns=self.route.returns(self.model, returns),
-                   expects=self.route.expects(self.model, expects, patch=True))(route)
+                   expects=self.route.expects(self.model, expects, patch=True),
+                   **access_options)(route)
 
-    def delete(self, returns='default'):
+    def delete(self, returns='default', **options):
         def route(**params):
             m_id = params.get('id')
             entity = self.service.get(m_id)
             return response.ok(f'{self.model}.deleted', self.service.delete(entity))
 
-        self.route('/<id>', methods=['DELETE'], endpoint=f'delete_{self.model}',
-                   returns=self.route.returns(self.model, returns))(route)
+        access_options = self._process_access_options(options)
+        self.route('/<id>',
+                   methods=['DELETE'],
+                   endpoint=f'delete_{self.model}',
+                   returns=self.route.returns(self.model, returns),
+                   **access_options)(route)

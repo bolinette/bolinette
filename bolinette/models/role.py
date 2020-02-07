@@ -15,6 +15,10 @@ class Role(db.Model):
         yield [
             marshalling.Field(marshalling.types.string, 'name')
         ]
+        yield 'complete', [
+            marshalling.Field(marshalling.types.string, 'name'),
+            marshalling.List('users', marshalling.Definition('user', 'user'))
+        ]
 
 
 marshalling.register(Role, 'role')

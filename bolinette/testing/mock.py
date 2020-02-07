@@ -37,5 +37,4 @@ def create_mock(m_id, model, key='default'):
 def insert(model, mock):
     entity = model(**mock)
     db.session.add(entity)
-    db.session.commit()
-    return mock
+    return entity
