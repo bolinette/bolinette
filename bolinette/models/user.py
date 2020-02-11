@@ -16,6 +16,9 @@ class User(db.Model):
     roles = db.relationship('Role', secondary=users_roles, lazy='subquery',
                             backref=db.backref('users', lazy=True))
 
+    def has_role(self, role):
+        return any(filter(lambda r: r.name == role, self.roles))
+
     @staticmethod
     def payloads():
         yield 'register', [

@@ -5,7 +5,7 @@ from flask_jwt_extended import (
 )
 from bolinette import Namespace, response, AccessToken
 from bolinette.exceptions import EntityNotFoundError
-from bolinette.services import user_service
+from bolinette.services import user_service, role_service
 
 ns = Namespace(user_service, '/user')
 
@@ -41,7 +41,7 @@ def update_user(payload):
 @ns.route('/info',
           methods=['GET'],
           access=AccessToken.Required,
-          returns=ns.route.returns('user'))
+          returns=ns.route.returns('user', 'private'))
 def info():
     return response.ok('OK', current_user)
 
@@ -111,6 +111,43 @@ def refresh():
 
 
 ns.defaults.get_all('private', roles=['admin'])
+
+ns.defaults.get_first_by('username', returns='private', roles=['admin'])
+
+
+@ns.route('/<username>/roles',
+          methods=['POST'],
+          roles=['admin'],
+          expects=ns.route.expects('role'),
+          returns=ns.route.returns('user', 'private'))
+def add_user_role(username, payload):
+    user = user_service.get_by_username(username)
+    role = role_service.get_by_name(payload['name'])
+    if role.name == 'root':
+        return response.forbidden('role.root.forbidden')
+    if role in user.roles:
+        return response.bad_request(f'user.roles.exists:{user.username}:{role.name}')
+    user.roles.append(role)
+    return response.created(f'user.roles.added:{user.username}:{role.name}', user)
+
+
+@ns.route('/<username>/roles/<role>',
+          methods=['DELETE'],
+          roles=['admin'],
+          returns=ns.route.returns('user', 'private'))
+def delete_user_role(username, role):
+    user = user_service.get_by_username(username)
+    role = role_service.get_by_name(role)
+    if role.name == 'root':
+        return response.forbidden('role.root.forbidden')
+    if (current_user.username == user.username
+            and role.name == 'admin'
+            and not current_user.has_role('root')):
+        return response.forbidden('role.admin.no_self_demotion')
+    if role in user.roles:
+        user.roles.remove(role)
+        return response.ok(f'user.roles.deleted:{user.username}:{role.name}', user)
+    return response.bad_request(f'user.roles.not_found:{user.username}:{role.name}')
 
 
 ns.register()

@@ -11,6 +11,12 @@ class Role(db.Model):
         return f'<Role {self.name}>'
 
     @staticmethod
+    def payloads():
+        yield [
+            marshalling.Field(marshalling.types.string, 'name')
+        ]
+
+    @staticmethod
     def responses():
         yield [
             marshalling.Field(marshalling.types.string, 'name')
