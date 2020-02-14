@@ -14,7 +14,7 @@ workflows:
             - test_blnt
           filters:
             tags:
-              only: /blnt.(?:[\d]+\.){2}[\d]+/
+              only: /(?:[\d]+\.){2}[\d]+/
             branches:
               ignore: /.*/
 
