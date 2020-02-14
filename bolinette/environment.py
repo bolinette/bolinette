@@ -18,6 +18,7 @@ class Environment:
             'FLASK_PORT': '5000',
             'JWT_SECRET_KEY': '',
             'SECRET_KEY': '',
+            'USER_EMAIL_REQUIRED': False,
             'WEBAPP_FOLDER': bolinette.root_path('webapp', 'dist')
         }
 
@@ -29,29 +30,29 @@ class Environment:
         self.env = {}
 
     def init(self, bolinette, **options):
-        exec_env = options.get('exec_env', 'development')
+        profile = options.get('profile') or 'development'
         overrides = options.get('overrides', {})
         self.env = Environment.keys(bolinette)
-        self.env['ENV'] = exec_env
+        self.env['PROFILE'] = profile
         env_stack = [
             overrides,
             self.load_from_os(),
-            self.load_from_file(bolinette, f'{exec_env}.local.env'),
-            self.load_from_file(bolinette, f'{exec_env}.env')
+            self.load_from_file(bolinette, f'{profile}.local.env'),
+            self.load_from_file(bolinette, f'{profile}.env')
         ]
         self.override_env(env_stack)
         self.set_app_config(bolinette.app)
 
     def set_app_config(self, app):
-        app.config['ENV'] = self.env['ENV']
+        app.config['ENV'] = self.env['PROFILE']
         debug = self.env.get('DEBUG')
-        app.config['DEBUG'] = app.config['ENV'] == 'development' if debug is None \
+        app.config['DEBUG'] = self.env['PROFILE'] == 'development' if debug is None \
             else debug == 'True'
         secret_key = self.env.get('SECRET_KEY')
         if secret_key is None or len(secret_key) == 0:
             logger.warning('No secret key set! '
                            'Put this "SECRET_KEY=your_secret_key" '
-                           f'in instance/{self.env["ENV"]}.local.env')
+                           f'in instance/{self.env["PROFILE"]}.local.env')
         app.secret_key = self.env.get('SECRET_KEY')
         app.static_folder = self.env['WEBAPP_FOLDER']
 

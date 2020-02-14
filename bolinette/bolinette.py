@@ -1,6 +1,3 @@
-import importlib
-import sys
-
 from flask import Flask
 from flask_cors import CORS
 
@@ -17,10 +14,11 @@ class Bolinette:
     def __init__(self, name, **options):
         self.cwd = paths.cwd()
         self.origin = paths.dirname(__file__)
+        profile = options.get('profile')
         env_overrides = options.get('env', {})
         self.app = Flask(name, static_url_path='')
         CORS(self.app, supports_credentials=True)
-        env.init(self, overrides=env_overrides)
+        env.init(self, profile=profile, overrides=env_overrides)
         init_jwt(self.app)
         init_db(self)
         init_routes(self.app)
@@ -36,14 +34,3 @@ class Bolinette:
 
     def internal_path(self, *path):
         return paths.join(self.origin, *path)
-
-
-def pickup_blnt(cwd):
-    manifest = paths.read_manifest(cwd)
-    if manifest is not None:
-        if cwd not in sys.path:
-            sys.path = [cwd] + sys.path
-        module = importlib.import_module(manifest.get('module'))
-        blnt = getattr(module, 'blnt', None)
-        return blnt
-    return None

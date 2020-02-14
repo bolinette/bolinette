@@ -1,8 +1,8 @@
 import importlib
+import sys
 
 import yaml
 
-from bolinette import pickup_blnt, Bolinette
 from bolinette.cli import Loader
 from bolinette.cli.nodes import Node, Command
 from bolinette.fs import paths
@@ -10,7 +10,7 @@ from bolinette.fs import paths
 
 class Parser:
     def __init__(self):
-        self.bolinette = pickup_blnt(paths.cwd()) or Bolinette(__name__, env={'SECRET_KEY': 'blnt_cli'})
+        self.bolinette = Parser.pickup_blnt(paths.cwd())
         assert self.bolinette is not None
         self.nodes = self.parse_nodes()
 
@@ -134,3 +134,14 @@ class Parser:
         for param in command.params:
             params[param] = command.params[param]
         func(**params)
+
+    @staticmethod
+    def pickup_blnt(cwd):
+        manifest = paths.read_manifest(cwd)
+        if manifest is not None:
+            if cwd not in sys.path:
+                sys.path = [cwd] + sys.path
+            module = importlib.import_module(manifest.get('module'))
+            blnt = getattr(module, 'bolinette', None)
+            return blnt
+        return None

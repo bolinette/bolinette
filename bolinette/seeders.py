@@ -11,7 +11,7 @@ def role_seeder():
 
 @seeder
 def dev_user_seeder():
-    if env['ENV'] == 'development':
+    if env['PROFILE'] == 'development':
         with transaction:
             root = role_service.get_by_name('root')
             admin = role_service.get_by_name('admin')
