@@ -3,19 +3,28 @@ import sys
 
 import yaml
 
-from bolinette.cli import Loader
-from bolinette.cli.nodes import Node, Command
-from bolinette.fs import paths
+from bolinette_cli import Loader, paths
+from bolinette_cli.nodes import Node, Command
 
 
 class Parser:
     def __init__(self):
-        self.bolinette = Parser.pickup_blnt(paths.cwd())
-        assert self.bolinette is not None
+        self.cwd = paths.cwd()
+        self.origin = paths.dirname(__file__)
+        self.blnt = Parser.pickup_blnt(paths.cwd())
         self.nodes = self.parse_nodes()
 
+    def instance_path(self, *path):
+        return self.root_path('instance', *path)
+
+    def root_path(self, *path):
+        return paths.join(self.cwd, *path)
+
+    def internal_path(self, *path):
+        return paths.join(self.origin, *path)
+
     def parse_nodes(self):
-        with open(self.bolinette.internal_path('cli', 'nodes.yml')) as f:
+        with open(self.internal_path('nodes.yml')) as f:
             return Loader.load_nodes(yaml.safe_load(f))
 
     def execute(self, argv, cur_node=None, index=1):
@@ -34,15 +43,15 @@ class Parser:
                 if self.check_command(current):
                     self.ask_params(current)
                     self.run_command(current)
-                return
         else:
             print('Invalid command: ' + ' '.join(argv[1:index + 1]))
             return self.print_node_doc(argv[1:index], cur_node)
 
     def print_node_doc(self, argv, node):
-        nodes = self.nodes
         if node is not None:
             nodes = node.children
+        else:
+            nodes = self.nodes
         if len(argv) > 0:
             print('Command: ' + ' '.join(argv))
             print('  Sub commands:')
@@ -126,9 +135,9 @@ class Parser:
                 skip = False
 
     def run_command(self, command):
-        module = importlib.import_module('bolinette.cli.commands.' + command.command)
+        module = importlib.import_module('bolinette_cli.commands.' + command.command)
         func = getattr(module, command.command)
-        params = {'bolinette': self.bolinette}
+        params = {'parser': self}
         for param in command.inline + command.ask + command.flags + command.args:
             params[param.name] = param.value
         for param in command.params:

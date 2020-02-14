@@ -1,20 +1,19 @@
 import inflect
 import pydash
 
-from bolinette import console
-from bolinette.cli.commands.create_controller import create_controller
-from bolinette.cli.commands.create_service import create_service
-from bolinette.fs import paths, templating
+from bolinette_cli import console, paths, templating
+from bolinette_cli.commands.create_controller import create_controller
+from bolinette_cli.commands.create_service import create_service
 
 
-def create_model(bolinette, **options):
-    manifest = paths.read_manifest(bolinette.cwd)
+def create_model(parser, **options):
+    manifest = paths.read_manifest(parser.cwd)
     if manifest is None:
         console.error('No manifest found')
     else:
         module = manifest.get('module')
-        path = bolinette.root_path(module)
-        origin = bolinette.internal_path('cli', 'files', 'templates')
+        path = parser.root_path(module)
+        origin = parser.internal_path('cli', 'files', 'templates')
 
         model_name = options.get('name')
         class_name = pydash.capitalize(model_name)
@@ -32,7 +31,7 @@ def create_model(bolinette, **options):
                      f'from {module}.models.{model_name} import {class_name}\n')
 
         if options.get('service', False):
-            create_service(bolinette, name=model_name)
+            create_service(parser, name=model_name)
 
         if options.get('controller', False):
-            create_controller(bolinette, name=model_name)
+            create_controller(parser, name=model_name)

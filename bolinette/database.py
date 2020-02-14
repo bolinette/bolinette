@@ -2,8 +2,9 @@ import os
 from functools import wraps
 
 from flask_sqlalchemy import SQLAlchemy
+from bolinette_cli import logger
 
-from bolinette import env, logger
+from bolinette import env
 
 _seeder_funcs = []
 

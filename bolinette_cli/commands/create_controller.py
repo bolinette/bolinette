@@ -1,15 +1,14 @@
-from bolinette import console
-from bolinette.fs import paths, templating
+from bolinette_cli import console, paths, templating
 
 
-def create_controller(bolinette, **options):
-    manifest = paths.read_manifest(bolinette.cwd)
+def create_controller(parser, **options):
+    manifest = paths.read_manifest(parser.cwd)
     if manifest is None:
         console.error('No manifest found')
     else:
         module = manifest.get('module')
-        path = bolinette.root_path(module)
-        origin = bolinette.internal_path('cli', 'files', 'templates')
+        path = parser.root_path(module)
+        origin = parser.internal_path('cli', 'files', 'templates')
 
         model_name = options.get('name')
 

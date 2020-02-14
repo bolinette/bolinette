@@ -7,7 +7,8 @@ from bolinette.testing import TestClient
 
 @pytest.fixture
 def client():
-    return TestClient(Bolinette(__name__, profile='test', env={'DBMS': 'SQLITE'}))
+    return TestClient(Bolinette(__name__, profile='test',
+                                env={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'}))
 
 
 def bolitest(**options):

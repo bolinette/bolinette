@@ -1,16 +1,17 @@
 import getpass
 
-from bolinette import console, db
-from bolinette.exceptions import EntityNotFoundError, ParamConflictError
-from bolinette.fs import paths
-from bolinette.services import user_service, role_service
+from bolinette_cli import console, paths
 
 
-def create_user(bolinette, **options):
-    manifest = paths.read_manifest(bolinette.cwd)
+def create_user(parser, **options):
+    manifest = paths.read_manifest(parser.cwd)
     if manifest is None:
         console.error('No manifest found')
     else:
+        from bolinette import db
+        from bolinette.exceptions import EntityNotFoundError, ParamConflictError
+        from bolinette.services import user_service, role_service
+
         username = options.get('username')
         email = options.get('email')
         while True:
@@ -20,7 +21,7 @@ def create_user(bolinette, **options):
                 break
             console.error('Passwords don\'t match')
         role_names = options.get('roles')
-        with bolinette.app.app_context():
+        with parser.blnt.app.app_context():
             roles = []
             if roles is not None:
                 for role_name in [r.strip() for r in role_names.split(',')]:

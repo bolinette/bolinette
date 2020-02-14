@@ -3,7 +3,7 @@ import dicttoxml
 from htmlmin import minify
 from flask import request
 
-from bolinette.fs import render
+from bolinette_cli.templating import render
 
 
 class Serializer:

@@ -1,4 +1,4 @@
-from bolinette.cli.nodes import Node, Command, Inline, Ask, Argument, Flag
+from bolinette_cli.nodes import Node, Command, Inline, Ask, Argument, Flag
 
 
 class Loader:

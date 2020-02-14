@@ -3,11 +3,18 @@ clean:
 	rm -rf build
 	rm -rf dist
 
-install:
+install-blnt:
 	pip install --upgrade pip
-	pip install -r requirements.txt
-	pip install -e .
+	pip install -r requirements.bolinette.txt
 
-package:
-	python setup.py sdist
-	python setup.py bdist_wheel
+package-blnt:
+	python setup.bolinette.py sdist
+	python setup.bolinette.py bdist_wheel
+
+install-cli:
+	pip install --upgrade pip
+	pip install -r requirements.bolinette_cli.txt
+
+package-cli:
+	python setup.bolinette_cli.py sdist
+	python setup.bolinette_cli.py bdist_wheel

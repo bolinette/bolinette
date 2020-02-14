@@ -1,7 +1,7 @@
 import os
 from configparser import ConfigParser
 
-from bolinette import logger
+from bolinette_cli import logger, parser
 
 
 class Environment:
@@ -68,10 +68,7 @@ class Environment:
         try:
             with open(bolinette.instance_path(file_name), 'r') as f:
                 config.read_string(Environment.read_env_file(f))
-                if (file_env := config['DEFAULT']) is not None:
-                    return file_env
-                else:
-                    return {}
+                return config['DEFAULT'] or {}
         except FileNotFoundError:
             return {}
 

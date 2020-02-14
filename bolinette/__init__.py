@@ -1,4 +1,3 @@
-from bolinette.logger import logger, console
 from bolinette.environment import env
 from bolinette.bcrypt import bcrypt
 from bolinette.database import db, seeder
@@ -13,6 +12,3 @@ from bolinette.jwt import jwt
 import bolinette.controllers
 import bolinette.seeders
 from bolinette.bolinette import Bolinette
-
-
-version = '0.1.4'

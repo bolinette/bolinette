@@ -3,7 +3,7 @@ import re
 
 import jinja2
 
-from bolinette.fs import paths
+from bolinette_cli import paths
 
 
 def render(path, params):

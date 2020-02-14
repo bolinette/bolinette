@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from bolinette_cli import paths
 
 from bolinette import env, Namespace
 from bolinette.database import init_db
@@ -7,7 +8,6 @@ from bolinette.jwt import init_jwt
 from bolinette.routes import init_routes
 from bolinette.documentation import init_docs
 from bolinette.errors import init_error_handlers
-from bolinette.fs import paths
 
 
 class Bolinette:

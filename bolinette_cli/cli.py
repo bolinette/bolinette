@@ -1,6 +1,6 @@
 import sys
 
-from bolinette.cli import Parser
+from bolinette_cli import Parser
 
 
 def main():
