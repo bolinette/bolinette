@@ -1,9 +1,9 @@
 version: 2.1
 workflows:
   version: 2
-  test_and_deploy:
+  bolinette:
     jobs:
-      - tests:
+      - test_blnt:
           filters:
             tags:
               only: /.*/
@@ -17,16 +17,17 @@ workflows:
               only: /blnt.(?:[\d]+\.){2}[\d]+/
             branches:
               ignore: /.*/
+  bolinette_cli:
+    jobs:
       - deploy_cli:
-          requires:
-            - tests
           filters:
             tags:
               only: /cli.(?:[\d]+\.){2}[\d]+/
             branches:
               ignore: /.*/
+
 jobs:
-  tests:
+  test_blnt:
     docker:
       - image: circleci/python:3.8
     steps:
