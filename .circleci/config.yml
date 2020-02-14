@@ -36,7 +36,7 @@ jobs:
           command: |
             python3 -m venv venv
             source venv/bin/activate
-            make install
+            make install-blnt
       - run:
           name: Create local .env
           command: |
