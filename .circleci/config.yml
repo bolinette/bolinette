@@ -11,18 +11,10 @@ workflows:
               only: /.*/
       - deploy_blnt:
           requires:
-            - tests
+            - test_blnt
           filters:
             tags:
               only: /blnt.(?:[\d]+\.){2}[\d]+/
-            branches:
-              ignore: /.*/
-  bolinette_cli:
-    jobs:
-      - deploy_cli:
-          filters:
-            tags:
-              only: /cli.(?:[\d]+\.){2}[\d]+/
             branches:
               ignore: /.*/
 
@@ -37,7 +29,7 @@ jobs:
           command: |
             python3 -m venv venv
             source venv/bin/activate
-            make install-blnt
+            make install
       - run:
           name: Create local .env
           command: |
@@ -58,7 +50,7 @@ jobs:
           command: |
             python3 -m venv venv
             source venv/bin/activate
-            make install-blnt
+            make install
       - run:
           name: Init .pypirc
           command: |
@@ -69,36 +61,9 @@ jobs:
           name: Create packages
           command: |
             source venv/bin/activate
-            make package-blnt
+            make package
       - run:
           name: Upload to pypi
           command: |
             source venv/bin/activate
-            twine upload dist/Bolinette-*
-  deploy_cli:
-    docker:
-      - image: circleci/python:3.8
-    steps:
-      - checkout
-      - run:
-          name: Install python dependencies
-          command: |
-            python3 -m venv venv
-            source venv/bin/activate
-            make install-cli
-      - run:
-          name: Init .pypirc
-          command: |
-            echo -e "[pypi]" >> ~/.pypirc
-            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
-            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
-      - run:
-          name: Create packages
-          command: |
-            source venv/bin/activate
-            make package-cli
-      - run:
-          name: Upload to pypi
-          command: |
-            source venv/bin/activate
-            twine upload dist/Bolinette_CLI-*
+            twine upload dist/*
