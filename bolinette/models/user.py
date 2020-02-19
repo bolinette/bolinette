@@ -1,4 +1,4 @@
-from bolinette import db, marshalling
+from bolinette import db, marshalling, env
 
 users_roles = db.Table('users_roles',
                        db.Column('u_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -11,7 +11,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
+    email = db.Column(db.String(255), unique=env.init['USER_EMAIL_REQUIRED'],
+                      nullable=(not env.init['USER_EMAIL_REQUIRED']))
 
     roles = db.relationship('Role', secondary=users_roles, lazy='subquery',
                             backref=db.backref('users', lazy=True))

@@ -12,25 +12,14 @@ from bolinette.errors import init_error_handlers
 
 class Bolinette:
     def __init__(self, name, **options):
-        self.cwd = paths.cwd()
-        self.origin = paths.dirname(__file__)
         profile = options.get('profile')
         env_overrides = options.get('env', {})
         self.app = Flask(name, static_url_path='')
         CORS(self.app, supports_credentials=True)
-        env.init(self, profile=profile, overrides=env_overrides)
+        env.init_app(self, profile=profile, overrides=env_overrides)
         init_jwt(self.app)
         init_db(self)
         init_routes(self.app)
         init_docs(self.app)
         init_error_handlers(self.app)
         Namespace.init_namespaces(self.app)
-
-    def instance_path(self, *path):
-        return self.root_path('instance', *path)
-
-    def root_path(self, *path):
-        return paths.join(self.cwd, *path)
-
-    def internal_path(self, *path):
-        return paths.join(self.origin, *path)

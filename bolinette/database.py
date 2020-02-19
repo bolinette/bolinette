@@ -11,10 +11,10 @@ _seeder_funcs = []
 db = SQLAlchemy()
 
 
-def create_db_uri(bolinette):
+def create_db_uri():
     dbms = env.get('DBMS', 'SQLITE').lower()
     if dbms == 'sqlite':
-        return 'sqlite:///' + bolinette.instance_path(env.get('SQLITE_FILE', f'{bolinette.app.env}.db'))
+        return 'sqlite:///' + env.instance_path(env.get('SQLITE_FILE', f'{env["PROFILE"]}.db'))
     if dbms == 'memory':
         return 'sqlite://'
     if dbms == 'postgresql':
@@ -24,7 +24,7 @@ def create_db_uri(bolinette):
 
 
 def init_db(bolinette):
-    bolinette.app.config['SQLALCHEMY_DATABASE_URI'] = create_db_uri(bolinette)
+    bolinette.app.config['SQLALCHEMY_DATABASE_URI'] = create_db_uri()
     bolinette.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
     db.init_app(bolinette.app)
 
