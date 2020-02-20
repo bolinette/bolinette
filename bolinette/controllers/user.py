@@ -123,11 +123,7 @@ ns.defaults.get_first_by('username', returns='private', roles=['admin'])
 def add_user_role(username, payload):
     user = user_service.get_by_username(username)
     role = role_service.get_by_name(payload['name'])
-    if role.name == 'root':
-        return response.forbidden('role.root.forbidden')
-    if role in user.roles:
-        return response.bad_request(f'user.roles.exists:{user.username}:{role.name}')
-    user.roles.append(role)
+    user_service.add_role(user, role)
     return response.created(f'user.roles.added:{user.username}:{role.name}', user)
 
 
@@ -138,16 +134,8 @@ def add_user_role(username, payload):
 def delete_user_role(username, role):
     user = user_service.get_by_username(username)
     role = role_service.get_by_name(role)
-    if role.name == 'root':
-        return response.forbidden('role.root.forbidden')
-    if (current_user.username == user.username
-            and role.name == 'admin'
-            and not current_user.has_role('root')):
-        return response.forbidden('role.admin.no_self_demotion')
-    if role in user.roles:
-        user.roles.remove(role)
-        return response.ok(f'user.roles.deleted:{user.username}:{role.name}', user)
-    return response.bad_request(f'user.roles.not_found:{user.username}:{role.name}')
+    user_service.remove_role(current_user, user, role)
+    return response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
 
 
 ns.register()

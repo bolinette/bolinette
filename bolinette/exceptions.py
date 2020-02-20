@@ -1,48 +1,69 @@
-from enum import Enum
-
-
-class ErrorType(Enum):
-    NOT_FOUND = 0
-    CONFLICT = 1
-    BAD_REQUEST = 2
+from bolinette import response
 
 
 class APIError(Exception):
-    Type = ErrorType
+    def __init__(self, name, function, messages):
+        super().__init__(name)
+        self.function = function
+        self.messages = messages
 
-    def __init__(self, message, e_type):
-        super().__init__(message)
-        self.type = e_type
+    @property
+    def response(self):
+        return self.function(self.messages)
 
 
-class EntityNotFoundError(APIError):
+class NotFoundError(APIError):
+    def __init__(self, messages, *, name=None):
+        super().__init__(name or type(self).__name__,
+                         response.not_found, messages)
+
+
+class ConflictError(APIError):
+    def __init__(self, messages, *, name=None):
+        super().__init__(name or type(self).__name__,
+                         response.conflict, messages)
+
+
+class BadRequestError(APIError):
+    def __init__(self, messages, *, name=None):
+        super().__init__(name or type(self).__name__,
+                         response.bad_request, messages)
+
+
+class ForbiddenError(APIError):
+    def __init__(self, messages, *, name=None):
+        super().__init__(name or type(self).__name__,
+                         response.forbidden, messages)
+
+
+class EntityNotFoundError(NotFoundError):
     def __init__(self, **kwargs):
-        super().__init__('EntityNotFoundError', ErrorType.NOT_FOUND)
         params = kwargs.get('params', None)
         model = kwargs.get('model', None)
         key = kwargs.get('key', None)
         value = kwargs.get('value', None)
         if params is None:
             params = [(model, key, value)]
-        self.messages = [f'{m}.not_found:{k}:{v}' for m, k, v in params]
+        messages = [f'{m}.not_found:{k}:{v}' for m, k, v in params]
+        super().__init__(messages, name='EntityNotFoundError')
 
 
-class ParamMissingError(APIError):
+class ParamMissingError(BadRequestError):
     def __init__(self, **kwargs):
-        super().__init__('ParamMissingError', ErrorType.BAD_REQUEST)
         params = kwargs.get('params', None)
         key = kwargs.get('key', None)
         if params is None:
             params = [key]
-        self.messages = [f'param.required:{k}' for k in params]
+        messages = [f'param.required:{k}' for k in params]
+        super().__init__(messages, name='ParamMissingError')
 
 
-class ParamConflictError(APIError):
+class ParamConflictError(ConflictError):
     def __init__(self, **kwargs):
-        super().__init__('ParamConflictError', ErrorType.CONFLICT)
         params = kwargs.get('params', None)
         key = kwargs.get('key', None)
         value = kwargs.get('value', None)
         if params is None:
             params = [(key, value)]
-        self.messages = [f'param.conflict:{k}:{v}' for k, v in params]
+        messages = [f'param.conflict:{k}:{v}' for k, v in params]
+        super().__init__(messages, name='ParamConflictError')

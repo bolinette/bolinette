@@ -19,6 +19,15 @@ def admin_set_up():
     user1 = insert(User, salt_password(create_mock(1, 'user', 'register')))
     user1.roles.append(admin)
     insert(User, salt_password(create_mock(2, 'user', 'register')))
+    insert(Role, create_mock(1, 'role'))
+
+
+def root_set_up():
+    root = insert(Role, {'name': 'root'})
+    admin = insert(Role, {'name': 'admin'})
+    user1 = insert(User, salt_password(create_mock(1, 'user', 'register')))
+    user1.roles.append(root)
+    user1.roles.append(admin)
 
 
 @bolitest(before=set_up)
@@ -156,3 +165,85 @@ def test_get_users_forbidden(client):
     rv = client.get('/user')
     assert rv['code'] == 403
     assert 'user.forbidden:admin' in rv['messages']
+
+
+@bolitest(before=admin_set_up)
+def test_add_self_role(client):
+    user1 = create_mock(1, 'user', 'register')
+    role1 = create_mock(1, 'role')
+
+    client.post('/user/login', user1)
+
+    rv = client.post(f'/user/{user1["username"]}/roles', role1)
+    assert rv['code'] == 201
+    assert f'user.roles.added:{user1["username"]}:{role1["name"]}' in rv['messages']
+
+
+@bolitest(before=admin_set_up)
+def test_add_role_not_admin(client):
+    user2 = create_mock(2, 'user', 'register')
+    role1 = create_mock(1, 'role')
+
+    client.post('/user/login', user2)
+
+    rv = client.post(f'/user/{user2["username"]}/roles', role1)
+    assert rv['code'] == 403
+    assert f'user.forbidden:admin' in rv['messages']
+
+
+@bolitest(before=admin_set_up)
+def test_remove_role(client):
+    user1 = create_mock(1, 'user', 'register')
+    role1 = create_mock(1, 'role')
+
+    client.post('/user/login', user1)
+    client.post(f'/user/{user1["username"]}/roles', role1)
+
+    rv = client.delete(f'/user/{user1["username"]}/roles/{role1["name"]}')
+    assert rv['code'] == 200
+    assert f'user.roles.removed:{user1["username"]}:{role1["name"]}' in rv['messages']
+
+
+@bolitest(before=admin_set_up)
+def test_remove_role_not_found(client):
+    user1 = create_mock(1, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.delete(f'/user/{user1["username"]}/roles/unknow_role')
+    assert rv['code'] == 404
+    assert f'role.not_found:name:unknow_role' in rv['messages']
+
+
+@bolitest(before=admin_set_up)
+def test_remove_role_not_in_user_roles(client):
+    user1 = create_mock(1, 'user', 'register')
+    role1 = create_mock(1, 'role')
+
+    client.post('/user/login', user1)
+
+    rv = client.delete(f'/user/{user1["username"]}/roles/{role1["name"]}')
+    assert rv['code'] == 400
+    assert f'user.roles.not_found:{user1["username"]}:{role1["name"]}' in rv['messages']
+
+
+@bolitest(before=admin_set_up)
+def test_no_self_demotion(client):
+    user1 = create_mock(1, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.delete(f'/user/{user1["username"]}/roles/admin')
+    assert rv['code'] == 403
+    assert f'role.admin.no_self_demotion' in rv['messages']
+
+
+@bolitest(before=root_set_up)
+def test_root_self_demotion(client):
+    user1 = create_mock(1, 'user', 'register')
+
+    client.post('/user/login', user1)
+
+    rv = client.delete(f'/user/{user1["username"]}/roles/admin')
+    assert rv['code'] == 200
+    assert f'user.roles.removed:{user1["username"]}:admin' in rv['messages']
