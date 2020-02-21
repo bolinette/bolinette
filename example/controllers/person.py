@@ -1,4 +1,4 @@
-from bolinette import Namespace
+from bolinette.namespaces import Namespace
 from example.services import person_service
 
 ns = Namespace(person_service, '/person')

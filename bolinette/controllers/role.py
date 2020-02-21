@@ -1,4 +1,4 @@
-from bolinette import Namespace
+from bolinette.namespaces import Namespace
 from bolinette.services import role_service
 
 ns = Namespace(role_service, '/role')

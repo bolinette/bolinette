@@ -1,10 +1,11 @@
 from flask import after_this_request
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies,
-    get_jwt_identity, unset_jwt_cookies, current_user
+    get_jwt_identity, unset_jwt_cookies
 )
-from bolinette import Namespace, response, AccessToken
+from bolinette import env, response
 from bolinette.exceptions import EntityNotFoundError
+from bolinette.namespaces import Namespace, current_user, AccessToken
 from bolinette.services import user_service, role_service
 
 ns = Namespace(user_service, '/user')
@@ -15,7 +16,7 @@ ns = Namespace(user_service, '/user')
           access=AccessToken.Fresh,
           returns=ns.route.returns('user', 'private'))
 def me():
-    return response.ok('OK', current_user)
+    return response.ok('OK', current_user())
 
 
 @ns.route('/me',
@@ -24,8 +25,7 @@ def me():
           returns=ns.route.returns('user', 'private'),
           expects=ns.route.expects('user', 'register', patch=True))
 def update_user(payload):
-    user = user_service.get_by_username(get_jwt_identity())
-    user = user_service.patch(user, payload)
+    user = user_service.patch(current_user(), payload)
     access_token = create_access_token(identity=user.username, fresh=True)
     refresh_token = create_refresh_token(identity=user.username)
 
@@ -43,7 +43,7 @@ def update_user(payload):
           access=AccessToken.Required,
           returns=ns.route.returns('user', 'private'))
 def info():
-    return response.ok('OK', current_user)
+    return response.ok('OK', current_user())
 
 
 @ns.route('/login',
@@ -91,7 +91,19 @@ def logout():
           returns=ns.route.returns('user', 'private'),
           expects=ns.route.expects('user', 'register'))
 def register(payload):
+    if env.init.get('ADMIN_REGISTER_ONLY', True):
+        AccessToken.Required.check(['admin'])
     user = user_service.create(payload)
+    if current_user() is None:
+        access_token = create_access_token(identity=user.username, fresh=True)
+        refresh_token = create_refresh_token(identity=user.username)
+
+        @after_this_request
+        def set_login_cookies(resp):
+            set_access_cookies(resp, access_token)
+            set_refresh_cookies(resp, refresh_token)
+            return resp
+
     return response.created('User successfully registered', user)
 
 
@@ -134,7 +146,7 @@ def add_user_role(username, payload):
 def delete_user_role(username, role):
     user = user_service.get_by_username(username)
     role = role_service.get_by_name(role)
-    user_service.remove_role(current_user, user, role)
+    user_service.remove_role(current_user(), user, role)
     return response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
 
 

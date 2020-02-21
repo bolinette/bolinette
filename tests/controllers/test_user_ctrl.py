@@ -100,6 +100,19 @@ def test_register(client):
 
 
 @bolitest(before=set_up)
+def test_logged_in_after_register(client):
+    user2 = create_mock(2, 'user', 'register')
+
+    rv = client.post('/user/register', user2)
+    assert rv['code'] == 201
+
+    rv = client.get('/user/me')
+    assert rv['code'] == 200
+    assert rv['data'].get('username') == user2['username']
+    assert rv['data'].get('email') == user2['email']
+
+
+@bolitest(before=set_up)
 def test_register_bad_request(client):
     rv = client.post('/user/register', {})
     assert rv['code'] == 400
