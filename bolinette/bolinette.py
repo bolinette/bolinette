@@ -8,7 +8,7 @@ from bolinette.jwt import init_jwt
 from bolinette.routes import init_routes
 from bolinette.documentation import init_docs
 from bolinette.errors import init_error_handlers
-from bolinette.namespaces import Namespace
+from bolinette.routing import Namespace
 
 
 class Bolinette:

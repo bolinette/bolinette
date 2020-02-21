@@ -5,7 +5,7 @@ from flask_jwt_extended import (
 )
 from bolinette import env, response
 from bolinette.exceptions import EntityNotFoundError
-from bolinette.namespaces import Namespace, current_user, AccessToken
+from bolinette.routing import Namespace, current_user, AccessToken
 from bolinette.services import user_service, role_service
 
 ns = Namespace(user_service, '/user')

@@ -1,6 +1,6 @@
 from flask import Blueprint
 
-from bolinette.namespaces import Defaults, Route, AccessToken
+from bolinette.routing import Defaults, Route, AccessToken
 
 
 class Namespace:
