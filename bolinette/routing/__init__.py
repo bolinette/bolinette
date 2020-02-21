@@ -1,4 +1,3 @@
-from bolinette.routing.serializing import serialize
 from bolinette.routing.access import AccessToken
 from bolinette.routing.route import Route
 from bolinette.routing.defaults import Defaults

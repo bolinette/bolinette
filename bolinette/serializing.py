@@ -3,7 +3,9 @@ import dicttoxml
 from htmlmin import minify
 from flask import request
 
-from bolinette_cli.templating import render
+from bolinette_cli import templating
+
+from bolinette import env
 
 
 class Serializer:
@@ -20,7 +22,9 @@ class HTMLSerializer(Serializer):
         super().__init__('text/html', 0)
 
     def serialize(self, response):
-        return minify(render('default.html.jinja2', {'response': response}))
+        return minify(templating.render(
+            env.internal_path('files', 'default.html.jinja2'), {'response': response})
+        )
 
 
 class JSONSerializer(Serializer):

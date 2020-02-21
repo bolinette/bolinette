@@ -1,7 +1,6 @@
 from flask import Response
 
-from bolinette import response, env
-from bolinette.routing import serialize
+from bolinette import response, env, serialize
 
 
 def _error_handler(error, message, func):

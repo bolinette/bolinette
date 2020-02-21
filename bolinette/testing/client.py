@@ -58,7 +58,8 @@ class TestClient:
         return json.loads(res.data)
 
     def get(self, path):
-        return json.loads(self.client.get(f'/api{path}', **self.payload()).data)
+        res = self.client.get(f'/api{path}', **self.payload())
+        return json.loads(res.data)
 
     def delete(self, path):
         return json.loads(self.client.delete(f'/api{path}', **self.payload()).data)

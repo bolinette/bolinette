@@ -3,8 +3,8 @@ import inspect
 from flask import request, Response
 from flask_sqlalchemy import Pagination
 
-from bolinette import transaction, marshalling, validate, docs
-from bolinette.routing import serialize, AccessToken
+from bolinette import transaction, marshalling, validate, docs, serialize
+from bolinette.routing import AccessToken
 
 
 class Route:

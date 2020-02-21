@@ -1,6 +1,6 @@
-import json
-
 import flask
+
+from bolinette import serialize
 
 
 class Response:
@@ -46,7 +46,8 @@ class Response:
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)
 
     def abort(self, message, code):
-        flask.abort(flask.Response(json.dumps(message), code, content_type='application/json'))
+        res, mime = serialize(message)
+        flask.abort(flask.Response(res, code, content_type=mime))
 
 
 response = Response()

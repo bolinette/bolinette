@@ -5,7 +5,7 @@ from flask_jwt_extended import (
     verify_jwt_refresh_token_in_request, current_user
 )
 
-from bolinette import response
+from bolinette import response, serialize
 
 
 @unique
