@@ -27,8 +27,11 @@ class Validator:
             if patch and field.name not in params:
                 continue
             value = params.get(field.name, None)
-            if field.required and (value is None or len(str(value)) <= 0):
-                errors.append(field.name)
+            if (value is None or len(str(value)) <= 0):
+                if field.required:
+                    errors.append(field.name)
+                else:
+                    value = field.default
             valid[field.name] = value
         if len(errors) > 0:
             raise ParamMissingError(params=errors)

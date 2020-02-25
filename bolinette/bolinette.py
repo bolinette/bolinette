@@ -9,6 +9,7 @@ from bolinette.routes import init_routes
 from bolinette.documentation import init_docs
 from bolinette.errors import init_error_handlers
 from bolinette.routing import Namespace
+from bolinette.mail import sender
 
 
 class Bolinette:
@@ -24,3 +25,4 @@ class Bolinette:
         init_docs(self.app)
         init_error_handlers(self.app)
         Namespace.init_namespaces(self.app)
+        sender.init_app()

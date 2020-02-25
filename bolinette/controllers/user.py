@@ -1,14 +1,37 @@
+import random
+import string
+
 from flask import after_this_request
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies,
     get_jwt_identity, unset_jwt_cookies
 )
-from bolinette import env, response
-from bolinette.exceptions import EntityNotFoundError
+from bolinette import env, response, mail
+from bolinette.exceptions import EntityNotFoundError, BadRequestError
 from bolinette.routing import Namespace, current_user, AccessToken
 from bolinette.services import user_service, role_service
 
 ns = Namespace(user_service, '/user')
+
+
+def _set_login_cookies(access_token, refresh_token):
+    def inner(resp):
+        set_access_cookies(resp, access_token)
+        set_refresh_cookies(resp, refresh_token)
+        return resp
+    return inner
+
+
+def _reset_cookies(access_token):
+    def inner(resp):
+        set_access_cookies(resp, access_token)
+        return resp
+    return inner
+
+
+def _unset_cookies(resp):
+    unset_jwt_cookies(resp)
+    return resp
 
 
 @ns.route('/me',
@@ -28,13 +51,7 @@ def update_user(payload):
     user = user_service.patch(current_user(), payload)
     access_token = create_access_token(identity=user.username, fresh=True)
     refresh_token = create_refresh_token(identity=user.username)
-
-    @after_this_request
-    def set_login_cookies(resp):
-        set_access_cookies(resp, access_token)
-        set_refresh_cookies(resp, refresh_token)
-        return resp
-
+    after_this_request(_set_login_cookies(access_token, refresh_token))
     return response.ok('user.updated', user)
 
 
@@ -64,13 +81,7 @@ def login(payload):
         if user_service.check_password(user, password):
             access_token = create_access_token(identity=user.username, fresh=True)
             refresh_token = create_refresh_token(identity=user.username)
-
-            @after_this_request
-            def set_login_cookies(resp):
-                set_access_cookies(resp, access_token)
-                set_refresh_cookies(resp, refresh_token)
-                return resp
-
+            after_this_request(_set_login_cookies(access_token, refresh_token))
             return response.ok('user.login.success', user)
     return response.unauthorized('user.login.wrong_credentials')
 
@@ -78,11 +89,7 @@ def login(payload):
 @ns.route('/logout',
           methods=['POST'])
 def logout():
-    @after_this_request
-    def unset_cookies(resp):
-        unset_jwt_cookies(resp)
-        return resp
-
+    after_this_request(_unset_cookies)
     return response.ok('user.logout.success')
 
 
@@ -92,19 +99,28 @@ def logout():
           expects=ns.route.expects('user', 'register'))
 def register(payload):
     if env.init.get('ADMIN_REGISTER_ONLY', True):
-        AccessToken.Required.check(['admin'])
+        raise BadRequestError('global.register.admin_only')
+    if current_user() is not None:
+        raise BadRequestError('global.register.logged_in')
     user = user_service.create(payload)
-    if current_user() is None:
-        access_token = create_access_token(identity=user.username, fresh=True)
-        refresh_token = create_refresh_token(identity=user.username)
+    access_token = create_access_token(identity=user.username, fresh=True)
+    refresh_token = create_refresh_token(identity=user.username)
+    after_this_request(_set_login_cookies(access_token, refresh_token))
+    return response.created('user.registered', user)
 
-        @after_this_request
-        def set_login_cookies(resp):
-            set_access_cookies(resp, access_token)
-            set_refresh_cookies(resp, refresh_token)
-            return resp
 
-    return response.created('User successfully registered', user)
+@ns.route('/register/admin',
+          methods=['POST'],
+          roles=['adminn'],
+          returns=ns.route.returns('user', 'private'),
+          expects=ns.route.expects('user', 'admin_register'))
+def admin_register(payload):
+    send_mail = payload.pop('send_mail')
+    payload['password'] = ''.join(random.choices(string.ascii_lowercase, k=32))
+    user = user_service.create(payload)
+    if send_mail:
+        mail.sender.send(payload['email'], 'Welcome!', 'Welcome to Bolinette!')
+    return response.created('user.registered', user)
 
 
 @ns.route('/token/refresh',
@@ -113,12 +129,7 @@ def register(payload):
 def refresh():
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity, fresh=False)
-
-    @after_this_request
-    def reset_cookies(resp):
-        set_access_cookies(resp, access_token)
-        return resp
-
+    after_this_request(_reset_cookies(access_token))
     return response.ok('user.token.refreshed')
 
 

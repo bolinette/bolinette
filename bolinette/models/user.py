@@ -27,6 +27,11 @@ class User(db.Model):
             marshalling.Field(marshalling.types.email, 'email', required=True),
             marshalling.Field(marshalling.types.password, 'password', required=True)
         ]
+        yield 'admin_register', [
+            marshalling.Field(marshalling.types.string, 'username', required=True),
+            marshalling.Field(marshalling.types.email, 'email', required=True),
+            marshalling.Field(marshalling.types.boolean, 'send_mail', required=True)
+        ]
         yield 'login', [
             marshalling.Field(marshalling.types.string, 'username', required=True),
             marshalling.Field(marshalling.types.password, 'password', required=True)

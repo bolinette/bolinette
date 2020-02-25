@@ -1,6 +1,7 @@
 from functools import wraps
 
 from sqlalchemy.exc import SQLAlchemyError
+from bolinette_cli import logger
 
 from bolinette import db, response, serialize
 from bolinette.exceptions import APIError
@@ -16,6 +17,9 @@ class Transaction:
             res, code = None, None
             if issubclass(exc_type, APIError):
                 res, code = exc_val.response
+            else:
+                logger.error(str(exc_val))
+                res, code = response.internal_server_error(str(exc_val))
             if res is not None and code is not None:
                 response.abort(res, code)
         else:

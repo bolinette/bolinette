@@ -7,6 +7,9 @@ class APIError(Exception):
         self.function = function
         self.messages = messages
 
+    def __str__(self):
+        return ", ".join(self.messages)
+
     @property
     def response(self):
         return self.function(self.messages)

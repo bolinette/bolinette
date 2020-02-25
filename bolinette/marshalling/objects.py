@@ -3,12 +3,14 @@ class MarshallingObject:
 
 
 class Field(MarshallingObject):
-    def __init__(self, field_type, name, **kwargs):
+    def __init__(self, field_type, name, *, default=None, required=False,
+                 function=None, formatting=None):
         self.type = field_type
         self.name = name
-        self.required = kwargs.get('required', False)
-        self.function = kwargs.get('function')
-        self.formatting = kwargs.get('formatting')
+        self.required = required
+        self.default = default
+        self.function = function
+        self.formatting = formatting
 
     def __repr__(self):
         return f'<MarshallingField {self.name}:{self.type}>'
