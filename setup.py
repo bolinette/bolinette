@@ -20,7 +20,7 @@ setup(
     url='https://github.com/TheCaptainCat/bolinette',
     keywords=['Flask', 'Bolinette', 'Web', 'Framework'],
     install_requires=[
-        'Bolinette-CLI==0.1.5',
+        'Bolinette-CLI==0.2.3',
         'dicttoxml==1.7.4',
         'Flask==1.1.1',
         'Flask-Bcrypt==0.7.1',
