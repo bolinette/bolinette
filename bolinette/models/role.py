@@ -1,11 +1,11 @@
-from bolinette import db, marshalling
+from bolinette import db, mapping
 
 
-class Role(db.Model):
+class Role(db.types.Model):
     __tablename__ = 'roles'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), unique=True, nullable=False)
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    name = db.types.Column(db.types.String(255), unique=True, nullable=False)
 
     def __repr__(self):
         return f'<Role {self.name}>'
@@ -13,18 +13,18 @@ class Role(db.Model):
     @staticmethod
     def payloads():
         yield [
-            marshalling.Field(marshalling.types.string, 'name')
+            mapping.Field(mapping.types.string, 'name')
         ]
 
     @staticmethod
     def responses():
         yield [
-            marshalling.Field(marshalling.types.string, 'name')
+            mapping.Field(mapping.types.string, 'name')
         ]
         yield 'complete', [
-            marshalling.Field(marshalling.types.string, 'name'),
-            marshalling.List('users', marshalling.Definition('user', 'user'))
+            mapping.Field(mapping.types.string, 'name'),
+            mapping.List('users', mapping.Definition('user', 'user'))
         ]
 
 
-marshalling.register(Role, 'role')
+mapping.register(Role, 'role')

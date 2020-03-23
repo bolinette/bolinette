@@ -1,27 +1,27 @@
-from bolinette import db, marshalling
+from bolinette import db, mapping
 
 
-class Person(db.Model):
+class Person(db.types.Model):
     __tablename__ = 'people'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    name = db.types.Column(db.types.String, nullable=False)
 
     @staticmethod
     def payloads():
         yield [
-            marshalling.Field(marshalling.types.string, 'name', required=True)
+            mapping.Field(mapping.types.string, 'name', required=True)
         ]
 
     @staticmethod
     def responses():
         yield [
-            marshalling.Field(marshalling.types.string, 'name', required=True)
+            mapping.Field(mapping.types.string, 'name', required=True)
         ]
         yield 'complete', [
-            marshalling.Field(marshalling.types.string, 'name', required=True),
-            marshalling.List('books', marshalling.Definition('book', 'book'))
+            mapping.Field(mapping.types.string, 'name', required=True),
+            mapping.List('books', mapping.Definition('book', 'book'))
         ]
 
 
-marshalling.register(Person, 'person')
+mapping.register(Person, 'person')

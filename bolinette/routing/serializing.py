@@ -1,11 +1,13 @@
 import json
-import dicttoxml
-from htmlmin import minify
-from flask import request
 
-from bolinette_cli import templating
+from aiohttp.web_request import Request
 
-from bolinette import env
+
+async def deserialize(request: Request):
+    content_type = request.content_type
+    if content_type == 'application/json':
+        return await request.json()
+    return {}
 
 
 class Serializer:
@@ -17,30 +19,12 @@ class Serializer:
         pass
 
 
-class HTMLSerializer(Serializer):
-    def __init__(self):
-        super().__init__('text/html', 0)
-
-    def serialize(self, response):
-        return minify(templating.render(
-            env.internal_path('files', 'default.html.jinja2'), {'response': response})
-        )
-
-
 class JSONSerializer(Serializer):
     def __init__(self):
         super().__init__('application/json', 1)
 
     def serialize(self, response):
         return json.dumps(response)
-
-
-class XMLSerializer(Serializer):
-    def __init__(self):
-        super().__init__('application/xml', 2)
-
-    def serialize(self, response):
-        return dicttoxml.dicttoxml(response)
 
 
 class Serializers:
@@ -64,13 +48,10 @@ class Serializers:
 
 
 serializers = Serializers([
-    HTMLSerializer(),
     JSONSerializer(),
-    XMLSerializer(),
 ])
 
 
-def serialize(response):
-    mime = request.headers.get('Accept', 'application/json')
+def serialize(response, mime):
     serializer = serializers.get(mime) or serializers.default
     return serializer.serialize(response), serializer.mime

@@ -1,8 +1,8 @@
 import requests
 
-from bolinette_cli import logger
 
 from bolinette import env
+from bolinette.utils import logger
 
 
 class Mailgun:

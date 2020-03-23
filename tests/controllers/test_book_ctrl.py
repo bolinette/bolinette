@@ -1,5 +1,3 @@
-import pytest
-
 from bolinette.testing import client, bolitest, create_mock, insert
 
 from example.models import Book, Person
@@ -31,15 +29,15 @@ def equal_books(b1, b2, author=None):
 
 
 @bolitest(before=set_up)
-def test_get_books(client):
-    rv = client.get('/book')
+async def test_get_books(client):
+    rv = await client.get('/book')
     assert rv['code'] == 200
     assert len(rv['data']) == 3
 
 
 @bolitest(before=big_set_up)
-def test_get_books_paginated(client):
-    rv = client.get('/book?page=1')
+async def test_get_books_paginated(client):
+    rv = await client.get('/book?page=1')
     assert rv['code'] == 200
     assert len(rv['data']) == 20
     assert rv['pagination']['page'] == 1
@@ -50,44 +48,44 @@ def test_get_books_paginated(client):
 
 
 @bolitest(before=set_up)
-def test_get_book(client):
+async def test_get_book(client):
     author1 = create_mock(1, 'person')
     book1 = set_author(create_mock(1, 'book'), 1)
 
-    rv = client.get('/book/1')
+    rv = await client.get('/book/1')
     assert rv['code'] == 200
     assert equal_books(rv['data'], book1, author1)
 
 
 @bolitest(before=set_up)
-def test_get_book2(client):
+async def test_get_book2(client):
     author2 = create_mock(2, 'person')
     book3 = set_author(create_mock(3, 'book'), 2)
 
-    rv = client.get('/book/3')
+    rv = await client.get('/book/3')
     assert rv['code'] == 200
     assert equal_books(rv['data'], book3, author2)
 
 
 @bolitest(before=set_up)
-def test_get_book_not_found(client):
-    rv = client.get('/book/4')
+async def test_get_book_not_found(client):
+    rv = await client.get('/book/4')
     assert rv['code'] == 404
 
 
 @bolitest(before=set_up)
-def test_create_book(client):
+async def test_create_book(client):
     author1 = create_mock(1, 'person')
     book4 = set_author(create_mock(4, 'book'), 1)
 
-    rv = client.post('/book', book4)
+    rv = await client.post('/book', book4)
     assert rv['code'] == 201
     assert equal_books(rv['data'], book4, author1)
 
 
 @bolitest(before=set_up)
-def test_create_book_bad_request(client):
-    rv = client.post('/book', {})
+async def test_create_book_bad_request(client):
+    rv = await client.post('/book', {})
     assert rv['code'] == 400
     assert 'param.required:name' in rv['messages']
     assert 'param.required:pages' in rv['messages']
@@ -95,44 +93,44 @@ def test_create_book_bad_request(client):
 
 
 @bolitest(before=set_up)
-def test_create_book_author_not_found(client):
+async def test_create_book_author_not_found(client):
     book4 = set_author(create_mock(4, 'book'), 3)
 
-    rv = client.post('/book', book4)
+    rv = await client.post('/book', book4)
     assert rv['code'] == 404
     assert 'person.not_found:id:3' in rv['messages']
 
 
 @bolitest(before=set_up)
-def test_update_book(client):
+async def test_update_book(client):
     author2 = create_mock(2, 'person')
     book1 = set_author(create_mock(1, 'book'), 2)
 
-    rv = client.put('/book/1', book1)
+    rv = await client.put('/book/1', book1)
     assert rv['code'] == 200
     assert equal_books(rv['data'], book1, author2)
 
 
 @bolitest(before=set_up)
-def test_update_book_bad_request(client):
-    rv = client.put('/book/1', {'name': 'new book name'})
+async def test_update_book_bad_request(client):
+    rv = await client.put('/book/1', {'name': 'new book name'})
     assert rv['code'] == 400
     assert 'param.required:pages' in rv['messages']
     assert 'param.required:author_id' in rv['messages']
 
 
 @bolitest(before=set_up)
-def test_update_book_not_found(client):
-    rv = client.patch('/book/4', {'name': 'new book name'})
+async def test_update_book_not_found(client):
+    rv = await client.patch('/book/4', {'name': 'new book name'})
     assert rv['code'] == 404
 
 
 @bolitest(before=set_up)
-def test_patch_book(client):
+async def test_patch_book(client):
     author1 = create_mock(1, 'person')
     book1 = set_author(create_mock(1, 'book'), 1)
 
-    rv = client.patch('/book/1', {'name': 'new book name'})
+    rv = await client.patch('/book/1', {'name': 'new book name'})
     assert rv['code'] == 200
     assert rv['data']['name'] == 'new book name'
     assert rv['data']['pages'] == book1['pages']
@@ -140,29 +138,29 @@ def test_patch_book(client):
 
 
 @bolitest(before=set_up)
-def test_patch_book_bad_request(client):
-    rv = client.patch('/book/1', {'name': ''})
+async def test_patch_book_bad_request(client):
+    rv = await client.patch('/book/1', {'name': ''})
     assert rv['code'] == 400
     assert 'param.required:name' in rv['messages']
 
 
 @bolitest(before=set_up)
-def test_update_book_author_not_found(client):
-    rv = client.patch('/book/1', {'author_id': 3})
+async def test_update_book_author_not_found(client):
+    rv = await client.patch('/book/1', {'author_id': 3})
     assert rv['code'] == 404
     assert 'person.not_found:id:3' in rv['messages']
 
 
 @bolitest(before=set_up)
-def test_delete_book(client):
-    rv = client.delete('/book/1')
+async def test_delete_book(client):
+    rv = await client.delete('/book/1')
     assert rv['code'] == 200
 
-    rv = client.get('/book/1')
+    rv = await client.get('/book/1')
     assert rv['code'] == 404
 
 
 @bolitest(before=set_up)
-def test_delete_book_not_found(client):
-    rv = client.delete('/book/4')
+async def test_delete_book_not_found(client):
+    rv = await client.delete('/book/4')
     assert rv['code'] == 404

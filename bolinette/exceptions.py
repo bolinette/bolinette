@@ -39,6 +39,12 @@ class ForbiddenError(APIError):
                          response.forbidden, messages)
 
 
+class UnauthorizedError(APIError):
+    def __init__(self, messages, *, name=None):
+        super().__init__(name or type(self).__name__,
+                         response.unauthorized, messages)
+
+
 class EntityNotFoundError(NotFoundError):
     def __init__(self, **kwargs):
         params = kwargs.get('params', None)
@@ -70,3 +76,8 @@ class ParamConflictError(ConflictError):
             params = [(key, value)]
         messages = [f'param.conflict:{k}:{v}' for k, v in params]
         super().__init__(messages, name='ParamConflictError')
+
+
+class AbortRequestException(Exception):
+    def __init__(self, resp):
+        self.response = resp

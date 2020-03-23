@@ -1,10 +1,10 @@
-from functools import wraps
+import traceback
 
 from sqlalchemy.exc import SQLAlchemyError
-from bolinette_cli import logger
 
-from bolinette import db, response, serialize
-from bolinette.exceptions import APIError
+from bolinette import db, response
+from bolinette.exceptions import APIError, AbortRequestException
+from bolinette.utils import logger
 
 
 class Transaction:
@@ -14,21 +14,20 @@ class Transaction:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             db.session.rollback()
-            res, code = None, None
             if issubclass(exc_type, APIError):
-                res, code = exc_val.response
+                res = exc_val.response
             else:
                 logger.error(str(exc_val))
-                res, code = response.internal_server_error(str(exc_val))
-            if res is not None and code is not None:
-                response.abort(res, code)
+                res = response.internal_server_error(str(exc_val))
+                traceback.print_tb(exc_tb)
+            raise AbortRequestException(res)
         else:
             try:
                 db.session.commit()
             except SQLAlchemyError as err:
                 db.session.rollback()
-                res, code = response.internal_server_error(f'global.internal_error:{err}')
-                response.abort(res, code)
+                res = response.internal_server_error(f'global.internal_error:{err}')
+                raise AbortRequestException(res)
 
 
 transaction = Transaction()

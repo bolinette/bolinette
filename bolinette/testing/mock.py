@@ -2,7 +2,7 @@ import random
 import string
 
 from bolinette import db
-from bolinette.marshalling import get_payload, types
+from bolinette.mapping import get_payload, types
 
 
 def _random_lower(rng, length):

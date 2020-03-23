@@ -1,28 +1,17 @@
-from flask import Flask
-from flask_cors import CORS
-from bolinette_cli import paths
+from aiohttp import web as aio_web
 
-from bolinette import env
-from bolinette.database import init_db
-from bolinette.jwt import init_jwt
-from bolinette.routes import init_routes
-from bolinette.documentation import init_docs
-from bolinette.errors import init_error_handlers
-from bolinette.routing import Namespace
-from bolinette.mail import sender
+from bolinette import env, db, jwt, bcrypt
+from bolinette.routing import web, resources
 
 
 class Bolinette:
-    def __init__(self, name, **options):
-        profile = options.get('profile')
-        env_overrides = options.get('env', {})
-        self.app = Flask(name, static_url_path='')
-        CORS(self.app, supports_credentials=True)
-        env.init_app(self, profile=profile, overrides=env_overrides)
-        init_jwt(self.app)
-        init_db(self)
-        init_routes(self.app)
-        init_docs(self.app)
-        init_error_handlers(self.app)
-        Namespace.init_namespaces(self.app)
-        sender.init_app()
+    def __init__(self, *, profile=None, overrides=None):
+        env.init_app(profile=profile, overrides=overrides)
+        db.init_app()
+        jwt.init_app()
+        bcrypt.init_app()
+        web.init_app()
+        resources.init_app()
+
+    def run(self):
+        aio_web.run_app(web.app)

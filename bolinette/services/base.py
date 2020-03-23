@@ -1,7 +1,8 @@
 from sqlalchemy import desc
 
-from bolinette import validate, db, mapper
+from bolinette import db, mapping
 from bolinette.exceptions import EntityNotFoundError
+from bolinette.utils import Pagination
 
 _services = {}
 
@@ -12,55 +13,57 @@ class BaseService:
         self.name = name
         _services[model] = self
 
-    def service(self, model):
+    async def service(self, model):
         return _services.get(model)
 
-    def get(self, identifier):
-        entity = self.model.query.get(identifier)
+    async def get(self, identifier):
+        entity = db.session.query(self.model).get(identifier)
         if entity is None:
             raise EntityNotFoundError(model=self.name, key='id', value=identifier)
         return entity
 
-    def get_by(self, key, value):
-        return self.model.query.filter_by(**{key: value}).all()
+    async def get_by(self, key, value):
+        return db.session.query(self.model).filter_by(**{key: value}).all()
 
-    def get_first_by(self, key, value):
-        entity = self.model.query.filter_by(**{key: value}).first()
+    async def get_first_by(self, key, value):
+        entity = db.session.query(self.model).filter_by(**{key: value}).first()
         if entity is None:
             raise EntityNotFoundError(model=self.name, key=key, value=value)
         return entity
 
-    def get_by_criteria(self, criteria):
-        return self.model.query.filter(criteria).all()
+    async def get_by_criteria(self, criteria):
+        return db.session.query(self.model).filter(criteria).all()
 
-    def get_all(self, pagination=None, order_by=[]):
-        query = self.model.query
+    async def get_all(self, pagination=None, order_by=None):
+        if order_by is None:
+            order_by = []
+        query = db.session.query(self.model)
         if len(order_by) > 0:
-            query = BaseService.build_order_by(self.model, query, order_by)
+            query = await BaseService._build_order_by(self.model, query, order_by)
         if pagination is not None:
-            return query.paginate(**pagination)
+            return await BaseService._paginate(query, pagination)
         return query.all()
 
-    def create(self, params):
-        params = validate.model(self.model, params)
+    async def create(self, params):
+        params = mapping.validate_model(self.model, params)
         entity = self.model(**params)
         db.session.add(entity)
         return entity
 
-    def update(self, entity, params):
-        mapper.update(self.model, entity, params)
+    async def update(self, entity, params):
+        mapping.map_model(self.model, entity, params)
         return entity
 
-    def patch(self, entity, params):
-        mapper.update(self.model, entity, params, patch=True)
+    async def patch(self, entity, params):
+        mapping.map_model(self.model, entity, params, patch=True)
         return entity
 
-    def delete(self, entity):
+    async def delete(self, entity):
         db.session.delete(entity)
         return entity
 
     @staticmethod
-    def build_order_by(model, query, params):
+    async def _build_order_by(model, query, params):
         order_by_query = []
         for col_name, way in params:
             if hasattr(model, col_name):
@@ -70,3 +73,11 @@ class BaseService:
                 else:
                     order_by_query.append(desc(column))
         return query.order_by(*order_by_query)
+
+    @staticmethod
+    async def _paginate(query, pagination):
+        page = pagination['page']
+        per_page = pagination['per_page']
+        total = query.count()
+        items = query.offset(page * per_page).limit(per_page).all()
+        return Pagination(items, page, per_page, total)

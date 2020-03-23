@@ -1,10 +1,10 @@
-from bolinette import db, seeder, transaction
+from bolinette import db, transaction
 
 from example.models import Person, Book
 
 
-@seeder
-def seed_app():
+@db.seeder
+async def seed_app():
     with transaction:
         p1 = Person(name='J.R.R. Tolkien')
         b1 = Book(name='The Fellowship of the Ring', pages=678, author=p1)

@@ -2,27 +2,30 @@ from functools import wraps
 import pytest
 
 from bolinette import Bolinette, db
+from bolinette.routing import web
 from bolinette.testing import TestClient
 
 
 @pytest.fixture
-def client():
-    return TestClient(Bolinette(__name__, profile='test',
-                                env={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'}))
+def client(loop, aiohttp_client):
+    Bolinette(profile='test',
+              overrides={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'})
+    client = loop.run_until_complete(aiohttp_client(web.app))
+    return TestClient(client)
 
 
-def bolitest(**options):
+def bolitest(*, before=None, after=None):
     def wrapper(func):
         @wraps(func)
-        def inner(*args, **kwargs):
-            db.drop_all()
-            db.create_all()
-            if 'before' in options and callable(options['before']):
-                options['before']()
+        async def inner(*args, **kwargs):
+            await db.drop_all()
+            await db.create_all()
+            if before is not None and callable(before):
+                before()
             db.session.commit()
-            func(*args, **kwargs)
-            if 'after' in options and callable(options['after']):
-                options['after']()
-            db.drop_all()
+            await func(*args, **kwargs)
+            if after is not None and callable(after):
+                after()
+            await db.drop_all()
         return inner
     return wrapper

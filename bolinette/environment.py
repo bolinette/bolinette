@@ -1,7 +1,7 @@
 import os
 import yaml
 
-from bolinette_cli import logger, parser, paths
+from bolinette.utils import paths
 
 
 class Settings:
@@ -62,30 +62,16 @@ class Environment(Settings):
         except FileNotFoundError:
             return None
 
-    def init_app(self, bolinette, **options):
-        profile = options.get('profile') or self.read_profile() or 'development'
-        overrides = options.get('overrides', {})
+    def init_app(self, *, profile=None, overrides=None):
+        profile = profile or self.read_profile() or 'development'
         self.reset(self.merge_env_stack([
             self.default_env,
             self.load_from_file(f'env.{profile}.yaml'),
             self.load_from_file(f'env.local.{profile}.yaml'),
             self.load_from_os(),
-            overrides,
+            overrides or {},
             {'profile': profile}
         ]))
-        self.set_app_config(bolinette.app)
-
-    def set_app_config(self, app):
-        app.config['ENV'] = self['PROFILE']
-        debug = self['DEBUG']
-        app.config['DEBUG'] = self['PROFILE'] == 'development' if debug is None else debug
-        secret_key = self['SECRET_KEY']
-        if secret_key is None or len(secret_key) == 0:
-            logger.warning('No secret key set! '
-                           'Put this "SECRET_KEY=your_secret_key" '
-                           f'in instance/{self["PROFILE"]}.local.env')
-        app.secret_key = self['SECRET_KEY']
-        app.static_folder = self['WEBAPP_FOLDER']
 
     def load_from_os(self):
         keys = {}

@@ -1,63 +1,52 @@
-from flask import Blueprint
+from typing import List, AnyStr
 
-from bolinette.routing import Defaults, Route, AccessToken
+from bolinette.routing import Route, Method, AccessType, resources
+from bolinette.routing.defaults import Defaults
 
 
 class Namespace:
-    namespaces = []
-
-    def __init__(self, service, url):
+    def __init__(self, base_url, service):
+        self.base_url = base_url
         self.service = service
         self.model = service.name
-        self.url = url
-        self.blueprint = Blueprint(self.model, __name__, url_prefix='/api' + url)
         self.route = NamespaceRoute(self)
-
-    @staticmethod
-    def init_namespaces(app):
-        for namespace in Namespace.namespaces:
-            app.register_blueprint(namespace)
-
-    def register(self):
-        Namespace.namespaces.append(self.blueprint)
 
     @property
     def defaults(self):
         return Defaults(self)
 
 
+class NamespaceExcepts:
+    def __init__(self, model, key='default', *, patch=False):
+        self.model = model
+        self.key = key
+        self.patch = patch
+
+
+class NamespaceReturns:
+    def __init__(self, model, key='default', *, as_list=False, skip_none=False):
+        self.model = model
+        self.key = key
+        self.as_list = as_list
+        self.skip_none = skip_none
+
+
 class NamespaceRoute:
     def __init__(self, namespace):
         self.namespace = namespace
 
-    def __call__(self, rule, **options):
+    def __call__(self, path, *, method: Method,
+                 access: AccessType = None, expects: NamespaceExcepts = None,
+                 returns: NamespaceReturns = None, roles: List[AnyStr] = None):
         def inner(func):
-            endpoint = options.get('endpoint', func.__name__)
-            methods = options.get('methods', ['GET'])
-            roles = options.get('roles', [])
-            access = options.get('access', (AccessToken.Required if len(roles)
-                                            else AccessToken.Optional))
-            expects = options.get('expects', None)
-            returns = options.get('returns', None)
-            route_rules = Route(func, self.namespace.url, rule, endpoint, methods,
-                                access, expects, returns, roles)
-            self.namespace.blueprint.add_url_rule(
-                rule, endpoint, route_rules.process, methods=methods)
+            route = Route(func=func, base_url=self.namespace.base_url, path=path, method=method,
+                          access=access, expects=expects, returns=returns, roles=roles)
+            resources.register(route)
             return func
-
         return inner
 
     def expects(self, model, key='default', *, patch=False):
-        return {
-            'model': model,
-            'key': key,
-            'patch': patch
-        }
+        return NamespaceExcepts(model, key, patch=patch)
 
     def returns(self, model, key='default', *, as_list=False, skip_none=False):
-        return {
-            'model': model,
-            'key': key,
-            'as_list': as_list,
-            'skip_none': skip_none
-        }
+        return NamespaceReturns(model, key, as_list=as_list, skip_none=skip_none)

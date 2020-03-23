@@ -1,6 +1,18 @@
-import flask
+class Cookie:
+    def __init__(self, name, value, *, path, http_only=True, expires=None, delete=False):
+        self.name = name
+        self.value = value
+        self.expires = expires
+        self.path = path
+        self.http_only = http_only
+        self.delete = delete
 
-from bolinette import serialize
+
+class APIResponse:
+    def __init__(self, content, code):
+        self.content = content
+        self.code = code
+        self.cookies = []
 
 
 class Response:
@@ -16,7 +28,7 @@ class Response:
         }
         if data is not None:
             body['data'] = data
-        return body, code
+        return APIResponse(body, code)
 
     def ok(self, messages=None, data=None):
         return self.build_message(200, 'OK', messages, data)
@@ -44,10 +56,6 @@ class Response:
 
     def internal_server_error(self, messages=None, data=None):
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)
-
-    def abort(self, message, code):
-        res, mime = serialize(message)
-        flask.abort(flask.Response(res, code, content_type=mime))
 
 
 response = Response()

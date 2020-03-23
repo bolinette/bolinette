@@ -1,5 +1,3 @@
-import pytest
-
 from bolinette.testing import client, bolitest, create_mock, insert
 
 from example.models import Book, Person
@@ -19,10 +17,10 @@ def set_up():
 
 
 @bolitest(before=set_up)
-def test_get_person(client):
+async def test_get_person(client):
     person1 = create_mock(1, 'person')
 
-    rv = client.get('/person/1')
+    rv = await client.get('/person/1')
     assert rv['code'] == 200
     assert rv['data']['name'] == person1['name']
     assert len(rv['data']['books']) == 2

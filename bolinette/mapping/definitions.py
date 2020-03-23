@@ -1,5 +1,5 @@
-from bolinette import response, marshalling
-from bolinette.exceptions import EntityNotFoundError
+from bolinette import response, mapping, db
+from bolinette.exceptions import EntityNotFoundError, AbortRequestException
 
 _registered_models = {}
 _registered_responses = {}
@@ -9,7 +9,7 @@ _registered_payloads = {}
 def _get_def(collection, key):
     d = collection.get(key)
     if d is None:
-        response.abort(*response.internal_server_error(f'marshalling.unknown_definition:{key}'))
+        raise AbortRequestException(response.internal_server_error(f'mapping.unknown_definition:{key}'))
     return d
 
 
@@ -33,7 +33,7 @@ def register(model, name):
                 payload = param
             else:
                 key, payload = param
-            definition = marshalling.Definition(name, name, key)
+            definition = mapping.Definition(name, name, key)
             for field in payload:
                 definition.fields.append(field)
             collection[definition.key] = definition
@@ -50,7 +50,7 @@ def marshall(definition, entity, skip_none=False, as_list=False):
         return [marshall(definition, e, skip_none, False) for e in entity]
     data = {}
     for field in definition.fields:
-        if isinstance(field, marshalling.Field):
+        if isinstance(field, mapping.Field):
             if field.function is not None:
                 value = field.function(entity)
             else:
@@ -59,10 +59,10 @@ def marshall(definition, entity, skip_none=False, as_list=False):
                 value = field.formatting(value)
             if not skip_none or value is not None:
                 data[field.name] = value
-        elif isinstance(field, marshalling.Definition):
+        elif isinstance(field, mapping.Definition):
             d = get_response(field.key)
             data[field.name] = marshall(d, getattr(entity, field.name), skip_none, False)
-        elif isinstance(field, marshalling.List):
+        elif isinstance(field, mapping.List):
             d = get_response(field.element.key)
             data[field.name] = marshall(d, getattr(entity, field.name), skip_none, True)
     return data
@@ -71,11 +71,11 @@ def marshall(definition, entity, skip_none=False, as_list=False):
 def link_foreign_entities(definition, params):
     errors = []
     for field in definition.fields:
-        if isinstance(field.type, marshalling.types.classes.ForeignKey):
+        if isinstance(field.type, mapping.types.classes.ForeignKey):
             value = params.get(field.name, None)
             model = get_model(field.type.model)
             if value is not None and model is not None:
-                entity = model.query.filter_by(**{field.type.key: value}).first()
+                entity = db.session.query(model).filter_by(**{field.type.key: value}).first()
                 if entity is None:
                     errors.append((field.type.model, field.type.key, value))
     if len(errors) > 0:

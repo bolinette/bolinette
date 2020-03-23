@@ -1,3 +1,3 @@
 from bolinette import Bolinette
 
-bolinette = Bolinette(__name__)
+bolinette = Bolinette()

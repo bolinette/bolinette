@@ -1,7 +1,6 @@
-from bolinette_cli import logger
-
 from bolinette import env
 from bolinette.mail.providers import Mailgun
+from bolinette.utils import logger
 
 _providers = {
     'mailgun': Mailgun
@@ -22,7 +21,7 @@ class Sender:
             else:
                 self.provider = _providers[provider]()
 
-    def send(self, to, subject, content):
+    async def send(self, to, subject, content):
         if self.provider:
             try:
                 self.provider.send(to, subject, content)

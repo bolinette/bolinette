@@ -1,4 +1,4 @@
-class MarshallingType:
+class MappingType:
     def __repr__(self):
         return self.__class__.__name__
 
@@ -6,35 +6,35 @@ class MarshallingType:
         return self.__class__.__name__.lower()
 
 
-class String(MarshallingType):
+class String(MappingType):
     pass
 
 
-class Integer(MarshallingType):
+class Integer(MappingType):
     pass
 
 
-class Float(MarshallingType):
+class Float(MappingType):
     pass
 
 
-class Boolean(MarshallingType):
+class Boolean(MappingType):
     pass
 
 
-class Date(MarshallingType):
+class Date(MappingType):
     pass
 
 
-class Email(MarshallingType):
+class Email(MappingType):
     pass
 
 
-class Password(MarshallingType):
+class Password(MappingType):
     pass
 
 
-class ForeignKey(MarshallingType):
+class ForeignKey(MappingType):
     def __init__(self, model, key):
         self.model = model
         self.key = key

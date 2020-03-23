@@ -1,8 +1,8 @@
-class MarshallingObject:
+class MappingObject:
     pass
 
 
-class Field(MarshallingObject):
+class Field(MappingObject):
     def __init__(self, field_type, name, *, default=None, required=False,
                  function=None, formatting=None):
         self.type = field_type
@@ -13,23 +13,23 @@ class Field(MarshallingObject):
         self.formatting = formatting
 
     def __repr__(self):
-        return f'<MarshallingField {self.name}:{self.type}>'
+        return f'<MappingField {self.name}:{self.type}>'
 
 
-class List(MarshallingObject):
+class List(MappingObject):
     def __init__(self, name, element):
         self.name = name
         self.element = element
 
     def __repr__(self):
-        return f'<MarshallingList {self.name}:[{repr(self.element)}]>'
+        return f'<MappingList {self.name}:[{repr(self.element)}]>'
 
 
-class Definition(MarshallingObject):
+class Definition(MappingObject):
     def __init__(self, name, model, key='default'):
         self.fields = []
         self.name = name
         self.key = f'{model}.{key}'
 
     def __repr__(self):
-        return f'<MarshallingModel {self.key}>'
+        return f'<MappingModel {self.key}>'
