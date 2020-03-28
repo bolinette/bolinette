@@ -1,15 +1,15 @@
-from bolinette import env, db, transaction
+from bolinette import env, transaction, db
 from bolinette.services import role_service, user_service
 
 
-@db.seeder
+@db.engine.seeder
 async def role_seeder():
     with transaction:
         await role_service.create({'name': 'root'})
         await role_service.create({'name': 'admin'})
 
 
-@db.seeder
+@db.engine.seeder
 async def dev_user_seeder():
     if env['PROFILE'] == 'development':
         with transaction:

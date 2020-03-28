@@ -1,11 +1,11 @@
-from bolinette import db, mapping
+from bolinette import mapping, db
 
 
-class Role(db.types.Model):
-    __tablename__ = 'roles'
+class Role(db.defs.model):
+    __tablename__ = 'role'
 
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    name = db.types.Column(db.types.String(255), unique=True, nullable=False)
+    id = db.defs.column(db.types.integer, primary_key=True)
+    name = db.defs.column(db.types.string, unique=True, nullable=False)
 
     def __repr__(self):
         return f'<Role {self.name}>'
@@ -13,18 +13,18 @@ class Role(db.types.Model):
     @staticmethod
     def payloads():
         yield [
-            mapping.Field(mapping.types.string, 'name')
+            mapping.Field(db.types.string, key='name')
         ]
 
     @staticmethod
     def responses():
         yield [
-            mapping.Field(mapping.types.string, 'name')
+            mapping.Field(db.types.string, key='name')
         ]
         yield 'complete', [
-            mapping.Field(mapping.types.string, 'name'),
+            mapping.Field(db.types.string, key='name'),
             mapping.List('users', mapping.Definition('user', 'user'))
         ]
 
 
-mapping.register(Role, 'role')
+mapping.register(Role)

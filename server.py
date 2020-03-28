@@ -1,6 +1,8 @@
 import sys
 
-from bolinette_cli import Parser
+from example import bolinette
+
+app = bolinette.app
 
 if __name__ == '__main__':
-    Parser().execute(sys.argv)
+    bolinette.run_command(sys.argv[1])

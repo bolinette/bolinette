@@ -49,8 +49,8 @@ class Environment(Settings):
             'APP_VERSION': '0.0.1',
             'DBMS': 'SQLITE',
             'DEBUG': True,
-            'FLASK_HOST': '127.0.0.1',
-            'FLASK_PORT': '5000',
+            'HOST': '127.0.0.1',
+            'PORT': '5000',
             'WEBAPP_FOLDER': self.root_path('webapp', 'dist')
         }
 

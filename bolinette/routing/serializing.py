@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from aiohttp.web_request import Request
@@ -23,8 +24,14 @@ class JSONSerializer(Serializer):
     def __init__(self):
         super().__init__('application/json', 1)
 
+    @staticmethod
+    def _json_type_converter(o):
+        if isinstance(o, (datetime.date, datetime.datetime)):
+            return o.isoformat()
+        return o
+
     def serialize(self, response):
-        return json.dumps(response)
+        return json.dumps(response, default=JSONSerializer._json_type_converter)
 
 
 class Serializers:

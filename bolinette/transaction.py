@@ -2,7 +2,7 @@ import traceback
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from bolinette import db, response
+from bolinette import response, db
 from bolinette.exceptions import APIError, AbortRequestException
 from bolinette.utils import logger
 
@@ -13,7 +13,7 @@ class Transaction:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            db.session.rollback()
+            db.engine.session.rollback()
             if issubclass(exc_type, APIError):
                 res = exc_val.response
             else:
@@ -23,9 +23,9 @@ class Transaction:
             raise AbortRequestException(res)
         else:
             try:
-                db.session.commit()
+                db.engine.session.commit()
             except SQLAlchemyError as err:
-                db.session.rollback()
+                db.engine.session.rollback()
                 res = response.internal_server_error(f'global.internal_error:{err}')
                 raise AbortRequestException(res)
 

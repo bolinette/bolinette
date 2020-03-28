@@ -1,27 +1,33 @@
-from bolinette import db, mapping
+from bolinette import mapping, db
 
 
-class Person(db.types.Model):
-    __tablename__ = 'people'
+class Person(db.defs.model):
+    __tablename__ = 'person'
 
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    name = db.types.Column(db.types.String, nullable=False)
+    id = db.defs.column(db.types.integer, primary_key=True)
+    first_name = db.defs.column(db.types.string, nullable=False)
+    last_name = db.defs.column(db.types.string, nullable=False)
 
     @staticmethod
     def payloads():
         yield [
-            mapping.Field(mapping.types.string, 'name', required=True)
+            mapping.Field(db.types.string, key='first_name', required=True),
+            mapping.Field(db.types.string, key='last_name', required=True)
         ]
 
     @staticmethod
     def responses():
         yield [
-            mapping.Field(mapping.types.string, 'name', required=True)
+            mapping.Field(db.types.string, key='first_name'),
+            mapping.Field(db.types.string, key='last_name'),
+            mapping.Field(db.types.string, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}')
         ]
         yield 'complete', [
-            mapping.Field(mapping.types.string, 'name', required=True),
+            mapping.Field(db.types.string, key='first_name'),
+            mapping.Field(db.types.string, key='last_name'),
+            mapping.Field(db.types.string, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
             mapping.List('books', mapping.Definition('book', 'book'))
         ]
 
 
-mapping.register(Person, 'person')
+mapping.register(Person)

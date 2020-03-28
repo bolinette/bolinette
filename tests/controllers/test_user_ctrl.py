@@ -1,53 +1,53 @@
 from bolinette import bcrypt
 from bolinette.models import User, Role
-from bolinette.testing import client, bolitest, create_mock, insert
+from bolinette.testing import client, bolitest, mock, Mocked
 
 
-def salt_password(mock):
-    mock['password'] = bcrypt.hash_password(mock['password'])
-    return mock
+def salt_password(mocked: Mocked) -> Mocked:
+    mocked.fields.password = bcrypt.hash_password(mocked.fields.password)
+    return mocked
 
 
 def set_up():
-    insert(User, salt_password(create_mock(1, 'user', 'register')))
+    salt_password(mock(1, 'user')).insert(User)
 
 
 def admin_set_up():
-    admin = insert(Role, {'name': 'admin'})
-    user1 = insert(User, salt_password(create_mock(1, 'user', 'register')))
+    admin = Mocked.insert_entity(Role(name='admin'))
+    user1 = salt_password(mock(1, 'user')).insert(User)
     user1.roles.append(admin)
-    insert(User, salt_password(create_mock(2, 'user', 'register')))
-    insert(Role, create_mock(1, 'role'))
+    salt_password(mock(2, 'user')).insert(User)
+    mock(1, 'role').insert(Role)
 
 
 def root_set_up():
-    root = insert(Role, {'name': 'root'})
-    admin = insert(Role, {'name': 'admin'})
-    user1 = insert(User, salt_password(create_mock(1, 'user', 'register')))
+    root = Mocked.insert_entity(Role(name='root'))
+    admin = Mocked.insert_entity(Role(name='admin'))
+    user1 = salt_password(mock(1, 'user')).insert(User)
     user1.roles.append(root)
     user1.roles.append(admin)
 
 
 @bolitest(before=set_up)
 async def test_login_failed(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    rv = await client.post('/user/login', {'username': user1['username'],
-                                           'password': user1['password'][:-1]})
+    rv = await client.post('/user/login', {'username': user1.fields.username,
+                                           'password': user1.fields.password[:-1]})
     assert rv['code'] == 401
     assert 'user.login.wrong_credentials' in rv['messages']
 
-    rv = await client.post('/user/login', {'username': user1['username'] + "2",
-                                           'password': user1['password']})
+    rv = await client.post('/user/login', {'username': user1.fields.username + "2",
+                                           'password': user1.fields.password})
     assert rv['code'] == 401
     assert 'user.login.wrong_credentials' in rv['messages']
 
 
 @bolitest(before=set_up)
 async def test_login(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    rv = await client.post('/user/login', user1)
+    rv = await client.post('/user/login', user1.to_payload('login'))
     assert rv['code'] == 200
 
 
@@ -59,22 +59,22 @@ async def test_access_user_info_failed(client):
 
 @bolitest(before=set_up)
 async def test_access_user_info(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.get('/user/me')
     assert rv['code'] == 200
-    assert rv['data'].get('username') == user1['username']
-    assert rv['data'].get('email') == user1['email']
+    assert rv['data'].get('username') == user1.fields.username
+    assert rv['data'].get('email') == user1.fields.email
     assert rv['data'].get('password') is None
 
 
 @bolitest(before=set_up)
 async def test_logout(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.get('/user/me')
     assert rv['code'] == 200
@@ -88,26 +88,26 @@ async def test_logout(client):
 
 @bolitest(before=set_up)
 async def test_register(client):
-    user2 = create_mock(2, 'user', 'register')
+    user2 = mock(2, 'user')
 
-    rv = await client.post('/user/register', user2)
+    rv = await client.post('/user/register', user2.to_payload('register'))
     assert rv['code'] == 201
 
-    rv = await client.post('/user/login', user2)
+    rv = await client.post('/user/login', user2.to_payload('login'))
     assert rv['code'] == 200
 
 
 @bolitest(before=set_up)
 async def test_logged_in_after_register(client):
-    user2 = create_mock(2, 'user', 'register')
+    user2 = mock(2, 'user')
 
-    rv = await client.post('/user/register', user2)
+    rv = await client.post('/user/register', user2.to_payload('register'))
     assert rv['code'] == 201
 
     rv = await client.get('/user/me')
     assert rv['code'] == 200
-    assert rv['data'].get('username') == user2['username']
-    assert rv['data'].get('email') == user2['email']
+    assert rv['data'].get('username') == user2.fields.username
+    assert rv['data'].get('email') == user2.fields.email
 
 
 @bolitest(before=set_up)
@@ -121,34 +121,34 @@ async def test_register_bad_request(client):
 
 @bolitest(before=set_up)
 async def test_register_conflict(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    rv = await client.post('/user/register', user1)
+    rv = await client.post('/user/register', user1.to_payload('register'))
     assert rv['code'] == 409
-    assert f'param.conflict:username:{user1["username"]}' in rv['messages']
-    assert f'param.conflict:email:{user1["email"]}' in rv['messages']
+    assert f'param.conflict:username:{user1.fields.username}' in rv['messages']
+    assert f'param.conflict:email:{user1.fields.email}' in rv['messages']
 
 
 @bolitest(before=set_up)
 async def test_change_username(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.patch('/user/me', {'username': 'new_username'})
     assert rv['code'] == 200
     assert rv['data']['username'] == 'new_username'
-    assert rv['data']['email'] == user1['email']
+    assert rv['data']['email'] == user1.fields.email
 
 
 @bolitest(before=set_up)
 async def test_change_password(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
     await client.patch('/user/me', {'password': 'new_password'})
     await client.post('/user/logout')
-    await client.post('/user/login', {'username': user1['username'], 'password': 'new_password'})
+    await client.post('/user/login', {'username': user1.fields.username, 'password': 'new_password'})
 
     rv = await client.get('/user/me')
     assert rv['code'] == 200
@@ -156,9 +156,9 @@ async def test_change_password(client):
 
 @bolitest(before=admin_set_up)
 async def test_get_users(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.get('/user')
     assert rv['code'] == 200
@@ -167,9 +167,9 @@ async def test_get_users(client):
 
 @bolitest(before=admin_set_up)
 async def test_get_users_forbidden(client):
-    user1 = create_mock(2, 'user', 'register')
+    user1 = mock(2, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.get('/user')
     assert rv['code'] == 403
@@ -178,81 +178,81 @@ async def test_get_users_forbidden(client):
 
 @bolitest(before=admin_set_up)
 async def test_add_self_role(client):
-    user1 = create_mock(1, 'user', 'register')
-    role1 = create_mock(1, 'role')
+    user1 = mock(1, 'user')
+    role1 = mock(1, 'role')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.post(f'/user/{user1["username"]}/roles', role1)
+    rv = await client.post(f'/user/{user1.fields.username}/roles', role1.to_payload())
     assert rv['code'] == 201
-    assert f'user.roles.added:{user1["username"]}:{role1["name"]}' in rv['messages']
+    assert f'user.roles.added:{user1.fields.username}:{role1.fields.name}' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
 async def test_add_role_not_admin(client):
-    user2 = create_mock(2, 'user', 'register')
-    role1 = create_mock(1, 'role')
+    user2 = mock(2, 'user')
+    role1 = mock(1, 'role')
 
-    await client.post('/user/login', user2)
+    await client.post('/user/login', user2.to_payload('login'))
 
-    rv = await client.post(f'/user/{user2["username"]}/roles', role1)
+    rv = await client.post(f'/user/{user2.fields.username}/roles', role1.to_payload())
     assert rv['code'] == 403
     assert f'user.forbidden:admin' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
 async def test_remove_role(client):
-    user1 = create_mock(1, 'user', 'register')
-    role1 = create_mock(1, 'role')
+    user1 = mock(1, 'user')
+    role1 = mock(1, 'role')
 
-    await client.post('/user/login', user1)
-    await client.post(f'/user/{user1["username"]}/roles', role1)
+    await client.post('/user/login', user1.to_payload('login'))
+    await client.post(f'/user/{user1.fields.username}/roles', role1.to_payload())
 
-    rv = await client.delete(f'/user/{user1["username"]}/roles/{role1["name"]}')
+    rv = await client.delete(f'/user/{user1.fields.username}/roles/{role1.fields.name}')
     assert rv['code'] == 200
-    assert f'user.roles.removed:{user1["username"]}:{role1["name"]}' in rv['messages']
+    assert f'user.roles.removed:{user1.fields.username}:{role1.fields.name}' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
 async def test_remove_role_not_found(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.delete(f'/user/{user1["username"]}/roles/unknow_role')
+    rv = await client.delete(f'/user/{user1.fields.username}/roles/unknown_role')
     assert rv['code'] == 404
-    assert f'role.not_found:name:unknow_role' in rv['messages']
+    assert f'role.not_found:name:unknown_role' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
 async def test_remove_role_not_in_user_roles(client):
-    user1 = create_mock(1, 'user', 'register')
-    role1 = create_mock(1, 'role')
+    user1 = mock(1, 'user')
+    role1 = mock(1, 'role')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.delete(f'/user/{user1["username"]}/roles/{role1["name"]}')
+    rv = await client.delete(f'/user/{user1.fields.username}/roles/{role1.fields.name}')
     assert rv['code'] == 400
-    assert f'user.roles.not_found:{user1["username"]}:{role1["name"]}' in rv['messages']
+    assert f'user.roles.not_found:{user1.fields.username}:{role1.fields.name}' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
 async def test_no_self_demotion(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.delete(f'/user/{user1["username"]}/roles/admin')
+    rv = await client.delete(f'/user/{user1.fields.username}/roles/admin')
     assert rv['code'] == 403
     assert f'role.admin.no_self_demotion' in rv['messages']
 
 
 @bolitest(before=root_set_up)
 async def test_root_self_demotion(client):
-    user1 = create_mock(1, 'user', 'register')
+    user1 = mock(1, 'user')
 
-    await client.post('/user/login', user1)
+    await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.delete(f'/user/{user1["username"]}/roles/admin')
+    rv = await client.delete(f'/user/{user1.fields.username}/roles/admin')
     assert rv['code'] == 200
-    assert f'user.roles.removed:{user1["username"]}:admin' in rv['messages']
+    assert f'user.roles.removed:{user1.fields.username}:admin' in rv['messages']

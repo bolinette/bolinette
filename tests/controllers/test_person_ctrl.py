@@ -1,26 +1,15 @@
-from bolinette.testing import client, bolitest, create_mock, insert
-
-from example.models import Book, Person
-
-
-def set_author(book, author_id):
-    book['author_id'] = author_id
-    return book
+from bolinette.testing import client, bolitest, mock
+from tests import utils
 
 
-def set_up():
-    insert(Person, create_mock(1, 'person'))
-    insert(Person, create_mock(2, 'person'))
-    insert(Book, set_author(create_mock(1, 'book'), 1))
-    insert(Book, set_author(create_mock(2, 'book'), 1))
-    insert(Book, set_author(create_mock(3, 'book'), 2))
-
-
-@bolitest(before=set_up)
+@bolitest(before=utils.book.set_up)
 async def test_get_person(client):
-    person1 = create_mock(1, 'person')
+    person1 = mock(1, 'person')
 
     rv = await client.get('/person/1')
+    person1_res = person1.to_response()
     assert rv['code'] == 200
-    assert rv['data']['name'] == person1['name']
+    assert rv['data']['first_name'] == person1_res['first_name']
+    assert rv['data']['last_name'] == person1_res['last_name']
+    assert rv['data']['full_name'] == person1_res['full_name']
     assert len(rv['data']['books']) == 2

@@ -1,6 +1,6 @@
 from sqlalchemy import desc
 
-from bolinette import db, mapping
+from bolinette import mapping, db
 from bolinette.exceptions import EntityNotFoundError
 from bolinette.utils import Pagination
 
@@ -17,27 +17,27 @@ class BaseService:
         return _services.get(model)
 
     async def get(self, identifier):
-        entity = db.session.query(self.model).get(identifier)
+        entity = db.engine.session.query(self.model).get(identifier)
         if entity is None:
             raise EntityNotFoundError(model=self.name, key='id', value=identifier)
         return entity
 
     async def get_by(self, key, value):
-        return db.session.query(self.model).filter_by(**{key: value}).all()
+        return db.engine.session.query(self.model).filter_by(**{key: value}).all()
 
     async def get_first_by(self, key, value):
-        entity = db.session.query(self.model).filter_by(**{key: value}).first()
+        entity = db.engine.session.query(self.model).filter_by(**{key: value}).first()
         if entity is None:
             raise EntityNotFoundError(model=self.name, key=key, value=value)
         return entity
 
     async def get_by_criteria(self, criteria):
-        return db.session.query(self.model).filter(criteria).all()
+        return db.engine.session.query(self.model).filter(criteria).all()
 
     async def get_all(self, pagination=None, order_by=None):
         if order_by is None:
             order_by = []
-        query = db.session.query(self.model)
+        query = db.engine.session.query(self.model)
         if len(order_by) > 0:
             query = await BaseService._build_order_by(self.model, query, order_by)
         if pagination is not None:
@@ -47,7 +47,7 @@ class BaseService:
     async def create(self, params):
         params = mapping.validate_model(self.model, params)
         entity = self.model(**params)
-        db.session.add(entity)
+        db.engine.session.add(entity)
         return entity
 
     async def update(self, entity, params):
@@ -59,7 +59,7 @@ class BaseService:
         return entity
 
     async def delete(self, entity):
-        db.session.delete(entity)
+        db.engine.session.delete(entity)
         return entity
 
     @staticmethod

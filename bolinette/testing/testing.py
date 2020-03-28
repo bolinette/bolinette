@@ -18,14 +18,14 @@ def bolitest(*, before=None, after=None):
     def wrapper(func):
         @wraps(func)
         async def inner(*args, **kwargs):
-            await db.drop_all()
-            await db.create_all()
+            await db.engine.drop_all()
+            await db.engine.create_all()
             if before is not None and callable(before):
                 before()
-            db.session.commit()
+            db.engine.session.commit()
             await func(*args, **kwargs)
             if after is not None and callable(after):
                 after()
-            await db.drop_all()
+            await db.engine.drop_all()
         return inner
     return wrapper

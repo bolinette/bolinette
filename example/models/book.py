@@ -1,38 +1,45 @@
-from bolinette import db, mapping
+from bolinette import mapping, db
+from example.models import Person
 
 
-class Book(db.types.Model):
-    __tablename__ = 'books'
+class Book(db.defs.model):
+    __tablename__ = 'book'
 
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    name = db.types.Column(db.types.String, nullable=False)
-    pages = db.types.Column(db.types.Integer, nullable=False)
-    author_id = db.types.Column(db.types.Integer, db.types.ForeignKey('people.id'), nullable=False)
-    author = db.types.relationship('Person', foreign_keys='Book.author_id',
-                                   backref='books', lazy=False)
+    id = db.defs.column(db.types.integer, primary_key=True)
+    name = db.defs.column(db.types.string, nullable=False)
+    pages = db.defs.column(db.types.integer, nullable=False)
+    price = db.defs.column(db.types.float, nullable=False)
+    publication_date = db.defs.column(db.types.date, nullable=False)
+    author_id = db.defs.column(db.types.integer, db.types.foreign_key('person', 'id'), nullable=False)
+    author = db.defs.relationship(Person, foreign_keys='Book.author_id', backref='books', lazy=False)
 
     @staticmethod
     def payloads():
         yield [
-            mapping.Field(mapping.types.string, 'name', required=True),
-            mapping.Field(mapping.types.integer, 'pages', required=True),
-            mapping.Field(mapping.types.foreign_key('person', 'id'),
-                          'author_id', required=True)
+            mapping.Field(db.types.string, key='name', required=True),
+            mapping.Field(db.types.integer, key='pages', required=True),
+            mapping.Field(db.types.float, key='price', required=True),
+            mapping.Field(db.types.date, key='publication_date', required=True),
+            mapping.Field(db.types.foreign_key('person', 'id'), key='author_id', required=True)
         ]
 
     @staticmethod
     def responses():
         yield [
-            mapping.Field(mapping.types.integer, 'id', required=True),
-            mapping.Field(mapping.types.string, 'name', required=True),
-            mapping.Field(mapping.types.integer, 'pages', required=True)
+            mapping.Field(db.types.integer, key='id'),
+            mapping.Field(db.types.string, key='name'),
+            mapping.Field(db.types.integer, key='pages'),
+            mapping.Field(db.types.float, key='price'),
+            mapping.Field(db.types.date, key='publication_date')
         ]
         yield 'complete', [
-            mapping.Field(mapping.types.integer, 'id', required=True),
-            mapping.Field(mapping.types.string, 'name', required=True),
-            mapping.Field(mapping.types.integer, 'pages', required=True),
+            mapping.Field(db.types.integer, key='id'),
+            mapping.Field(db.types.string, key='name'),
+            mapping.Field(db.types.integer, key='pages'),
+            mapping.Field(db.types.float, key='price'),
+            mapping.Field(db.types.date, key='publication_date'),
             mapping.Definition('author', 'person')
         ]
 
 
-mapping.register(Book, 'book')
+mapping.register(Book)

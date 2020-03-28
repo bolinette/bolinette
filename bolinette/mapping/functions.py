@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from bolinette import db
+from bolinette.db import TypeClasses
 from bolinette.exceptions import ParamConflictError, ParamMissingError
 
 
@@ -13,7 +16,7 @@ def validate_model(model, params, **kwargs):
         value = params.get(key, None)
         if column.unique and value is not None:
             criteria = getattr(model, key) == value
-            if db.session.query(model).filter(criteria).first() is not None:
+            if db.engine.session.query(model).filter(criteria).first() is not None:
                 errors.append((key, value))
         valid[key] = value
     if len(errors) > 0:
@@ -28,7 +31,9 @@ def validate_payload(definition, params, patch=False):
         if patch and field.name not in params:
             continue
         value = params.get(field.name, None)
-        if value is None or len(str(value)) <= 0:
+        if value and field.type.of_type(TypeClasses.Date):
+            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+        if not value or not len(str(value)):
             if field.required:
                 errors.append(field.name)
             else:
@@ -50,7 +55,7 @@ def map_model(model, entity, params, patch=False):
         if original == new:
             continue
         if column.unique and new is not None:
-            if db.session.query(model).filter(getattr(model, key) == new).first() is not None:
+            if db.engine.session.query(model).filter(getattr(model, key) == new).first() is not None:
                 errors.append((key, new))
         setattr(entity, key, new)
     if len(errors) > 0:

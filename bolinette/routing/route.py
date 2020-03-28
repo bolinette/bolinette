@@ -3,7 +3,7 @@ from aiohttp.web_request import Request
 
 from bolinette import transaction, mapping
 from bolinette.exceptions import AbortRequestException, ForbiddenError
-from bolinette.routing import deserialize, serialize
+from bolinette.routing import deserialize, serialize, AccessType
 from bolinette.services import user_service
 from bolinette.utils import Pagination
 
@@ -18,6 +18,8 @@ class Route:
         self.expects = expects
         self.returns = returns
         self.roles = roles
+        if self.roles and len(self.roles) and not self.access:
+            self.access = AccessType.Required
 
     async def handler(self, request: Request):
         route_params = {
@@ -36,7 +38,8 @@ class Route:
                     route_params['current_user'] = await user_service.get_by_username(self.access.check(request))
 
                 if self.roles and len(self.roles):
-                    user_roles = set(map(lambda r: r.name, route_params['current_user'].roles))
+                    current_user = route_params['current_user']
+                    user_roles = set(map(lambda r: r.name, current_user.roles))
                     if 'root' not in user_roles and not len(user_roles.intersection(set(self.roles))):
                         raise ForbiddenError(f'user.forbidden:{",".join(self.roles)}')
 

@@ -3,17 +3,20 @@ class MappingObject:
 
 
 class Field(MappingObject):
-    def __init__(self, field_type, name, *, default=None, required=False,
-                 function=None, formatting=None):
+    def __init__(self, field_type, *, key=None, name=None,
+                 default=None, required=False, function=None, formatting=None):
         self.type = field_type
+        self.key = key
         self.name = name
         self.required = required
         self.default = default
         self.function = function
         self.formatting = formatting
+        if not self.name and self.key:
+            self.name = self.key
 
     def __repr__(self):
-        return f'<MappingField {self.name}:{self.type}>'
+        return f'<MappingField {self.key}:{self.type} -> {self.name}>'
 
 
 class List(MappingObject):
