@@ -28,7 +28,8 @@ setup(
         'pytest-aiohttp==0.3.0',
         'PyYAML==5.3.1',
         'requests==2.23.0',
-        'SQLAlchemy==1.3.15'
+        'SQLAlchemy==1.3.15',
+        'twine==3.1.1'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
