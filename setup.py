@@ -20,18 +20,15 @@ setup(
     url='https://github.com/TheCaptainCat/bolinette',
     keywords=['Flask', 'Bolinette', 'Web', 'Framework'],
     install_requires=[
-        'Bolinette-CLI==0.2.3',
-        'dicttoxml==1.7.4',
-        'Flask==1.1.1',
-        'Flask-Bcrypt==0.7.1',
-        'Flask-Cors==3.0.8',
-        'Flask-JWT-Extended==3.24.1',
-        'Flask-SQLAlchemy==2.4.1',
-        'htmlmin==0.1.12',
+        'aiohttp==3.6.2',
+        'aiohttp-cors==0.7.0',
+        'bcrypt==3.1.7',
         'PyJWT==1.7.1',
-        'pytest==5.3.2',
-        'SQLAlchemy==1.3.12',
-        'twine==3.1.1'
+        'pytest==5.4.1',
+        'pytest-aiohttp==0.3.0',
+        'PyYAML==5.3.1',
+        'requests==2.23.0',
+        'SQLAlchemy==1.3.15'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
