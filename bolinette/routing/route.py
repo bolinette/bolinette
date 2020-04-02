@@ -51,7 +51,11 @@ class Route:
                     mapping.link_foreign_entities(exp_def, route_params['payload'])
 
                 resp = await self.func(**route_params)
-                content = resp.content
+
+            if isinstance(resp, web.Response):
+                return resp
+
+            content = resp.content
 
             if content.get('data') is not None and isinstance(content['data'], Pagination):
                 content['pagination'] = {

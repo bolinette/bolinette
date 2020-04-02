@@ -1,5 +1,5 @@
 from bolinette import bcrypt
-from bolinette.models import User
+from bolinette.models import User, File
 from bolinette.services import BaseService
 from bolinette.exceptions import ForbiddenError, BadRequestError
 
@@ -10,7 +10,7 @@ class UserService(BaseService):
         return bcrypt.hash_password(password)
 
     def __init__(self):
-        super().__init__(User, 'user')
+        super().__init__(User)
 
     async def get_by_username(self, username):
         return await self.get_first_by('username', username)
@@ -53,6 +53,13 @@ class UserService(BaseService):
         if role not in user.roles:
             raise BadRequestError(f'user.roles.not_found:{user.username}:{role.name}')
         user.roles.remove(role)
+
+    async def save_profile_picture(self, user, request_file):
+        old_picture = user.profile_picture
+        user.profile_picture = await self.service(File).save_file(request_file)
+        if old_picture:
+            await self.service(File).delete(old_picture)
+        return user
 
 
 user_service = UserService()

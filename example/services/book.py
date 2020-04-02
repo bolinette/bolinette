@@ -4,7 +4,7 @@ from example.models import Book
 
 class BookService(BaseService):
     def __init__(self):
-        super().__init__(Book, 'book')
+        super().__init__(Book)
 
 
 book_service = BookService()

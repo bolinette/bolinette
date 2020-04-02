@@ -50,6 +50,8 @@ def register(model):
 
 
 def marshall(definition, entity, skip_none=False, as_list=False):
+    if not entity:
+        return None
     if as_list:
         return [marshall(definition, e, skip_none, False) for e in entity]
     data = {}

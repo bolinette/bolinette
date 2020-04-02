@@ -1,5 +1,5 @@
 from bolinette import mapping, env, db
-from bolinette.models import Role
+from bolinette.models import Role, File
 
 users_roles = db.defs.table(
     'users_roles',
@@ -19,6 +19,9 @@ class User(db.defs.model):
 
     roles = db.defs.relationship(Role, secondary=users_roles, lazy='subquery',
                                  backref=db.defs.backref('user', lazy=True))
+
+    picture_id = db.defs.column(db.types.integer, db.types.foreign_key('file', 'id'))
+    profile_picture = db.defs.relationship(File, foreign_keys=picture_id, lazy=False)
 
     def has_role(self, role):
         return any(filter(lambda r: r.name == role, self.roles))
@@ -42,11 +45,12 @@ class User(db.defs.model):
 
     @staticmethod
     def responses():
-        yield [
-            mapping.Field(db.types.string, key='username')
-        ]
-        yield 'private', [
+        default = [
             mapping.Field(db.types.string, key='username'),
+            mapping.Definition('profile_picture', 'file', 'minimal')
+        ]
+        yield default
+        yield 'private', default + [
             mapping.Field(db.types.email, key='email'),
             mapping.List('roles', mapping.Definition('role', 'role'))
         ]

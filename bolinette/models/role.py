@@ -13,7 +13,7 @@ class Role(db.defs.model):
     @staticmethod
     def payloads():
         yield [
-            mapping.Field(db.types.string, key='name')
+            mapping.Field(db.types.string, key='name', required=True)
         ]
 
     @staticmethod

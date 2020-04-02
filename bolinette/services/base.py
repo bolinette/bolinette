@@ -8,12 +8,12 @@ _services = {}
 
 
 class BaseService:
-    def __init__(self, model, name):
+    def __init__(self, model):
         self.model = model
-        self.name = name
+        self.name = model.__tablename__.lower()
         _services[model] = self
 
-    async def service(self, model):
+    def service(self, model):
         return _services.get(model)
 
     async def get(self, identifier):

@@ -142,3 +142,13 @@ async def delete_user_role(match, current_user, **_):
     role = await role_service.get_by_name(match['role'])
     await user_service.remove_role(current_user, user, role)
     return response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
+
+
+@ns.route('/picture',
+          method=Method.POST,
+          access=AccessType.Required,
+          returns=ns.route.returns('user', 'private'))
+async def upload_profile_picture(current_user, payload, **_):
+    picture = payload['file']
+    user = await user_service.save_profile_picture(current_user, picture)
+    return response.ok(f'user.picture.uploaded', user)

@@ -8,6 +8,8 @@ async def deserialize(request: Request):
     content_type = request.content_type
     if content_type == 'application/json':
         return await request.json()
+    if content_type == 'multipart/form-data':
+        return await request.post()
     return {}
 
 

@@ -10,8 +10,9 @@ class Book(db.defs.model):
     pages = db.defs.column(db.types.integer, nullable=False)
     price = db.defs.column(db.types.float, nullable=False)
     publication_date = db.defs.column(db.types.date, nullable=False)
+
     author_id = db.defs.column(db.types.integer, db.types.foreign_key('person', 'id'), nullable=False)
-    author = db.defs.relationship(Person, foreign_keys='Book.author_id', backref='books', lazy=False)
+    author = db.defs.relationship(Person, foreign_keys=author_id, backref='books', lazy=False)
 
     @staticmethod
     def payloads():

@@ -48,6 +48,7 @@ target/
 celerybeat-schedule
 *.sage.py
 env.local.*.yaml
+instance/uploads
 *.db
 .profile
 .venv
