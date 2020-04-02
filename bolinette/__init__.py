@@ -5,5 +5,4 @@ from bolinette.transaction import transaction
 from bolinette.bcrypt import bcrypt
 from bolinette.commands import command
 import bolinette.controllers
-import bolinette.seeders
 from bolinette.bolinette import Bolinette
