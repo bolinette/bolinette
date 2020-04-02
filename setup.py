@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
-from bolinette_cli import versions
 
 from bolinette import env
+from bolinette.utils import fs
 
 
 def project_packages(module):
@@ -12,7 +12,7 @@ setup(
     name='Bolinette',
     packages=project_packages('bolinette'),
     include_package_data=True,
-    version=versions.read_version(env.root_path()),
+    version=fs.read_version(env.root_path()),
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     author='Pierre Chat',

@@ -1,6 +1,15 @@
 import os
 
 
+def read_version(path):
+    try:
+        with open(join(path, '.version')) as f:
+            for line in f:
+                return line.strip().replace('\n', '')
+    except FileNotFoundError:
+        return None
+
+
 def cwd():
     return os.getcwd()
 
