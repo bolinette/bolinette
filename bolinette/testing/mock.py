@@ -50,7 +50,7 @@ class Mock:
         random_number_of_days = rng.randrange(days_between_dates)
         return start_date + datetime.timedelta(days=random_number_of_days)
 
-    def __call__(self, m_id, model_name):
+    def __call__(self, m_id, model_name, *, post_mock_fn=None):
         model = mapping.get_model(model_name)
         columns = model.__table__.columns
         rng = random.Random(hash(f'{model.__table__.name}.{m_id}'))
@@ -73,6 +73,8 @@ class Mock:
             if col_type == 'date':
                 setattr(mocked.fields, column.name, self._random_date(rng, datetime.datetime(1900, 1, 1),
                                                                       datetime.datetime(2000, 1, 1)))
+        if post_mock_fn and callable(post_mock_fn):
+            post_mock_fn(mocked)
         return mocked
 
 

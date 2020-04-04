@@ -3,6 +3,10 @@ from bolinette.models import User, Role
 from bolinette.testing import client, bolitest, mock, Mocked
 
 
+def _fix_mocked_user(user: Mocked):
+    user.fields.timezone = 'Europe/Paris'
+
+
 def salt_password(mocked: Mocked) -> Mocked:
     mocked.fields.password = bcrypt.hash_password(mocked.fields.password)
     return mocked
@@ -88,7 +92,7 @@ async def test_logout(client):
 
 @bolitest(before=set_up)
 async def test_register(client):
-    user2 = mock(2, 'user')
+    user2 = mock(2, 'user', post_mock_fn=_fix_mocked_user)
 
     rv = await client.post('/user/register', user2.to_payload('register'))
     assert rv['code'] == 201
@@ -99,7 +103,7 @@ async def test_register(client):
 
 @bolitest(before=set_up)
 async def test_logged_in_after_register(client):
-    user2 = mock(2, 'user')
+    user2 = mock(2, 'user', post_mock_fn=_fix_mocked_user)
 
     rv = await client.post('/user/register', user2.to_payload('register'))
     assert rv['code'] == 201
@@ -121,7 +125,7 @@ async def test_register_bad_request(client):
 
 @bolitest(before=set_up)
 async def test_register_conflict(client):
-    user1 = mock(1, 'user')
+    user1 = mock(1, 'user', post_mock_fn=_fix_mocked_user)
 
     rv = await client.post('/user/register', user1.to_payload('register'))
     assert rv['code'] == 409
