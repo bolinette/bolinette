@@ -23,6 +23,8 @@ class User(db.defs.model):
     picture_id = db.defs.column(db.types.integer, db.types.foreign_key('file', 'id'))
     profile_picture = db.defs.relationship(File, foreign_keys=picture_id, lazy=False)
 
+    timezone = db.defs.column(db.types.string)
+
     def has_role(self, role):
         return any(filter(lambda r: r.name == role, self.roles))
 
@@ -31,7 +33,8 @@ class User(db.defs.model):
         yield 'register', [
             mapping.Field(db.types.string, key='username', required=True),
             mapping.Field(db.types.email, key='email', required=True),
-            mapping.Field(db.types.password, key='password', required=True)
+            mapping.Field(db.types.password, key='password', required=True),
+            mapping.Field(db.types.string, key='timezone')
         ]
         yield 'admin_register', [
             mapping.Field(db.types.string, key='username', required=True),
@@ -52,7 +55,8 @@ class User(db.defs.model):
         yield default
         yield 'private', default + [
             mapping.Field(db.types.email, key='email'),
-            mapping.List('roles', mapping.Definition('role', 'role'))
+            mapping.List('roles', mapping.Definition('role', 'role')),
+            mapping.Field(db.types.string, key='timezone')
         ]
 
     def __repr__(self):

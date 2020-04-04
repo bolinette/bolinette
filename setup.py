@@ -23,6 +23,7 @@ setup(
         'aiohttp==3.6.2',
         'aiohttp-cors==0.7.0',
         'bcrypt==3.1.7',
+        'pytz==2019.3',
         'PyJWT==1.7.1',
         'pytest==5.4.1',
         'pytest-aiohttp==0.3.0',

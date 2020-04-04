@@ -81,3 +81,9 @@ class BaseService:
         total = query.count()
         items = query.offset(page * per_page).limit(per_page).all()
         return Pagination(items, page, per_page, total)
+
+
+class SimpleService:
+    def __init__(self, name):
+        self.name = name
+        _services[name] = self

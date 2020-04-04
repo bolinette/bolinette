@@ -21,19 +21,22 @@ class UserService(BaseService):
     async def check_password(self, user, password):
         return bcrypt.check_password(user.password, password)
 
-    async def create(self, params):
+    async def _check_params(self, params):
         if params.get('password'):
             params['password'] = UserService.encrypt_password(params['password'])
+        if params.get('timezone') and not await self.service('tz').is_valid(params['timezone']):
+            raise BadRequestError(f'timezone.invalid:{params["timezone"]}')
+
+    async def create(self, params):
+        await self._check_params(params)
         return await super().create(params)
 
     async def update(self, entity, params):
-        if params.get('password'):
-            params['password'] = UserService.encrypt_password(params['password'])
+        await self._check_params(params)
         return await super().update(entity, params)
 
     async def patch(self, entity, params):
-        if params.get('password'):
-            params['password'] = UserService.encrypt_password(params['password'])
+        await self._check_params(params)
         return await super().patch(entity, params)
 
     async def add_role(self, user, role):
