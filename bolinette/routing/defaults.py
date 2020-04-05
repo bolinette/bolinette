@@ -50,8 +50,8 @@ class Defaults:
                    access=access, roles=roles)(route)
 
     def create(self, returns='default', expects='default', *, access=None, roles=None):
-        async def route(*, payload, **_):
-            return response.created(f'{self.model}.created', await self.service.create(payload))
+        async def route(*, payload, **kwargs):
+            return response.created(f'{self.model}.created', await self.service.create(payload, **kwargs))
 
         self.route('',
                    method=Method.POST,
@@ -60,9 +60,9 @@ class Defaults:
                    access=access, roles=roles)(route)
 
     def update(self, returns='default', expects='default', *, access=None, roles=None):
-        async def route(*, match, payload, **_):
+        async def route(*, match, payload, **kwargs):
             entity = await self.service.get(match.get('id'))
-            return response.ok(f'{self.model}.updated', await self.service.update(entity, payload))
+            return response.ok(f'{self.model}.updated', await self.service.update(entity, payload, **kwargs))
 
         self.route('/{id}',
                    method=Method.PUT,
@@ -71,9 +71,9 @@ class Defaults:
                    access=access, roles=roles)(route)
 
     def patch(self, returns='default', expects='default', *, access=None, roles=None):
-        async def route(*, match, payload, **_):
+        async def route(*, match, payload, **kwargs):
             entity = await self.service.get(match.get('id'))
-            return response.ok(f'{self.model}.updated', await self.service.patch(entity, payload))
+            return response.ok(f'{self.model}.updated', await self.service.patch(entity, payload, **kwargs))
 
         self.route('/{id}',
                    method=Method.PATCH,
@@ -82,9 +82,9 @@ class Defaults:
                    access=access, roles=roles)(route)
 
     def delete(self, returns='default', *, access=None, roles=None):
-        async def route(*, match, **_):
+        async def route(*, match, **kwargs):
             entity = await self.service.get(match.get('id'))
-            return response.ok(f'{self.model}.deleted', await self.service.delete(entity))
+            return response.ok(f'{self.model}.deleted', await self.service.delete(entity, **kwargs))
 
         self.route('/{id}',
                    method=Method.DELETE,

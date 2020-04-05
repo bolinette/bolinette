@@ -4,12 +4,12 @@ from sqlalchemy.ext.declarative.base import declared_attr
 
 
 class Historized:
-    created_on = db.defs.column(db.types.date, nullable=False)
-    updated_on = db.defs.column(db.types.date, nullable=False)
+    created_on = db.defs.column(db.types.date)
+    updated_on = db.defs.column(db.types.date)
 
     @declared_attr
     def created_by_id(self):
-        return db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'), nullable=False)
+        return db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'))
 
     @declared_attr
     def created_by(self):
@@ -17,7 +17,7 @@ class Historized:
 
     @declared_attr
     def updated_by_id(self):
-        return db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'), nullable=False)
+        return db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'))
 
     @declared_attr
     def updated_by(self):

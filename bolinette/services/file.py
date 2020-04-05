@@ -27,7 +27,7 @@ class FileService(BaseService):
     async def delete_file(self, key):
         fs.delete(env.instance_path('uploads', key))
 
-    async def delete(self, entity):
+    async def delete(self, entity, **_):
         ent = await super().delete(entity)
         await self.delete_file(entity.key)
         return ent

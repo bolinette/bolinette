@@ -1,8 +1,8 @@
-from bolinette.services import BaseService
+from bolinette.services import HistorizedService
 from example.models import Book
 
 
-class BookService(BaseService):
+class BookService(HistorizedService):
     def __init__(self):
         super().__init__(Book)
 

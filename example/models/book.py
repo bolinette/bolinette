@@ -1,8 +1,9 @@
 from bolinette import mapping, db
+from bolinette.models import Historized
 from example.models import Person
 
 
-class Book(db.defs.model):
+class Book(db.defs.model, Historized):
     __tablename__ = 'book'
 
     id = db.defs.column(db.types.integer, primary_key=True)
@@ -26,6 +27,7 @@ class Book(db.defs.model):
 
     @staticmethod
     def responses():
+        base = Historized.base_response()
         yield [
             mapping.Field(db.types.integer, key='id'),
             mapping.Field(db.types.string, key='name'),
@@ -40,7 +42,7 @@ class Book(db.defs.model):
             mapping.Field(db.types.float, key='price'),
             mapping.Field(db.types.date, key='publication_date'),
             mapping.Definition('author', 'person')
-        ]
+        ] + base
 
 
 mapping.register(Book)

@@ -27,15 +27,15 @@ class UserService(BaseService):
         if params.get('timezone') and not await self.service('tz').is_valid(params['timezone']):
             raise BadRequestError(f'timezone.invalid:{params["timezone"]}')
 
-    async def create(self, params):
+    async def create(self, params, **_):
         await self._check_params(params)
         return await super().create(params)
 
-    async def update(self, entity, params):
+    async def update(self, entity, params, **_):
         await self._check_params(params)
         return await super().update(entity, params)
 
-    async def patch(self, entity, params):
+    async def patch(self, entity, params, **_):
         await self._check_params(params)
         return await super().patch(entity, params)
 

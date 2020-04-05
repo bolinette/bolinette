@@ -16,25 +16,25 @@ class BaseService:
     def service(self, model):
         return _services.get(model)
 
-    async def get(self, identifier):
+    async def get(self, identifier, **_):
         entity = db.engine.session.query(self.model).get(identifier)
         if entity is None:
             raise EntityNotFoundError(model=self.name, key='id', value=identifier)
         return entity
 
-    async def get_by(self, key, value):
+    async def get_by(self, key, value, **_):
         return db.engine.session.query(self.model).filter_by(**{key: value}).all()
 
-    async def get_first_by(self, key, value):
+    async def get_first_by(self, key, value, **_):
         entity = db.engine.session.query(self.model).filter_by(**{key: value}).first()
         if entity is None:
             raise EntityNotFoundError(model=self.name, key=key, value=value)
         return entity
 
-    async def get_by_criteria(self, criteria):
+    async def get_by_criteria(self, criteria, **_):
         return db.engine.session.query(self.model).filter(criteria).all()
 
-    async def get_all(self, pagination=None, order_by=None):
+    async def get_all(self, pagination=None, order_by=None, **_):
         if order_by is None:
             order_by = []
         query = db.engine.session.query(self.model)
@@ -44,21 +44,21 @@ class BaseService:
             return await BaseService._paginate(query, pagination)
         return query.all()
 
-    async def create(self, params):
+    async def create(self, params, **_):
         params = mapping.validate_model(self.model, params)
         entity = self.model(**params)
         db.engine.session.add(entity)
         return entity
 
-    async def update(self, entity, params):
+    async def update(self, entity, params, **_):
         mapping.map_model(self.model, entity, params)
         return entity
 
-    async def patch(self, entity, params):
+    async def patch(self, entity, params, **_):
         mapping.map_model(self.model, entity, params, patch=True)
         return entity
 
-    async def delete(self, entity):
+    async def delete(self, entity, **_):
         db.engine.session.delete(entity)
         return entity
 

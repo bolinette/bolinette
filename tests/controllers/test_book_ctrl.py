@@ -65,14 +65,23 @@ async def test_get_book_not_found(client):
 async def test_create_book(client):
     author1 = mock(1, 'person')
     book4 = utils.book.set_author(mock(4, 'book'), 1)
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.post('/book', book4.to_payload())
     assert rv['code'] == 201
     assert equal_books(rv['data'], book4.to_response(), author1.to_response())
+    assert rv['data']['created_by']['username'] == user1.fields.username
+    assert rv['data']['updated_by']['username'] == user1.fields.username
 
 
 @bolitest(before=utils.book.set_up)
 async def test_create_book_bad_request(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.post('/book', {})
     assert rv['code'] == 400
     assert 'param.required:name' in rv['messages']
@@ -83,6 +92,9 @@ async def test_create_book_bad_request(client):
 @bolitest(before=utils.book.set_up)
 async def test_create_book_author_not_found(client):
     book4 = utils.book.set_author(mock(4, 'book'), 3)
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.post('/book', book4.to_payload())
     assert rv['code'] == 404
@@ -90,17 +102,41 @@ async def test_create_book_author_not_found(client):
 
 
 @bolitest(before=utils.book.set_up)
+async def test_historized_entities(client):
+    user1 = mock(1, 'user')
+    user2 = mock(2, 'user')
+    book4 = utils.book.set_author(mock(4, 'book'), 1)
+
+    await client.post('/user/login', user1.to_payload('login'))
+    rv1 = await client.post('/book', book4.to_payload())
+    book4.fields.name = 'new name'
+    await client.post('/user/login', user2.to_payload('login'))
+
+    rv2 = await client.put('/book/4', book4.to_payload())
+    assert rv2['data']['created_by']['username'] == user1.fields.username
+    assert rv2['data']['updated_by']['username'] == user2.fields.username
+
+
+@bolitest(before=utils.book.set_up)
 async def test_update_book(client):
     author2 = mock(2, 'person')
     book1 = utils.book.set_author(mock(1, 'book'), 2)
+    user2 = mock(2, 'user')
+
+    await client.post('/user/login', user2.to_payload('login'))
 
     rv = await client.put('/book/1', book1.to_payload())
     assert rv['code'] == 200
     assert equal_books(rv['data'], book1.to_response(), author2.to_response())
+    assert rv['data']['updated_by']['username'] == user2.fields.username
 
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book_bad_request(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.put('/book/1', {'name': 'new book name'})
     assert rv['code'] == 400
     assert 'param.required:pages' in rv['messages']
@@ -109,6 +145,10 @@ async def test_update_book_bad_request(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book_not_found(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.patch('/book/4', {'name': 'new book name'})
     assert rv['code'] == 404
 
@@ -117,6 +157,9 @@ async def test_update_book_not_found(client):
 async def test_patch_book(client):
     author1 = mock(1, 'person')
     book1 = utils.book.set_author(mock(1, 'book'), 1)
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.patch('/book/1', {'name': 'new book name'})
     assert rv['code'] == 200
@@ -127,6 +170,10 @@ async def test_patch_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_patch_book_bad_request(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.patch('/book/1', {'name': ''})
     assert rv['code'] == 400
     assert 'param.required:name' in rv['messages']
@@ -134,6 +181,10 @@ async def test_patch_book_bad_request(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book_author_not_found(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.patch('/book/1', {'author_id': 3})
     assert rv['code'] == 404
     assert 'person.not_found:id:3' in rv['messages']
@@ -141,6 +192,10 @@ async def test_update_book_author_not_found(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_delete_book(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.delete('/book/1')
     assert rv['code'] == 200
 
@@ -150,5 +205,9 @@ async def test_delete_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_delete_book_not_found(client):
+    user1 = mock(1, 'user')
+
+    await client.post('/user/login', user1.to_payload('login'))
+
     rv = await client.delete('/book/4')
     assert rv['code'] == 404

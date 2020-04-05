@@ -1,33 +1,28 @@
-from bolinette import bcrypt
 from bolinette.models import User, Role
 from bolinette.testing import client, bolitest, mock, Mocked
+from tests import utils
 
 
 def _fix_mocked_user(user: Mocked):
     user.fields.timezone = 'Europe/Paris'
 
 
-def salt_password(mocked: Mocked) -> Mocked:
-    mocked.fields.password = bcrypt.hash_password(mocked.fields.password)
-    return mocked
-
-
 def set_up():
-    salt_password(mock(1, 'user')).insert(User)
+    utils.user.salt_password(mock(1, 'user')).insert(User)
 
 
 def admin_set_up():
     admin = Mocked.insert_entity(Role(name='admin'))
-    user1 = salt_password(mock(1, 'user')).insert(User)
+    user1 = utils.user.salt_password(mock(1, 'user')).insert(User)
     user1.roles.append(admin)
-    salt_password(mock(2, 'user')).insert(User)
+    utils.user.salt_password(mock(2, 'user')).insert(User)
     mock(1, 'role').insert(Role)
 
 
 def root_set_up():
     root = Mocked.insert_entity(Role(name='root'))
     admin = Mocked.insert_entity(Role(name='admin'))
-    user1 = salt_password(mock(1, 'user')).insert(User)
+    user1 = utils.user.salt_password(mock(1, 'user')).insert(User)
     user1.roles.append(root)
     user1.roles.append(admin)
 
