@@ -8,7 +8,6 @@ from bolinette.exceptions import ParamConflictError, ParamMissingError
 def validate_model(model, params, **kwargs):
     excluding = kwargs.get('excluding', [])
     errors = []
-    valid = {}
     for column in model.__table__.columns:
         key = column.key
         if column.primary_key or key in excluding:
@@ -18,10 +17,9 @@ def validate_model(model, params, **kwargs):
             criteria = getattr(model, key) == value
             if db.engine.session.query(model).filter(criteria).first() is not None:
                 errors.append((key, value))
-        valid[key] = value
     if len(errors) > 0:
         raise ParamConflictError(params=errors)
-    return valid
+    return params
 
 
 def validate_payload(definition, params, patch=False):

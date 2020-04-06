@@ -47,14 +47,13 @@ async def seed_app():
     if env['PROFILE'] == 'development':
         with transaction:
             p1 = await person_service.create({'first_name': 'J.R.R.', 'last_name': 'Tolkien'})
-        with transaction:
             user = await user_service.get_by_username('root')
             await book_service.create(
-                {'name': 'The Fellowship of the Ring', 'pages': 678, 'author_id': p1.id,
+                {'name': 'The Fellowship of the Ring', 'pages': 678, 'author': p1,
                  'price': 23.45, 'publication_date': datetime(1954, 7, 29)}, current_user=user)
             await book_service.create(
-                {'name': 'The Two Towers', 'pages': 612, 'author_id': p1.id,
+                {'name': 'The Two Towers', 'pages': 612, 'author': p1,
                  'price': 24.58, 'publication_date': datetime(1954, 11, 11)}, current_user=user)
             await book_service.create(
-                {'name': 'The Return of the King', 'pages': 745, 'author_id': p1.id,
+                {'name': 'The Return of the King', 'pages': 745, 'author': p1,
                  'price': 25.7, 'publication_date': datetime(1955, 10, 20)}, current_user=user)
