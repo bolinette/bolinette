@@ -23,7 +23,7 @@ class Role(db.defs.model):
         ]
         yield 'complete', [
             mapping.Field(db.types.string, key='name'),
-            mapping.List('users', mapping.Definition('user', 'user'))
+            mapping.List('users', mapping.Definition('user'))
         ]
 
 

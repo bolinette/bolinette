@@ -29,10 +29,14 @@ class List(MappingObject):
 
 
 class Definition(MappingObject):
-    def __init__(self, name, model, key='default'):
+    def __init__(self, model_name, model_key='default', *, key=None, name=None, function=None):
         self.fields = []
+        self.key = key
         self.name = name
-        self.key = f'{model}.{key}'
+        self.function = function
+        self.model_key = f'{model_name}.{model_key}'
+        if not self.name and self.key:
+            self.name = self.key
 
     def __repr__(self):
-        return f'<MappingModel {self.key}>'
+        return f'<MappingModel {self.model_key}>'

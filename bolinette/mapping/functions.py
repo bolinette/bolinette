@@ -1,8 +1,51 @@
 from datetime import datetime
 
-from bolinette import db
+from bolinette import db, mapping
 from bolinette.db import TypeClasses
-from bolinette.exceptions import ParamConflictError, ParamMissingError
+from bolinette.exceptions import ParamConflictError, ParamMissingError, EntityNotFoundError
+
+
+def marshall(definition, entity, skip_none=False, as_list=False):
+    if not entity:
+        return None
+    if as_list:
+        return [marshall(definition, e, skip_none, False) for e in entity]
+    data = {}
+    for field in definition.fields:
+        if isinstance(field, mapping.Field):
+            if field.function is not None:
+                value = field.function(entity)
+            else:
+                value = getattr(entity, field.key, None)
+            if field.formatting is not None:
+                value = field.formatting(value)
+            if not skip_none or value is not None:
+                data[field.name] = value
+        elif isinstance(field, mapping.Definition):
+            d = mapping.get_response(field.model_key)
+            if field.function and callable(field.function):
+                attr = field.function(entity)
+            else:
+                attr = getattr(entity, field.name)
+            data[field.name] = marshall(d, attr, skip_none, False)
+        elif isinstance(field, mapping.List):
+            d = mapping.get_response(field.element.model_key)
+            data[field.name] = marshall(d, getattr(entity, field.name), skip_none, True)
+    return data
+
+
+def link_foreign_entities(definition, params):
+    errors = []
+    for field in definition.fields:
+        if isinstance(field.type, TypeClasses.ForeignKey):
+            value = params.get(field.name, None)
+            model = mapping.get_model(field.type.model)
+            if value is not None and model is not None:
+                entity = db.engine.session.query(model).filter_by(**{field.type.key: value}).first()
+                if entity is None:
+                    errors.append((field.type.model, field.type.key, value))
+    if len(errors) > 0:
+        raise EntityNotFoundError(params=errors)
 
 
 def validate_model(model, params, **kwargs):

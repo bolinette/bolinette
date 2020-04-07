@@ -26,7 +26,7 @@ class Person(db.defs.model):
             mapping.Field(db.types.string, key='first_name'),
             mapping.Field(db.types.string, key='last_name'),
             mapping.Field(db.types.string, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
-            mapping.List('books', mapping.Definition('book', 'book'))
+            mapping.List('books', mapping.Definition('book'))
         ]
 
 

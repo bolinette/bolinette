@@ -41,7 +41,7 @@ class Book(db.defs.model, Historized):
             mapping.Field(db.types.integer, key='pages'),
             mapping.Field(db.types.float, key='price'),
             mapping.Field(db.types.date, key='publication_date'),
-            mapping.Definition('author', 'person')
+            mapping.Definition('person', key='author')
         ] + base
 
 

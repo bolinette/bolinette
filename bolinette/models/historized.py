@@ -28,6 +28,6 @@ class Historized:
         return [
             mapping.Field(db.types.date, key='created_on'),
             mapping.Field(db.types.date, key='updated_on'),
-            mapping.Definition('created_by', 'user'),
-            mapping.Definition('updated_by', 'user'),
+            mapping.Definition('user', key='created_by'),
+            mapping.Definition('user', key='updated_by'),
         ]

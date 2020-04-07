@@ -50,12 +50,12 @@ class User(db.defs.model):
     def responses():
         default = [
             mapping.Field(db.types.string, key='username'),
-            mapping.Definition('profile_picture', 'file', 'minimal')
+            mapping.Definition('file', 'minimal', key='profile_picture')
         ]
         yield default
         yield 'private', default + [
             mapping.Field(db.types.email, key='email'),
-            mapping.List('roles', mapping.Definition('role', 'role')),
+            mapping.List('roles', mapping.Definition('role')),
             mapping.Field(db.types.string, key='timezone')
         ]
 
