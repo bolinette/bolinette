@@ -1,33 +1,19 @@
 from bolinette import mapping, db
-from bolinette.models import User
-from sqlalchemy.ext.declarative.base import declared_attr
 
 
-class Historized:
-    created_on = db.defs.column(db.types.date)
-    updated_on = db.defs.column(db.types.date)
+class Historized(db.types.Model):
+    created_on = db.types.Column(db.types.Date)
+    updated_on = db.types.Column(db.types.Date)
+    created_by_id = db.types.Column(db.types.Integer, reference=db.types.Reference('user', 'id'))
+    created_by = db.types.Relationship('user', foreign_key=created_by_id, lazy=False)
+    updated_by_id = db.types.Column(db.types.Integer, reference=db.types.Reference('user', 'id'))
+    updated_by = db.types.Relationship('user', foreign_key=updated_by_id, lazy=False)
 
-    @declared_attr
-    def created_by_id(self):
-        return db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'))
-
-    @declared_attr
-    def created_by(self):
-        return db.defs.relationship(User, foreign_keys=self.created_by_id, lazy=False)
-
-    @declared_attr
-    def updated_by_id(self):
-        return db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'))
-
-    @declared_attr
-    def updated_by(self):
-        return db.defs.relationship(User, foreign_keys=self.updated_by_id, lazy=False)
-
-    @staticmethod
-    def base_response():
+    @classmethod
+    def base_response(cls):
         return [
-            mapping.Field(db.types.date, key='created_on'),
-            mapping.Field(db.types.date, key='updated_on'),
-            mapping.Definition('user', key='created_by'),
-            mapping.Definition('user', key='updated_by'),
+            mapping.Column(cls.created_on),
+            mapping.Column(cls.updated_on),
+            mapping.Reference(cls.created_by),
+            mapping.Reference(cls.updated_by),
         ]

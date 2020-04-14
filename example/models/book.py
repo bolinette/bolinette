@@ -1,48 +1,39 @@
 from bolinette import mapping, db
 from bolinette.models import Historized
-from example.models import Person
 
 
-class Book(db.defs.model, Historized):
-    __tablename__ = 'book'
+@db.model('book')
+class Book(Historized):
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    name = db.types.Column(db.types.String, nullable=False)
+    pages = db.types.Column(db.types.Integer, nullable=False)
+    price = db.types.Column(db.types.Float, nullable=False)
+    publication_date = db.types.Column(db.types.Date, nullable=False)
 
-    id = db.defs.column(db.types.integer, primary_key=True)
-    name = db.defs.column(db.types.string, nullable=False)
-    pages = db.defs.column(db.types.integer, nullable=False)
-    price = db.defs.column(db.types.float, nullable=False)
-    publication_date = db.defs.column(db.types.date, nullable=False)
+    author_id = db.types.Column(db.types.Integer, reference=db.types.Reference('person', 'id'), nullable=False)
+    author = db.types.Relationship('person', foreign_key=author_id, backref=db.types.Backref('books'), lazy=False)
 
-    author_id = db.defs.column(db.types.integer, db.types.foreign_key('person', 'id'), nullable=False)
-    author = db.defs.relationship(Person, foreign_keys=author_id, backref='books', lazy=False)
-
-    @staticmethod
-    def payloads():
+    @classmethod
+    def payloads(cls):
         yield [
-            mapping.Field(db.types.string, key='name', required=True),
-            mapping.Field(db.types.integer, key='pages', required=True),
-            mapping.Field(db.types.float, key='price', required=True),
-            mapping.Field(db.types.date, key='publication_date', required=True),
-            mapping.Field(db.types.foreign_key('person', 'id'), key='author_id', required=True)
+            mapping.Column(cls.name, required=True),
+            mapping.Column(cls.pages, required=True),
+            mapping.Column(cls.price, required=True),
+            mapping.Column(cls.publication_date, required=True),
+            mapping.Reference(cls.author,  required=True)
         ]
 
-    @staticmethod
-    def responses():
+    @classmethod
+    def responses(cls):
         base = Historized.base_response()
-        yield [
-            mapping.Field(db.types.integer, key='id'),
-            mapping.Field(db.types.string, key='name'),
-            mapping.Field(db.types.integer, key='pages'),
-            mapping.Field(db.types.float, key='price'),
-            mapping.Field(db.types.date, key='publication_date')
+        default: db.types.MappingPyTyping = [
+            mapping.Column(cls.id),
+            mapping.Column(cls.name),
+            mapping.Column(cls.pages),
+            mapping.Column(cls.price),
+            mapping.Column(cls.publication_date)
         ]
-        yield 'complete', [
-            mapping.Field(db.types.integer, key='id'),
-            mapping.Field(db.types.string, key='name'),
-            mapping.Field(db.types.integer, key='pages'),
-            mapping.Field(db.types.float, key='price'),
-            mapping.Field(db.types.date, key='publication_date'),
-            mapping.Definition('person', key='author')
+        yield default
+        yield 'complete', default + [
+            mapping.Reference(cls.author)
         ] + base
-
-
-mapping.register(Book)

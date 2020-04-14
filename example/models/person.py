@@ -1,33 +1,29 @@
 from bolinette import mapping, db
 
 
-class Person(db.defs.model):
-    __tablename__ = 'person'
+@db.model('person')
+class Person(db.types.Model):
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    first_name = db.types.Column(db.types.String, nullable=False)
+    last_name = db.types.Column(db.types.String, nullable=False)
 
-    id = db.defs.column(db.types.integer, primary_key=True)
-    first_name = db.defs.column(db.types.string, nullable=False)
-    last_name = db.defs.column(db.types.string, nullable=False)
-
-    @staticmethod
-    def payloads():
+    @classmethod
+    def payloads(cls):
         yield [
-            mapping.Field(db.types.string, key='first_name', required=True),
-            mapping.Field(db.types.string, key='last_name', required=True)
+            mapping.Column(cls.first_name, required=True),
+            mapping.Column(cls.last_name, required=True)
         ]
 
-    @staticmethod
-    def responses():
+    @classmethod
+    def responses(cls):
         yield [
-            mapping.Field(db.types.string, key='first_name'),
-            mapping.Field(db.types.string, key='last_name'),
-            mapping.Field(db.types.string, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}')
+            mapping.Column(cls.first_name),
+            mapping.Column(cls.last_name),
+            mapping.Field(db.types.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}')
         ]
         yield 'complete', [
-            mapping.Field(db.types.string, key='first_name'),
-            mapping.Field(db.types.string, key='last_name'),
-            mapping.Field(db.types.string, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
-            mapping.List('books', mapping.Definition('book'))
+            mapping.Column(cls.first_name),
+            mapping.Column(cls.last_name),
+            mapping.Field(db.types.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
+            mapping.List(mapping.Definition('book'), key='books')
         ]
-
-
-mapping.register(Person)

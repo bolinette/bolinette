@@ -1,3 +1,3 @@
-from bolinette.db.types import types, TypeClasses
-from bolinette.db.defs import defs
+import bolinette.db.types
+from bolinette.db.models import model, models
 from bolinette.db.engine import engine

@@ -3,7 +3,7 @@ import inspect
 
 from aiohttp import web as aio_web
 
-from bolinette import env, jwt, bcrypt, db
+from bolinette import env, jwt, bcrypt, db, services
 from bolinette.commands import commands
 from bolinette.routing import web, resources
 
@@ -12,6 +12,7 @@ class Bolinette:
     def __init__(self, *, profile=None, overrides=None):
         env.init_app(profile=profile, overrides=overrides)
         db.engine.init_app()
+        services.init_services()
         jwt.init_app()
         bcrypt.init_app()
         web.init_app()

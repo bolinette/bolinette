@@ -1,30 +1,26 @@
 from bolinette import mapping, db
 
 
-class Role(db.defs.model):
-    __tablename__ = 'role'
-
-    id = db.defs.column(db.types.integer, primary_key=True)
-    name = db.defs.column(db.types.string, unique=True, nullable=False)
+@db.model('role')
+class Role(db.types.Model):
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    name = db.types.Column(db.types.String, unique=True, nullable=False)
 
     def __repr__(self):
         return f'<Role {self.name}>'
 
-    @staticmethod
-    def payloads():
+    @classmethod
+    def payloads(cls):
         yield [
-            mapping.Field(db.types.string, key='name', required=True)
+            mapping.Column(cls.name, required=True)
         ]
 
-    @staticmethod
-    def responses():
+    @classmethod
+    def responses(cls):
         yield [
-            mapping.Field(db.types.string, key='name')
+            mapping.Column(cls.name)
         ]
         yield 'complete', [
-            mapping.Field(db.types.string, key='name'),
-            mapping.List('users', mapping.Definition('user'))
+            mapping.Column(cls.name),
+            mapping.List(mapping.Definition('user'), key='users')
         ]
-
-
-mapping.register(Role)

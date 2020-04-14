@@ -44,8 +44,7 @@ class Route:
                         raise ForbiddenError(f'user.forbidden:{",".join(self.roles)}')
 
                 if self.expects is not None:
-                    def_key = f'{self.expects.model}.{self.expects.key}'
-                    exp_def = mapping.get_payload(def_key)
+                    exp_def = mapping.get_payload(self.expects.model, self.expects.key)
                     route_params['payload'] = mapping.validate_payload(
                         exp_def, route_params['payload'], self.expects.patch)
                     mapping.link_foreign_entities(exp_def, route_params['payload'])
@@ -66,11 +65,10 @@ class Route:
                 content['data'] = content['data'].items
 
             if self.returns is not None:
-                def_key = f'{self.returns.model}.{self.returns.key}'
-                ret_def = mapping.get_response(def_key)
+                ret_def = mapping.get_response(self.returns.model, self.returns.key)
                 if content.get('data') is not None:
-                    content['data'] = mapping.marshall(ret_def, content['data'],
-                                                       self.returns.skip_none, self.returns.as_list)
+                    content['data'] = mapping.marshall(ret_def, content['data'], skip_none=self.returns.skip_none,
+                                                       as_list=self.returns.as_list)
 
             serialized, mime = serialize(content, 'application/json')
 

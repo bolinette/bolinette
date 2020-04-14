@@ -1,66 +1,58 @@
 from bolinette import mapping, env, db
-from bolinette.models import Role, File
-
-users_roles = db.defs.table(
-    'users_roles',
-    db.defs.model.metadata,
-    db.defs.column(db.types.integer, db.types.foreign_key('user', 'id'), name='u_id', primary_key=True),
-    db.defs.column(db.types.integer, db.types.foreign_key('role', 'id'), name='r_id', primary_key=True))
 
 
-class User(db.defs.model):
-    __tablename__ = 'user'
+@db.model('users_roles')
+class UsersRoles(db.types.Model):
+    user_id = db.types.Column(db.types.Integer, reference=db.types.Reference('user', 'id'), primary_key=True)
+    role_id = db.types.Column(db.types.Integer, reference=db.types.Reference('role', 'id'), primary_key=True)
 
-    id = db.defs.column(db.types.integer, primary_key=True)
-    username = db.defs.column(db.types.string, unique=True, nullable=False)
-    password = db.defs.column(db.types.string, nullable=False)
-    email = db.defs.column(db.types.string, unique=env.init['USER_EMAIL_REQUIRED'],
-                           nullable=(not env.init['USER_EMAIL_REQUIRED']))
 
-    roles = db.defs.relationship(Role, secondary=users_roles, lazy='subquery',
-                                 backref=db.defs.backref('user', lazy=True))
+@db.model('user')
+class User(db.types.Model):
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    username = db.types.Column(db.types.String, unique=True, nullable=False)
+    password = db.types.Column(db.types.Password, nullable=False)
+    email = db.types.Column(db.types.Email, unique=env.init['USER_EMAIL_REQUIRED'],
+                            nullable=(not env.init['USER_EMAIL_REQUIRED']))
 
-    picture_id = db.defs.column(db.types.integer, db.types.foreign_key('file', 'id'))
-    profile_picture = db.defs.relationship(File, foreign_keys=picture_id, lazy=False)
+    roles = db.types.Relationship('role', secondary='users_roles', lazy='subquery',
+                                  backref=db.types.Backref('users', lazy=True))
 
-    timezone = db.defs.column(db.types.string)
+    picture_id = db.types.Column(db.types.Integer, reference=db.types.Reference('file', 'id'))
+    profile_picture = db.types.Relationship('file', foreign_key=picture_id, lazy=False)
 
-    def has_role(self, role):
-        return any(filter(lambda r: r.name == role, self.roles))
+    timezone = db.types.Column(db.types.String)
 
-    @staticmethod
-    def payloads():
+    @classmethod
+    def payloads(cls):
         yield 'register', [
-            mapping.Field(db.types.string, key='username', required=True),
-            mapping.Field(db.types.email, key='email', required=True),
-            mapping.Field(db.types.password, key='password', required=True),
-            mapping.Field(db.types.string, key='timezone')
+            mapping.Column(cls.username, required=True),
+            mapping.Column(cls.email, required=True),
+            mapping.Column(cls.password, required=True),
+            mapping.Column(cls.timezone)
         ]
         yield 'admin_register', [
-            mapping.Field(db.types.string, key='username', required=True),
-            mapping.Field(db.types.email, key='email', required=True),
-            mapping.Field(db.types.boolean, key='send_mail', required=True)
+            mapping.Column(cls.username, required=True),
+            mapping.Column(cls.email, required=True),
+            mapping.Field(db.types.Boolean, name='send_mail', required=True)
         ]
         yield 'login', [
-            mapping.Field(db.types.string, key='username', required=True),
-            mapping.Field(db.types.password, key='password', required=True)
+            mapping.Column(cls.username, required=True),
+            mapping.Column(cls.password, required=True)
         ]
 
-    @staticmethod
-    def responses():
+    @classmethod
+    def responses(cls):
         default = [
-            mapping.Field(db.types.string, key='username'),
-            mapping.Definition('file', 'minimal', key='profile_picture')
+            mapping.Column(cls.username),
+            mapping.Reference(cls.profile_picture, 'minimal')
         ]
         yield default
         yield 'private', default + [
-            mapping.Field(db.types.email, key='email'),
-            mapping.List('roles', mapping.Definition('role')),
-            mapping.Field(db.types.string, key='timezone')
+            mapping.Column(cls.email),
+            mapping.List(mapping.Definition('role'), key='roles'),
+            mapping.Column(cls.timezone)
         ]
 
     def __repr__(self):
         return f'<User {self.username}>'
-
-
-mapping.register(User)

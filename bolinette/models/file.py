@@ -1,24 +1,20 @@
 from bolinette import mapping, db
 
 
-class File(db.defs.model):
-    __tablename__ = 'file'
+@db.model('file')
+class File(db.types.Model):
+    id = db.types.Column(db.types.Integer, primary_key=True)
+    key = db.types.Column(db.types.String, nullable=False)
+    name = db.types.Column(db.types.String, nullable=False)
+    mime = db.types.Column(db.types.String, nullable=False)
 
-    id = db.defs.column(db.types.integer, primary_key=True)
-    key = db.defs.column(db.types.string, nullable=False)
-    name = db.defs.column(db.types.string, nullable=False)
-    mime = db.defs.column(db.types.string, nullable=False)
-
-    @staticmethod
-    def responses():
+    @classmethod
+    def responses(cls):
         yield [
-            mapping.Field(db.types.string, key='key'),
-            mapping.Field(db.types.string, key='name'),
-            mapping.Field(db.types.string, key='mime')
+            mapping.Column(cls.key),
+            mapping.Column(cls.name),
+            mapping.Column(cls.mime)
         ]
         yield 'minimal', [
-            mapping.Field(db.types.string, key='key')
+            mapping.Column(cls.key)
         ]
-
-
-mapping.register(File)

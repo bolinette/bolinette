@@ -2,42 +2,38 @@ from sqlalchemy import desc
 
 from bolinette import mapping, db
 from bolinette.exceptions import EntityNotFoundError
+from bolinette.services import services
 from bolinette.utils import Pagination
-
-_services = {}
 
 
 class BaseService:
-    def __init__(self, model):
-        self.model = model
-        self.name = model.__tablename__.lower()
-        _services[model] = self
-
-    def service(self, model):
-        return _services.get(model)
+    def __init__(self, model_name):
+        self.model = None
+        self.name = model_name
+        services.register(self)
 
     async def get(self, identifier, **_):
-        entity = db.engine.session.query(self.model).get(identifier)
+        entity = self.model.query().get(identifier)
         if entity is None:
             raise EntityNotFoundError(model=self.name, key='id', value=identifier)
         return entity
 
     async def get_by(self, key, value, **_):
-        return db.engine.session.query(self.model).filter_by(**{key: value}).all()
+        return self.model.query().filter_by(**{key: value}).all()
 
     async def get_first_by(self, key, value, **_):
-        entity = db.engine.session.query(self.model).filter_by(**{key: value}).first()
+        entity = self.model.query().filter_by(**{key: value}).first()
         if entity is None:
             raise EntityNotFoundError(model=self.name, key=key, value=value)
         return entity
 
     async def get_by_criteria(self, criteria, **_):
-        return db.engine.session.query(self.model).filter(criteria).all()
+        return self.model.query().filter(criteria).all()
 
     async def get_all(self, pagination=None, order_by=None, **_):
         if order_by is None:
             order_by = []
-        query = db.engine.session.query(self.model)
+        query = self.model.query()
         if len(order_by) > 0:
             query = await BaseService._build_order_by(self.model, query, order_by)
         if pagination is not None:
@@ -86,4 +82,4 @@ class BaseService:
 class SimpleService:
     def __init__(self, name):
         self.name = name
-        _services[name] = self
+        services.register(self)

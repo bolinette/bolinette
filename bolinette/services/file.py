@@ -2,14 +2,13 @@ import string
 import random
 
 from bolinette import env
-from bolinette.models import File
 from bolinette.services import BaseService
 from bolinette.utils import fs
 
 
 class FileService(BaseService):
     def __init__(self):
-        super().__init__(File)
+        super().__init__('file')
 
     async def _generate_key(self):
         key = None

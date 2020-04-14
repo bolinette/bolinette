@@ -12,23 +12,23 @@ class Mocked:
         self.fields = SimpleNamespace()
 
     @staticmethod
-    def insert_entity(entity) -> db.defs.model:
+    def insert_entity(entity) -> db.engine.model:
         db.engine.session.add(entity)
         return entity
 
-    def insert(self, model) -> db.defs.model:
+    def insert(self, model) -> db.engine.model:
         fields = {}
         for key, value in self.fields.__dict__.items():
             fields[key] = value
         return self.insert_entity(model(**fields))
 
     def to_response(self, key='default') -> dict:
-        definition = mapping.get_response(f'{self.name}.{key}')
-        return mapping.marshall(definition, self.fields)
+        definition = mapping.get_response(self.name, key)
+        return mapping.marshall(definition, self.fields, use_foreign_key=True)
 
     def to_payload(self, key='default') -> dict:
-        definition = mapping.get_payload(f'{self.name}.{key}')
-        return mapping.marshall(definition, self.fields)
+        definition = mapping.get_payload(self.name, key)
+        return mapping.marshall(definition, self.fields, use_foreign_key=True)
 
 
 class Mock:
@@ -51,26 +51,26 @@ class Mock:
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
-        model = mapping.get_model(model_name)
-        columns = model.__table__.columns
-        rng = random.Random(hash(f'{model.__table__.name}.{m_id}'))
+        model = db.models.get(model_name)
+        columns = model.get_columns()
+        rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name)
-        for column in columns:
+        for _, column in columns.items():
             if column.primary_key:
                 continue
-            col_type = column.comment
-            if col_type == 'string':
+            col_type = column.type
+            if col_type == db.types.String:
                 setattr(mocked.fields, column.name, self._random_lower(rng, 15))
-            if col_type == 'email':
+            if col_type == db.types.Email:
                 setattr(mocked.fields, column.name, f'{self._random_lower(rng, 10)}@{self._random_lower(rng, 5)}.com')
-            if col_type == 'password':
+            if col_type == db.types.Password:
                 setattr(mocked.fields, column.name, (self._random_lower(rng, 10) + str(self._random_int(rng, 1, 100))
                                                      + self._random_symbols(rng, 1)))
-            if col_type == 'integer':
+            if col_type == db.types.Integer:
                 setattr(mocked.fields, column.name, self._random_int(rng, 1, 100))
-            if col_type == 'float':
+            if col_type == db.types.Float:
                 setattr(mocked.fields, column.name, self._random_int(rng, 1, 100))
-            if col_type == 'date':
+            if col_type == db.types.Date:
                 setattr(mocked.fields, column.name, self._random_date(rng, datetime.datetime(1900, 1, 1),
                                                                       datetime.datetime(2000, 1, 1)))
         if post_mock_fn and callable(post_mock_fn):
