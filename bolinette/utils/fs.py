@@ -10,6 +10,22 @@ def read_version(path):
         return None
 
 
+def read_requirements(path):
+    try:
+        with open(join(path, 'requirements.txt')) as f:
+            return filter(lambda r: len(r), f.read().split('\n'))
+    except FileNotFoundError:
+        return []
+
+
+def read_file(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+
 def cwd():
     return os.getcwd()
 
