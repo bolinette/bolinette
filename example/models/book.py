@@ -1,17 +1,17 @@
 from bolinette import mapping, db
-from bolinette.models import Historized
 
 
 @db.model('book')
-class Book(Historized):
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    name = db.types.Column(db.types.String, nullable=False)
-    pages = db.types.Column(db.types.Integer, nullable=False)
-    price = db.types.Column(db.types.Float, nullable=False)
-    publication_date = db.types.Column(db.types.Date, nullable=False)
+@db.with_mixin('historized')
+class Book(db.defs.Model):
+    id = db.defs.Column(db.types.Integer, primary_key=True)
+    name = db.defs.Column(db.types.String, nullable=False)
+    pages = db.defs.Column(db.types.Integer, nullable=False)
+    price = db.defs.Column(db.types.Float, nullable=False)
+    publication_date = db.defs.Column(db.types.Date, nullable=False)
 
-    author_id = db.types.Column(db.types.Integer, reference=db.types.Reference('person', 'id'), nullable=False)
-    author = db.types.Relationship('person', foreign_key=author_id, backref=db.types.Backref('books'), lazy=False)
+    author_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('person', 'id'), nullable=False)
+    author = db.defs.Relationship('person', foreign_key=author_id, backref=db.defs.Backref('books'), lazy=False)
 
     @classmethod
     def payloads(cls):
@@ -25,8 +25,8 @@ class Book(Historized):
 
     @classmethod
     def responses(cls):
-        base = Historized.base_response()
-        default: db.types.MappingPyTyping = [
+        base = db.mixins.get('historized').response(cls)
+        default: db.defs.MappingPyTyping = [
             mapping.Column(cls.id),
             mapping.Column(cls.name),
             mapping.Column(cls.pages),

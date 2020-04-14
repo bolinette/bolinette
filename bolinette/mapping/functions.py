@@ -53,7 +53,7 @@ def link_foreign_entities(definition, params):
         raise EntityNotFoundError(params=errors)
 
 
-def validate_model(model: Type['db.types.Model'], params: dict):
+def validate_model(model: Type['db.defs.Model'], params: dict):
     errors = []
     for column in model.get_columns().values():
         key = column.name
@@ -99,7 +99,7 @@ def validate_payload(definition, params, patch=False):
     return valid
 
 
-def map_model(model: Type['db.types.Model'], entity, params, patch=False):
+def map_model(model: Type['db.defs.Model'], entity, params, patch=False):
     errors = []
     for _, column in model.get_columns().items():
         key = column.name

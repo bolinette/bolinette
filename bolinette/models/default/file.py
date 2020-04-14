@@ -2,11 +2,11 @@ from bolinette import mapping, db
 
 
 @db.model('file')
-class File(db.types.Model):
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    key = db.types.Column(db.types.String, nullable=False)
-    name = db.types.Column(db.types.String, nullable=False)
-    mime = db.types.Column(db.types.String, nullable=False)
+class File(db.defs.Model):
+    id = db.defs.Column(db.types.Integer, primary_key=True)
+    key = db.defs.Column(db.types.String, nullable=False)
+    name = db.defs.Column(db.types.String, nullable=False)
+    mime = db.defs.Column(db.types.String, nullable=False)
 
     @classmethod
     def responses(cls):

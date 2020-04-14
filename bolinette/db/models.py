@@ -6,8 +6,8 @@ from sqlalchemy import orm as sqlalchemy_orm
 from bolinette import db
 
 
-def model(model_name):
-    def decorator(model_cls):
+def model(model_name: str):
+    def decorator(model_cls: Type['db.defs.Model']):
         models.register(model_name, model_cls)
         return model_cls
 
@@ -16,12 +16,12 @@ def model(model_name):
 
 class Models:
     def __init__(self):
-        self.registered: Dict[str, Type[db.types.Model]] = {}
+        self.registered: Dict[str, Type['db.defs.Model']] = {}
 
-    def get(self, name: str) -> Type[db.types.Model]:
+    def get(self, name: str) -> Type['db.defs.Model']:
         return self.registered.get(name, None)
 
-    def register(self, model_name: str, model_cls: Type[db.types.Model]):
+    def register(self, model_name: str, model_cls: Type['db.defs.Model']):
         self.registered[model_name] = model_cls
 
     def init_models(self):

@@ -2,9 +2,9 @@ from bolinette import mapping, db
 
 
 @db.model('role')
-class Role(db.types.Model):
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    name = db.types.Column(db.types.String, unique=True, nullable=False)
+class Role(db.defs.Model):
+    id = db.defs.Column(db.types.Integer, primary_key=True)
+    name = db.defs.Column(db.types.String, unique=True, nullable=False)
 
     def __repr__(self):
         return f'<Role {self.name}>'

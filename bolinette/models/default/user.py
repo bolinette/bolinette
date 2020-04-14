@@ -2,26 +2,26 @@ from bolinette import mapping, env, db
 
 
 @db.model('users_roles')
-class UsersRoles(db.types.Model):
-    user_id = db.types.Column(db.types.Integer, reference=db.types.Reference('user', 'id'), primary_key=True)
-    role_id = db.types.Column(db.types.Integer, reference=db.types.Reference('role', 'id'), primary_key=True)
+class UsersRoles(db.defs.Model):
+    user_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('user', 'id'), primary_key=True)
+    role_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('role', 'id'), primary_key=True)
 
 
 @db.model('user')
-class User(db.types.Model):
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    username = db.types.Column(db.types.String, unique=True, nullable=False)
-    password = db.types.Column(db.types.Password, nullable=False)
-    email = db.types.Column(db.types.Email, unique=env.init['USER_EMAIL_REQUIRED'],
-                            nullable=(not env.init['USER_EMAIL_REQUIRED']))
+class User(db.defs.Model):
+    id = db.defs.Column(db.types.Integer, primary_key=True)
+    username = db.defs.Column(db.types.String, unique=True, nullable=False)
+    password = db.defs.Column(db.types.Password, nullable=False)
+    email = db.defs.Column(db.types.Email, unique=env.init['USER_EMAIL_REQUIRED'],
+                           nullable=(not env.init['USER_EMAIL_REQUIRED']))
 
-    roles = db.types.Relationship('role', secondary='users_roles', lazy='subquery',
-                                  backref=db.types.Backref('users', lazy=True))
+    roles = db.defs.Relationship('role', secondary='users_roles', lazy='subquery',
+                                 backref=db.defs.Backref('users', lazy=True))
 
-    picture_id = db.types.Column(db.types.Integer, reference=db.types.Reference('file', 'id'))
-    profile_picture = db.types.Relationship('file', foreign_key=picture_id, lazy=False)
+    picture_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('file', 'id'))
+    profile_picture = db.defs.Relationship('file', foreign_key=picture_id, lazy=False)
 
-    timezone = db.types.Column(db.types.String)
+    timezone = db.defs.Column(db.types.String)
 
     @classmethod
     def payloads(cls):

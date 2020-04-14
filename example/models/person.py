@@ -2,10 +2,10 @@ from bolinette import mapping, db
 
 
 @db.model('person')
-class Person(db.types.Model):
-    id = db.types.Column(db.types.Integer, primary_key=True)
-    first_name = db.types.Column(db.types.String, nullable=False)
-    last_name = db.types.Column(db.types.String, nullable=False)
+class Person(db.defs.Model):
+    id = db.defs.Column(db.types.Integer, primary_key=True)
+    first_name = db.defs.Column(db.types.String, nullable=False)
+    last_name = db.defs.Column(db.types.String, nullable=False)
 
     @classmethod
     def payloads(cls):

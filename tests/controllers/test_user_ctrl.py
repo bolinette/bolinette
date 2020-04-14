@@ -1,4 +1,4 @@
-from bolinette.models import User, Role
+from bolinette.models.default import User, Role
 from bolinette.testing import client, bolitest, mock, Mocked
 from tests import utils
 
