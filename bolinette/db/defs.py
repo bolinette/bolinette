@@ -20,6 +20,10 @@ class Model:
     __orm_model__ = None
     __model_name__ = None
 
+    @staticmethod
+    def _get_attribute_of_type(cls, attr_type):
+        return dict([(name, attribute) for name, attribute in vars(cls).items() if isinstance(attribute, attr_type)])
+
     @classmethod
     def payloads(cls) -> MappingListPyTyping:
         pass
@@ -30,11 +34,15 @@ class Model:
 
     @classmethod
     def get_columns(cls) -> Dict[str, 'Column']:
-        return dict([(name, attribute) for name, attribute in vars(cls).items() if isinstance(attribute, Column)])
+        return cls._get_attribute_of_type(cls, Column)
 
     @classmethod
     def get_relationships(cls) -> Dict[str, 'Relationship']:
-        return dict([(name, attribute) for name, attribute in vars(cls).items() if isinstance(attribute, Relationship)])
+        return cls._get_attribute_of_type(cls, Relationship)
+
+    @classmethod
+    def get_properties(cls) -> Dict[str, 'ModelProperty']:
+        return cls._get_attribute_of_type(cls, ModelProperty)
 
     @classmethod
     def query(cls):
@@ -42,6 +50,15 @@ class Model:
 
     def __new__(cls, *args, **kwargs):
         return cls.__orm_model__(*args, **kwargs)
+
+
+class ModelProperty:
+    def __init__(self, name, function):
+        self.name = name
+        self.function = function
+
+    def __repr__(self):
+        return f'<ModelProperty {self.name}>'
 
 
 class Reference:

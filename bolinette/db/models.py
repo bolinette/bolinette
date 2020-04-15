@@ -6,14 +6,6 @@ from sqlalchemy import orm as sqlalchemy_orm
 from bolinette import db
 
 
-def model(model_name: str):
-    def decorator(model_cls: Type['db.defs.Model']):
-        models.register(model_name, model_cls)
-        return model_cls
-
-    return decorator
-
-
 class Models:
     def __init__(self):
         self.registered: Dict[str, Type['db.defs.Model']] = {}
@@ -41,6 +33,7 @@ class Models:
                                                       unique=attribute.unique)
                 orm_cols.append(attribute.orm_def)
             orm_tables[model_name] = sqlalchemy.Table(model_name, db.engine.model.metadata, *orm_cols)
+
         for model_name, model_cls in self.registered.items():
             orm_relationships = []
             for att_name, attribute in model_cls.get_relationships().items():
@@ -59,9 +52,14 @@ class Models:
                                                                 lazy=attribute.lazy, foreign_keys=foreign_key,
                                                                 backref=backref)
                 orm_relationships.append(attribute)
+
             orm_defs = dict([(c.name, c.orm_def) for c in orm_relationships])
             orm_defs['__table__'] = orm_tables[model_name]
             orm_model = type(model_name, (db.engine.model,), orm_defs)
+
+            for att_name, attribute in model_cls.get_properties().items():
+                setattr(orm_model, att_name, property(attribute.function))
+
             setattr(self.registered[model_name], '__orm_model__', orm_model)
             setattr(self.registered[model_name], '__model_name__', model_name)
 
