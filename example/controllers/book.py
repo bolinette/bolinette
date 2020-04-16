@@ -1,4 +1,4 @@
-from bolinette.routing import Namespace, AccessType
+from bolinette.web import Namespace, AccessType
 from example.services import book_service
 
 ns = Namespace('/book', book_service)

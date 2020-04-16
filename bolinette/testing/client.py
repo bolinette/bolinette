@@ -1,6 +1,6 @@
 import json
 
-from bolinette.routing import serialize
+from bolinette.web import serialize
 
 
 class TestClient:

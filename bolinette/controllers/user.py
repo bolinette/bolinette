@@ -4,7 +4,7 @@ from random import random
 
 from bolinette import response, jwt, Cookie, mail, env
 from bolinette.exceptions import EntityNotFoundError, BadRequestError
-from bolinette.routing import Namespace, Method, AccessType
+from bolinette.web import Namespace, Method, AccessType
 from bolinette.services import user_service, role_service
 
 ns = Namespace('/user', user_service)

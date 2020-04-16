@@ -1,7 +1,7 @@
 from typing import List, AnyStr
 
-from bolinette.routing import Route, Method, AccessType, resources
-from bolinette.routing.defaults import Defaults
+from bolinette.web import Route, Method, AccessType, resources
+from bolinette.web.defaults import Defaults
 
 
 class Namespace:

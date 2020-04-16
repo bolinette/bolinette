@@ -2,7 +2,7 @@ from functools import wraps
 import pytest
 
 from bolinette import Bolinette, db
-from bolinette.routing import web
+from bolinette.web import resources
 from bolinette.testing import TestClient
 
 
@@ -10,7 +10,7 @@ from bolinette.testing import TestClient
 def client(loop, aiohttp_client):
     Bolinette(profile='test',
               overrides={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'})
-    client = loop.run_until_complete(aiohttp_client(web.app))
+    client = loop.run_until_complete(aiohttp_client(resources.app))
     return TestClient(client)
 
 

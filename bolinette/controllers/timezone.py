@@ -1,5 +1,5 @@
 from bolinette import response
-from bolinette.routing import Namespace, Method
+from bolinette.web import Namespace, Method
 from bolinette.services import timezone_service
 
 ns = Namespace('/tz', timezone_service)

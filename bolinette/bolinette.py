@@ -5,7 +5,7 @@ from aiohttp import web as aio_web
 
 from bolinette import env, jwt, bcrypt, db, services
 from bolinette.commands import commands
-from bolinette.routing import web, resources
+from bolinette.web import resources
 
 
 class Bolinette:
@@ -15,15 +15,14 @@ class Bolinette:
         services.init_services()
         jwt.init_app()
         bcrypt.init_app()
-        web.init_app()
         resources.init_app()
 
     def run(self):
-        aio_web.run_app(web.app)
+        aio_web.run_app(resources.app)
 
     @property
     def app(self):
-        return web.app
+        return resources.app
 
     def run_command(self, name, **kwargs):
         if name in commands.commands:

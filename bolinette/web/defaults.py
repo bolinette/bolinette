@@ -1,5 +1,5 @@
 from bolinette import response
-from bolinette.routing import Method
+from bolinette.web import Method
 
 
 class Defaults:
