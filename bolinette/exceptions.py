@@ -78,6 +78,12 @@ class ParamConflictError(ConflictError):
         super().__init__(messages, name='ParamConflictError')
 
 
+class InternalError(APIError):
+    def __init__(self, message, *, name=None):
+        super().__init__(name or type(self).__name__,
+                         response.internal_server_error, [message])
+
+
 class AbortRequestException(Exception):
     def __init__(self, resp):
         self.response = resp

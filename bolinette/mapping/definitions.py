@@ -1,7 +1,7 @@
 from typing import Type
 
-from bolinette import response, mapping, db
-from bolinette.exceptions import AbortRequestException
+from bolinette import mapping, db
+from bolinette.exceptions import InternalError
 
 _registered_responses = {}
 _registered_payloads = {}
@@ -10,10 +10,10 @@ _registered_payloads = {}
 def _get_def(collection, model_name, key):
     m = collection.get(model_name)
     if m is None:
-        raise AbortRequestException(response.internal_server_error(f'mapping.unknown_model:{model_name}'))
+        raise InternalError(f'mapping.unknown_model:{model_name}')
     d = m.get(key)
     if d is None:
-        raise AbortRequestException(response.internal_server_error(f'mapping.unknown_definition:{key}'))
+        raise InternalError(f'mapping.unknown_definition:{key}')
     return d
 
 
