@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from bolinette import transaction, db, env
+from bolinette import db, env
+from bolinette.network import transaction
 from bolinette.services import role_service, user_service
 
 from example.services import book_service, person_service

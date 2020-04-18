@@ -1,3 +1,7 @@
+from bolinette.exceptions import APIError, UnauthorizedError, BadRequestError, ConflictError, ForbiddenError, \
+    NotFoundError
+
+
 class Cookie:
     def __init__(self, name, value, *, path, http_only=True, expires=None, delete=False):
         self.name = name
@@ -16,6 +20,16 @@ class APIResponse:
 
 
 class Response:
+    def __init__(self):
+        self._exceptions = {
+            UnauthorizedError: self.unauthorized,
+            BadRequestError: self.bad_request,
+            ConflictError: self.conflict,
+            NotFoundError: self.not_found,
+            ForbiddenError: self.forbidden,
+            APIError: self.internal_server_error
+        }
+
     def build_message(self, code, status, messages=None, data=None):
         if messages is None:
             messages = []
@@ -56,6 +70,11 @@ class Response:
 
     def internal_server_error(self, messages=None, data=None):
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)
+
+    def from_exception(self, exception: APIError):
+        for except_cls in self._exceptions:
+            if isinstance(exception, except_cls):
+                return self._exceptions[except_cls](exception.messages)
 
 
 response = Response()

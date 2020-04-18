@@ -1,5 +1,4 @@
-from bolinette import response
-from bolinette.web import Method
+from bolinette.web import response, Method
 
 
 class Defaults:

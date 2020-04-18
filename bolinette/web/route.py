@@ -1,10 +1,10 @@
 from aiohttp import web
 from aiohttp.web_request import Request
 
-from bolinette import transaction, mapping
-from bolinette.exceptions import AbortRequestException, ForbiddenError
-from bolinette.network import AccessType
-from bolinette.web import deserialize, serialize
+from bolinette import mapping
+from bolinette.exceptions import ForbiddenError, APIError
+from bolinette.network import transaction, AccessType
+from bolinette.web import deserialize, serialize, response
 from bolinette.services import user_service
 from bolinette.utils import Pagination
 
@@ -83,9 +83,10 @@ class Route:
                     web_response.del_cookie(cookie.name, path=cookie.path)
 
             return web_response
-        except AbortRequestException as ex:
-            serialized, mime = serialize(ex.response.content, 'application/json')
-            web_response = web.Response(text=serialized, status=ex.response.code, content_type=mime)
+        except APIError as ex:
+            res = response.from_exception(ex)
+            serialized, mime = serialize(res.content, 'application/json')
+            web_response = web.Response(text=serialized, status=res.code, content_type=mime)
             return web_response
 
     def __str__(self):

@@ -108,7 +108,7 @@ async def test_historized_entities(client):
     book4 = utils.book.set_author(mock(4, 'book'), 1)
 
     await client.post('/user/login', user1.to_payload('login'))
-    rv1 = await client.post('/book', book4.to_payload())
+    await client.post('/book', book4.to_payload())
     book4.fields.name = 'new name'
     await client.post('/user/login', user2.to_payload('login'))
 
