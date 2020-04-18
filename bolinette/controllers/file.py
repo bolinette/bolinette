@@ -1,6 +1,7 @@
 from aiohttp import web
 
-from bolinette.web import Namespace, Method, AccessType
+from bolinette.network import AccessType
+from bolinette.web import Namespace, Method
 from bolinette.services import file_service
 
 ns = Namespace('/file', file_service)

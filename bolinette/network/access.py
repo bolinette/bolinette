@@ -1,6 +1,6 @@
 from enum import unique, Enum, auto
 
-from bolinette import jwt
+from bolinette.network import jwt
 
 
 @unique

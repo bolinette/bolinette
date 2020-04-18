@@ -3,7 +3,8 @@ from aiohttp.web_request import Request
 
 from bolinette import transaction, mapping
 from bolinette.exceptions import AbortRequestException, ForbiddenError
-from bolinette.web import deserialize, serialize, AccessType
+from bolinette.network import AccessType
+from bolinette.web import deserialize, serialize
 from bolinette.services import user_service
 from bolinette.utils import Pagination
 

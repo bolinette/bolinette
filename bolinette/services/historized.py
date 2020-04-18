@@ -26,8 +26,8 @@ class HistorizedService(BaseService):
         return await super().update(entity, params, **_)
 
     async def patch(self, entity, params, *, current_user=None, **_):
-        # if current_user:
-        #     now = datetime.utcnow()
-        #     params['updated_on'] = now
-        #     params['updated_by_id'] = current_user.id
+        if current_user:
+            now = datetime.utcnow()
+            params['updated_on'] = now
+            params['updated_by_id'] = current_user.id
         return await super().patch(entity, params, **_)

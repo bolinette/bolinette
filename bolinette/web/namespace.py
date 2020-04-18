@@ -1,6 +1,7 @@
 from typing import List, AnyStr
 
-from bolinette.web import Route, Method, AccessType, resources
+from bolinette.network import AccessType
+from bolinette.web import Route, Method, resources
 from bolinette.web.defaults import Defaults
 
 
