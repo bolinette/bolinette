@@ -3,7 +3,7 @@ from datetime import datetime
 from random import random
 
 from bolinette import mail, env
-from bolinette.network import jwt, AccessType
+from bolinette.network import jwt, AccessToken
 from bolinette.exceptions import EntityNotFoundError, BadRequestError
 from bolinette.web import Namespace, Method, response, Cookie
 from bolinette.services import user_service, role_service
@@ -16,7 +16,7 @@ def _create_tokens(resp, user, *, set_access, set_refresh, fresh):
     if set_access:
         access_token = jwt.create_access_token(now, user.username, fresh=fresh)
         resp.cookies.append(Cookie('access_token', access_token,
-                                   expires=jwt.access_token_expires(now), path='/api'))
+                                   expires=jwt.access_token_expires(now), path='/'))
     if set_refresh:
         refresh_token = jwt.create_refresh_token(now, user.username)
         resp.cookies.append(Cookie('refresh_token', refresh_token,
@@ -25,7 +25,7 @@ def _create_tokens(resp, user, *, set_access, set_refresh, fresh):
 
 @ns.route('/me',
           method=Method.GET,
-          access=AccessType.Fresh,
+          access=AccessToken.Fresh,
           returns=ns.route.returns('user', 'private'))
 async def me(current_user, **_):
     return response.ok('OK', current_user)
@@ -33,7 +33,7 @@ async def me(current_user, **_):
 
 @ns.route('/info',
           method=Method.GET,
-          access=AccessType.Required,
+          access=AccessToken.Required,
           returns=ns.route.returns('user', 'private'))
 async def info(current_user, **_):
     return response.ok('OK', current_user)
@@ -62,14 +62,14 @@ async def login(payload, **_):
           method=Method.POST)
 async def logout(**_):
     resp = response.ok('user.logout.success')
-    resp.cookies.append(Cookie('access_token', None, delete=True, path='/api'))
+    resp.cookies.append(Cookie('access_token', None, delete=True, path='/'))
     resp.cookies.append(Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
     return resp
 
 
 @ns.route('/token/refresh',
           method=Method.POST,
-          access=AccessType.Refresh)
+          access=AccessToken.Refresh)
 async def refresh(current_user, **_):
     resp = response.ok('user.token.refreshed')
     _create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
@@ -105,7 +105,7 @@ async def admin_register(payload, **_):
 
 @ns.route('/me',
           method=Method.PATCH,
-          access=AccessType.Fresh,
+          access=AccessToken.Fresh,
           returns=ns.route.returns('user', 'private'),
           expects=ns.route.expects('user', 'register', patch=True))
 async def update_user(payload, current_user, **_):
@@ -115,14 +115,14 @@ async def update_user(payload, current_user, **_):
     return resp
 
 
-ns.defaults.get_all('private', access=AccessType.Required, roles=['admin'])
+ns.defaults.get_all('private', access=AccessToken.Required, roles=['admin'])
 
-ns.defaults.get_first_by('username', returns='private', access=AccessType.Required, roles=['admin'])
+ns.defaults.get_first_by('username', returns='private', access=AccessToken.Required, roles=['admin'])
 
 
 @ns.route('/{username}/roles',
           method=Method.POST,
-          access=AccessType.Required,
+          access=AccessToken.Required,
           roles=['admin'],
           expects=ns.route.expects('role'),
           returns=ns.route.returns('user', 'private'))
@@ -135,7 +135,7 @@ async def add_user_role(match, payload, **_):
 
 @ns.route('/{username}/roles/{role}',
           method=Method.DELETE,
-          access=AccessType.Required,
+          access=AccessToken.Required,
           roles=['admin'],
           returns=ns.route.returns('user', 'private'))
 async def delete_user_role(match, current_user, **_):
@@ -147,7 +147,7 @@ async def delete_user_role(match, current_user, **_):
 
 @ns.route('/picture',
           method=Method.POST,
-          access=AccessType.Required,
+          access=AccessToken.Required,
           returns=ns.route.returns('user', 'private'))
 async def upload_profile_picture(current_user, payload, **_):
     picture = payload['file']

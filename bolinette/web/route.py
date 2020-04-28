@@ -1,9 +1,9 @@
-from aiohttp import web
+from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 
 from bolinette import mapping
 from bolinette.exceptions import ForbiddenError, APIError
-from bolinette.network import transaction, AccessType
+from bolinette.network import transaction, AccessToken
 from bolinette.web import deserialize, serialize, response
 from bolinette.services import user_service
 from bolinette.utils import Pagination
@@ -20,39 +20,35 @@ class Route:
         self.returns = returns
         self.roles = roles
         if self.roles and len(self.roles) and not self.access:
-            self.access = AccessType.Required
+            self.access = AccessToken.Required
 
     async def handler(self, request: Request):
-        route_params = {
-            'payload': await deserialize(request),
-            'match': {},
-            'query': {},
-            'current_user': None,
-        }
+        current_user = None
+        payload = await deserialize(request)
+        match = {}
+        query = {}
         for key in request.match_info:
-            route_params['match'][key] = request.match_info[key]
+            match[key] = request.match_info[key]
         for key in request.query:
-            route_params['query'][key] = request.query[key]
+            query[key] = request.query[key]
         try:
             with transaction:
                 if self.access is not None:
-                    route_params['current_user'] = await user_service.get_by_username(self.access.check(request))
+                    current_user = await user_service.get_by_username(self.access.check(request))
 
                 if self.roles and len(self.roles):
-                    current_user = route_params['current_user']
                     user_roles = set(map(lambda r: r.name, current_user.roles))
                     if 'root' not in user_roles and not len(user_roles.intersection(set(self.roles))):
                         raise ForbiddenError(f'user.forbidden:{",".join(self.roles)}')
 
                 if self.expects is not None:
                     exp_def = mapping.get_payload(self.expects.model, self.expects.key)
-                    route_params['payload'] = mapping.validate_payload(
-                        exp_def, route_params['payload'], self.expects.patch)
-                    mapping.link_foreign_entities(exp_def, route_params['payload'])
+                    payload = mapping.validate_payload(exp_def, payload, self.expects.patch)
+                    mapping.link_foreign_entities(exp_def, payload)
 
-                resp = await self.func(**route_params)
+                resp = await self.func(payload=payload, match=match, query=query, current_user=current_user)
 
-            if isinstance(resp, web.Response):
+            if isinstance(resp, aio_web.Response):
                 return resp
 
             content = resp.content
@@ -73,7 +69,7 @@ class Route:
 
             serialized, mime = serialize(content, 'application/json')
 
-            web_response = web.Response(text=serialized, status=resp.code, content_type=mime)
+            web_response = aio_web.Response(text=serialized, status=resp.code, content_type=mime)
             for cookie in resp.cookies:
                 if not cookie.delete:
                     web_response.set_cookie(cookie.name, cookie.value,
@@ -86,7 +82,7 @@ class Route:
         except APIError as ex:
             res = response.from_exception(ex)
             serialized, mime = serialize(res.content, 'application/json')
-            web_response = web.Response(text=serialized, status=res.code, content_type=mime)
+            web_response = aio_web.Response(text=serialized, status=res.code, content_type=mime)
             return web_response
 
     def __str__(self):

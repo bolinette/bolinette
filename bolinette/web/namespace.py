@@ -1,6 +1,6 @@
 from typing import List, AnyStr
 
-from bolinette.network import AccessType
+from bolinette.network import AccessToken
 from bolinette.web import Route, Method, resources
 from bolinette.web.defaults import Defaults
 
@@ -37,7 +37,7 @@ class NamespaceRoute:
         self.namespace = namespace
 
     def __call__(self, path, *, method: Method,
-                 access: AccessType = None, expects: NamespaceExcepts = None,
+                 access: AccessToken = None, expects: NamespaceExcepts = None,
                  returns: NamespaceReturns = None, roles: List[AnyStr] = None):
         def inner(func):
             route = Route(func=func, base_url=self.namespace.base_url, path=path, method=method,

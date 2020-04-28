@@ -4,7 +4,7 @@ from bolinette.network import jwt
 
 
 @unique
-class AccessType(Enum):
+class AccessToken(Enum):
     All = auto()
     Optional = auto()
     Required = auto()
@@ -16,9 +16,9 @@ class AccessType(Enum):
 
 
 _functions = {
-    AccessType.All.value: lambda _: None,
-    AccessType.Optional.value: lambda request: jwt.verify(request, optional=True),
-    AccessType.Required.value: lambda request: jwt.verify(request),
-    AccessType.Fresh.value: lambda request: jwt.verify(request, fresh=True),
-    AccessType.Refresh.value: lambda request: jwt.verify(request)
+    AccessToken.All.value: lambda _: None,
+    AccessToken.Optional.value: lambda request: jwt.verify(request, optional=True),
+    AccessToken.Required.value: lambda request: jwt.verify(request),
+    AccessToken.Fresh.value: lambda request: jwt.verify(request, fresh=True),
+    AccessToken.Refresh.value: lambda request: jwt.verify(request)
 }

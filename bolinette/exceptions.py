@@ -1,6 +1,8 @@
 class APIError(Exception):
     def __init__(self, name, messages):
         super().__init__(name)
+        if not isinstance(messages, list):
+            messages = [messages]
         self.messages = messages
 
     def __str__(self):

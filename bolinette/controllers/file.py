@@ -1,6 +1,6 @@
 from aiohttp import web
 
-from bolinette.network import AccessType
+from bolinette.network import AccessToken
 from bolinette.web import Namespace, Method
 from bolinette.services import file_service
 
@@ -11,7 +11,7 @@ ns.defaults.get_first_by('key')
 
 @ns.route('/{key}/download',
           method=Method.GET,
-          access=AccessType.Fresh)
+          access=AccessToken.Fresh)
 async def download_file(match, **_):
     file = await file_service.get_first_by('key', match['key'])
     headers = {

@@ -14,6 +14,9 @@ class Settings:
     def __setitem__(self, key, value):
         self.settings[key.lower()] = value
 
+    def __contains__(self, item):
+        return item in self.settings
+
     def get(self, key, default=None):
         item = self[key]
         return item if item is not None else default
@@ -31,6 +34,7 @@ class Environment(Settings):
         self.origin = fs.dirname(__file__)
         self.init = Settings()
         self.init.reset(self.load_from_file('init.yaml'))
+        self.topics = None
 
     def instance_path(self, *path):
         return self.root_path('instance', *path)
