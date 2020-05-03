@@ -13,7 +13,7 @@ def read_version(path):
 def read_requirements(path):
     try:
         with open(join(path, 'requirements.txt')) as f:
-            return filter(lambda r: len(r), f.read().split('\n'))
+            return list(filter(lambda r: len(r), f.read().split('\n')))
     except FileNotFoundError:
         return []
 
