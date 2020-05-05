@@ -43,12 +43,16 @@ class Topic:
     async def _receive_subscription(self, response: WebSocketResponse, payload: Dict[str, Any], current_user):
         self._subscription_func(self, response, payload=payload, current_user=current_user)
 
-    async def send_message(self, channels: List[str], message: Dict[str, Any]):
+    async def send_message(self, channels: List[str], message: Any):
         for channel in channels:
             if any(filter(lambda r: r.closed, self._subscriptions[channel])):
                 self._subscriptions[channel] = list(filter(lambda r: not r.closed, self._subscriptions[channel]))
             for response in self._subscriptions[channel]:
-                await response.send_json(message)
+                await response.send_json({
+                    'topic': self.name,
+                    'channel': channel,
+                    'message': message
+                })
 
     async def process(self, response: WebSocketResponse, payload, current_user):
         if self.login_required and current_user is None:
