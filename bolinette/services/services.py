@@ -1,6 +1,6 @@
 from typing import Dict, Union
 
-from bolinette import services, db, mapping
+from bolinette import services, db, mapping, core
 
 _registered_services: Dict[str, 'services.BaseService'] = {}
 
@@ -16,6 +16,6 @@ def get(name: str):
 def init_services():
     for name, service in _registered_services.items():
         if isinstance(service, services.BaseService):
-            service.model = db.models.get(name)
+            service.model = core.cache.models.get(name)
             if issubclass(service.model, db.defs.Model):
                 mapping.register(name, service.model)

@@ -1,7 +1,8 @@
 from bolinette import mapping, db
+from bolinette.decorators import model
 
 
-@db.model('file')
+@model('file')
 class File(db.defs.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)
     key = db.defs.Column(db.types.String, nullable=False)

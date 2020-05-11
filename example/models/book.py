@@ -1,7 +1,8 @@
 from bolinette import mapping, db
+from bolinette.decorators import model
 
 
-@db.model('book')
+@model('book')
 @db.with_mixin('historized')
 class Book(db.defs.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)

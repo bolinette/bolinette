@@ -3,7 +3,7 @@ import random
 import string
 from types import SimpleNamespace
 
-from bolinette import db, mapping
+from bolinette import db, mapping, core
 
 
 class Mocked:
@@ -51,7 +51,7 @@ class Mock:
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
-        model = db.models.get(model_name)
+        model = core.cache.models.get(model_name)
         columns = model.get_columns()
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name)

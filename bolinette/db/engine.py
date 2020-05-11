@@ -20,7 +20,6 @@ class Engine:
         self.model = declarative_base()
         self.Session.configure(bind=self.engine)
         self.session = self.Session()
-        db.models.init_models()
 
     def seeder(self, func):
         self.seeders.append(func)

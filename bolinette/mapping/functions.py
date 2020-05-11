@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Type
 
-from bolinette import db, mapping
+from bolinette import db, mapping, core
 from bolinette.exceptions import ParamConflictError, ParamMissingError, EntityNotFoundError
 
 
@@ -44,7 +44,7 @@ def link_foreign_entities(definition, params):
     for field in definition.fields:
         if isinstance(field, mapping.Reference):
             value = params.get(field.foreign_key, None)
-            model = db.models.get(field.reference_model)
+            model = core.cache.models.get(field.reference_model)
             if value is not None and model is not None:
                 entity = model.query().filter_by(**{field.reference_key: value}).first()
                 if entity is None:

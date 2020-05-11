@@ -3,14 +3,6 @@ from typing import Type
 from bolinette import db
 
 
-def model(model_name: str):
-    def decorator(model_cls: Type['db.defs.Model']):
-        db.models.register(model_name, model_cls)
-        return model_cls
-
-    return decorator
-
-
 def mixin(mixin_name: str):
     def decorator(mixin_class: Type['db.defs.Mixin']):
         db.mixins.register(mixin_name, mixin_class)

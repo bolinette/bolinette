@@ -1,20 +1,21 @@
 from datetime import datetime
 
-from bolinette import db, env
+from bolinette import env
+from bolinette.decorators import seeder
 from bolinette.network import transaction
 from bolinette.services import role_service, user_service
 
 from example.services import book_service, person_service
 
 
-@db.engine.seeder
+@seeder
 async def role_seeder():
     with transaction:
         await role_service.create({'name': 'root'})
         await role_service.create({'name': 'admin'})
 
 
-@db.engine.seeder
+@seeder
 async def dev_user_seeder():
     if env['PROFILE'] == 'development':
         with transaction:
@@ -43,7 +44,7 @@ async def dev_user_seeder():
                 user.roles.append(roles[(i + 1) % 3])
 
 
-@db.engine.seeder
+@seeder
 async def seed_app():
     if env['PROFILE'] == 'development':
         with transaction:

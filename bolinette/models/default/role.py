@@ -1,7 +1,8 @@
 from bolinette import mapping, db
+from bolinette.decorators import model
 
 
-@db.model('role')
+@model('role')
 class Role(db.defs.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)
     name = db.defs.Column(db.types.String, unique=True, nullable=False)
