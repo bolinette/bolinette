@@ -1,11 +1,15 @@
 import json
 
+from bolinette import core
+from bolinette.testing import Mock
 from bolinette.web import serialize
 
 
 class TestClient:
-    def __init__(self, client):
+    def __init__(self, client, context: core.BolinetteContext):
         self.client = client
+        self.context = context
+        self.mock = Mock(context)
         self.cookies = {}
 
     def payload(self, **payload):

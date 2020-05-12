@@ -10,7 +10,6 @@ class ModelMetadata:
     def __init__(self, name, model):
         self.name = name
         self.model = model
-        self.orm_columns = {}
 
     def _get_attribute_of_type(self, attr_type):
         return dict([(name, attribute)

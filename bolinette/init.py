@@ -11,19 +11,20 @@ def init_models(context: core.BolinetteContext):
     for model_name, model_cls in core.cache.models.items():
         models[model_name] = model_cls(model_name)
     orm_tables = {}
+    orm_cols = {}
     for model_name, model in models.items():
+        orm_cols[model_name] = {}
         for att_name, attribute in model.__blnt__.get_columns().items():
             attribute.name = att_name
             ref = None
             if attribute.reference:
                 ref = sqlalchemy.ForeignKey(f'{attribute.reference.model_name}.{attribute.reference.column_name}')
-            model.__blnt__.orm_columns[att_name] = sqlalchemy.Column(att_name, attribute.type.sqlalchemy_type, ref,
-                                                                     primary_key=attribute.primary_key,
-                                                                     nullable=attribute.nullable,
-                                                                     unique=attribute.unique)
+            orm_cols[model_name][att_name] = sqlalchemy.Column(
+                att_name, attribute.type.sqlalchemy_type, ref,
+                primary_key=attribute.primary_key, nullable=attribute.nullable, unique=attribute.unique)
         orm_tables[model_name] = sqlalchemy.Table(model_name,
                                                   context.db.model.metadata,
-                                                  *(model.__blnt__.orm_columns.values()))
+                                                  *(orm_cols[model_name].values()))
 
     for model_name, model in models.items():
         orm_defs = {}
@@ -34,7 +35,7 @@ def init_models(context: core.BolinetteContext):
                 backref = sqlalchemy_orm.backref(attribute.backref.key, lazy=attribute.backref.lazy)
             foreign_key = None
             if attribute.foreign_key:
-                foreign_key = model.__blnt__.orm_columns[attribute.foreign_key.name]
+                foreign_key = orm_cols[model_name][attribute.foreign_key.name]
             secondary = None
             if attribute.secondary:
                 secondary = orm_tables[attribute.secondary]

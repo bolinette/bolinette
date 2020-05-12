@@ -3,24 +3,26 @@ import random
 import string
 from types import SimpleNamespace
 
-from bolinette import db, mapping, core
+from bolinette import mapping, core, db
 
 
 class Mocked:
-    def __init__(self, name):
+    def __init__(self, name, context: core.BolinetteContext):
         self.name = name
+        self.context = context
         self.fields = SimpleNamespace()
 
     @staticmethod
-    def insert_entity(entity) -> db.engine.model:
+    def insert_entity(context: core.BolinetteContext, name, params):
+        entity = context.table(name)(**params)
         db.engine.session.add(entity)
         return entity
 
-    def insert(self, model) -> db.engine.model:
+    def insert(self):
         fields = {}
         for key, value in self.fields.__dict__.items():
             fields[key] = value
-        return self.insert_entity(model(**fields))
+        return self.insert_entity(self.context, self.name, fields)
 
     def to_response(self, key='default') -> dict:
         definition = mapping.get_response(self.name, key)
@@ -32,6 +34,9 @@ class Mocked:
 
 
 class Mock:
+    def __init__(self, context: core.BolinetteContext):
+        self.context = context
+
     def _random_lower(self, rng, length):
         return ''.join(rng.choices(string.ascii_lowercase, k=length))
 
@@ -51,10 +56,9 @@ class Mock:
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
-        model = core.cache.models.get(model_name)
-        columns = model.get_columns()
+        columns = self.context.model(model_name).__blnt__.get_columns()
         rng = random.Random(hash(f'{model_name}.{m_id}'))
-        mocked = Mocked(model_name)
+        mocked = Mocked(model_name, self.context)
         for _, column in columns.items():
             if column.primary_key:
                 continue
@@ -76,6 +80,3 @@ class Mock:
         if post_mock_fn and callable(post_mock_fn):
             post_mock_fn(mocked)
         return mocked
-
-
-mock = Mock()
