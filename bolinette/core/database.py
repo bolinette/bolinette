@@ -32,6 +32,6 @@ class DatabaseEngine:
         logger.error(f'Unknown database system "{dbms}"')
         exit(1)
 
-    async def run_seeders(self):
+    async def run_seeders(self, context: 'core.BolinetteContext'):
         for func in core.cache.seeders:
-            await func()
+            await func(context)

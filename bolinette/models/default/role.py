@@ -7,9 +7,6 @@ class Role(data.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)
     name = db.defs.Column(db.types.String, unique=True, nullable=False)
 
-    def __repr__(self):
-        return f'<Role {self.name}>'
-
     @classmethod
     def payloads(cls):
         yield [

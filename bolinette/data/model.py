@@ -10,8 +10,6 @@ class ModelMetadata:
     def __init__(self, name, model):
         self.name = name
         self.model = model
-        self.orm_model = None
-        self.orm_table = None
         self.orm_columns = {}
 
     def _get_attribute_of_type(self, attr_type):
@@ -28,9 +26,6 @@ class ModelMetadata:
     def get_properties(self) -> Dict[str, 'db.defs.ModelProperty']:
         return self._get_attribute_of_type(db.defs.ModelProperty)
 
-    def new_entity(self, *args, **kwargs):
-        return self.orm_model(*args, **kwargs)
-
 
 class Model:
     def __init__(self, name):
@@ -44,5 +39,5 @@ class Model:
     def responses(cls) -> MappingListPyTyping:
         pass
 
-    def query(self):
-        return db.engine.session.query(self.__blnt__.orm_model)
+    def __repr__(self):
+        return f'<Model {self.__blnt__.name}>'

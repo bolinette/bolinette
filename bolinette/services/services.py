@@ -16,6 +16,6 @@ def get(name: str):
 def init_services(context: core.BolinetteContext):
     for name, service in _registered_services.items():
         if isinstance(service, services.BaseService):
-            service.model = context.models.get(name)
+            service.model = context.model(name)
             if isinstance(service.model, data.Model):
                 mapping.register(name, service.model)

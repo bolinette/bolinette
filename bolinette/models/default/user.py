@@ -54,6 +54,3 @@ class User(data.Model):
             mapping.List(mapping.Definition('role'), key='roles'),
             mapping.Column(cls.timezone)
         ]
-
-    def __repr__(self):
-        return f'<User {self.username}>'

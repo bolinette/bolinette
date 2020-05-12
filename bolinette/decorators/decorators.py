@@ -1,6 +1,6 @@
 from typing import Type, Callable
 
-from bolinette import core, db
+from bolinette import core, db, data
 
 
 def model(model_name: str):
@@ -18,3 +18,10 @@ def init_func(func: Callable[[core.BolinetteContext], None]):
 def seeder(func):
     core.cache.seeders.append(func)
     return func
+
+
+def service(service_name: str):
+    def decorator(service_cls: Type['data.Service']):
+        core.cache.services[service_name] = service_cls
+        return service_cls
+    return decorator

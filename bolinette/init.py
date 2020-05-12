@@ -49,12 +49,22 @@ def init_models(context: core.BolinetteContext):
         for att_name, attribute in model.__blnt__.get_properties().items():
             setattr(orm_model, att_name, property(attribute.function))
 
-        model.__blnt__.orm_model = orm_model
-        context.models[model_name] = model
-        context.tables[model_name] = orm_model
+        context.add_model(model_name, model)
+        context.add_table(model_name, orm_model)
 
 
 @init_func
 def init_repositories(context: core.BolinetteContext):
-    for model_name, model in context.models.items():
-        context.repos[model_name] = data.Repository(model_name, model, context.db)
+    for model_name, model in context.models:
+        context.add_repo(model_name, data.Repository(model_name, model, context))
+
+
+@init_func
+def init_services(context: core.BolinetteContext):
+    for service_name, service_cls in core.cache.services.items():
+        context.add_service(service_name, service_cls(service_name, context))
+
+
+@init_func
+def init_hook(context: core.BolinetteContext):
+    pass
