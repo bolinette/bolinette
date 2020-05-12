@@ -1,10 +1,10 @@
-from bolinette import mapping, db
+from bolinette import mapping, db, data
 from bolinette.decorators import model
 
 
 @model('book')
 @db.with_mixin('historized')
-class Book(db.defs.Model):
+class Book(data.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)
     name = db.defs.Column(db.types.String, nullable=False)
     pages = db.defs.Column(db.types.Integer, nullable=False)
@@ -27,7 +27,7 @@ class Book(db.defs.Model):
     @classmethod
     def responses(cls):
         base = db.mixins.get('historized').response(cls)
-        default: db.defs.MappingPyTyping = [
+        default = [
             mapping.Column(cls.id),
             mapping.Column(cls.name),
             mapping.Column(cls.pages),

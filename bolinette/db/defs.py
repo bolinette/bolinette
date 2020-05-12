@@ -1,9 +1,6 @@
-from typing import Union, Dict, List, Tuple
+from typing import Union, Dict
 
 from bolinette import db
-
-MappingPyTyping = List[Union['mapping.Column', 'mapping.Field', 'mapping.List', 'mapping.Definition']]
-MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 
 
 class Mixin:
@@ -14,42 +11,6 @@ class Mixin:
     @staticmethod
     def relationships(model_cls) -> Dict[str, 'db.defs.Relationship']:
         pass
-
-
-class Model:
-    __orm_model__ = None
-    __model_name__ = None
-
-    @staticmethod
-    def _get_attribute_of_type(cls, attr_type):
-        return dict([(name, attribute) for name, attribute in vars(cls).items() if isinstance(attribute, attr_type)])
-
-    @classmethod
-    def payloads(cls) -> MappingListPyTyping:
-        pass
-
-    @classmethod
-    def responses(cls) -> MappingListPyTyping:
-        pass
-
-    @classmethod
-    def get_columns(cls) -> Dict[str, 'Column']:
-        return cls._get_attribute_of_type(cls, Column)
-
-    @classmethod
-    def get_relationships(cls) -> Dict[str, 'Relationship']:
-        return cls._get_attribute_of_type(cls, Relationship)
-
-    @classmethod
-    def get_properties(cls) -> Dict[str, 'ModelProperty']:
-        return cls._get_attribute_of_type(cls, ModelProperty)
-
-    @classmethod
-    def query(cls):
-        return db.engine.session.query(cls.__orm_model__)
-
-    def __new__(cls, *args, **kwargs):
-        return cls.__orm_model__(*args, **kwargs)
 
 
 class ModelProperty:

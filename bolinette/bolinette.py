@@ -19,7 +19,7 @@ class Bolinette:
 
         db.engine = self.context.db
 
-        services.init_services()
+        services.init_services(self.context)
         network.jwt.init_app()
         bcrypt.init_app()
         web.resources.init_app()

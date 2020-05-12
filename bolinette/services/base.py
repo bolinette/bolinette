@@ -42,7 +42,7 @@ class BaseService:
 
     async def create(self, params, **_):
         params = mapping.validate_model(self.model, params)
-        entity = self.model(**params)
+        entity = self.model.__blnt__.new_entity(**params)
         db.engine.session.add(entity)
         return entity
 

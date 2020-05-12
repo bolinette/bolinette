@@ -1,9 +1,9 @@
-from bolinette import mapping, db
+from bolinette import mapping, db, data
 from bolinette.decorators import model
 
 
 @model('person')
-class Person(db.defs.Model):
+class Person(data.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)
     first_name = db.defs.Column(db.types.String, nullable=False)
     last_name = db.defs.Column(db.types.String, nullable=False)

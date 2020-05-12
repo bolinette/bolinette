@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Type
 
-from bolinette import db, mapping, core
+from bolinette import db, mapping, core, data
 from bolinette.exceptions import ParamConflictError, ParamMissingError, EntityNotFoundError
 
 
@@ -53,9 +53,9 @@ def link_foreign_entities(definition, params):
         raise EntityNotFoundError(params=errors)
 
 
-def validate_model(model: Type['db.defs.Model'], params: dict):
+def validate_model(model: 'data.Model', params: dict):
     errors = []
-    for column in model.get_columns().values():
+    for column in model.__blnt__.get_columns().values():
         key = column.name
         if column.primary_key:
             continue
