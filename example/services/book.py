@@ -1,9 +1,8 @@
-from bolinette.services import HistorizedService
+from bolinette import data, core
+from bolinette.decorators import service
 
 
-class BookService(HistorizedService):
-    def __init__(self):
-        super().__init__('book')
-
-
-book_service = BookService()
+@service('book')
+class BookService(data.HistorizedService):
+    def __init__(self, name, context: 'core.BolinetteContext'):
+        super().__init__(name, context)

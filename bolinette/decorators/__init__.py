@@ -1,1 +1,1 @@
-from bolinette.decorators.decorators import model, service, init_func, seeder
+from bolinette.decorators.decorators import model, mixin, with_mixin, service, init_func, seeder

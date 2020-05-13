@@ -7,27 +7,27 @@ class HistorizedService(BaseService):
     def __init__(self, model):
         super().__init__(model)
 
-    async def create(self, params, *, current_user=None, **_):
+    async def create(self, values, *, current_user=None, **_):
         if current_user:
             now = datetime.utcnow()
-            params['created_on'] = now
-            params['created_by_id'] = current_user.id
-            params['updated_on'] = now
-            params['updated_by_id'] = current_user.id
-        return await super().create(params, **_)
+            values['created_on'] = now
+            values['created_by_id'] = current_user.id
+            values['updated_on'] = now
+            values['updated_by_id'] = current_user.id
+        return await super().create(values, **_)
 
-    async def update(self, entity, params, *, current_user=None, **_):
+    async def update(self, entity, values, *, current_user=None, **_):
         if current_user:
             now = datetime.utcnow()
-            params['created_on'] = entity.created_on
-            params['created_by_id'] = entity.created_by_id
-            params['updated_on'] = now
-            params['updated_by_id'] = current_user.id
-        return await super().update(entity, params, **_)
+            values['created_on'] = entity.created_on
+            values['created_by_id'] = entity.created_by_id
+            values['updated_on'] = now
+            values['updated_by_id'] = current_user.id
+        return await super().update(entity, values, **_)
 
-    async def patch(self, entity, params, *, current_user=None, **_):
+    async def patch(self, entity, values, *, current_user=None, **_):
         if current_user:
             now = datetime.utcnow()
-            params['updated_on'] = now
-            params['updated_by_id'] = current_user.id
-        return await super().patch(entity, params, **_)
+            values['updated_on'] = now
+            values['updated_by_id'] = current_user.id
+        return await super().patch(entity, values, **_)

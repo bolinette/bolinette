@@ -1,9 +1,9 @@
-from bolinette import mapping, db, data
-from bolinette.decorators import model
+from bolinette import mapping, db, data, core
+from bolinette.decorators import model, with_mixin
 
 
 @model('book')
-@db.with_mixin('historized')
+@with_mixin('historized')
 class Book(data.Model):
     id = db.defs.Column(db.types.Integer, primary_key=True)
     name = db.defs.Column(db.types.String, nullable=False)
@@ -26,7 +26,7 @@ class Book(data.Model):
 
     @classmethod
     def responses(cls):
-        base = db.mixins.get('historized').response(cls)
+        base = core.cache.mixins.get('historized').response(cls)
         default = [
             mapping.Column(cls.id),
             mapping.Column(cls.name),

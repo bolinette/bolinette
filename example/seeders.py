@@ -4,7 +4,7 @@ from bolinette import env, core
 from bolinette.decorators import seeder
 from bolinette.defaults.services import RoleService, UserService
 
-from example.services import book_service, person_service
+from example.services import BookService, PersonService
 
 
 @seeder
@@ -49,6 +49,8 @@ async def dev_user_seeder(context: core.BolinetteContext):
 @seeder
 async def book_seeder(context: core.BolinetteContext):
     user_service: UserService = context.service('user')
+    person_service: PersonService = context.service('person')
+    book_service: BookService = context.service('book')
     if env['PROFILE'] == 'development':
         with core.Transaction(context):
             p1 = await person_service.create({'first_name': 'J.R.R.', 'last_name': 'Tolkien'})

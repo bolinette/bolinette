@@ -1,8 +1,9 @@
-from bolinette import mapping, db
+from bolinette import mapping, db, data
+from bolinette.decorators import mixin
 
 
-@db.mixin('historized')
-class Historized(db.defs.Mixin):
+@mixin('historized')
+class Historized(data.Mixin):
     @staticmethod
     def columns():
         return {

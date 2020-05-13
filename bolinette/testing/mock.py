@@ -15,7 +15,7 @@ class Mocked:
     @staticmethod
     def insert_entity(context: core.BolinetteContext, name, params):
         entity = context.table(name)(**params)
-        db.engine.session.add(entity)
+        context.db.session.add(entity)
         return entity
 
     def insert(self):

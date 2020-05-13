@@ -3,7 +3,7 @@ import inspect
 
 from aiohttp import web as aio_web
 
-from bolinette import env, network, bcrypt, db, services, web, ws, core
+from bolinette import env, network, bcrypt, services, web, ws, core
 from bolinette.commands import commands
 
 
@@ -16,8 +16,6 @@ class Bolinette:
         self.app['blnt'] = self.context
 
         self.run_init_functions(self.app)
-
-        db.engine = self.context.db
 
         services.init_services(self.context)
         network.jwt.init_app()

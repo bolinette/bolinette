@@ -1,2 +1,2 @@
-from example.services.book import book_service
-from example.services.person import person_service
+from example.services.book import BookService
+from example.services.person import PersonService

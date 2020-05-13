@@ -39,10 +39,9 @@ def init_models(context: core.BolinetteContext):
             secondary = None
             if attribute.secondary:
                 secondary = orm_tables[attribute.secondary]
-            orm_def = sqlalchemy_orm.relationship(attribute.model_name, secondary=secondary,
-                                                  lazy=attribute.lazy, foreign_keys=foreign_key,
-                                                  backref=backref)
-            orm_defs[att_name] = orm_def
+            orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.model_name, secondary=secondary,
+                                                             lazy=attribute.lazy, foreign_keys=foreign_key,
+                                                             backref=backref)
 
         orm_defs['__table__'] = orm_tables[model_name]
         orm_model = type(model_name, (context.db.model,), orm_defs)

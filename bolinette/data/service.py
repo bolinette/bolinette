@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from bolinette import core
 from bolinette.exceptions import EntityNotFoundError
 
@@ -57,3 +59,33 @@ class Service:
         total = query.count()
         items = query.offset(page * per_page).limit(per_page).all()
         return Pagination(items, page, per_page, total)
+
+
+class HistorizedService(Service):
+    def __init__(self, name, context: 'core.BolinetteContext'):
+        super().__init__(name, context)
+
+    async def create(self, values, *, current_user=None, **_):
+        if current_user:
+            now = datetime.utcnow()
+            values['created_on'] = now
+            values['created_by_id'] = current_user.id
+            values['updated_on'] = now
+            values['updated_by_id'] = current_user.id
+        return await super().create(values, **_)
+
+    async def update(self, entity, values, *, current_user=None, **_):
+        if current_user:
+            now = datetime.utcnow()
+            values['created_on'] = entity.created_on
+            values['created_by_id'] = entity.created_by_id
+            values['updated_on'] = now
+            values['updated_by_id'] = current_user.id
+        return await super().update(entity, values, **_)
+
+    async def patch(self, entity, values, *, current_user=None, **_):
+        if current_user:
+            now = datetime.utcnow()
+            values['updated_on'] = now
+            values['updated_by_id'] = current_user.id
+        return await super().patch(entity, values, **_)

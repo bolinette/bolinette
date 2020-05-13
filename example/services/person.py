@@ -1,9 +1,8 @@
-from bolinette.services import BaseService
+from bolinette import data, core
+from bolinette.decorators import service
 
 
-class PersonService(BaseService):
-    def __init__(self):
-        super().__init__('person')
-
-
-person_service = PersonService()
+@service('person')
+class PersonService(data.Service):
+    def __init__(self, name, context: 'core.BolinetteContext'):
+        super().__init__(name, context)
