@@ -1,6 +1,6 @@
 from typing import Type
 
-from bolinette import mapping, db
+from bolinette import mapping, types
 from bolinette.exceptions import InternalError
 
 _registered_responses = {}
@@ -25,7 +25,7 @@ def get_payload(model_name: str, key: str):
     return _get_def(_registered_payloads, model_name, key)
 
 
-def register(model_name: str, model: Type['db.defs.Model']):
+def register(model_name: str, model: Type['types.Model']):
     def create_defs(collection, params):
         if params is None:
             return

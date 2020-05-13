@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Type
 
-from bolinette import db, mapping, core, data
+from bolinette import types, mapping, core, data
 from bolinette.exceptions import ParamConflictError, ParamMissingError, EntityNotFoundError
 
 
@@ -86,7 +86,7 @@ def validate_payload(definition, params, patch=False):
             if patch and field.name not in params:
                 continue
             value = params.get(field.name, None)
-            if value and field.type == db.types.Date:
+            if value and field.type == types.Date:
                 value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
             if not value or not len(str(value)):
                 if field.required:
@@ -99,7 +99,7 @@ def validate_payload(definition, params, patch=False):
     return valid
 
 
-def map_model(model: Type['db.defs.Model'], entity, params, patch=False):
+def map_model(model: Type['types.Model'], entity, params, patch=False):
     errors = []
     for _, column in model.get_columns().items():
         key = column.name

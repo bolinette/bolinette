@@ -1,4 +1,4 @@
-from bolinette import db
+from bolinette import types
 
 
 class MappingObject:
@@ -25,7 +25,7 @@ class Field(MappingObject):
 
 
 class Column(Field):
-    def __init__(self, column: 'db.defs.Column', *, name=None, default=None, required=False,
+    def __init__(self, column: 'types.Column', *, name=None, default=None, required=False,
                  function=None, formatting=None):
         super().__init__(column.type, key=column.name, name=name, default=default, required=required,
                          function=function, formatting=formatting)
@@ -56,7 +56,7 @@ class Definition(MappingObject):
 
 
 class Reference(Definition):
-    def __init__(self, relationship: 'db.defs.Relationship', model_key='default', *, name=None, default=None,
+    def __init__(self, relationship: 'types.Relationship', model_key='default', *, name=None, default=None,
                  required=False, function=None, formatting=None):
         super().__init__(relationship.model_name, model_key, key=relationship.name, name=name, default=default,
                          required=required, function=function, formatting=formatting)

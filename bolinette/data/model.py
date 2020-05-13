@@ -1,6 +1,6 @@
 from typing import Dict, List, Union, Tuple
 
-from bolinette import db
+from bolinette import types
 
 MappingPyTyping = List[Union['mapping.Column', 'mapping.Field', 'mapping.List', 'mapping.Definition']]
 MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
@@ -16,14 +16,14 @@ class ModelMetadata:
                      for name, attribute in vars(self.model.__class__).items()
                      if isinstance(attribute, attr_type)])
 
-    def get_columns(self) -> Dict[str, 'db.defs.Column']:
-        return self._get_attribute_of_type(db.defs.Column)
+    def get_columns(self) -> Dict[str, 'types.Column']:
+        return self._get_attribute_of_type(types.Column)
 
-    def get_relationships(self) -> Dict[str, 'db.defs.Relationship']:
-        return self._get_attribute_of_type(db.defs.Relationship)
+    def get_relationships(self) -> Dict[str, 'types.Relationship']:
+        return self._get_attribute_of_type(types.Relationship)
 
-    def get_properties(self) -> Dict[str, 'db.defs.ModelProperty']:
-        return self._get_attribute_of_type(db.defs.ModelProperty)
+    def get_properties(self) -> Dict[str, 'types.ModelProperty']:
+        return self._get_attribute_of_type(types.ModelProperty)
 
 
 class Model:

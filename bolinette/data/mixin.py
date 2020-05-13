@@ -1,13 +1,13 @@
 from typing import Dict
 
-from bolinette import db
+from bolinette import types
 
 
 class Mixin:
     @staticmethod
-    def columns() -> Dict[str, 'db.defs.Column']:
+    def columns() -> Dict[str, 'types.Column']:
         pass
 
     @staticmethod
-    def relationships(model_cls) -> Dict[str, 'db.defs.Relationship']:
+    def relationships(model_cls) -> Dict[str, 'types.Relationship']:
         pass

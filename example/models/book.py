@@ -1,18 +1,18 @@
-from bolinette import mapping, db, data, core
+from bolinette import mapping, types, data, core
 from bolinette.decorators import model, with_mixin
 
 
 @model('book')
 @with_mixin('historized')
 class Book(data.Model):
-    id = db.defs.Column(db.types.Integer, primary_key=True)
-    name = db.defs.Column(db.types.String, nullable=False)
-    pages = db.defs.Column(db.types.Integer, nullable=False)
-    price = db.defs.Column(db.types.Float, nullable=False)
-    publication_date = db.defs.Column(db.types.Date, nullable=False)
+    id = types.Column(types.Integer, primary_key=True)
+    name = types.Column(types.String, nullable=False)
+    pages = types.Column(types.Integer, nullable=False)
+    price = types.Column(types.Float, nullable=False)
+    publication_date = types.Column(types.Date, nullable=False)
 
-    author_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('person', 'id'), nullable=False)
-    author = db.defs.Relationship('person', foreign_key=author_id, backref=db.defs.Backref('books'), lazy=False)
+    author_id = types.Column(types.Integer, reference=types.Reference('person', 'id'), nullable=False)
+    author = types.Relationship('person', foreign_key=author_id, backref=types.Backref('books'), lazy=False)
 
     @classmethod
     def payloads(cls):

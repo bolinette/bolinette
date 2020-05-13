@@ -1,28 +1,28 @@
-from bolinette import mapping, env, db, data
+from bolinette import mapping, env, types, data
 from bolinette.decorators import model
 
 
 @model('users_roles')
 class UsersRoles(data.Model):
-    user_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('user', 'id'), primary_key=True)
-    role_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('role', 'id'), primary_key=True)
+    user_id = types.Column(types.Integer, reference=types.Reference('user', 'id'), primary_key=True)
+    role_id = types.Column(types.Integer, reference=types.Reference('role', 'id'), primary_key=True)
 
 
 @model('user')
 class User(data.Model):
-    id = db.defs.Column(db.types.Integer, primary_key=True)
-    username = db.defs.Column(db.types.String, unique=True, nullable=False)
-    password = db.defs.Column(db.types.Password, nullable=False)
-    email = db.defs.Column(db.types.Email, unique=env.init['USER_EMAIL_REQUIRED'],
-                           nullable=(not env.init['USER_EMAIL_REQUIRED']))
+    id = types.Column(types.Integer, primary_key=True)
+    username = types.Column(types.String, unique=True, nullable=False)
+    password = types.Column(types.Password, nullable=False)
+    email = types.Column(types.Email, unique=env.init['USER_EMAIL_REQUIRED'],
+                              nullable=(not env.init['USER_EMAIL_REQUIRED']))
 
-    roles = db.defs.Relationship('role', secondary='users_roles', lazy='subquery',
-                                 backref=db.defs.Backref('users', lazy=True))
+    roles = types.Relationship('role', secondary='users_roles', lazy='subquery',
+                                    backref=types.Backref('users', lazy=True))
 
-    picture_id = db.defs.Column(db.types.Integer, reference=db.defs.Reference('file', 'id'))
-    profile_picture = db.defs.Relationship('file', foreign_key=picture_id, lazy=False)
+    picture_id = types.Column(types.Integer, reference=types.Reference('file', 'id'))
+    profile_picture = types.Relationship('file', foreign_key=picture_id, lazy=False)
 
-    timezone = db.defs.Column(db.types.String)
+    timezone = types.Column(types.String)
 
     @classmethod
     def payloads(cls):
@@ -35,7 +35,7 @@ class User(data.Model):
         yield 'admin_register', [
             mapping.Column(cls.username, required=True),
             mapping.Column(cls.email, required=True),
-            mapping.Field(db.types.Boolean, name='send_mail', required=True)
+            mapping.Field(types.Boolean, name='send_mail', required=True)
         ]
         yield 'login', [
             mapping.Column(cls.username, required=True),

@@ -1,13 +1,13 @@
-from bolinette import mapping, db, data
+from bolinette import mapping, types, data
 from bolinette.decorators import model
 
 
 @model('file')
 class File(data.Model):
-    id = db.defs.Column(db.types.Integer, primary_key=True)
-    key = db.defs.Column(db.types.String, nullable=False)
-    name = db.defs.Column(db.types.String, nullable=False)
-    mime = db.defs.Column(db.types.String, nullable=False)
+    id = types.Column(types.Integer, primary_key=True)
+    key = types.Column(types.String, nullable=False)
+    name = types.Column(types.String, nullable=False)
+    mime = types.Column(types.String, nullable=False)
 
     @classmethod
     def responses(cls):

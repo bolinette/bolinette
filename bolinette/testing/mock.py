@@ -3,7 +3,7 @@ import random
 import string
 from types import SimpleNamespace
 
-from bolinette import mapping, core, db
+from bolinette import mapping, core, types
 
 
 class Mocked:
@@ -63,18 +63,18 @@ class Mock:
             if column.primary_key:
                 continue
             col_type = column.type
-            if col_type == db.types.String:
+            if col_type == types.String:
                 setattr(mocked.fields, column.name, self._random_lower(rng, 15))
-            if col_type == db.types.Email:
+            if col_type == types.Email:
                 setattr(mocked.fields, column.name, f'{self._random_lower(rng, 10)}@{self._random_lower(rng, 5)}.com')
-            if col_type == db.types.Password:
+            if col_type == types.Password:
                 setattr(mocked.fields, column.name, (self._random_lower(rng, 10) + str(self._random_int(rng, 1, 100))
                                                      + self._random_symbols(rng, 1)))
-            if col_type == db.types.Integer:
+            if col_type == types.Integer:
                 setattr(mocked.fields, column.name, self._random_int(rng, 1, 100))
-            if col_type == db.types.Float:
+            if col_type == types.Float:
                 setattr(mocked.fields, column.name, self._random_int(rng, 1, 100))
-            if col_type == db.types.Date:
+            if col_type == types.Date:
                 setattr(mocked.fields, column.name, self._random_date(rng, datetime.datetime(1900, 1, 1),
                                                                       datetime.datetime(2000, 1, 1)))
         if post_mock_fn and callable(post_mock_fn):

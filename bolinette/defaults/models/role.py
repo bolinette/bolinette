@@ -1,11 +1,11 @@
-from bolinette import mapping, db, data
+from bolinette import mapping, types, data
 from bolinette.decorators import model
 
 
 @model('role')
 class Role(data.Model):
-    id = db.defs.Column(db.types.Integer, primary_key=True)
-    name = db.defs.Column(db.types.String, unique=True, nullable=False)
+    id = types.Column(types.Integer, primary_key=True)
+    name = types.Column(types.String, unique=True, nullable=False)
 
     @classmethod
     def payloads(cls):

@@ -1,6 +1,6 @@
 from sqlalchemy import desc
 
-from bolinette import mapping, db
+from bolinette import mapping, types
 from bolinette.exceptions import EntityNotFoundError
 from bolinette.services import services
 from bolinette.utils import Pagination
@@ -43,7 +43,7 @@ class BaseService:
     async def create(self, params, **_):
         params = mapping.validate_model(self.model, params)
         entity = self.model.__blnt__.new_entity(**params)
-        db.engine.session.add(entity)
+        types.engine.session.add(entity)
         return entity
 
     async def update(self, entity, params, **_):
@@ -55,7 +55,7 @@ class BaseService:
         return entity
 
     async def delete(self, entity, **_):
-        db.engine.session.delete(entity)
+        types.engine.session.delete(entity)
         return entity
 
     @staticmethod
