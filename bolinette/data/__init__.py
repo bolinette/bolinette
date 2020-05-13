@@ -1,3 +1,4 @@
+from bolinette.data import functions
 from bolinette.data.model import Model
 from bolinette.data.mixin import Mixin
 from bolinette.data.repository import Repository

@@ -17,9 +17,9 @@ async def role_seeder(context: core.BolinetteContext):
 
 @seeder
 async def dev_user_seeder(context: core.BolinetteContext):
-    role_service: RoleService = context.service('role')
-    user_service: UserService = context.service('user')
     if env['PROFILE'] == 'development':
+        role_service: RoleService = context.service('role')
+        user_service: UserService = context.service('user')
         with core.Transaction(context):
             root = await role_service.get_by_name('root')
             admin = await role_service.get_by_name('admin')
@@ -48,10 +48,10 @@ async def dev_user_seeder(context: core.BolinetteContext):
 
 @seeder
 async def book_seeder(context: core.BolinetteContext):
-    user_service: UserService = context.service('user')
-    person_service: PersonService = context.service('person')
-    book_service: BookService = context.service('book')
     if env['PROFILE'] == 'development':
+        user_service: UserService = context.service('user')
+        person_service: PersonService = context.service('person')
+        book_service: BookService = context.service('book')
         with core.Transaction(context):
             p1 = await person_service.create({'first_name': 'J.R.R.', 'last_name': 'Tolkien'})
             user = await user_service.get_by_username('root')

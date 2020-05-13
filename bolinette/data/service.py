@@ -1,13 +1,14 @@
 from datetime import datetime
 
-from bolinette import core
+from bolinette import core, data, utils
 from bolinette.exceptions import EntityNotFoundError
 
 
 class Service:
     def __init__(self, name, context: 'core.BolinetteContext'):
         self.name = name
-        self.repo = context.repo(name)
+        self.context = context
+        self.repo: data.Repository = context.repo(name)
 
     def __repr__(self):
         return f'<Service {self.name}>'
@@ -40,6 +41,15 @@ class Service:
     async def create(self, values, **_):
         return await self.repo.create(values)
 
+    async def update(self, entity, values, **_):
+        return await self.repo.update(entity, values)
+
+    async def patch(self, entity, values, **_):
+        return await self.repo.patch(entity, values)
+
+    async def delete(self, entity, **_):
+        return await self.repo.delete(entity)
+
     @staticmethod
     async def _build_order_by(model, query, params):
         order_by_query = []
@@ -49,7 +59,7 @@ class Service:
                 if way:
                     order_by_query.append(column)
                 else:
-                    order_by_query.append(desc(column))
+                    order_by_query.append(data.functions.desc(column))
         return query.order_by(*order_by_query)
 
     @staticmethod
@@ -58,7 +68,7 @@ class Service:
         per_page = pagination['per_page']
         total = query.count()
         items = query.offset(page * per_page).limit(per_page).all()
-        return Pagination(items, page, per_page, total)
+        return utils.Pagination(items, page, per_page, total)
 
 
 class HistorizedService(Service):

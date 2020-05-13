@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Type
 
-from bolinette import types, mapping, core, data
-from bolinette.exceptions import ParamConflictError, ParamMissingError, EntityNotFoundError
+from bolinette import types, mapping, core
+from bolinette.exceptions import ParamMissingError, EntityNotFoundError
 
 
 def marshall(definition, entity, *, skip_none=False, as_list=False, use_foreign_key=False):
@@ -53,21 +52,6 @@ def link_foreign_entities(definition, params):
         raise EntityNotFoundError(params=errors)
 
 
-def validate_model(model: 'data.Model', params: dict):
-    errors = []
-    for column in model.__blnt__.get_columns().values():
-        key = column.name
-        if column.primary_key:
-            continue
-        value = params.get(key, None)
-        if column.unique and value is not None:
-            if model.query().filter(column == value).first() is not None:
-                errors.append((key, value))
-    if len(errors) > 0:
-        raise ParamConflictError(params=errors)
-    return params
-
-
 def validate_payload(definition, params, patch=False):
     errors = []
     valid = {}
@@ -97,21 +81,3 @@ def validate_payload(definition, params, patch=False):
     if len(errors) > 0:
         raise ParamMissingError(params=errors)
     return valid
-
-
-def map_model(model: Type['types.Model'], entity, params, patch=False):
-    errors = []
-    for _, column in model.get_columns().items():
-        key = column.name
-        if column.primary_key or (key not in params and patch):
-            continue
-        original = getattr(entity, key)
-        new = params.get(key, None)
-        if original == new:
-            continue
-        if column.unique and new is not None:
-            if model.query().filter(getattr(model, key) == new).first() is not None:
-                errors.append((key, new))
-        setattr(entity, key, new)
-    if len(errors) > 0:
-        raise ParamConflictError(params=errors)
