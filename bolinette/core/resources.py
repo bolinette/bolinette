@@ -36,7 +36,7 @@ class BolinetteResources:
 class BolinetteResource:
     def __init__(self, resource: Resource):
         self.resource = resource
-        self.routes: Dict[types.HttpMethod, ResourceRoute] = {}
+        self.routes: Dict[types.web.HttpMethod, ResourceRoute] = {}
 
 
 class RouteHandler:

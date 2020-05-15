@@ -11,6 +11,7 @@ class BolinetteContext:
         self.env = env
         self.db = core.DatabaseEngine(self)
         self.resources = core.BolinetteResources(self)
+        self.mapping = core.Mapping(self)
         self._tables: Dict[str, Any] = {}
         self._models: Dict[str, 'data.Model'] = {}
         self._repos: Dict[str, 'data.Repository'] = {}

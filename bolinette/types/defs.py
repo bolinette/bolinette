@@ -13,7 +13,7 @@ class Reference:
 
 
 class Column:
-    def __init__(self, data_type: 'types.DataType', *, reference: Reference = None, primary_key: bool = False,
+    def __init__(self, data_type: 'types.db.DataType', *, reference: Reference = None, primary_key: bool = False,
                  nullable: bool = True, unique: bool = False):
         self.type = data_type
         self.reference = reference

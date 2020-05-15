@@ -36,7 +36,8 @@ class ControllerProps:
 
 
 class ControllerRoute:
-    def __init__(self, func: Callable, path: str, method: types.HttpMethod, access, expects, returns, roles: List[str]):
+    def __init__(self, func: Callable, path: str, method: types.web.HttpMethod,
+                 access, expects, returns, roles: List[str]):
         self.controller = None
         self.func = func
         self.path = path

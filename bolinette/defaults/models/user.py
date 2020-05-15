@@ -4,25 +4,25 @@ from bolinette.decorators import model
 
 @model('users_roles')
 class UsersRoles(data.Model):
-    user_id = types.Column(types.Integer, reference=types.Reference('user', 'id'), primary_key=True)
-    role_id = types.Column(types.Integer, reference=types.Reference('role', 'id'), primary_key=True)
+    user_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id'), primary_key=True)
+    role_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('role', 'id'), primary_key=True)
 
 
 @model('user')
 class User(data.Model):
-    id = types.Column(types.Integer, primary_key=True)
-    username = types.Column(types.String, unique=True, nullable=False)
-    password = types.Column(types.Password, nullable=False)
-    email = types.Column(types.Email, unique=env.init['USER_EMAIL_REQUIRED'],
+    id = types.defs.Column(types.db.Integer, primary_key=True)
+    username = types.defs.Column(types.db.String, unique=True, nullable=False)
+    password = types.defs.Column(types.db.Password, nullable=False)
+    email = types.defs.Column(types.db.Email, unique=env.init['USER_EMAIL_REQUIRED'],
                               nullable=(not env.init['USER_EMAIL_REQUIRED']))
 
-    roles = types.Relationship('role', secondary='users_roles', lazy='subquery',
-                                    backref=types.Backref('users', lazy=True))
+    roles = types.defs.Relationship('role', secondary='users_roles', lazy='subquery',
+                                    backref=types.defs.Backref('users', lazy=True))
 
-    picture_id = types.Column(types.Integer, reference=types.Reference('file', 'id'))
-    profile_picture = types.Relationship('file', foreign_key=picture_id, lazy=False)
+    picture_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('file', 'id'))
+    profile_picture = types.defs.Relationship('file', foreign_key=picture_id, lazy=False)
 
-    timezone = types.Column(types.String)
+    timezone = types.defs.Column(types.db.String)
 
     @classmethod
     def payloads(cls):
@@ -35,7 +35,7 @@ class User(data.Model):
         yield 'admin_register', [
             mapping.Column(cls.username, required=True),
             mapping.Column(cls.email, required=True),
-            mapping.Field(types.Boolean, name='send_mail', required=True)
+            mapping.Field(types.db.Boolean, name='send_mail', required=True)
         ]
         yield 'login', [
             mapping.Column(cls.username, required=True),

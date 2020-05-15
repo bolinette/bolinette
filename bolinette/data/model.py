@@ -38,11 +38,11 @@ class ModelProps:
                      for name, attribute in vars(self.model.__class__).items()
                      if isinstance(attribute, attr_type)])
 
-    def get_columns(self) -> Dict[str, 'types.Column']:
-        return self._get_attribute_of_type(types.Column)
+    def get_columns(self) -> Dict[str, 'types.defs.Column']:
+        return self._get_attribute_of_type(types.defs.Column)
 
-    def get_relationships(self) -> Dict[str, 'types.Relationship']:
-        return self._get_attribute_of_type(types.Relationship)
+    def get_relationships(self) -> Dict[str, 'types.defs.Relationship']:
+        return self._get_attribute_of_type(types.defs.Relationship)
 
     def get_properties(self) -> Dict[str, 'ModelProperty']:
         return self._get_attribute_of_type(ModelProperty)

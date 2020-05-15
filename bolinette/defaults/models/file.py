@@ -4,10 +4,10 @@ from bolinette.decorators import model
 
 @model('file')
 class File(data.Model):
-    id = types.Column(types.Integer, primary_key=True)
-    key = types.Column(types.String, nullable=False)
-    name = types.Column(types.String, nullable=False)
-    mime = types.Column(types.String, nullable=False)
+    id = types.defs.Column(types.db.Integer, primary_key=True)
+    key = types.defs.Column(types.db.String, nullable=False)
+    name = types.defs.Column(types.db.String, nullable=False)
+    mime = types.defs.Column(types.db.String, nullable=False)
 
     @classmethod
     def responses(cls):

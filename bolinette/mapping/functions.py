@@ -70,7 +70,7 @@ def validate_payload(definition, params, patch=False):
             if patch and field.name not in params:
                 continue
             value = params.get(field.name, None)
-            if value and field.type == types.Date:
+            if value and field.type == types.db.Date:
                 value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
             if not value or not len(str(value)):
                 if field.required:

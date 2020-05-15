@@ -59,27 +59,27 @@ def controller(controller_name: str, path: str, *, service_name: str = None):
     return decorator
 
 
-def route(path: str, *, method: types.HttpMethod, access=None, expects=None, returns=None, roles: List[str] = None):
+def route(path: str, *, method: types.web.HttpMethod, access=None, expects=None, returns=None, roles: List[str] = None):
     def decorator(route_function: Callable):
         return data.ControllerRoute(route_function, path, method, access, expects, returns, roles)
     return decorator
 
 
 def get(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=types.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=types.web.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def post(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=types.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=types.web.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def put(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=types.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=types.web.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def patch(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=types.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=types.web.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def delete(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=types.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=types.web.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)

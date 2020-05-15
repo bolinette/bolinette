@@ -4,8 +4,8 @@ from bolinette.decorators import model
 
 @model('role')
 class Role(data.Model):
-    id = types.Column(types.Integer, primary_key=True)
-    name = types.Column(types.String, unique=True, nullable=False)
+    id = types.defs.Column(types.db.Integer, primary_key=True)
+    name = types.defs.Column(types.db.String, unique=True, nullable=False)
 
     @classmethod
     def payloads(cls):

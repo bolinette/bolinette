@@ -5,9 +5,9 @@ from bolinette import types
 
 class Mixin:
     @staticmethod
-    def columns() -> Dict[str, 'types.Column']:
+    def columns() -> Dict[str, 'types.defs.Column']:
         pass
 
     @staticmethod
-    def relationships(model_cls) -> Dict[str, 'types.Relationship']:
+    def relationships(model_cls) -> Dict[str, 'types.defs.Relationship']:
         pass

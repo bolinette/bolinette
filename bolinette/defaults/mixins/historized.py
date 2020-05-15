@@ -7,17 +7,17 @@ class Historized(data.Mixin):
     @staticmethod
     def columns():
         return {
-            'created_on': types.Column(types.Date),
-            'updated_on': types.Column(types.Date),
-            'created_by_id': types.Column(types.Integer, reference=types.Reference('user', 'id')),
-            'updated_by_id': types.Column(types.Integer, reference=types.Reference('user', 'id'))
+            'created_on': types.defs.Column(types.db.Date),
+            'updated_on': types.defs.Column(types.db.Date),
+            'created_by_id': types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id')),
+            'updated_by_id': types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id'))
         }
 
     @staticmethod
     def relationships(model_cls):
         return {
-            'created_by': types.Relationship('user', foreign_key=model_cls.created_by_id, lazy=False),
-            'updated_by': types.Relationship('user', foreign_key=model_cls.updated_by_id, lazy=False)
+            'created_by': types.defs.Relationship('user', foreign_key=model_cls.created_by_id, lazy=False),
+            'updated_by': types.defs.Relationship('user', foreign_key=model_cls.updated_by_id, lazy=False)
         }
 
     @staticmethod
