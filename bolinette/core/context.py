@@ -1,16 +1,21 @@
 from typing import Dict, Any
 
+from aiohttp import web as aio_web
+
 from bolinette import core, env, data
 
 
 class BolinetteContext:
-    def __init__(self):
+    def __init__(self, app: aio_web.Application):
+        self.app = app
         self.env = env
+        self.db = core.DatabaseEngine(self)
+        self.resources = core.BolinetteResources(self)
         self._tables: Dict[str, Any] = {}
         self._models: Dict[str, 'data.Model'] = {}
         self._repos: Dict[str, 'data.Repository'] = {}
         self._services: Dict[str, 'data.Service'] = {}
-        self.db = core.DatabaseEngine(self)
+        self._controllers: Dict[str, 'data.Controller'] = {}
 
     def model(self, name) -> Any:
         return self._models[name]
@@ -32,6 +37,16 @@ class BolinetteContext:
     def tables(self):
         return iter(self._tables.items())
 
+    def repo(self, name) -> Any:
+        return self._repos[name]
+
+    def add_repo(self, name, repo: 'data.Repository'):
+        self._repos[name] = repo
+
+    @property
+    def repos(self):
+        return iter(self._repos.items())
+
     def service(self, name) -> Any:
         return self._services[name]
 
@@ -42,12 +57,12 @@ class BolinetteContext:
     def services(self):
         return iter(self._services.items())
 
-    def repo(self, name) -> Any:
-        return self._repos[name]
+    def controller(self, name) -> Any:
+        return self._controllers[name]
 
-    def add_repo(self, name, repo: 'data.Repository'):
-        self._repos[name] = repo
+    def add_controller(self, name, controller: 'data.Controller'):
+        self._controllers[name] = controller
 
     @property
-    def repos(self):
+    def controllers(self):
         return iter(self._repos.items())

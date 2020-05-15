@@ -5,18 +5,19 @@ from bolinette.exceptions import EntityNotFoundError
 
 
 class Service:
-    def __init__(self, name, context: 'core.BolinetteContext'):
-        self.name = name
+    __blnt__: 'ServiceMetadata' = None
+
+    def __init__(self, context: 'core.BolinetteContext'):
         self.context = context
-        self.repo: data.Repository = context.repo(name)
+        self.repo: data.Repository = context.repo(self.__blnt__.model_name)
 
     def __repr__(self):
-        return f'<Service {self.name}>'
+        return f'<Service {self.__blnt__.name}>'
 
     async def get(self, identifier, *, safe=False, **_):
         entity = await self.repo.get(identifier)
         if entity is None and not safe:
-            raise EntityNotFoundError(model=self.name, key='id', value=identifier)
+            raise EntityNotFoundError(model=self.__blnt__.name, key='id', value=identifier)
         return entity
 
     async def get_by(self, key, value, **_):
@@ -25,7 +26,7 @@ class Service:
     async def get_first_by(self, key, value, *, safe=False, **_):
         entity = await self.repo.get_first_by(key, value)
         if entity is None and not safe:
-            raise EntityNotFoundError(model=self.name, key=key, value=value)
+            raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
         return entity
 
     async def get_all(self, pagination=None, order_by=None, **_):
@@ -71,9 +72,15 @@ class Service:
         return utils.Pagination(items, page, per_page, total)
 
 
+class ServiceMetadata:
+    def __init__(self, name: str, model_name: str):
+        self.name = name
+        self.model_name = model_name
+
+
 class HistorizedService(Service):
-    def __init__(self, name, context: 'core.BolinetteContext'):
-        super().__init__(name, context)
+    def __init__(self, context: 'core.BolinetteContext'):
+        super().__init__(context)
 
     async def create(self, values, *, current_user=None, **_):
         if current_user:

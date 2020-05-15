@@ -9,12 +9,12 @@ from bolinette.decorators import init_func
 def init_models(context: core.BolinetteContext):
     models = {}
     for model_name, model_cls in core.cache.models.items():
-        models[model_name] = model_cls(model_name)
+        models[model_name] = model_cls()
     orm_tables = {}
     orm_cols = {}
     for model_name, model in models.items():
         orm_cols[model_name] = {}
-        for att_name, attribute in model.__blnt__.get_columns().items():
+        for att_name, attribute in model.__props__.get_columns().items():
             attribute.name = att_name
             ref = None
             if attribute.reference:
@@ -28,7 +28,7 @@ def init_models(context: core.BolinetteContext):
 
     for model_name, model in models.items():
         orm_defs = {}
-        for att_name, attribute in model.__blnt__.get_relationships().items():
+        for att_name, attribute in model.__props__.get_relationships().items():
             attribute.name = att_name
             backref = None
             if attribute.backref:
@@ -46,7 +46,7 @@ def init_models(context: core.BolinetteContext):
         orm_defs['__table__'] = orm_tables[model_name]
         orm_model = type(model_name, (context.db.model,), orm_defs)
 
-        for att_name, attribute in model.__blnt__.get_properties().items():
+        for att_name, attribute in model.__props__.get_properties().items():
             setattr(orm_model, att_name, property(attribute.function))
 
         context.add_model(model_name, model)
@@ -62,7 +62,17 @@ def init_repositories(context: core.BolinetteContext):
 @init_func
 def init_services(context: core.BolinetteContext):
     for service_name, service_cls in core.cache.services.items():
-        context.add_service(service_name, service_cls(service_name, context))
+        context.add_service(service_name, service_cls(context))
+
+
+@init_func
+def init_controllers(context: core.BolinetteContext):
+    for controller_name, controller_cls in core.cache.controllers.items():
+        controller = controller_cls(context)
+        for route_name, route in controller.__props__.get_routes().items():
+            path = f'/api{controller.__blnt__.path}{route.path}'
+            context.resources.add_route(path, controller, route)
+        context.add_controller(controller_name, controller)
 
 
 @init_func

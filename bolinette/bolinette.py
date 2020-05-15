@@ -3,7 +3,7 @@ import inspect
 
 from aiohttp import web as aio_web
 
-from bolinette import env, network, bcrypt, services, web, ws, core
+from bolinette import env, core
 from bolinette.commands import commands
 
 
@@ -12,16 +12,10 @@ class Bolinette:
         env.init_app(profile=profile, overrides=overrides)
 
         self.app = aio_web.Application()
-        self.context = core.BolinetteContext()
+        self.context = core.BolinetteContext(self.app)
         self.app['blnt'] = self.context
 
         self.run_init_functions(self.app)
-
-        services.init_services(self.context)
-        network.jwt.init_app()
-        bcrypt.init_app()
-        web.resources.init_app()
-        ws.resources.init_app()
 
     @staticmethod
     def run_init_functions(app):
@@ -29,13 +23,10 @@ class Bolinette:
             func(app['blnt'])
 
     def run(self):
-        aio_web.run_app(web.resources.app)
-
-    @property
-    def _app(self):
-        return web.resources.app
+        aio_web.run_app(self.app, port=self.context.env['port'])
 
     def run_command(self, name, **kwargs):
+        kwargs['blnt'] = self
         if name in commands.commands:
             func = commands.commands[name]
             if inspect.isfunction(func):

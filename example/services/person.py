@@ -4,5 +4,5 @@ from bolinette.decorators import service
 
 @service('person')
 class PersonService(data.Service):
-    def __init__(self, name, context: 'core.BolinetteContext'):
-        super().__init__(name, context)
+    def __init__(self, context: 'core.BolinetteContext'):
+        super().__init__(context)

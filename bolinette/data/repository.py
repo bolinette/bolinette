@@ -51,7 +51,7 @@ class Repository:
 
     def _validate_model(self, values: dict):
         errors = []
-        for column in self.model.__blnt__.get_columns().values():
+        for column in self.model.__props__.get_columns().values():
             key = column.name
             if column.primary_key:
                 continue
@@ -65,7 +65,7 @@ class Repository:
 
     def _map_model(self, entity, values, patch=False):
         errors = []
-        for _, column in self.model.__blnt__.get_columns().items():
+        for _, column in self.model.__props__.get_columns().items():
             key = column.name
             if column.primary_key or (key not in values and patch):
                 continue

@@ -1,13 +1,18 @@
-from typing import Type, Callable
+from typing import Type, Callable, List
 
-from bolinette import core, data
+from bolinette import core, data, types
 
 
 def model(model_name: str):
     def decorator(model_cls: Type['data.Model']):
+        model_cls.__blnt__ = data.ModelMetadata(model_name)
         core.cache.models[model_name] = model_cls
         return model_cls
     return decorator
+
+
+def model_property(function):
+    return data.ModelProperty(function.__name__, function)
 
 
 def mixin(mixin_name: str):
@@ -38,8 +43,43 @@ def seeder(func):
     return func
 
 
-def service(service_name: str):
+def service(service_name: str, *, model_name: str = None):
     def decorator(service_cls: Type['data.Service']):
+        service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
         core.cache.services[service_name] = service_cls
         return service_cls
     return decorator
+
+
+def controller(controller_name: str, path: str, *, service_name: str = None):
+    def decorator(controller_cls: Type['data.Controller']):
+        controller_cls.__blnt__ = data.ControllerMetadata(controller_name, path, service_name or controller_name)
+        core.cache.controllers[controller_name] = controller_cls
+        return controller_cls
+    return decorator
+
+
+def route(path: str, *, method: types.HttpMethod, access=None, expects=None, returns=None, roles: List[str] = None):
+    def decorator(route_function: Callable):
+        return data.ControllerRoute(route_function, path, method, access, expects, returns, roles)
+    return decorator
+
+
+def get(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
+    return route(path, method=types.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
+
+
+def post(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
+    return route(path, method=types.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
+
+
+def put(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
+    return route(path, method=types.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
+
+
+def patch(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
+    return route(path, method=types.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
+
+
+def delete(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
+    return route(path, method=types.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)

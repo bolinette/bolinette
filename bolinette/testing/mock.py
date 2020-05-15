@@ -56,7 +56,7 @@ class Mock:
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
-        columns = self.context.model(model_name).__blnt__.get_columns()
+        columns = self.context.model(model_name).__props__.get_columns()
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
         for _, column in columns.items():

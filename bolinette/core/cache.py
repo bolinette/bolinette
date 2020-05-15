@@ -8,6 +8,7 @@ class BolinetteCache:
         self.models: Dict[str, Type['data.Model']] = {}
         self.mixins: Dict[str, Type['data.Mixin']] = {}
         self.services: Dict[str, Type['data.Service']] = {}
+        self.controllers: Dict[str, Type['data.Controller']] = {}
         self.init_funcs: List[Callable[['core.BolinetteContext'], None]] = []
         self.seeders = []
 

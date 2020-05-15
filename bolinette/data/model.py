@@ -6,9 +6,31 @@ MappingPyTyping = List[Union['mapping.Column', 'mapping.Field', 'mapping.List', 
 MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 
 
+class Model:
+    __blnt__: 'ModelMetadata' = None
+
+    def __init__(self):
+        self.__props__ = ModelProps(self)
+
+    @classmethod
+    def payloads(cls) -> MappingListPyTyping:
+        pass
+
+    @classmethod
+    def responses(cls) -> MappingListPyTyping:
+        pass
+
+    def __repr__(self):
+        return f'<Model {self.__blnt__.name}>'
+
+
 class ModelMetadata:
-    def __init__(self, name, model):
+    def __init__(self, name):
         self.name = name
+
+
+class ModelProps:
+    def __init__(self, model):
         self.model = model
 
     def _get_attribute_of_type(self, attr_type):
@@ -22,21 +44,14 @@ class ModelMetadata:
     def get_relationships(self) -> Dict[str, 'types.Relationship']:
         return self._get_attribute_of_type(types.Relationship)
 
-    def get_properties(self) -> Dict[str, 'types.ModelProperty']:
-        return self._get_attribute_of_type(types.ModelProperty)
+    def get_properties(self) -> Dict[str, 'ModelProperty']:
+        return self._get_attribute_of_type(ModelProperty)
 
 
-class Model:
-    def __init__(self, name):
-        self.__blnt__ = ModelMetadata(name, self)
-
-    @classmethod
-    def payloads(cls) -> MappingListPyTyping:
-        pass
-
-    @classmethod
-    def responses(cls) -> MappingListPyTyping:
-        pass
+class ModelProperty:
+    def __init__(self, name, function):
+        self.name = name
+        self.function = function
 
     def __repr__(self):
-        return f'<Model {self.__blnt__.name}>'
+        return f'<ModelProperty {self.name}>'
