@@ -1,13 +1,11 @@
-from bolinette.testing import client, bolitest, mock
+from bolinette.testing import client, bolitest, Mock
 from tests import utils
 
-from example.models import Book, Person
 
-
-def big_set_up():
-    mock(1, 'person').insert(Person)
+async def big_set_up(_, mock: Mock):
+    mock(1, 'person').insert()
     for i in range(100):
-        utils.book.set_author(mock(i, 'book'), 1).insert(Book)
+        utils.book.set_author(mock(i, 'book'), 1).insert()
 
 
 def equal_books(b1: dict, b2: dict, author: dict = None):
@@ -32,13 +30,13 @@ async def test_get_books_paginated(client):
     assert rv['pagination']['per_page'] == 20
     assert rv['pagination']['total'] == 100
     for i in range(20):
-        assert equal_books(rv['data'][i], mock(i, 'book').to_response())
+        assert equal_books(rv['data'][i], client.mock(i, 'book').to_response())
 
 
 @bolitest(before=utils.book.set_up)
 async def test_get_book(client):
-    author1 = mock(1, 'person')
-    book1 = utils.book.set_author(mock(1, 'book'), 1)
+    author1 = client.mock(1, 'person')
+    book1 = utils.book.set_author(client.mock(1, 'book'), 1)
 
     rv = await client.get('/book/1')
     assert rv['code'] == 200
@@ -47,8 +45,8 @@ async def test_get_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_get_book2(client):
-    author2 = mock(2, 'person')
-    book3 = utils.book.set_author(mock(3, 'book'), 2)
+    author2 = client.mock(2, 'person')
+    book3 = utils.book.set_author(client.mock(3, 'book'), 2)
 
     rv = await client.get('/book/3')
     assert rv['code'] == 200
@@ -63,9 +61,9 @@ async def test_get_book_not_found(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_create_book(client):
-    author1 = mock(1, 'person')
-    book4 = utils.book.set_author(mock(4, 'book'), 1)
-    user1 = mock(1, 'user')
+    author1 = client.mock(1, 'person')
+    book4 = utils.book.set_author(client.mock(4, 'book'), 1)
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -78,7 +76,7 @@ async def test_create_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_create_book_bad_request(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -91,8 +89,8 @@ async def test_create_book_bad_request(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_create_book_author_not_found(client):
-    book4 = utils.book.set_author(mock(4, 'book'), 3)
-    user1 = mock(1, 'user')
+    book4 = utils.book.set_author(client.mock(4, 'book'), 3)
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -103,9 +101,9 @@ async def test_create_book_author_not_found(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_historized_entities(client):
-    user1 = mock(1, 'user')
-    user2 = mock(2, 'user')
-    book4 = utils.book.set_author(mock(4, 'book'), 1)
+    user1 = client.mock(1, 'user')
+    user2 = client.mock(2, 'user')
+    book4 = utils.book.set_author(client.mock(4, 'book'), 1)
 
     await client.post('/user/login', user1.to_payload('login'))
     await client.post('/book', book4.to_payload())
@@ -119,9 +117,9 @@ async def test_historized_entities(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book(client):
-    author2 = mock(2, 'person')
-    book1 = utils.book.set_author(mock(1, 'book'), 2)
-    user2 = mock(2, 'user')
+    author2 = client.mock(2, 'person')
+    book1 = utils.book.set_author(client.mock(1, 'book'), 2)
+    user2 = client.mock(2, 'user')
 
     await client.post('/user/login', user2.to_payload('login'))
 
@@ -133,7 +131,7 @@ async def test_update_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book_bad_request(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -145,7 +143,7 @@ async def test_update_book_bad_request(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book_not_found(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -155,9 +153,9 @@ async def test_update_book_not_found(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_patch_book(client):
-    author1 = mock(1, 'person')
-    book1 = utils.book.set_author(mock(1, 'book'), 1)
-    user1 = mock(1, 'user')
+    author1 = client.mock(1, 'person')
+    book1 = utils.book.set_author(client.mock(1, 'book'), 1)
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -170,7 +168,7 @@ async def test_patch_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_patch_book_bad_request(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -181,7 +179,7 @@ async def test_patch_book_bad_request(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_update_book_author_not_found(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -192,7 +190,7 @@ async def test_update_book_author_not_found(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_delete_book(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
@@ -205,7 +203,7 @@ async def test_delete_book(client):
 
 @bolitest(before=utils.book.set_up)
 async def test_delete_book_not_found(client):
-    user1 = mock(1, 'user')
+    user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 

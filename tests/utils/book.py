@@ -1,5 +1,4 @@
-from bolinette.testing import Mocked, mock
-from example.models import Person, Book
+from bolinette.testing import Mocked, Mock
 from tests import utils
 
 
@@ -8,11 +7,11 @@ def set_author(book: Mocked, author_id: int) -> Mocked:
     return book
 
 
-def set_up():
-    utils.user.salt_password(mock(1, 'user')).insert(User)
-    utils.user.salt_password(mock(2, 'user')).insert(User)
-    mock(1, 'person').insert(Person)
-    mock(2, 'person').insert(Person)
-    set_author(mock(1, 'book'), 1).insert(Book)
-    set_author(mock(2, 'book'), 1).insert(Book)
-    set_author(mock(3, 'book'), 2).insert(Book)
+async def set_up(_, mock: Mock):
+    utils.user.salt_password(mock(1, 'user')).insert()
+    utils.user.salt_password(mock(2, 'user')).insert()
+    mock(1, 'person').insert()
+    mock(2, 'person').insert()
+    set_author(mock(1, 'book'), 1).insert()
+    set_author(mock(2, 'book'), 1).insert()
+    set_author(mock(3, 'book'), 2).insert()

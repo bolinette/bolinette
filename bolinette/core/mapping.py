@@ -80,14 +80,14 @@ class Mapping:
                                                    as_list=True, use_foreign_key=use_foreign_key)
         return values
 
-    def link_foreign_entities(self, definition, params):
+    async def link_foreign_entities(self, definition, params):
         errors = []
         for field in definition.fields:
             if isinstance(field, types.mapping.Reference):
                 value = params.get(field.foreign_key, None)
                 repo: data.Repository = self.context.repo(field.reference_model)
                 if value is not None and repo is not None:
-                    entity = repo.get_first_by(field.reference_key, value)
+                    entity = await repo.get_first_by(field.reference_key, value)
                     if entity is None:
                         errors.append((field.reference_model, field.reference_key, value))
         if len(errors) > 0:

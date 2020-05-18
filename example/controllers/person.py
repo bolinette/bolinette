@@ -1,11 +1,15 @@
-from bolinette.web import Namespace
-from example.services import person_service
+from bolinette import data
+from bolinette.decorators import controller
 
-ns = Namespace('/person', person_service)
 
-ns.defaults.get_all()
-ns.defaults.get_one('complete')
-ns.defaults.create('complete')
-ns.defaults.update('complete')
-ns.defaults.patch('complete')
-ns.defaults.delete('complete')
+@controller('person', '/person')
+class PersonController(data.Controller):
+    def default_routes(self):
+        return [
+            self.defaults.get_all(),
+            self.defaults.get_one('complete'),
+            self.defaults.create('complete'),
+            self.defaults.update('complete'),
+            self.defaults.patch('complete'),
+            self.defaults.delete('complete')
+        ]

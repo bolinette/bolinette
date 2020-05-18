@@ -67,7 +67,7 @@ class RouteHandler:
                 if self.route.expects is not None:
                     exp_def = context.mapping.payload(self.route.expects.model, self.route.expects.key)
                     payload = context.mapping.validate_payload(exp_def, payload, self.route.expects.patch)
-                    context.mapping.link_foreign_entities(exp_def, payload)
+                    await context.mapping.link_foreign_entities(exp_def, payload)
 
                 resp = await self.route.func(self.controller, payload=payload, match=match,
                                              query=query, current_user=current_user)

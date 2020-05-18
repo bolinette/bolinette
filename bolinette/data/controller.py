@@ -128,7 +128,7 @@ class ControllerDefaults:
                                await controller.service.patch(entity, payload, **kwargs))
 
         return ControllerRoute(route, '/{value}', types.web.HttpMethod.PATCH, access=access, roles=roles,
-                               expects=ControllerExcepts(self.service.__blnt__.model_name, expects),
+                               expects=ControllerExcepts(self.service.__blnt__.model_name, expects, patch=True),
                                returns=ControllerReturns(self.service.__blnt__.model_name, returns))
 
     def delete(self, returns='default', *, key='id', access=None, roles=None):

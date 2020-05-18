@@ -1,10 +1,11 @@
-from bolinette.testing import client, bolitest, mock
+from bolinette.testing import client, bolitest
 from tests import utils
+import example
 
 
 @bolitest(before=utils.book.set_up)
 async def test_get_person(client):
-    person1 = mock(1, 'person')
+    person1 = client.mock(1, 'person')
 
     rv = await client.get('/person/1')
     person1_res = person1.to_response()
