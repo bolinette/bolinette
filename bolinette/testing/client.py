@@ -2,7 +2,7 @@ import json
 
 from bolinette import core
 from bolinette.testing import Mock
-from bolinette.web import serialize
+from bolinette.utils.serializing import serialize
 
 
 class TestClient:

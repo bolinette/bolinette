@@ -1,4 +1,3 @@
-from bolinette.models.default import User
 from bolinette.testing import Mocked, mock
 from example.models import Person, Book
 from tests import utils

@@ -3,7 +3,7 @@ import random
 import string
 from types import SimpleNamespace
 
-from bolinette import mapping, core, types
+from bolinette import core, types
 
 
 class Mocked:
@@ -25,12 +25,12 @@ class Mocked:
         return self.insert_entity(self.context, self.name, fields)
 
     def to_response(self, key='default') -> dict:
-        definition = mapping.get_response(self.name, key)
-        return mapping.marshall(definition, self.fields, use_foreign_key=True)
+        definition = self.context.mapping.response(self.name, key)
+        return self.context.mapping.marshall(definition, self.fields, use_foreign_key=True)
 
     def to_payload(self, key='default') -> dict:
-        definition = mapping.get_payload(self.name, key)
-        return mapping.marshall(definition, self.fields, use_foreign_key=True)
+        definition = self.context.mapping.payload(self.name, key)
+        return self.context.mapping.marshall(definition, self.fields, use_foreign_key=True)
 
 
 class Mock:

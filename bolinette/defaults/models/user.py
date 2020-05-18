@@ -1,4 +1,4 @@
-from bolinette import mapping, env, types, data
+from bolinette import env, types, data
 from bolinette.decorators import model
 
 
@@ -27,30 +27,30 @@ class User(data.Model):
     @classmethod
     def payloads(cls):
         yield 'register', [
-            mapping.Column(cls.username, required=True),
-            mapping.Column(cls.email, required=True),
-            mapping.Column(cls.password, required=True),
-            mapping.Column(cls.timezone)
+            types.mapping.Column(cls.username, required=True),
+            types.mapping.Column(cls.email, required=True),
+            types.mapping.Column(cls.password, required=True),
+            types.mapping.Column(cls.timezone)
         ]
         yield 'admin_register', [
-            mapping.Column(cls.username, required=True),
-            mapping.Column(cls.email, required=True),
-            mapping.Field(types.db.Boolean, name='send_mail', required=True)
+            types.mapping.Column(cls.username, required=True),
+            types.mapping.Column(cls.email, required=True),
+            types.mapping.Field(types.db.Boolean, name='send_mail', required=True)
         ]
         yield 'login', [
-            mapping.Column(cls.username, required=True),
-            mapping.Column(cls.password, required=True)
+            types.mapping.Column(cls.username, required=True),
+            types.mapping.Column(cls.password, required=True)
         ]
 
     @classmethod
     def responses(cls):
         default = [
-            mapping.Column(cls.username),
-            mapping.Reference(cls.profile_picture, 'minimal')
+            types.mapping.Column(cls.username),
+            types.mapping.Reference(cls.profile_picture, 'minimal')
         ]
         yield default
         yield 'private', default + [
-            mapping.Column(cls.email),
-            mapping.List(mapping.Definition('role'), key='roles'),
-            mapping.Column(cls.timezone)
+            types.mapping.Column(cls.email),
+            types.mapping.List(types.mapping.Definition('role'), key='roles'),
+            types.mapping.Column(cls.timezone)
         ]

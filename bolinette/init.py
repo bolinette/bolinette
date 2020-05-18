@@ -75,12 +75,10 @@ def init_services(context: core.BolinetteContext):
 def init_controllers(context: core.BolinetteContext):
     for controller_name, controller_cls in core.cache.controllers.items():
         controller = controller_cls(context)
-        for route_name, route in controller.__props__.get_routes().items():
+        for _, route in controller.__props__.get_routes().items():
+            path = f'/api{controller.__blnt__.path}{route.path}'
+            context.resources.add_route(path, controller, route)
+        for route in controller.default_routes():
             path = f'/api{controller.__blnt__.path}{route.path}'
             context.resources.add_route(path, controller, route)
         context.add_controller(controller_name, controller)
-
-
-@init_func
-def init_hook(context: core.BolinetteContext):
-    pass

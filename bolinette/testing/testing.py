@@ -4,7 +4,6 @@ from typing import Callable, Awaitable
 import pytest
 
 from bolinette import Bolinette, core
-from bolinette.web import resources
 from bolinette.testing import TestClient, Mock
 
 
@@ -12,7 +11,7 @@ from bolinette.testing import TestClient, Mock
 def client(loop, aiohttp_client):
     blnt = Bolinette(profile='test',
                      overrides={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'})
-    client = loop.run_until_complete(aiohttp_client(resources.app))
+    client = loop.run_until_complete(aiohttp_client(blnt.app))
     return TestClient(client, blnt.context)
 
 
@@ -29,6 +28,6 @@ def bolitest(*, before: Callable[[core.BolinetteContext, Mock], Awaitable[None]]
             await func(client=client)
             if after is not None:
                 await after(client.context, client.mock)
-            await client.context.db.engine.drop_all()
+            await client.context.db.drop_all()
         return inner
     return wrapper

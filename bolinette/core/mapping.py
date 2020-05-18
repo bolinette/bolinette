@@ -11,7 +11,7 @@ class Mapping:
         self._payloads: Dict[str, types.mapping.Definition] = {}
         self._responses: Dict[str, types.mapping.Definition] = {}
 
-    def _get_def(self, collection, model_name, key):
+    def _get_def(self, collection, model_name, key) -> 'types.mapping.Definition':
         m = collection.get(model_name)
         if m is None:
             raise InternalError(f'mapping.unknown_model:{model_name}')
@@ -52,7 +52,7 @@ class Mapping:
         if as_list:
             return [self.marshall(definition, e, skip_none=skip_none, as_list=False, use_foreign_key=use_foreign_key)
                     for e in entity]
-        data = {}
+        values = {}
         for field in definition.fields:
             if isinstance(field, types.mapping.Field):
                 if field.function is not None:
@@ -62,9 +62,9 @@ class Mapping:
                 if field.formatting is not None:
                     value = field.formatting(value)
                 if not skip_none or value is not None:
-                    data[field.name] = value
+                    values[field.name] = value
             elif isinstance(field, types.mapping.Reference) and use_foreign_key:
-                data[field.foreign_key] = getattr(entity, field.foreign_key)
+                values[field.foreign_key] = getattr(entity, field.foreign_key)
             elif isinstance(field, types.mapping.Definition):
                 d = self.response(field.model_name, field.model_key)
                 attr = None
@@ -72,13 +72,13 @@ class Mapping:
                     attr = field.function(entity)
                 elif hasattr(entity, field.name):
                     attr = getattr(entity, field.name)
-                data[field.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
-                                                 use_foreign_key=use_foreign_key)
+                values[field.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
+                                                   use_foreign_key=use_foreign_key)
             elif isinstance(field, types.mapping.List):
                 d = self.response(field.element.model_name, field.element.model_key)
-                data[field.name] = self.marshall(d, getattr(entity, field.name), skip_none=skip_none,
-                                                 as_list=True, use_foreign_key=use_foreign_key)
-        return data
+                values[field.name] = self.marshall(d, getattr(entity, field.name), skip_none=skip_none,
+                                                   as_list=True, use_foreign_key=use_foreign_key)
+        return values
 
     def link_foreign_entities(self, definition, params):
         errors = []

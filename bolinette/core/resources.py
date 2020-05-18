@@ -6,9 +6,8 @@ from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import core, data, types
-from bolinette.exceptions import APIError
-from bolinette.utils import Pagination
-from bolinette.utils.response import response
+from bolinette.exceptions import APIError, ForbiddenError
+from bolinette.utils import Pagination, response
 from bolinette.utils.serializing import deserialize, serialize
 
 
@@ -46,6 +45,7 @@ class RouteHandler:
 
     async def __call__(self, request: Request):
         context: core.BolinetteContext = request.app['blnt']
+        user_service = context.service('user')
         current_user = None
         payload = await deserialize(request)
         match = {}
@@ -56,6 +56,19 @@ class RouteHandler:
             query[key] = request.query[key]
         try:
             with core.Transaction(context):
+                if self.route.access is not None:
+                    current_user = await user_service.get_by_username(self.route.access.check(context, request))
+
+                if self.route.roles and len(self.route.roles):
+                    user_roles = set(map(lambda r: r.name, current_user.roles))
+                    if 'root' not in user_roles and not len(user_roles.intersection(set(self.route.roles))):
+                        raise ForbiddenError(f'user.forbidden:{",".join(self.route.roles)}')
+
+                if self.route.expects is not None:
+                    exp_def = context.mapping.payload(self.route.expects.model, self.route.expects.key)
+                    payload = context.mapping.validate_payload(exp_def, payload, self.route.expects.patch)
+                    context.mapping.link_foreign_entities(exp_def, payload)
+
                 resp = await self.route.func(self.controller, payload=payload, match=match,
                                              query=query, current_user=current_user)
             if isinstance(resp, aio_web.Response):
@@ -71,11 +84,12 @@ class RouteHandler:
                 }
                 content['data'] = content['data'].items
 
-            # if self.returns is not None:
-            #     ret_def = mapping.get_response(self.returns.model, self.returns.key)
-            #     if content.get('data') is not None:
-            #         content['data'] = mapping.marshall(ret_def, content['data'], skip_none=self.returns.skip_none,
-            #                                            as_list=self.returns.as_list)
+            if self.route.returns is not None:
+                ret_def = context.mapping.response(self.route.returns.model, self.route.returns.key)
+                if content.get('data') is not None:
+                    content['data'] = context.mapping.marshall(ret_def, content['data'],
+                                                               skip_none=self.route.returns.skip_none,
+                                                               as_list=self.route.returns.as_list)
 
             serialized, mime = serialize(content, 'application/json')
 
