@@ -81,6 +81,11 @@ class ServiceMetadata:
         self.model_name = model_name
 
 
+class SimpleService:
+    def __init__(self, context: 'core.BolinetteContext'):
+        self.context = context
+
+
 class HistorizedService(Service):
     def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)

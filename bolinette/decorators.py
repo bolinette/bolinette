@@ -44,8 +44,9 @@ def seeder(func):
 
 
 def service(service_name: str, *, model_name: str = None):
-    def decorator(service_cls: Type['data.Service']):
-        service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
+    def decorator(service_cls: Union[Type['data.Service'], Type['data.SimpleService']]):
+        if issubclass(service_cls, data.Service):
+            service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
         core.cache.services[service_name] = service_cls
         return service_cls
     return decorator
