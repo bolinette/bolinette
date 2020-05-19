@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import data, types, core, env
+from bolinette import data, types, env
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import BadRequestError, EntityNotFoundError
@@ -11,10 +11,13 @@ from bolinette.utils import response, Cookie
 
 @controller('user', '/user')
 class UserController(data.Controller):
-    def __init__(self, context: 'core.BolinetteContext'):
-        super().__init__(context)
-        self.service: UserService = context.service('user')
-        self.role_service: RoleService = context.service('role')
+    @property
+    def user_service(self) -> UserService:
+        return self.context.service('user')
+    
+    @property
+    def role_service(self) -> RoleService:
+        return self.context.service('role')
 
     def default_routes(self):
         return [
@@ -52,11 +55,11 @@ class UserController(data.Controller):
         username = payload['username']
         password = payload['password']
         try:
-            user = await self.service.get_by_username(username)
+            user = await self.user_service.get_by_username(username)
         except EntityNotFoundError:
             return response.unauthorized('user.login.wrong_credentials')
         if user is not None:
-            if self.service.check_password(user, password):
+            if self.user_service.check_password(user, password):
                 resp = response.ok('user.login.success', user)
                 self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
                 return resp
@@ -82,7 +85,7 @@ class UserController(data.Controller):
     async def register(self, payload, **_):
         if env.init.get('ADMIN_REGISTER_ONLY', True):
             raise BadRequestError('global.register.admin_only')
-        user = await self.service.create(payload)
+        user = await self.user_service.create(payload)
         resp = response.created('user.registered', user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
@@ -94,7 +97,7 @@ class UserController(data.Controller):
     async def admin_register(self, payload, **_):
         # send_mail = payload.pop('send_mail')
         payload['password'] = ''.join(random.choices(string.ascii_lowercase, k=32))
-        user = await self.service.create(payload)
+        user = await self.user_service.create(payload)
         # if send_mail:
         #     await mail.sender.send(payload['email'], 'Welcome!', 'Welcome to Bolinette!')
         return response.created('user.registered', user)
@@ -104,7 +107,7 @@ class UserController(data.Controller):
            returns=('user', 'private'),
            expects=('user', 'register', 'patch'))
     async def update_user(self, payload, current_user, **_):
-        user = await self.service.patch(current_user, payload)
+        user = await self.user_service.patch(current_user, payload)
         resp = response.ok('user.updated', user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
@@ -115,9 +118,9 @@ class UserController(data.Controller):
           expects='role',
           returns=('user', 'private'))
     async def add_user_role(self, match, payload, **_):
-        user = await self.service.get_by_username(match['username'])
+        user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(payload['name'])
-        await self.service.add_role(user, role)
+        await self.user_service.add_role(user, role)
         return response.created(f'user.roles.added:{user.username}:{role.name}', user)
 
     @delete('/{username}/roles/{role}',
@@ -125,9 +128,9 @@ class UserController(data.Controller):
             roles=['admin'],
             returns=('user', 'private'))
     async def delete_user_role(self, match, current_user, **_):
-        user = await self.service.get_by_username(match['username'])
+        user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(match['role'])
-        await self.service.remove_role(current_user, user, role)
+        await self.user_service.remove_role(current_user, user, role)
         return response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
 
     @post('/picture',
@@ -135,5 +138,5 @@ class UserController(data.Controller):
           returns=('user', 'private'))
     async def upload_profile_picture(self, current_user, payload, **_):
         picture = payload['file']
-        user = await self.service.save_profile_picture(current_user, picture)
+        user = await self.user_service.save_profile_picture(current_user, picture)
         return response.ok(f'user.picture.uploaded', user)

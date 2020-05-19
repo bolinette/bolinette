@@ -9,10 +9,13 @@ class Service:
 
     def __init__(self, context: 'core.BolinetteContext'):
         self.context = context
-        self.repo: data.Repository = context.repo(self.__blnt__.model_name)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
+
+    @property
+    def repo(self) -> data.Repository:
+        return self.context.repo(self.__blnt__.model_name)
 
     async def get(self, identifier, *, safe=False, **_):
         entity = await self.repo.get(identifier)
@@ -34,7 +37,7 @@ class Service:
             order_by = []
         query = self.repo.query
         if len(order_by) > 0:
-            query = await self._build_order_by(self.model, query, order_by)
+            query = await self._build_order_by(query, order_by)
         if pagination is not None:
             return await self._paginate(query, pagination)
         return query.all()
@@ -51,12 +54,12 @@ class Service:
     async def delete(self, entity, **_):
         return await self.repo.delete(entity)
 
-    @staticmethod
-    async def _build_order_by(model, query, params):
+    async def _build_order_by(self, query, params):
+        table = self.repo.table
         order_by_query = []
         for col_name, way in params:
-            if hasattr(model, col_name):
-                column = getattr(model, col_name)
+            if hasattr(table, col_name):
+                column = getattr(table, col_name)
                 if way:
                     order_by_query.append(column)
                 else:

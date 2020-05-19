@@ -57,7 +57,8 @@ class RouteHandler:
         try:
             with core.Transaction(context):
                 if self.route.access is not None:
-                    current_user = await user_service.get_by_username(self.route.access.check(context, request))
+                    current_user = await user_service.get_by_username(self.route.access.check(context, request),
+                                                                      safe=True)
 
                 if self.route.roles and len(self.route.roles):
                     user_roles = set(map(lambda r: r.name, current_user.roles))

@@ -10,8 +10,11 @@ class Controller:
     def __init__(self, context: 'core.BolinetteContext'):
         self.__props__ = ControllerProps(self)
         self.context = context
-        self.service = context.service(self.__blnt__.service_name)
         self.defaults = ControllerDefaults(self)
+
+    @property
+    def service(self) -> data.Service:
+        return self.context.service(self.__blnt__.service_name)
 
     def default_routes(self):
         return []

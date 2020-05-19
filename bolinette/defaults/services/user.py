@@ -18,11 +18,11 @@ class UserService(data.Service):
         if values.get('password'):
             values['password'] = UserService.encrypt_password(values['password'])
 
-    async def get_by_username(self, username):
-        return await self.get_first_by('username', username)
+    async def get_by_username(self, username, *, safe=False):
+        return await self.get_first_by('username', username, safe=safe)
 
-    async def get_by_email(self, email):
-        return await self.get_first_by('email', email)
+    async def get_by_email(self, email, *, safe=False):
+        return await self.get_first_by('email', email, safe=safe)
 
     async def create(self, values: dict, **_):
         await self._check_params(values)
