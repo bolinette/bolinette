@@ -12,6 +12,7 @@ class BolinetteContext:
         self.db = core.DatabaseEngine(self)
         self.jwt = core.JWT()
         self.resources = core.BolinetteResources(self)
+        self.sockets = core.BolinetteSockets(self)
         self.mapping = core.Mapping(self)
         self._tables: Dict[str, Any] = {}
         self._models: Dict[str, 'data.Model'] = {}

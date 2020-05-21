@@ -107,3 +107,17 @@ def patch(path: str, *, access: 'types.web.AccessToken' = None,
 
 def delete(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
     return route(path, method=types.web.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)
+
+
+def topic(topic_name: str):
+    def decorator(topic_cls: Type['data.Topic']):
+        topic_cls.__blnt__ = data.TopicMetadata(topic_name)
+        core.cache.topics[topic_name] = topic_cls
+        return topic_cls
+    return decorator
+
+
+def channel(rule: str):
+    def decorator(channel_function: Callable):
+        return data.TopicChannel(channel_function, rule)
+    return decorator

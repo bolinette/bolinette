@@ -5,3 +5,4 @@ from bolinette.data.repository import Repository
 from bolinette.data.service import Service, ServiceMetadata, SimpleService, HistorizedService
 from bolinette.data.controller import (Controller, ControllerMetadata, ControllerRoute, ControllerExcepts,
                                        ControllerReturns)
+from bolinette.data.topic import Topic, TopicMetadata, TopicChannel

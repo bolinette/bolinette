@@ -82,3 +82,13 @@ def init_controllers(context: core.BolinetteContext):
             path = f'/api{controller.__blnt__.path}{route.path}'
             context.resources.add_route(path, controller, route)
         context.add_controller(controller_name, controller)
+
+
+@init_func
+def init_topic(context: core.BolinetteContext):
+    context.sockets.init_socket_handler()
+    for topic_name, topic_cls in core.cache.topics.items():
+        topic = topic_cls(context)
+        context.sockets.add_topic(topic_name, topic)
+        for channel_name, channel in topic.__props__.get_channels().items():
+            context.sockets.add_channel(topic_name, channel)

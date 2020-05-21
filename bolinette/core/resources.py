@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 import aiohttp_cors
 from aiohttp import web as aio_web
@@ -7,7 +7,7 @@ from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import core, data, types
 from bolinette.exceptions import APIError, ForbiddenError
-from bolinette.utils import Pagination, response
+from bolinette.utils import Pagination, response, logger
 from bolinette.utils.serializing import deserialize, serialize
 
 
@@ -24,7 +24,7 @@ class BolinetteResources:
             )
         }
 
-    def add_route(self, path, controller: 'data.Controller', route: 'data.ControllerRoute'):
+    def add_route(self, path: str, controller: 'data.Controller', route: 'data.ControllerRoute'):
         if path not in self._resources:
             self._resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
         handler = RouteHandler(controller, route)
