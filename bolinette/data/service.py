@@ -75,15 +75,20 @@ class Service:
         return utils.Pagination(items, page, per_page, total)
 
 
+class SimpleService:
+    __blnt__: 'ServiceMetadata' = None
+
+    def __init__(self, context: 'core.BolinetteContext'):
+        self.context = context
+
+    def __repr__(self):
+        return f'<Service {self.__blnt__.name}>'
+
+
 class ServiceMetadata:
     def __init__(self, name: str, model_name: str):
         self.name = name
         self.model_name = model_name
-
-
-class SimpleService:
-    def __init__(self, context: 'core.BolinetteContext'):
-        self.context = context
 
 
 class HistorizedService(Service):

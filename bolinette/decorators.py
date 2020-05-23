@@ -44,16 +44,15 @@ def seeder(func):
 
 
 def service(service_name: str, *, model_name: str = None):
-    def decorator(service_cls: Union[Type['data.Service'], Type['data.SimpleService']]):
-        if issubclass(service_cls, data.Service):
-            service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
+    def decorator(service_cls: Type[Union['data.Service', 'data.SimpleService']]):
+        service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
         core.cache.services[service_name] = service_cls
         return service_cls
     return decorator
 
 
 def controller(controller_name: str, path: str, *, service_name: str = None):
-    def decorator(controller_cls: Type['data.Controller']):
+    def decorator(controller_cls: Type[Union['data.Controller', 'data.SimpleController']]):
         controller_cls.__blnt__ = data.ControllerMetadata(controller_name, path, service_name or controller_name)
         core.cache.controllers[controller_name] = controller_cls
         return controller_cls

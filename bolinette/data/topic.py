@@ -12,12 +12,22 @@ class Topic:
     def __init__(self, context: 'core.BolinetteContext'):
         self.context = context
         self.__props__ = TopicProps(self)
-        self.subscriptions: Dict[str, List[aio_web.WebSocketResponse]] = {}
+        self._subscriptions: Dict[str, List[aio_web.WebSocketResponse]] = {}
 
     async def receive_subscription(self, channel: str, resp: aio_web.WebSocketResponse):
-        if channel not in self.subscriptions:
-            self.subscriptions[channel] = []
-        self.subscriptions[channel].append(resp)
+        if channel not in self._subscriptions:
+            self._subscriptions[channel] = []
+        self._subscriptions[channel].append(resp)
+
+    def _remove_closed_connections(self, channel: str):
+        subs = self._subscriptions.get(channel)
+        if subs is None:
+            return
+        self._subscriptions[channel] = list(filter(lambda c: not c.closed, subs))
+        return self._subscriptions[channel]
+
+    def subscriptions(self, channel: str) -> List[aio_web.WebSocketResponse]:
+        return self._remove_closed_connections(channel) or []
 
     def __repr__(self):
         return f'<Topic {self.__blnt__.name}>'

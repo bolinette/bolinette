@@ -23,6 +23,17 @@ class Controller:
         return f'<Controller {self.__blnt__.name} {self.__blnt__.path}>'
 
 
+class SimpleController:
+    __blnt__: 'ControllerMetadata' = None
+
+    def __init__(self, context: 'core.BolinetteContext'):
+        self.context = context
+        self.__props__ = ControllerProps(self)
+
+    def __repr__(self):
+        return f'<Controller {self.__blnt__.name} {self.__blnt__.path}>'
+
+
 class ControllerMetadata:
     def __init__(self, name: str, path: str, service_name: str):
         self.name = name

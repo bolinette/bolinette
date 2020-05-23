@@ -40,9 +40,11 @@ class BolinetteSockets:
             channels = [channels]
         pending_tasks = []
         for channel in channels:
-            subscriptions = socket_topic.subscriptions.get(channel)
+            subscriptions = socket_topic.subscriptions(channel)
             if subscriptions is not None:
                 for subscription in subscriptions:
+                    if subscription.closed:
+                        continue
                     pending_tasks.append(subscription.send_json({
                        'topic': topic,
                        'channel': channel,

@@ -15,21 +15,20 @@ class BolinetteResources:
     def __init__(self, context: 'core.BolinetteContext'):
         self.context = context
         self._resources: Dict[str, 'BolinetteResource'] = {}
-        self.cors = aiohttp_cors.setup(self.context.app)
-        self.cors_default = {
+        self.cors = aiohttp_cors.setup(self.context.app, defaults={
             "*": aiohttp_cors.ResourceOptions(
                 allow_credentials=True,
                 expose_headers="*",
                 allow_headers="*",
             )
-        }
+        })
 
     def add_route(self, path: str, controller: 'data.Controller', route: 'data.ControllerRoute'):
         if path not in self._resources:
             self._resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
         handler = RouteHandler(controller, route)
         self._resources[path].routes[route.method] = self.cors.add(
-            self._resources[path].resource.add_route(route.method.http_verb, handler), self.cors_default)
+            self._resources[path].resource.add_route(route.method.http_verb, handler))
 
 
 class BolinetteResource:

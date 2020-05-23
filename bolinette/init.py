@@ -78,9 +78,10 @@ def init_controllers(context: core.BolinetteContext):
         for _, route in controller.__props__.get_routes().items():
             path = f'/api{controller.__blnt__.path}{route.path}'
             context.resources.add_route(path, controller, route)
-        for route in controller.default_routes():
-            path = f'/api{controller.__blnt__.path}{route.path}'
-            context.resources.add_route(path, controller, route)
+        if isinstance(controller, data.Controller):
+            for route in controller.default_routes():
+                path = f'/api{controller.__blnt__.path}{route.path}'
+                context.resources.add_route(path, controller, route)
         context.add_controller(controller_name, controller)
 
 
