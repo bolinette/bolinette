@@ -5,7 +5,7 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
-from bolinette import core, data, types
+from bolinette import core, blnt, types
 from bolinette.exceptions import APIError, ForbiddenError
 from bolinette.utils import Pagination, response, logger
 from bolinette.utils.serializing import deserialize, serialize
@@ -23,7 +23,7 @@ class BolinetteResources:
             )
         })
 
-    def add_route(self, path: str, controller: 'data.Controller', route: 'data.ControllerRoute'):
+    def add_route(self, path: str, controller: 'blnt.Controller', route: 'blnt.ControllerRoute'):
         if path not in self._resources:
             self._resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
         handler = RouteHandler(controller, route)
@@ -38,7 +38,7 @@ class BolinetteResource:
 
 
 class RouteHandler:
-    def __init__(self, controller: 'data.Controller', route: 'data.ControllerRoute'):
+    def __init__(self, controller: 'blnt.Controller', route: 'blnt.ControllerRoute'):
         self.controller = controller
         self.route = route
 

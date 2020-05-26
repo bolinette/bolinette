@@ -1,9 +1,9 @@
-from bolinette import data, types
+from bolinette import blnt, types
 from bolinette.decorators import controller
 
 
 @controller('book', '/book')
-class BookController(data.Controller):
+class BookController(blnt.Controller):
     def default_routes(self):
         return [
             self.defaults.get_all(),

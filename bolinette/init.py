@@ -1,7 +1,7 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import core, data
+from bolinette import core, blnt
 from bolinette.decorators import init_func
 
 
@@ -56,7 +56,7 @@ def init_models(context: core.BolinetteContext):
 @init_func
 def init_repositories(context: core.BolinetteContext):
     for model_name, model in context.models:
-        context.add_repo(model_name, data.Repository(model_name, model, context))
+        context.add_repo(model_name, blnt.Repository(model_name, model, context))
 
 
 @init_func
@@ -78,7 +78,7 @@ def init_controllers(context: core.BolinetteContext):
         for _, route in controller.__props__.get_routes().items():
             path = f'/api{controller.__blnt__.path}{route.path}'
             context.resources.add_route(path, controller, route)
-        if isinstance(controller, data.Controller):
+        if isinstance(controller, blnt.Controller):
             for route in controller.default_routes():
                 path = f'/api{controller.__blnt__.path}{route.path}'
                 context.resources.add_route(path, controller, route)

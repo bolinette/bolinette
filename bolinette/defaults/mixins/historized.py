@@ -1,9 +1,9 @@
-from bolinette import types, data
+from bolinette import types, blnt
 from bolinette.decorators import mixin
 
 
 @mixin('historized')
-class Historized(data.Mixin):
+class Historized(blnt.Mixin):
     @staticmethod
     def columns():
         return {

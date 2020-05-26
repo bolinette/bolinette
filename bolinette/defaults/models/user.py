@@ -1,15 +1,15 @@
-from bolinette import env, types, data
+from bolinette import env, types, blnt
 from bolinette.decorators import model
 
 
 @model('users_roles')
-class UsersRoles(data.Model):
+class UsersRoles(blnt.Model):
     user_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id'), primary_key=True)
     role_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('role', 'id'), primary_key=True)
 
 
 @model('user')
-class User(data.Model):
+class User(blnt.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     username = types.defs.Column(types.db.String, unique=True, nullable=False)
     password = types.defs.Column(types.db.Password, nullable=False)

@@ -1,9 +1,9 @@
-from bolinette import core, data
+from bolinette import core, blnt
 from bolinette.exceptions import ParamConflictError
 
 
 class Repository:
-    def __init__(self, name: str, model: data.Model, context: 'core.BolinetteContext'):
+    def __init__(self, name: str, model: blnt.Model, context: 'core.BolinetteContext'):
         self.name = name
         self.model = model
         self.table = context.table(name)

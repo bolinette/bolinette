@@ -1,6 +1,6 @@
 from typing import Callable, List, Dict
 
-from bolinette import core, types, data
+from bolinette import core, types, blnt
 from bolinette.utils import response
 
 
@@ -13,7 +13,7 @@ class Controller:
         self.defaults = ControllerDefaults(self)
 
     @property
-    def service(self) -> data.Service:
+    def service(self) -> blnt.Service:
         return self.context.service(self.__blnt__.service_name)
 
     def default_routes(self):
@@ -85,7 +85,7 @@ class ControllerReturns:
 
 class ControllerDefaults:
     def __init__(self, controller: Controller):
-        self.service: data.Service = controller.service
+        self.service: blnt.Service = controller.service
 
     def get_all(self, returns='default', *, access=None, roles=None):
         async def route(controller, *, query, **_):

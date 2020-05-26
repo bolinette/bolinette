@@ -1,4 +1,6 @@
 import os
+from typing import Dict, Any
+
 import yaml
 
 from bolinette.utils import fs
@@ -6,22 +8,22 @@ from bolinette.utils import fs
 
 class Settings:
     def __init__(self):
-        self._settings = {}
+        self._settings: Dict[str, Any] = {}
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self._settings.get(key.lower(), None)
 
-    def __contains__(self, item):
-        return item in self._settings
+    def __contains__(self, key: str):
+        return key.lower() in self._settings
 
-    def get(self, key, default=None):
+    def get(self, key: str, default=None):
         item = self[key]
         return item if item is not None else default
 
-    def _reset(self, settings):
+    def _reset(self, settings: Dict[str, Any]):
         self._settings = {}
         for key, value in settings.items():
-            self._settings[key] = value
+            self._settings[key.lower()] = value
 
 
 class Environment(Settings):

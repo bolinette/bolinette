@@ -1,11 +1,11 @@
-from bolinette import data
+from bolinette import blnt
 from bolinette.decorators import controller, get
 from bolinette.defaults.services import TimezoneService
 from bolinette.utils import response
 
 
 @controller('tz', '/tz')
-class TimezoneController(data.Controller):
+class TimezoneController(blnt.Controller):
     @property
     def tz_service(self) -> TimezoneService:
         return self.context.service('tz')

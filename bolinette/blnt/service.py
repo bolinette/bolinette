@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from bolinette import core, data, utils
+from bolinette import core, blnt, utils
 from bolinette.exceptions import EntityNotFoundError
 
 
@@ -14,7 +14,7 @@ class Service:
         return f'<Service {self.__blnt__.name}>'
 
     @property
-    def repo(self) -> data.Repository:
+    def repo(self) -> blnt.Repository:
         return self.context.repo(self.__blnt__.model_name)
 
     async def get(self, identifier, *, safe=False, **_):
@@ -63,7 +63,7 @@ class Service:
                 if way:
                     order_by_query.append(column)
                 else:
-                    order_by_query.append(data.functions.desc(column))
+                    order_by_query.append(blnt.functions.desc(column))
         return query.order_by(*order_by_query)
 
     @staticmethod

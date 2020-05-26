@@ -1,12 +1,12 @@
 from typing import Any, List
 
-from bolinette import types, data, core
+from bolinette import types, blnt, core
 from bolinette.decorators import model, with_mixin
 
 
 @model('book')
 @with_mixin('historized')
-class Book(data.Model):
+class Book(blnt.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     pages = types.defs.Column(types.db.Integer, nullable=False)

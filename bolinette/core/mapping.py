@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict
 
-from bolinette import types, data, core
+from bolinette import types, blnt, core
 from bolinette.exceptions import InternalError, ParamMissingError, EntityNotFoundError
 
 
@@ -26,7 +26,7 @@ class Mapping:
     def response(self, model_name: str, key: str):
         return self._get_def(self._responses, model_name, key)
 
-    def register(self, model_name: str, model: 'data.Model'):
+    def register(self, model_name: str, model: 'blnt.Model'):
         def create_defs(collection, params):
             if params is None:
                 return
@@ -85,7 +85,7 @@ class Mapping:
         for field in definition.fields:
             if isinstance(field, types.mapping.Reference):
                 value = params.get(field.foreign_key, None)
-                repo: data.Repository = self.context.repo(field.reference_model)
+                repo: blnt.Repository = self.context.repo(field.reference_model)
                 if value is not None and repo is not None:
                     entity = await repo.get_first_by(field.reference_key, value)
                     if entity is None:

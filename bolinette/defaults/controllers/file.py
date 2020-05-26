@@ -1,11 +1,11 @@
 from aiohttp import web as aio_web
 
-from bolinette import data, types
+from bolinette import blnt, types
 from bolinette.decorators import controller, get
 
 
 @controller('file', '/file')
-class FileController(data.Controller):
+class FileController(blnt.Controller):
     def default_routes(self):
         return [
             self.defaults.get_one(key='key')

@@ -1,13 +1,13 @@
 import random
 import string
 
-from bolinette import data, env
+from bolinette import blnt, env
 from bolinette.decorators import service
 from bolinette.utils import fs
 
 
 @service('file')
-class FileService(data.Service):
+class FileService(blnt.Service):
     async def _generate_key(self):
         key = None
         while key is None or len(await self.get_by('key', key)):

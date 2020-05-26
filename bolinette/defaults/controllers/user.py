@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import data, types, env
+from bolinette import blnt, types, env
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import BadRequestError, EntityNotFoundError
@@ -10,7 +10,7 @@ from bolinette.utils import response, Cookie
 
 
 @controller('user', '/user')
-class UserController(data.Controller):
+class UserController(blnt.Controller):
     @property
     def user_service(self) -> UserService:
         return self.context.service('user')
