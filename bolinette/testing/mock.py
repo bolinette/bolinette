@@ -4,7 +4,6 @@ import string
 from types import SimpleNamespace
 
 from bolinette import core, types
-import example
 
 
 class Mocked:

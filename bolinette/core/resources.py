@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 import aiohttp_cors
 from aiohttp import web as aio_web
@@ -7,7 +7,7 @@ from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import core, blnt, types
 from bolinette.exceptions import APIError, ForbiddenError
-from bolinette.utils import Pagination, response, logger
+from bolinette.utils import Pagination, response
 from bolinette.utils.serializing import deserialize, serialize
 
 
