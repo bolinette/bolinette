@@ -19,6 +19,13 @@ class BolinetteContext:
         self._repos: Dict[str, 'data.Repository'] = {}
         self._services: Dict[str, 'data.Service'] = {}
         self._controllers: Dict[str, 'data.Controller'] = {}
+        self._ctx = {}
+
+    def __getitem__(self, key):
+        return self._ctx[key]
+
+    def __setitem__(self, key, value):
+        self._ctx[key] = value
 
     def model(self, name) -> Any:
         return self._models[name]

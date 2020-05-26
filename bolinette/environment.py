@@ -6,25 +6,22 @@ from bolinette.utils import fs
 
 class Settings:
     def __init__(self):
-        self.settings = {}
+        self._settings = {}
 
     def __getitem__(self, key):
-        return self.settings.get(key.lower(), None)
-
-    def __setitem__(self, key, value):
-        self.settings[key.lower()] = value
+        return self._settings.get(key.lower(), None)
 
     def __contains__(self, item):
-        return item in self.settings
+        return item in self._settings
 
     def get(self, key, default=None):
         item = self[key]
         return item if item is not None else default
 
-    def reset(self, settings):
-        self.settings = {}
+    def _reset(self, settings):
+        self._settings = {}
         for key, value in settings.items():
-            self[key] = value
+            self._settings[key] = value
 
 
 class Environment(Settings):
@@ -33,8 +30,7 @@ class Environment(Settings):
         self.cwd = fs.cwd()
         self.origin = fs.dirname(__file__)
         self.init = Settings()
-        self.init.reset(self.load_from_file('init.yaml'))
-        self.topics = None
+        self.init._reset(self.load_from_file('init.yaml'))
 
     def instance_path(self, *path):
         return self.root_path('instance', *path)
@@ -68,7 +64,7 @@ class Environment(Settings):
 
     def init_app(self, *, profile=None, overrides=None):
         profile = profile or self.read_profile() or 'development'
-        self.reset(self.merge_env_stack([
+        self._reset(self.merge_env_stack([
             self.default_env,
             self.load_from_file(f'env.{profile}.yaml'),
             self.load_from_file(f'env.local.{profile}.yaml'),
