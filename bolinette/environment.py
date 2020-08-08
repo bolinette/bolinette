@@ -2,8 +2,7 @@ import os
 from typing import Dict, Any
 
 import yaml
-
-from bolinette.utils import fs
+from bolinette_common import paths
 
 
 class Settings:
@@ -29,8 +28,8 @@ class Settings:
 class Environment(Settings):
     def __init__(self):
         super().__init__()
-        self.cwd = fs.cwd()
-        self.origin = fs.dirname(__file__)
+        self.cwd = paths.cwd()
+        self.origin = paths.dirname(__file__)
         self.init = Settings()
         self.init._reset(self.load_from_file('init.yaml'))
 
@@ -38,10 +37,10 @@ class Environment(Settings):
         return self.root_path('instance', *path)
 
     def root_path(self, *path):
-        return fs.join(self.cwd, *path)
+        return paths.join(self.cwd, *path)
 
     def internal_path(self, *path):
-        return fs.join(self.origin, *path)
+        return paths.join(self.origin, *path)
 
     @property
     def default_env(self):

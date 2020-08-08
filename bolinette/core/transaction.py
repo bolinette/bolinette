@@ -1,10 +1,10 @@
 import traceback
 
+from bolinette_common import logger
 from sqlalchemy.exc import SQLAlchemyError
 
 from bolinette import core
 from bolinette.exceptions import APIError, InternalError
-from bolinette.utils import logger
 
 
 class Transaction:

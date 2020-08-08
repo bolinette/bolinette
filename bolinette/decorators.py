@@ -81,25 +81,29 @@ def route(path: str, *, method: types.web.HttpMethod, access: 'types.web.AccessT
 
 
 def get(path: str, *, access: 'types.web.AccessToken' = None,
-        expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
+        expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+        returns: Union[str, Tuple[str, str]] = None,
         roles: List[str] = None):
     return route(path, method=types.web.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def post(path: str, *, access: 'types.web.AccessToken' = None,
-         expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
+         expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+         returns: Union[str, Tuple[str, str]] = None,
          roles: List[str] = None):
     return route(path, method=types.web.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def put(path: str, *, access: 'types.web.AccessToken' = None,
-        expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
+        expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+        returns: Union[str, Tuple[str, str]] = None,
         roles: List[str] = None):
     return route(path, method=types.web.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def patch(path: str, *, access: 'types.web.AccessToken' = None,
-          expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
+          expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+          returns: Union[str, Tuple[str, str]] = None,
           roles: List[str] = None):
     return route(path, method=types.web.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
 

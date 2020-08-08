@@ -1,9 +1,9 @@
+from bolinette_common import logger
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from bolinette import core
-from bolinette.utils import logger
 
 
 class DatabaseEngine:

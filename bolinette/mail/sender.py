@@ -1,6 +1,7 @@
+from bolinette_common import logger
+
 from bolinette import env
 from bolinette.mail.providers import Mailgun
-from bolinette.utils import logger
 
 _providers = {
     'mailgun': Mailgun
