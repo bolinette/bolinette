@@ -7,7 +7,7 @@ from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import core, blnt, types
 from bolinette.exceptions import APIError, ForbiddenError
-from bolinette.utils import Pagination, response
+from bolinette.utils import Pagination, response, functions, APIResponse
 from bolinette.utils.serializing import deserialize, serialize
 
 
@@ -69,10 +69,17 @@ class RouteHandler:
                     payload = context.mapping.validate_payload(exp_def, payload, self.route.expects.patch)
                     await context.mapping.link_foreign_entities(exp_def, payload)
 
-                resp = await self.route.func(self.controller, payload=payload, match=match,
-                                             query=query, current_user=current_user)
+                resp = await functions.async_invoke(self.route.func, self.controller, payload=payload,
+                                                    match=match, query=query, current_user=current_user)
+
+            if resp is None:
+                return aio_web.Response(status=204)
             if isinstance(resp, aio_web.Response):
                 return resp
+            if isinstance(resp, str):
+                return aio_web.Response(text=resp, status=200, content_type='text/plain')
+            if not isinstance(resp, APIResponse):
+                return aio_web.Response(text='global.unserializable_response', status=500, content_type='text/plain')
 
             content = resp.content
 

@@ -25,7 +25,7 @@ class FileService(blnt.Service):
     async def delete_file(self, key):
         paths.delete(env.instance_path('uploads', key))
 
-    async def delete(self, entity, **_):
+    async def delete(self, entity):
         ent = await super().delete(entity)
         await self.delete_file(entity.key)
         return ent

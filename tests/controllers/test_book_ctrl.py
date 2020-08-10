@@ -1,5 +1,6 @@
 from bolinette.testing import client, bolitest, Mock
 from tests import utils
+import example.models
 
 
 async def big_set_up(_, mock: Mock):

@@ -11,5 +11,5 @@ class TimezoneController(blnt.Controller):
         return self.context.service('tz')
 
     @get('')
-    async def all_timezones(self, **_):
+    async def all_timezones(self):
         return response.ok('OK', await self.tz_service.get_all())

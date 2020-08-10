@@ -18,7 +18,7 @@ class FileController(blnt.Controller):
 
     @get('/{key}/download',
          access=types.web.AccessToken.Fresh)
-    async def download_file(self, match, **_):
+    async def download_file(self, match):
         file = await self.service.get_first_by('key', match['key'])
         headers = {
             'Content-disposition': f'attachment; filename={file.name}'

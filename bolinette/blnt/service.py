@@ -17,22 +17,22 @@ class Service:
     def repo(self) -> blnt.Repository:
         return self.context.repo(self.__blnt__.model_name)
 
-    async def get(self, identifier, *, safe=False, **_):
+    async def get(self, identifier, *, safe=False):
         entity = await self.repo.get(identifier)
         if entity is None and not safe:
             raise EntityNotFoundError(model=self.__blnt__.name, key='id', value=identifier)
         return entity
 
-    async def get_by(self, key, value, **_):
+    async def get_by(self, key, value):
         return await self.repo.get_by(key, value)
 
-    async def get_first_by(self, key, value, *, safe=False, **_):
+    async def get_first_by(self, key, value, *, safe=False):
         entity = await self.repo.get_first_by(key, value)
         if entity is None and not safe:
             raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
         return entity
 
-    async def get_all(self, pagination=None, order_by=None, **_):
+    async def get_all(self, pagination=None, order_by=None):
         if order_by is None:
             order_by = []
         query = self.repo.query
@@ -42,16 +42,16 @@ class Service:
             return await self._paginate(query, pagination)
         return query.all()
 
-    async def create(self, values, **_):
+    async def create(self, values):
         return await self.repo.create(values)
 
-    async def update(self, entity, values, **_):
+    async def update(self, entity, values):
         return await self.repo.update(entity, values)
 
-    async def patch(self, entity, values, **_):
+    async def patch(self, entity, values):
         return await self.repo.patch(entity, values)
 
-    async def delete(self, entity, **_):
+    async def delete(self, entity):
         return await self.repo.delete(entity)
 
     async def _build_order_by(self, query, params):
@@ -95,27 +95,27 @@ class HistorizedService(Service):
     def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
 
-    async def create(self, values, *, current_user=None, **_):
+    async def create(self, values, *, current_user=None):
         if current_user:
             now = datetime.utcnow()
             values['created_on'] = now
             values['created_by_id'] = current_user.id
             values['updated_on'] = now
             values['updated_by_id'] = current_user.id
-        return await super().create(values, **_)
+        return await super().create(values)
 
-    async def update(self, entity, values, *, current_user=None, **_):
+    async def update(self, entity, values, *, current_user=None):
         if current_user:
             now = datetime.utcnow()
             values['created_on'] = entity.created_on
             values['created_by_id'] = entity.created_by_id
             values['updated_on'] = now
             values['updated_by_id'] = current_user.id
-        return await super().update(entity, values, **_)
+        return await super().update(entity, values)
 
-    async def patch(self, entity, values, *, current_user=None, **_):
+    async def patch(self, entity, values, *, current_user=None):
         if current_user:
             now = datetime.utcnow()
             values['updated_on'] = now
             values['updated_by_id'] = current_user.id
-        return await super().patch(entity, values, **_)
+        return await super().patch(entity, values)
