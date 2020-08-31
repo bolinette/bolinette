@@ -1,7 +1,7 @@
+from bolinette_common import files
 from setuptools import setup, find_packages
 
 from bolinette import env
-from bolinette.utils import fs
 
 
 def project_packages(module):
@@ -12,16 +12,16 @@ setup(
     name='Bolinette',
     packages=project_packages('bolinette'),
     include_package_data=True,
-    version=fs.read_version(env.root_path()),
+    version=files.read_version(env.root_path()),
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
-    long_description=fs.read_file(env.root_path('README.md')),
+    long_description=files.read_file(env.root_path('README.md')),
     long_description_content_type='text/markdown',
     author='Pierre Chat',
     author_email='pierrechat89@hotmail.fr',
     url='https://github.com/TheCaptainCat/bolinette',
     keywords=['Flask', 'Bolinette', 'Web', 'Framework'],
-    install_requires=fs.read_requirements(env.root_path()),
+    install_requires=files.read_requirements(env.root_path()),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
