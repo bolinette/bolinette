@@ -1,16 +1,19 @@
 from typing import Dict, Any
 
 from aiohttp import web as aio_web
+from bolinette_common import paths
 
-from bolinette import core, env, blnt
+from bolinette import core, blnt
 
 
 class BolinetteContext:
-    def __init__(self, app: aio_web.Application):
+    def __init__(self, origin: str, app: aio_web.Application, *, profile=None, overrides=None):
+        self.cwd = paths.cwd()
+        self.origin = origin
         self.app = app
-        self.env = env
+        self.env = core.Environment(self, profile=profile, overrides=overrides)
         self.db = core.DatabaseEngine(self)
-        self.jwt = core.JWT()
+        self.jwt = core.JWT(self)
         self.resources = core.BolinetteResources(self)
         self.sockets = core.BolinetteSockets(self)
         self.mapping = core.Mapping(self)
@@ -32,6 +35,18 @@ class BolinetteContext:
 
     def add_model(self, name, model: 'blnt.Model'):
         self._models[name] = model
+
+    def instance_path(self, *path):
+        return self.root_path('instance', *path)
+
+    def env_path(self, *path):
+        return self.root_path('env', *path)
+
+    def root_path(self, *path):
+        return paths.join(self.cwd, *path)
+
+    def internal_path(self, *path):
+        return paths.join(self.origin, *path)
 
     @property
     def models(self):

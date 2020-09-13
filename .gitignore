@@ -52,10 +52,7 @@ instance/uploads
 *.db
 .profile
 .venv
-env/
 venv/
-ENV/
-env.bak/
 venv.bak/
 .spyderproject
 .spyproject

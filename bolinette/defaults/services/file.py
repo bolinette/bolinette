@@ -3,7 +3,7 @@ import string
 
 from bolinette_common import paths
 
-from bolinette import blnt, env
+from bolinette import blnt
 from bolinette.decorators import service
 
 
@@ -16,14 +16,14 @@ class FileService(blnt.Service):
         return key
 
     async def write_file(self, content, key):
-        path = env.instance_path('uploads')
+        path = self.context.instance_path('uploads')
         if not paths.exists(path):
             paths.mkdir(path)
         with open(paths.join(path, key), 'wb') as f:
             f.write(content)
 
     async def delete_file(self, key):
-        paths.delete(env.instance_path('uploads', key))
+        paths.delete(self.context.instance_path('uploads', key))
 
     async def delete(self, entity):
         ent = await super().delete(entity)
@@ -40,7 +40,7 @@ class FileService(blnt.Service):
         return await self.create(params)
 
     async def file_sender(self, key):
-        with open(env.instance_path('uploads', key), 'rb') as f:
+        with open(self.context.instance_path('uploads', key), 'rb') as f:
             chunk = f.read(2 ** 16)
             while chunk:
                 yield chunk

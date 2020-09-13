@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import blnt, types, env
+from bolinette import blnt, types, core
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import BadRequestError, EntityNotFoundError
@@ -83,7 +83,7 @@ class UserController(blnt.Controller):
           returns=('user', 'private'),
           expects=('user', 'register'))
     async def register(self, payload):
-        if env.init.get('ADMIN_REGISTER_ONLY', True):
+        if core.init.get('ADMIN_REGISTER_ONLY', True):
             raise BadRequestError('global.register.admin_only')
         user = await self.user_service.create(payload)
         resp = response.created('user.registered', user)

@@ -23,7 +23,7 @@ class DatabaseEngine:
     def _create_uri(self, context: 'core.BolinetteContext'):
         dbms = context.env.get('DBMS', 'SQLITE').lower()
         if dbms == 'sqlite':
-            return 'sqlite:///' + context.env.instance_path(
+            return 'sqlite:///' + context.instance_path(
                 context.env.get('SQLITE_FILE', f'{context.env["PROFILE"]}.db'))
         if dbms == 'memory':
             return 'sqlite://'

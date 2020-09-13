@@ -1,4 +1,4 @@
-from bolinette import env, types, blnt
+from bolinette import types, blnt, core
 from bolinette.decorators import model
 
 
@@ -13,8 +13,8 @@ class User(blnt.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     username = types.defs.Column(types.db.String, unique=True, nullable=False)
     password = types.defs.Column(types.db.Password, nullable=False)
-    email = types.defs.Column(types.db.Email, unique=env.init['USER_EMAIL_REQUIRED'],
-                              nullable=(not env.init['USER_EMAIL_REQUIRED']))
+    email = types.defs.Column(types.db.Email, unique=core.init['USER_EMAIL_REQUIRED'],
+                              nullable=(not core.init['USER_EMAIL_REQUIRED']))
 
     roles = types.defs.Relationship('role', secondary='users_roles', lazy='subquery',
                                     backref=types.defs.Backref('users', lazy=True))

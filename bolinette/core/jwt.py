@@ -2,12 +2,13 @@ from datetime import datetime, timedelta
 
 import jwt as py_jwt
 
-from bolinette import env
+from bolinette import core
 from bolinette.exceptions import UnauthorizedError
 
 
 class JWT:
-    def __init__(self):
+    def __init__(self, context: 'core.BolinetteContext'):
+        self.context = context
         self._access_token_expires = timedelta(days=1)
         self._refresh_token_expires = timedelta(days=30)
 
@@ -19,7 +20,7 @@ class JWT:
 
     @property
     def secret_key(self):
-        return env['SECRET_KEY']
+        return self.context.env['SECRET_KEY']
 
     def encode(self, payload):
         return py_jwt.encode(payload, self.secret_key, algorithm='HS256').decode('utf-8')

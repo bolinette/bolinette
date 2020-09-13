@@ -70,3 +70,14 @@ class ParamConflictError(ConflictError):
             params = [(key, value)]
         messages = [f'param.conflict:{k}:{v}' for k, v in params]
         super().__init__(messages, name='ParamConflictError')
+
+
+class InitError(Exception):
+    def __init__(self, message: str = None, *, inner: Exception = None):
+        self.message = message
+        self.inner = inner
+
+    def __str__(self):
+        if self.message is None:
+            return str(self.inner)
+        return self.message

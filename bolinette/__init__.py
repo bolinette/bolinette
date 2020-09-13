@@ -1,4 +1,3 @@
-from bolinette.environment import env
 from bolinette.bcrypt import bcrypt
 import bolinette.defaults
 import bolinette.init

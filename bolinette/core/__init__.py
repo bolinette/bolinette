@@ -1,4 +1,5 @@
 from bolinette.core.cache import cache
+from bolinette.core.environment import init, Environment
 from bolinette.core.database import DatabaseEngine
 from bolinette.core.jwt import JWT
 from bolinette.core.resources import BolinetteResources, BolinetteResource

@@ -2,20 +2,24 @@ import asyncio
 import inspect
 
 from aiohttp import web as aio_web
+from bolinette_common import console, paths
 
-from bolinette import env, core
+from bolinette import core
 from bolinette.commands import commands
+from bolinette.exceptions import InitError
 
 
 class Bolinette:
     def __init__(self, *, profile=None, overrides=None):
-        env.init_app(profile=profile, overrides=overrides)
-
-        self.app = aio_web.Application()
-        self.context = core.BolinetteContext(self.app)
-        self.app['blnt'] = self.context
-
-        self.run_init_functions(self.app)
+        try:
+            self.app = aio_web.Application()
+            self.context = core.BolinetteContext(paths.dirname(__file__), self.app,
+                                                 profile=profile, overrides=overrides)
+            self.app['blnt'] = self.context
+            self.run_init_functions(self.app)
+        except InitError as e:
+            console.error(f'Error raised during Bolinette init phase\n{str(e)}')
+            exit(1)
 
     @staticmethod
     def run_init_functions(app):
@@ -23,6 +27,7 @@ class Bolinette:
             func(app['blnt'])
 
     def run(self):
+        console.print(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app, port=self.context.env['port'])
 
     def run_command(self, name, **kwargs):

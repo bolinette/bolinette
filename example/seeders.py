@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from bolinette import env, core
+from bolinette import core
 from bolinette.decorators import seeder
 from bolinette.defaults.services import RoleService, UserService
 
@@ -17,7 +17,7 @@ async def role_seeder(context: core.BolinetteContext):
 
 @seeder
 async def dev_user_seeder(context: core.BolinetteContext):
-    if env['PROFILE'] == 'development':
+    if context.env['PROFILE'] == 'development':
         role_service: RoleService = context.service('role')
         user_service: UserService = context.service('user')
         with core.Transaction(context):
@@ -48,7 +48,7 @@ async def dev_user_seeder(context: core.BolinetteContext):
 
 @seeder
 async def book_seeder(context: core.BolinetteContext):
-    if env['PROFILE'] == 'development':
+    if context.env['PROFILE'] == 'development':
         user_service: UserService = context.service('user')
         person_service: PersonService = context.service('person')
         book_service: BookService = context.service('book')
