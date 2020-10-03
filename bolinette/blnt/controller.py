@@ -35,10 +35,11 @@ class SimpleController:
 
 
 class ControllerMetadata:
-    def __init__(self, name: str, path: str, service_name: str):
+    def __init__(self, name: str, path: str, service_name: str, api: bool = True):
         self.name = name
         self.path = path
         self.service_name = service_name
+        self.api = api
 
 
 class ControllerProps:

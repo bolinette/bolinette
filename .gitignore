@@ -62,3 +62,4 @@ venv.bak/
 # IDE
 .idea/
 .vscode/
+static/*

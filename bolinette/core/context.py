@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from aiohttp import web as aio_web
 from bolinette_common import paths
@@ -7,22 +7,23 @@ from bolinette import core, blnt
 
 
 class BolinetteContext:
-    def __init__(self, origin: str, app: aio_web.Application, *, profile=None, overrides=None):
+    def __init__(self, origin: str, app: Optional[aio_web.Application], *, profile=None, overrides=None):
         self.cwd = paths.cwd()
         self.origin = origin
-        self.app = app
-        self.env = core.Environment(self, profile=profile, overrides=overrides)
-        self.db = core.DatabaseEngine(self)
-        self.jwt = core.JWT(self)
-        self.resources = core.BolinetteResources(self)
-        self.sockets = core.BolinetteSockets(self)
-        self.mapping = core.Mapping(self)
-        self._tables: Dict[str, Any] = {}
-        self._models: Dict[str, 'blnt.Model'] = {}
-        self._repos: Dict[str, 'blnt.Repository'] = {}
-        self._services: Dict[str, 'blnt.Service'] = {}
-        self._controllers: Dict[str, 'blnt.Controller'] = {}
-        self._ctx = {}
+        if app is not None:
+            self.app = app
+            self.env = core.Environment(self, profile=profile, overrides=overrides)
+            self.db = core.DatabaseEngine(self)
+            self.jwt = core.JWT(self)
+            self.resources = core.BolinetteResources(self)
+            self.sockets = core.BolinetteSockets(self)
+            self.mapping = core.Mapping(self)
+            self._tables: Dict[str, Any] = {}
+            self._models: Dict[str, 'blnt.Model'] = {}
+            self._repos: Dict[str, 'blnt.Repository'] = {}
+            self._services: Dict[str, 'blnt.Service'] = {}
+            self._controllers: Dict[str, 'blnt.Controller'] = {}
+            self._ctx = {}
 
     def __getitem__(self, key):
         return self._ctx[key]
@@ -41,6 +42,9 @@ class BolinetteContext:
 
     def env_path(self, *path):
         return self.root_path('env', *path)
+
+    def static_path(self, *path):
+        return self.root_path('static', *path)
 
     def root_path(self, *path):
         return paths.join(self.cwd, *path)

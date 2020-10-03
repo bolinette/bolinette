@@ -6,3 +6,4 @@ from bolinette.blnt.service import Service, ServiceMetadata, SimpleService, Hist
 from bolinette.blnt.controller import (Controller, SimpleController, ControllerMetadata, ControllerRoute,
                                        ControllerExcepts, ControllerReturns)
 from bolinette.blnt.topic import Topic, TopicMetadata, TopicChannel
+from bolinette.blnt.static import StaticController
