@@ -51,9 +51,15 @@ def service(service_name: str, *, model_name: str = None):
     return decorator
 
 
-def controller(controller_name: str, path: str, *, service_name: str = None):
-    def decorator(controller_cls: Type[Union['blnt.Controller', 'blnt.SimpleController']]):
-        controller_cls.__blnt__ = blnt.ControllerMetadata(controller_name, path, service_name or controller_name)
+def controller(controller_name: str, path: str = None, *,
+               namespace: str = '/api', use_service: bool = True, service_name: str = None):
+    if path is None:
+        path = f'/{controller_name}'
+    if service_name is None:
+        service_name = controller_name
+
+    def decorator(controller_cls: Type['blnt.Controller']):
+        controller_cls.__blnt__ = blnt.ControllerMetadata(controller_name, path, use_service, service_name, namespace)
         core.cache.controllers[controller_name] = controller_cls
         return controller_cls
     return decorator

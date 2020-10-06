@@ -17,8 +17,8 @@ class Bolinette:
                                                  profile=profile, overrides=overrides)
             self.app['blnt'] = self.context
             self.run_init_functions(self.app)
-        except InitError as e:
-            console.error(f'Error raised during Bolinette init phase\n{str(e)}')
+        except InitError as init_error:
+            console.error(f'Error raised during Bolinette init phase\n{str(init_error)}')
             exit(1)
 
     @staticmethod

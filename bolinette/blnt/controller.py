@@ -10,7 +10,8 @@ class Controller:
     def __init__(self, context: 'core.BolinetteContext'):
         self.__props__ = ControllerProps(self)
         self.context = context
-        self.defaults = ControllerDefaults(self)
+        if self.__blnt__.use_service:
+            self.defaults = ControllerDefaults(self)
 
     @property
     def service(self) -> blnt.Service:
@@ -23,23 +24,13 @@ class Controller:
         return f'<Controller {self.__blnt__.name} {self.__blnt__.path}>'
 
 
-class SimpleController:
-    __blnt__: 'ControllerMetadata' = None
-
-    def __init__(self, context: 'core.BolinetteContext'):
-        self.context = context
-        self.__props__ = ControllerProps(self)
-
-    def __repr__(self):
-        return f'<Controller {self.__blnt__.name} {self.__blnt__.path}>'
-
-
 class ControllerMetadata:
-    def __init__(self, name: str, path: str, service_name: str, api: bool = True):
+    def __init__(self, name: str, path: str, use_service: bool, service_name: str, namespace: str):
         self.name = name
         self.path = path
+        self.use_service = use_service
         self.service_name = service_name
-        self.api = api
+        self.namespace = namespace
 
 
 class ControllerProps:

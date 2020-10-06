@@ -4,6 +4,7 @@ from aiohttp import web as aio_web
 from bolinette_common import paths
 
 from bolinette import core, blnt
+from bolinette.exceptions import InternalError
 
 
 class BolinetteContext:
@@ -77,6 +78,8 @@ class BolinetteContext:
         return iter(self._repos.items())
 
     def service(self, name) -> Any:
+        if name not in self._services:
+            raise InternalError(f'global.service.not_found:{name}')
         return self._services[name]
 
     def add_service(self, name, service: 'blnt.Service'):

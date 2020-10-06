@@ -75,22 +75,14 @@ def init_services(context: core.BolinetteContext):
 def init_controllers(context: core.BolinetteContext):
     for controller_name, controller_cls in core.cache.controllers.items():
         controller = controller_cls(context)
-        base_path = '/api' if controller.__blnt__.api else ''
         for _, route in controller.__props__.get_routes().items():
-            path = f'{base_path}{controller.__blnt__.path}{route.path}'
+            path = f'{controller.__blnt__.namespace}{controller.__blnt__.path}{route.path}'
             context.resources.add_route(path, controller, route)
         if isinstance(controller, blnt.Controller):
             for route in controller.default_routes():
-                path = f'{base_path}{controller.__blnt__.path}{route.path}'
+                path = f'{controller.__blnt__.namespace}{controller.__blnt__.path}{route.path}'
                 context.resources.add_route(path, controller, route)
         context.add_controller(controller_name, controller)
-
-
-@init_func
-def init_static_controller(context: core.BolinetteContext):
-    controller = blnt.StaticController(context)
-    for _, route in controller.__props__.get_routes().items():
-        context.resources.add_route(route.path, controller, route)
 
 
 @init_func
