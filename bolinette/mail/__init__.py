@@ -1,1 +1,1 @@
-from bolinette.mail.sender import sender
+from bolinette.mail.sender import Sender

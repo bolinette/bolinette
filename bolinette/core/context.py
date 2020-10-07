@@ -19,6 +19,7 @@ class BolinetteContext:
             self.resources = core.BolinetteResources(self)
             self.sockets = core.BolinetteSockets(self)
             self.mapping = core.Mapping(self)
+            self.response = core.Response(self)
             self._tables: Dict[str, Any] = {}
             self._models: Dict[str, 'blnt.Model'] = {}
             self._repos: Dict[str, 'blnt.Repository'] = {}
@@ -46,6 +47,9 @@ class BolinetteContext:
 
     def static_path(self, *path):
         return self.root_path('static', *path)
+
+    def templates_path(self, *path):
+        return self.root_path('templates', *path)
 
     def root_path(self, *path):
         return paths.join(self.cwd, *path)

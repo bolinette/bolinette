@@ -1,15 +1,15 @@
 import requests
 from bolinette_common import logger
 
-from bolinette import env
+from bolinette import core
 
 
 class Mailgun:
-    def __init__(self):
-        self.url = env['MAILGUN_URL']
+    def __init__(self, context: 'core.BolinetteContext'):
+        self.url = context.env['MAILGUN_URL']
         self.ready = True
-        self.key = env['MAILGUN_API']
-        self.from_adr = env['MAILGUN_FROM']
+        self.key = context.env['MAILGUN_API']
+        self.from_adr = context.env['MAILGUN_FROM']
         self._validate_attrs()
 
     def _validate_attrs(self):

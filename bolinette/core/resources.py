@@ -7,7 +7,7 @@ from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import core, blnt, types
 from bolinette.exceptions import APIError, ForbiddenError
-from bolinette.utils import Pagination, response, functions, APIResponse
+from bolinette.utils import Pagination, functions
 from bolinette.utils.serializing import deserialize, serialize
 
 
@@ -78,7 +78,7 @@ class RouteHandler:
                 return resp
             if isinstance(resp, str):
                 return aio_web.Response(text=resp, status=200, content_type='text/plain')
-            if not isinstance(resp, APIResponse):
+            if not isinstance(resp, core.APIResponse):
                 return aio_web.Response(text='global.unserializable_response', status=500, content_type='text/plain')
 
             content = resp.content
@@ -111,7 +111,7 @@ class RouteHandler:
 
             return web_response
         except APIError as ex:
-            res = response.from_exception(ex)
+            res = context.response.from_exception(ex)
             serialized, mime = serialize(res.content, 'application/json')
             web_response = aio_web.Response(text=serialized, status=res.code, content_type=mime)
             return web_response

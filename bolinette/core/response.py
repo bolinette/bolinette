@@ -1,5 +1,7 @@
-from bolinette.exceptions import (APIError, UnauthorizedError, BadRequestError, ConflictError, ForbiddenError,
-                                  NotFoundError)
+from aiohttp.web_response import Response as AioResponse
+from bolinette_common import files
+
+from bolinette import core, exceptions
 
 
 class Cookie:
@@ -20,15 +22,16 @@ class APIResponse:
 
 
 class Response:
-    def __init__(self):
+    def __init__(self, context: 'core.BolinetteContext'):
         self._exceptions = {
-            UnauthorizedError: self.unauthorized,
-            BadRequestError: self.bad_request,
-            ConflictError: self.conflict,
-            NotFoundError: self.not_found,
-            ForbiddenError: self.forbidden,
-            APIError: self.internal_server_error
+            exceptions.UnauthorizedError: self.unauthorized,
+            exceptions.BadRequestError: self.bad_request,
+            exceptions.ConflictError: self.conflict,
+            exceptions.NotFoundError: self.not_found,
+            exceptions.ForbiddenError: self.forbidden,
+            exceptions.APIError: self.internal_server_error
         }
+        self.context = context
 
     def build_message(self, code, status, messages=None, data=None):
         if messages is None:
@@ -71,10 +74,14 @@ class Response:
     def internal_server_error(self, messages=None, data=None):
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)
 
-    def from_exception(self, exception: APIError):
+    def render_template(self, name: str, params: dict = None):
+        path = self.context.templates_path(f'{name}.jinja2')
+        if params is None:
+            params = {}
+        content = files.render_template(path, params)
+        return AioResponse(body=content, status=200, content_type='text/html')
+
+    def from_exception(self, exception: exceptions.APIError):
         for except_cls in self._exceptions:
             if isinstance(exception, except_cls):
                 return self._exceptions[except_cls](exception.messages)
-
-
-response = Response()

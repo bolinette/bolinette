@@ -1,7 +1,7 @@
 from typing import Callable, List, Dict
 
 from bolinette import core, types, blnt
-from bolinette.utils import response, functions
+from bolinette.utils import functions
 
 
 class Controller:
@@ -10,6 +10,7 @@ class Controller:
     def __init__(self, context: 'core.BolinetteContext'):
         self.__props__ = ControllerProps(self)
         self.context = context
+        self.response = context.response
         if self.__blnt__.use_service:
             self.defaults = ControllerDefaults(self)
 
@@ -97,7 +98,7 @@ class ControllerDefaults:
                     order_by.append((col_name, order_way == 'asc'))
             resp = await functions.async_invoke(controller.service.get_all,
                                                 pagination=pagination, roles=roles, **kwargs)
-            return response.ok('OK', resp)
+            return controller.response.ok('OK', resp)
 
         return ControllerRoute(route, '', types.web.HttpMethod.GET, access=access, roles=roles,
                                returns=ControllerReturns(self.service.__blnt__.model_name, returns, as_list=True))
@@ -105,7 +106,7 @@ class ControllerDefaults:
     def get_one(self, returns='default', *, key='id', access=None, roles=None):
         async def route(controller, *, match, **kwargs):
             resp = await functions.async_invoke(controller.service.get_first_by, key, match.get('value'), **kwargs)
-            return response.ok('OK', resp)
+            return controller.response.ok('OK', resp)
 
         return ControllerRoute(route, '/{value}', types.web.HttpMethod.GET, access=access, roles=roles,
                                returns=ControllerReturns(self.service.__blnt__.model_name, returns))
@@ -113,7 +114,7 @@ class ControllerDefaults:
     def create(self, returns='default', expects='default', *, access=None, roles=None):
         async def route(controller, payload, **kwargs):
             resp = await functions.async_invoke(controller.service.create, payload, **kwargs)
-            return response.created(f'{controller.service.__blnt__.model_name}.created', resp)
+            return controller.response.created(f'{controller.service.__blnt__.model_name}.created', resp)
 
         return ControllerRoute(route, '', types.web.HttpMethod.POST, access=access, roles=roles,
                                expects=ControllerExcepts(self.service.__blnt__.model_name, expects),
@@ -123,7 +124,7 @@ class ControllerDefaults:
         async def route(controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get('value'))
             resp = await functions.async_invoke(controller.service.update, entity, payload, **kwargs)
-            return response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
+            return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         return ControllerRoute(route, '/{value}', types.web.HttpMethod.PUT, access=access, roles=roles,
                                expects=ControllerExcepts(self.service.__blnt__.model_name, expects),
@@ -133,7 +134,7 @@ class ControllerDefaults:
         async def route(controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get('value'))
             resp = await functions.async_invoke(controller.service.patch, entity, payload, **kwargs)
-            return response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
+            return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         return ControllerRoute(route, '/{value}', types.web.HttpMethod.PATCH, access=access, roles=roles,
                                expects=ControllerExcepts(self.service.__blnt__.model_name, expects, patch=True),
@@ -143,7 +144,7 @@ class ControllerDefaults:
         async def route(controller, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get('value'))
             resp = await functions.async_invoke(controller.service.delete, entity, **kwargs)
-            return response.ok(f'{controller.service.__blnt__.model_name}.deleted', resp)
+            return controller.response.ok(f'{controller.service.__blnt__.model_name}.deleted', resp)
 
         return ControllerRoute(route, '/{value}', types.web.HttpMethod.DELETE, access=access, roles=roles,
                                returns=ControllerReturns(self.service.__blnt__.model_name, returns))

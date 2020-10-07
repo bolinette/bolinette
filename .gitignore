@@ -63,3 +63,4 @@ venv.bak/
 .idea/
 .vscode/
 static/*
+templates/*
