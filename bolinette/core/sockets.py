@@ -65,7 +65,7 @@ class BolinetteSockets:
         self._anon_socket_sessions.remove(session)
 
     def init_socket_handler(self):
-        self.context.app.add_routes([aio_web.get('/ws', SocketHandler())])
+        self.context.app.add_routes([aio_web.get('/ws', SocketHandler().__call__)])
 
 
 class SocketHandler:

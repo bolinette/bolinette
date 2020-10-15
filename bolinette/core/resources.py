@@ -28,7 +28,7 @@ class BolinetteResources:
             self._resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
         handler = RouteHandler(controller, route)
         self._resources[path].routes[route.method] = self.cors.add(
-            self._resources[path].resource.add_route(route.method.http_verb, handler))
+            self._resources[path].resource.add_route(route.method.http_verb, handler.__call__))
 
 
 class BolinetteResource:
