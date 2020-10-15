@@ -1,4 +1,4 @@
-from bolinette_common import files, paths
+from bolinette.utils import files, paths
 from setuptools import setup, find_packages
 
 from bolinette import core

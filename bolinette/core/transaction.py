@@ -1,6 +1,6 @@
 import traceback
 
-from bolinette_common import logger
+from bolinette.utils import logger
 from sqlalchemy.exc import SQLAlchemyError
 
 from bolinette import core

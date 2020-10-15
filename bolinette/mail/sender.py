@@ -1,4 +1,4 @@
-from bolinette_common import logger
+from bolinette.utils import logger
 
 from bolinette import core
 from bolinette.mail.providers import Mailgun

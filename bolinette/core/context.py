@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 
 from aiohttp import web as aio_web
-from bolinette_common import paths
+from bolinette.utils import paths
 
 from bolinette import core, blnt
 from bolinette.exceptions import InternalError

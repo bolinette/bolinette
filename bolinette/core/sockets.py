@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 import aiohttp
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
-from bolinette_common import logger
+from bolinette.utils import logger
 
 from bolinette import core, types, blnt
 from bolinette.exceptions import APIError

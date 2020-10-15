@@ -2,7 +2,7 @@ import asyncio
 import inspect
 
 from aiohttp import web as aio_web
-from bolinette_common import console, paths
+from bolinette.utils import console, paths
 
 from bolinette import core
 from bolinette.commands import commands

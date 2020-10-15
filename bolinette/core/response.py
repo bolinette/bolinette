@@ -1,5 +1,5 @@
 from aiohttp.web_response import Response as AioResponse
-from bolinette_common import files
+from bolinette.utils import files
 
 from bolinette import core, exceptions
 

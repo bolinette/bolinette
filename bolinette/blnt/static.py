@@ -1,7 +1,7 @@
 import mimetypes
 
 from aiohttp import web as aio_web
-from bolinette_common import paths
+from bolinette.utils import paths
 
 from bolinette.blnt import Controller
 from bolinette.decorators import get, controller

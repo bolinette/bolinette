@@ -1,7 +1,7 @@
 import random
 import string
 
-from bolinette_common import paths
+from bolinette.utils import paths
 
 from bolinette import blnt
 from bolinette.decorators import service

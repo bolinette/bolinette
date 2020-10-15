@@ -2,7 +2,7 @@ import os
 from typing import Dict, Any
 
 import yaml
-from bolinette_common import paths, console
+from bolinette.utils import paths, console
 
 from bolinette import core
 from bolinette.exceptions import InitError

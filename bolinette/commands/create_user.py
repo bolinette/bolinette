@@ -1,6 +1,6 @@
 import getpass
 
-from bolinette_common import console
+from bolinette.utils import console
 
 import bolinette
 from bolinette.commands import command
