@@ -1,3 +1,5 @@
+from typing import Union
+
 from aiohttp.web_response import Response as AioResponse
 from bolinette.utils import files
 
@@ -81,7 +83,13 @@ class Response:
         content = files.render_template(path, params)
         return AioResponse(body=content, status=200, content_type='text/html')
 
-    def from_exception(self, exception: exceptions.APIError):
+    def from_exception(self, exception: Union[exceptions.APIError, exceptions.APIErrors]):
+        messages = []
+        if isinstance(exception, exceptions.APIError):
+            messages = [exception.message]
+        elif isinstance(exception, exceptions.APIErrors):
+            messages = [error.message for error in exception.errors]
+            exception = exception.errors[0]
         for except_cls in self._exceptions:
             if isinstance(exception, except_cls):
-                return self._exceptions[except_cls](exception.messages)
+                return self._exceptions[except_cls](messages)

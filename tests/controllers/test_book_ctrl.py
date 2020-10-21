@@ -97,7 +97,7 @@ async def test_create_book_author_not_found(client):
 
     rv = await client.post('/book', book4.to_payload())
     assert rv['code'] == 404
-    assert 'person.not_found:id:3' in rv['messages']
+    assert 'entity.not_found:person:id:3' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)
@@ -186,7 +186,7 @@ async def test_update_book_author_not_found(client):
 
     rv = await client.patch('/book/1', {'author_id': 3})
     assert rv['code'] == 404
-    assert 'person.not_found:id:3' in rv['messages']
+    assert 'entity.not_found:person:id:3' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)

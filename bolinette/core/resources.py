@@ -6,7 +6,7 @@ from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import core, blnt, types
-from bolinette.exceptions import APIError, ForbiddenError
+from bolinette.exceptions import APIError, APIErrors, ForbiddenError
 from bolinette.utils import Pagination, functions
 from bolinette.utils.serializing import deserialize, serialize
 
@@ -110,7 +110,7 @@ class RouteHandler:
                     web_response.del_cookie(cookie.name, path=cookie.path)
 
             return web_response
-        except APIError as ex:
+        except (APIError, APIErrors) as ex:
             res = context.response.from_exception(ex)
             serialized, mime = serialize(res.content, 'application/json')
             web_response = aio_web.Response(text=serialized, status=res.code, content_type=mime)

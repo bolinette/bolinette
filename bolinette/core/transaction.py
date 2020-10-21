@@ -4,7 +4,7 @@ from bolinette.utils import logger
 from sqlalchemy.exc import SQLAlchemyError
 
 from bolinette import core
-from bolinette.exceptions import APIError, InternalError
+from bolinette.exceptions import APIError, APIErrors, InternalError
 
 
 class Transaction:
@@ -17,7 +17,7 @@ class Transaction:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             self.context.db.session.rollback()
-            if not issubclass(exc_type, APIError):
+            if not issubclass(exc_type, (APIError, APIErrors)):
                 logger.error(str(exc_val))
                 traceback.print_tb(exc_tb)
                 raise InternalError([str(exc_val)] + traceback.format_list(traceback.extract_tb(exc_tb)))

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Dict
 
 from bolinette import types, blnt, core
-from bolinette.exceptions import InternalError, ParamMissingError, EntityNotFoundError
+from bolinette.exceptions import InternalError, ParamMissingError, EntityNotFoundError, APIErrors
 
 
 class Mapping:
@@ -81,7 +81,7 @@ class Mapping:
         return values
 
     async def link_foreign_entities(self, definition, params):
-        errors = []
+        api_errors = APIErrors()
         for field in definition.fields:
             if isinstance(field, types.mapping.Reference):
                 value = params.get(field.foreign_key, None)
@@ -89,12 +89,12 @@ class Mapping:
                 if value is not None and repo is not None:
                     entity = await repo.get_first_by(field.reference_key, value)
                     if entity is None:
-                        errors.append((field.reference_model, field.reference_key, value))
-        if len(errors) > 0:
-            raise EntityNotFoundError(params=errors)
+                        api_errors.append(EntityNotFoundError(field.reference_model, field.reference_key, value))
+        if api_errors:
+            raise api_errors
 
     def validate_payload(self, definition, params, patch=False):
-        errors = []
+        api_errors = APIErrors()
         valid = {}
         for field in definition.fields:
             if isinstance(field, types.mapping.Reference):
@@ -103,7 +103,7 @@ class Mapping:
                 link = params.get(field.foreign_key)
                 if not link or not len(str(link)):
                     if field.required:
-                        errors.append(field.foreign_key)
+                        api_errors.append(ParamMissingError(field.foreign_key))
                     else:
                         link = field.default
                 valid[field.foreign_key] = link
@@ -115,10 +115,10 @@ class Mapping:
                     value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
                 if not value or not len(str(value)):
                     if field.required:
-                        errors.append(field.name)
+                        api_errors.append(ParamMissingError(field.name))
                     else:
                         value = field.default
                 valid[field.name] = value
-        if len(errors) > 0:
-            raise ParamMissingError(params=errors)
+        if api_errors:
+            raise api_errors
         return valid

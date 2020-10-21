@@ -1,5 +1,5 @@
 from bolinette import core, blnt
-from bolinette.exceptions import ParamConflictError
+from bolinette.exceptions import APIErrors, ParamConflictError
 
 
 class Repository:
@@ -50,7 +50,7 @@ class Repository:
         return entity
 
     def _validate_model(self, values: dict):
-        errors = []
+        api_errors = APIErrors()
         for column in self.model.__props__.get_columns().values():
             key = column.name
             if column.primary_key:
@@ -58,9 +58,9 @@ class Repository:
             value = values.get(key, None)
             if column.unique and value is not None:
                 if self.query.filter(self.column(key) == value).first() is not None:
-                    errors.append((key, value))
-        if len(errors) > 0:
-            raise ParamConflictError(params=errors)
+                    api_errors.append(ParamConflictError(key, value))
+        if api_errors:
+            raise api_errors
         return values
 
     def _map_model(self, entity, values, patch=False):
@@ -75,7 +75,7 @@ class Repository:
                 continue
             if column.unique and new is not None:
                 if self.query.filter(self.column(key) == new).first() is not None:
-                    errors.append((key, new))
+                    errors.append(ParamConflictError(key, new))
             setattr(entity, key, new)
         if len(errors) > 0:
-            raise ParamConflictError(params=errors)
+            raise APIErrors(errors)

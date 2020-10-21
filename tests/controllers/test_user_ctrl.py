@@ -220,7 +220,7 @@ async def test_remove_role_not_found(client):
 
     rv = await client.delete(f'/user/{user1.fields.username}/roles/unknown_role')
     assert rv['code'] == 404
-    assert f'role.not_found:name:unknown_role' in rv['messages']
+    assert f'entity.not_found:role:name:unknown_role' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
