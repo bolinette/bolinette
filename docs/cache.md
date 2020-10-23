@@ -10,6 +10,6 @@ In normal circumstances, you should not have to use the cache.
 ```python
 from bolinette.core import cache
 
-srv = cache.services  # Dict[str, Type['blnt.Service']]
-ctrl = cache.controllers  # Dict[str, Type['blnt.Controller']]
+srv = cache.services  # Dict[str, Type[blnt.Service]]
+ctrl = cache.controllers  # Dict[str, Type[blnt.Controller]]
 ```

@@ -34,9 +34,10 @@ pip install pip --upgrade && pip install bolinette
 ## Internal API
 
 - [Cache](./docs/cache.md)
+- [Exceptions](./docs/exceptions.md)
 - [Init function](./docs/init.md#init-functions)
 - [Init variables](./docs/init.md#init-variables)
 - [Context](./docs/context.md)
   - [app](./docs/context.md#aiohttp-application)
   - [env](./docs/context.md#environment)
-- [Model](./docs/model.md)
+- [Models](./docs/models.md)

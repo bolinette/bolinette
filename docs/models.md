@@ -4,9 +4,9 @@ Models represent the data structures. They are injected in the SqlAlchemy ORM an
 with the CLI.
 
 Attributes are declared at class level and must be instances of
-[`bolinette.types.defs.Column`](./bolinette/types/defs.py).
+[`bolinette.types.defs.Column`](../bolinette/types/defs.py).
 
-The first argument is an instance of [`bolinette.types.db.DataType`](./bolinette/types/db.py).
+The first argument is an instance of [`bolinette.types.db.DataType`](../bolinette/types/db.py).
 The available types are:
 - `Boolean`
 - `Date`
