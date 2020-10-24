@@ -175,7 +175,7 @@ async def test_patch_book_bad_request(client):
 
     rv = await client.patch('/book/1', {'name': ''})
     assert rv['code'] == 400
-    assert 'param.required:name' in rv['messages']
+    assert 'param.non_nullable:name' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)

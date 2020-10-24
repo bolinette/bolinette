@@ -2,11 +2,13 @@ from bolinette import types
 
 
 class MappingObject:
-    def __init__(self, *, key=None, name=None, default=None, required=False, function=False, formatting=False):
+    def __init__(self, *, key=None, name=None, default=None, required=False,
+                 nullable=True, function=False, formatting=False):
         self.key = key
         self.name = name
         self.default = default
         self.required = required
+        self.nullable = nullable
         self.function = function
         self.formatting = formatting
         if not self.name and self.key:
@@ -14,10 +16,10 @@ class MappingObject:
 
 
 class Field(MappingObject):
-    def __init__(self, field_type, *, key=None, name=None, default=None,
-                 required=False, function=None, formatting=None):
+    def __init__(self, field_type, *, key=None, name=None, default=None, required=False,
+                 nullable=True, function=None, formatting=None):
         super().__init__(key=key, name=name, default=default, required=required,
-                         function=function, formatting=formatting)
+                         nullable=nullable, function=function, formatting=formatting)
         self.type = field_type
 
     def __repr__(self):
@@ -28,7 +30,7 @@ class Column(Field):
     def __init__(self, column: 'types.defs.Column', *, name=None, default=None, required=False,
                  function=None, formatting=None):
         super().__init__(column.type, key=column.name, name=name, default=default, required=required,
-                         function=function, formatting=formatting)
+                         nullable=column.nullable, function=function, formatting=formatting)
 
 
 class List(MappingObject):

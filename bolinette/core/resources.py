@@ -65,9 +65,10 @@ class RouteHandler:
                         raise ForbiddenError(f'user.forbidden:{",".join(self.route.roles)}')
 
                 if self.route.expects is not None:
-                    exp_def = context.mapping.payload(self.route.expects.model, self.route.expects.key)
-                    payload = context.mapping.validate_payload(exp_def, payload, self.route.expects.patch)
-                    await context.mapping.link_foreign_entities(exp_def, payload)
+                    payload = context.validator.validate_payload(self.route.expects.model, self.route.expects.key,
+                                                                 payload, self.route.expects.patch)
+                    await context.validator.link_foreign_entities(self.route.expects.model, self.route.expects.key,
+                                                                  payload)
 
                 resp = await functions.async_invoke(self.route.func, self.controller, payload=payload,
                                                     match=match, query=query, current_user=current_user)

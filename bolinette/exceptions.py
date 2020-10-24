@@ -9,6 +9,9 @@ class APIError(Exception):
     def __str__(self):
         return self.message
 
+    def __repr__(self):
+        return f'<APIError {self.message}>'
+
 
 class APIErrors(Exception):
     def __init__(self):
@@ -19,6 +22,9 @@ class APIErrors(Exception):
 
     def __bool__(self):
         return len(self.errors) > 0
+
+    def __repr__(self):
+        return f'<APIErrors [{",".join([repr(err) for err in self.errors])}]>'
 
 
 class InternalError(APIError):
@@ -59,6 +65,11 @@ class EntityNotFoundError(NotFoundError):
 class ParamMissingError(BadRequestError):
     def __init__(self, key):
         super().__init__(f'param.required:{key}', name='ParamMissingError')
+
+
+class ParamNonNullableError(BadRequestError):
+    def __init__(self, key):
+        super().__init__(f'param.non_nullable:{key}', name='ParamMissingError')
 
 
 class ParamConflictError(ConflictError):
