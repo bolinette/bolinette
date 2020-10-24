@@ -102,8 +102,7 @@ class SocketHandler:
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     logger.warning(f'ws connection closed with exception {socket.exception()})')
             except APIError as e:
-                for message in e.messages:
-                    logger.error(message)
+                logger.error(e.message)
 
         if current_user is not None:
             context.sockets.delete_socket_session(current_user.username)

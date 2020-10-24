@@ -35,7 +35,6 @@ def create_user(blnt: 'bolinette.Bolinette', *, username, email, roles):
             for role in user_roles:
                 user.roles.append(role)
         except ParamConflictError as ex:
-            for message in ex.messages:
-                console.error(f'Conflict: {message.split(":")[1]} already exists')
+            console.error(f'Conflict: {ex.message.split(":")[1]} already exists')
             exit(1)
         blnt.context.db.session.commit()

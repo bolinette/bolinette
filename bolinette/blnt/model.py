@@ -2,7 +2,8 @@ from typing import Dict, List, Union, Tuple
 
 from bolinette import types
 
-MappingPyTyping = List[Union['mapping.Column', 'mapping.Field', 'mapping.List', 'mapping.Definition']]
+MappingPyTyping = List[Union['types.mapping.Column', 'types.mapping.Field',
+                             'types.mapping.List', 'types.mapping.Definition']]
 MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 
 

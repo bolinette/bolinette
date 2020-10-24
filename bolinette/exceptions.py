@@ -1,6 +1,3 @@
-from typing import List
-
-
 class APIError(Exception):
     def __init__(self, message, *, name="APIError"):
         super().__init__(name)

@@ -64,7 +64,7 @@ class Repository:
         return values
 
     def _map_model(self, entity, values, patch=False):
-        errors = []
+        api_errors = APIErrors()
         for _, column in self.model.__props__.get_columns().items():
             key = column.name
             if column.primary_key or (key not in values and patch):
@@ -75,7 +75,7 @@ class Repository:
                 continue
             if column.unique and new is not None:
                 if self.query.filter(self.column(key) == new).first() is not None:
-                    errors.append(ParamConflictError(key, new))
+                    api_errors.append(ParamConflictError(key, new))
             setattr(entity, key, new)
-        if len(errors) > 0:
-            raise APIErrors(errors)
+        if api_errors:
+            raise api_errors
