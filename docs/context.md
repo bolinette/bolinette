@@ -2,8 +2,7 @@
 
 The context is a meta object available from almost every bolinette class (except models).
 From the context, you can access every registered model, service and controller with the identifier string.
-For example, you can call a service from a controller or another service with
-`self.context.service('service_name').service_method()`.
+For example, you can call a service from a controller or another service with `self.context.service('service_name').service_method()`.
 
 ## Aiohttp application
 
@@ -12,17 +11,46 @@ You can find the complete documentation [here](https://docs.aiohttp.org/en/stabl
 
 ## Environment
 
-TODO
+[Environment variables](./environment.md#environment-variables) are available from the context, with the string key.
+Internal Bolinette settings can be customized with variables like `PORT`, `HOST` and `SECRET_KEY`.
+You can also use your own variables.
+
+Variables are available from `context.env` with the brackets operator.
+
+### Example
+
+```yaml
+# env.production.yaml
+OVERRIDE_BOOK_PRICE: true
+DEFAULT_BOOK_PRICE: 14.99
+```
+
+```python
+from bolinette import blnt
+from bolinette.decorators import service
+
+@service('book')
+class BookService(blnt.Service):
+    def create(self, values):
+        if self.context.env['OVERRIDE_BOOK_PRICE']:
+            values['price'] = self.context.env['DEFAULT_BOOK_PRICE']
+        super().create(values)
+```
 
 ## Custom registration
 
-You can inject you own objects inside the context and use them across the Bolinette classes.
+You should avoid using global static objects.
+You can inject your own objects inside the context and use them across the Bolinette classes.
+
 Use the bracket operator to set and get objects in the context.
 It is a good practice to use [init functions](./init.md) to set objects in the context.
-You can use such objects as a state manager but remember that web API calls are concurrent and can corrupt your data
-structures if called at the same time.
 
 ### Example
+
+The following piece of code is a very simple example to demonstrate how to inject custom objects.
+Keep in mind that context objects will be created in every worker and stored data in context will be different in every thread.
+In the example, the counter will be different in every worker and will not accurately count the API calls.
+
 ```python
 from bolinette import blnt
 from bolinette.decorators import init_func, service

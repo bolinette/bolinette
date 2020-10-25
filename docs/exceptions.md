@@ -1,7 +1,7 @@
 # Exceptions
 
 Any request can be aborted at any time by raising an Error.
-The error is catched at top level and a readable error is sent to the client.
+The error is caught at top level and a readable error is sent to the client.
 All errors are located inside the [`bolinette.exceptions`](../bolinette/exceptions.py) package and inherit `APIError`.
 
 ## Error codes
@@ -21,3 +21,16 @@ They have more specific subclasses for more specific use cases.
 - `EntityNotFoundError(NotFoundError) __init__(model, key, value)`
 - `ParamMissingError(BadRequestError) __init__(key)`
 - `ParamConflictError(ConflictError) __init__(key, value)`
+
+## Multiple errors
+
+To send multiple error messages to the client, use `APIErrors`.
+
+```python
+from bolinette.exceptions import APIErrors, EntityNotFoundError, ParamMissingError
+
+errors = APIErrors()
+errors.append(EntityNotFoundError(model='book', key='id', value=99))
+errors.append(ParamMissingError(key='price'))
+raise errors
+```

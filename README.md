@@ -35,8 +35,11 @@ pip install pip --upgrade && pip install bolinette
 
 - [Cache](./docs/cache.md)
 - [Exceptions](./docs/exceptions.md)
-- [Init function](./docs/init.md#init-functions)
-- [Init variables](./docs/init.md#init-variables)
+- [Environment](./docs/environment.md)
+  - [Profile](./docs/environment.md#profile)
+  - [Init variables](./docs/environment.md#init-variables)
+  - [Environment variables](./docs/environment.md#environment-variables)
+- [Init function](./docs/init.md)
 - [Context](./docs/context.md)
   - [app](./docs/context.md#aiohttp-application)
   - [env](./docs/context.md#environment)
