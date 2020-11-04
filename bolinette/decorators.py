@@ -1,3 +1,4 @@
+import inspect
 from typing import Type, Callable, List, Union, Tuple
 
 from bolinette import core, blnt, types
@@ -82,7 +83,11 @@ def route(path: str, *, method: types.web.HttpMethod, access: 'types.web.AccessT
             returns = blnt.ControllerReturns(returns)
 
     def decorator(route_function: Callable):
-        return blnt.ControllerRoute(route_function, path, method, access, expects, returns, roles)
+        inner_route = None
+        if isinstance(route_function, blnt.ControllerRoute):
+            inner_route = route_function
+            route_function = route_function.func
+        return blnt.ControllerRoute(route_function, path, method, access, expects, returns, roles, inner_route)
     return decorator
 
 

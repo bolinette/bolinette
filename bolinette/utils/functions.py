@@ -1,6 +1,8 @@
 import inspect
 from typing import Callable, Awaitable, Any
 
+from bolinette.exceptions import InternalError
+
 
 def _parse_params(function, *args, **kwargs):
     cur_arg = 0
@@ -21,10 +23,10 @@ def _parse_params(function, *args, **kwargs):
 async def async_invoke(function: Callable[[Any], Awaitable[Any]], *args, **kwargs):
     if inspect.iscoroutinefunction(function):
         return await function(**_parse_params(function, *args, **kwargs))
-    return None
+    raise InternalError(f'internal.not_async_function:{function.__name__}')
 
 
 def invoke(function: Callable[[Any], Any], *args, **kwargs):
     if inspect.isfunction(function):
         return function(**_parse_params(function, *args, **kwargs))
-    return None
+    raise InternalError(f'internal.not_function:{function.__name__}')

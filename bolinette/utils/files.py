@@ -1,6 +1,8 @@
 import jinja2
 import yaml
+from jinja2 import TemplateNotFound
 
+from bolinette.exceptions import InternalError
 from bolinette.utils import paths
 
 
@@ -56,5 +58,8 @@ def render_template(path, params):
         trim_blocks=True,
         lstrip_blocks=True
     )
-    template = jinja_env.get_template(template_name)
+    try:
+        template = jinja_env.get_template(template_name)
+    except TemplateNotFound:
+        raise InternalError(f'internal.template.not_found:{path}')
     return template.render(**params)

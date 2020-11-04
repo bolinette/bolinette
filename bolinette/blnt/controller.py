@@ -50,7 +50,7 @@ class ControllerProps:
 class ControllerRoute:
     def __init__(self, func: Callable, path: str, method: types.web.HttpMethod,
                  access: types.web.AccessToken = None, expects: 'ControllerExcepts' = None,
-                 returns: 'ControllerReturns' = None, roles: List[str] = None):
+                 returns: 'ControllerReturns' = None, roles: List[str] = None, inner_route: 'ControllerRoute' = None):
         self.controller = None
         self.func = func
         self.path = path
@@ -59,6 +59,7 @@ class ControllerRoute:
         self.expects = expects
         self.returns = returns
         self.roles = roles or []
+        self.inner_route = inner_route
 
 
 class ControllerExcepts:

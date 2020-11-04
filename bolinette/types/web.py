@@ -11,16 +11,7 @@ class HttpMethod(Enum):
 
     @property
     def http_verb(self):
-        if self.value == HttpMethod.GET.value:
-            return 'GET'
-        elif self.value == HttpMethod.POST.value:
-            return 'POST'
-        elif self.value == HttpMethod.PUT.value:
-            return 'PUT'
-        elif self.value == HttpMethod.PATCH.value:
-            return 'PATCH'
-        elif self.value == HttpMethod.DELETE.value:
-            return 'DELETE'
+        return self.name
 
 
 @unique

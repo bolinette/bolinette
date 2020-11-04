@@ -46,7 +46,12 @@ class JWT:
     def verify(self, request, *, optional=False, fresh=False):
         now = datetime.utcnow()
         if 'access_token' in request.cookies:
-            payload = self.decode(request.cookies['access_token'])
+            try:
+                payload = self.decode(request.cookies['access_token'])
+            except py_jwt.PyJWTError:
+                if optional:
+                    return None
+                raise UnauthorizedError('user.token.invalid')
             expires = datetime.strptime(payload['expires'], '%Y-%m-%d %H:%M:%S.%f')
             if now > expires:
                 raise UnauthorizedError('user.token.expired')

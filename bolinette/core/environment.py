@@ -1,4 +1,6 @@
 import os
+import random
+import string
 from typing import Dict, Any
 
 import yaml
@@ -77,17 +79,18 @@ class Environment(Settings):
         super().__init__()
         self.context = context
         profile = profile or init.profile or 'development'
-        self._reset(self.merge_env_stack([
-            self.default_env,
+        self._reset(self._merge_env_stack([
+            self._default_env,
             self._load_from_file(f'env.{profile}.yaml'),
             self._load_from_file(f'env.local.{profile}.yaml'),
-            self.load_from_os(),
+            self._load_from_os(),
             overrides or {},
             {'profile': profile}
         ]))
+        self._check_secret_key()
 
     @property
-    def default_env(self):
+    def _default_env(self):
         return {
             'APP_NAME': 'DEFAULT_NAME',
             'APP_DESC': 'DEFAULT_DESCRIPTION',
@@ -99,16 +102,21 @@ class Environment(Settings):
             'WEBAPP_FOLDER': self.context.root_path('webapp', 'dist')
         }
 
-    def load_from_os(self):
+    def _load_from_os(self):
         keys = {}
         for key in os.environ:
             if key.startswith('BLNT_'):
                 keys[key[5:]] = os.environ[key]
         return keys
 
-    def merge_env_stack(self, stack):
+    def _merge_env_stack(self, stack):
         settings = {}
         for source in stack:
             for key, value in source.items():
                 settings[key.lower()] = value
         return settings
+
+    def _check_secret_key(self):
+        if self['secret_key'] is None:
+            console.error('Warning: no SECRET_KEY set, using random one')
+            self._settings['secret_key'] = ''.join(random.choices(string.ascii_letters + string.digits, k=64))

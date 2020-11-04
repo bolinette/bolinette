@@ -73,15 +73,18 @@ def init_services(context: core.BolinetteContext):
 
 @init_func
 def init_controllers(context: core.BolinetteContext):
+    def _add_route(_controller: blnt.Controller, _route: blnt.ControllerRoute):
+        path = f'{_controller.__blnt__.namespace}{_controller.__blnt__.path}{_route.path}'
+        context.resources.add_route(path, _controller, _route)
+        if _route.inner_route is not None:
+            _add_route(_controller, _route.inner_route)
     for controller_name, controller_cls in core.cache.controllers.items():
         controller = controller_cls(context)
         for _, route in controller.__props__.get_routes().items():
-            path = f'{controller.__blnt__.namespace}{controller.__blnt__.path}{route.path}'
-            context.resources.add_route(path, controller, route)
+            _add_route(controller, route)
         if isinstance(controller, blnt.Controller):
             for route in controller.default_routes():
-                path = f'{controller.__blnt__.namespace}{controller.__blnt__.path}{route.path}'
-                context.resources.add_route(path, controller, route)
+                _add_route(controller, route)
         context.add_controller(controller_name, controller)
 
 
