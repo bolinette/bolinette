@@ -15,7 +15,7 @@ class Controller:
             self.defaults = ControllerDefaults(self)
 
     @property
-    def service(self) -> blnt.Service:
+    def service(self) -> 'blnt.Service':
         return self.context.service(self.__blnt__.service_name)
 
     def default_routes(self):

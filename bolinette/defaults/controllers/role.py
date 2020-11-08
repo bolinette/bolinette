@@ -1,9 +1,9 @@
-from bolinette import blnt
+from bolinette import web
 from bolinette.decorators import controller
 
 
 @controller('role', '/role')
-class RoleController(blnt.Controller):
+class RoleController(web.Controller):
     def default_routes(self):
         return [
             self.defaults.get_all(roles=['admin']),

@@ -1,12 +1,12 @@
 from aiohttp import web as aio_web
 
-from bolinette import blnt, types
+from bolinette import types, web
 from bolinette.decorators import controller, get
 from bolinette.defaults.services import FileService
 
 
 @controller('file', '/file')
-class FileController(blnt.Controller):
+class FileController(web.Controller):
     @property
     def file_service(self) -> FileService:
         return self.context.service('file')

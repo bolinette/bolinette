@@ -1,7 +1,7 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import core, blnt
+from bolinette import core, blnt, web
 from bolinette.decorators import init_func
 
 
@@ -73,7 +73,7 @@ def init_services(context: core.BolinetteContext):
 
 @init_func
 def init_controllers(context: core.BolinetteContext):
-    def _add_route(_controller: blnt.Controller, _route: blnt.ControllerRoute):
+    def _add_route(_controller: web.Controller, _route: web.ControllerRoute):
         path = f'{_controller.__blnt__.namespace}{_controller.__blnt__.path}{_route.path}'
         context.resources.add_route(path, _controller, _route)
         if _route.inner_route is not None:
@@ -82,7 +82,7 @@ def init_controllers(context: core.BolinetteContext):
         controller = controller_cls(context)
         for _, route in controller.__props__.get_routes().items():
             _add_route(controller, route)
-        if isinstance(controller, blnt.Controller):
+        if isinstance(controller, web.Controller):
             for route in controller.default_routes():
                 _add_route(controller, route)
         context.add_controller(controller_name, controller)

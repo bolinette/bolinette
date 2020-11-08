@@ -6,30 +6,30 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from bolinette.utils import logger
 
-from bolinette import core, types, blnt
+from bolinette import core, types, web
 from bolinette.exceptions import APIError
 
 
 class BolinetteSockets:
     def __init__(self, context: 'core.BolinetteContext'):
         self.context = context
-        self._topics: Dict[str, 'blnt.Topic'] = {}
-        self._channels: Dict[str, List['blnt.TopicChannel']] = {}
+        self._topics: Dict[str, 'web.Topic'] = {}
+        self._channels: Dict[str, List['web.TopicChannel']] = {}
         self._socket_sessions: Dict[str, aio_web.WebSocketResponse] = {}
         self._anon_socket_sessions: List[aio_web.WebSocketResponse] = []
 
-    def add_topic(self, name: str, topic: 'blnt.Topic'):
+    def add_topic(self, name: str, topic: 'web.Topic'):
         self._topics[name] = topic
 
-    def topic(self, name: str) -> 'blnt.Topic':
+    def topic(self, name: str) -> 'web.Topic':
         return self._topics.get(name)
 
-    def add_channel(self, topic: str, channel: 'blnt.TopicChannel'):
+    def add_channel(self, topic: str, channel: 'web.TopicChannel'):
         if topic not in self._channels:
             self._channels[topic] = []
         self._channels[topic].append(channel)
 
-    def channels(self, topic: str) -> List['blnt.TopicChannel']:
+    def channels(self, topic: str) -> List['web.TopicChannel']:
         return self._channels.get(topic) or []
     
     async def send_message(self, topic: str, channels: Union[str, List[str]], message):

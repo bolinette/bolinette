@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from aiohttp import web as aio_web
 from bolinette.utils import paths
 
-from bolinette import core, blnt
+from bolinette import core, blnt, web
 from bolinette.exceptions import InternalError
 
 
@@ -25,7 +25,7 @@ class BolinetteContext:
             self._models: Dict[str, 'blnt.Model'] = {}
             self._repos: Dict[str, 'blnt.Repository'] = {}
             self._services: Dict[str, 'blnt.Service'] = {}
-            self._controllers: Dict[str, 'blnt.Controller'] = {}
+            self._controllers: Dict[str, 'web.Controller'] = {}
             self._ctx = {}
 
     def __getitem__(self, key):

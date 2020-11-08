@@ -2,14 +2,14 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import blnt, types, core
+from bolinette import types, core, web
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import BadRequestError, EntityNotFoundError
 
 
 @controller('user', '/user')
-class UserController(blnt.Controller):
+class UserController(web.Controller):
     @property
     def user_service(self) -> UserService:
         return self.context.service('user')

@@ -1,7 +1,6 @@
-import inspect
 from typing import Type, Callable, List, Union, Tuple
 
-from bolinette import core, blnt, types
+from bolinette import core, blnt, types, web
 
 
 def model(model_name: str):
@@ -34,7 +33,7 @@ def with_mixin(mixin_name: str):
     return decorator
 
 
-def init_func(func: Callable[[core.BolinetteContext], None]):
+def init_func(func: Callable[['core.BolinetteContext'], None]):
     core.cache.init_funcs.append(func)
     return func
 
@@ -59,8 +58,8 @@ def controller(controller_name: str, path: str = None, *,
     if service_name is None:
         service_name = controller_name
 
-    def decorator(controller_cls: Type['blnt.Controller']):
-        controller_cls.__blnt__ = blnt.ControllerMetadata(controller_name, path, use_service, service_name, namespace)
+    def decorator(controller_cls: Type['web.Controller']):
+        controller_cls.__blnt__ = web.ControllerMetadata(controller_name, path, use_service, service_name, namespace)
         core.cache.controllers[controller_name] = controller_cls
         return controller_cls
     return decorator
@@ -71,23 +70,23 @@ def route(path: str, *, method: types.web.HttpMethod, access: 'types.web.AccessT
           roles: List[str] = None):
     if expects is not None:
         if isinstance(expects, tuple):
-            expects = blnt.ControllerExcepts(expects[0], expects[1] if len(expects) > 1 else 'default',
-                                             patch='patch' in expects[2:])
+            expects = web.ControllerExcepts(expects[0], expects[1] if len(expects) > 1 else 'default',
+                                            patch='patch' in expects[2:])
         elif isinstance(expects, str):
-            expects = blnt.ControllerExcepts(expects)
+            expects = web.ControllerExcepts(expects)
     if returns is not None:
         if isinstance(returns, tuple):
-            returns = blnt.ControllerReturns(returns[0], returns[1] if len(returns) > 1 else 'default',
-                                             as_list='as_list' in returns[2:], skip_none='skip_none' in returns[2:])
+            returns = web.ControllerReturns(returns[0], returns[1] if len(returns) > 1 else 'default',
+                                            as_list='as_list' in returns[2:], skip_none='skip_none' in returns[2:])
         elif isinstance(returns, str):
-            returns = blnt.ControllerReturns(returns)
+            returns = web.ControllerReturns(returns)
 
     def decorator(route_function: Callable):
         inner_route = None
-        if isinstance(route_function, blnt.ControllerRoute):
+        if isinstance(route_function, web.ControllerRoute):
             inner_route = route_function
             route_function = route_function.func
-        return blnt.ControllerRoute(route_function, path, method, access, expects, returns, roles, inner_route)
+        return web.ControllerRoute(route_function, path, method, access, expects, returns, roles, inner_route)
     return decorator
 
 
@@ -124,8 +123,8 @@ def delete(path: str, *, access=None, expects=None, returns=None, roles: List[st
 
 
 def topic(topic_name: str):
-    def decorator(topic_cls: Type['blnt.Topic']):
-        topic_cls.__blnt__ = blnt.TopicMetadata(topic_name)
+    def decorator(topic_cls: Type['web.Topic']):
+        topic_cls.__blnt__ = web.TopicMetadata(topic_name)
         core.cache.topics[topic_name] = topic_cls
         return topic_cls
     return decorator
@@ -133,5 +132,5 @@ def topic(topic_name: str):
 
 def channel(rule: str):
     def decorator(channel_function: Callable):
-        return blnt.TopicChannel(channel_function, rule)
+        return web.TopicChannel(channel_function, rule)
     return decorator

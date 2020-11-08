@@ -1,9 +1,9 @@
-from bolinette import blnt
+from bolinette import web
 from bolinette.decorators import controller
 
 
 @controller('person', '/person')
-class PersonController(blnt.Controller):
+class PersonController(web.Controller):
     def default_routes(self):
         return [
             self.defaults.get_all(),

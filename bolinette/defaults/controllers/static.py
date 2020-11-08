@@ -3,12 +3,12 @@ import mimetypes
 from aiohttp import web as aio_web
 from bolinette.utils import paths
 
-from bolinette.blnt import Controller
+from bolinette import web
 from bolinette.decorators import get, controller
 
 
 @controller('static', namespace='', use_service=False)
-class StaticController(Controller):
+class StaticController(web.Controller):
     async def _file_sender(self, path):
         with open(path, 'rb') as file:
             chunk = file.read(2 ** 16)
