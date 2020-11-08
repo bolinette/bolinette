@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from bolinette import core
+from bolinette import blnt
 from bolinette.decorators import seeder
 from bolinette.defaults.services import RoleService, UserService
 
@@ -8,19 +8,19 @@ from example.services import BookService, PersonService
 
 
 @seeder
-async def role_seeder(context: core.BolinetteContext):
+async def role_seeder(context: blnt.BolinetteContext):
     role_service: RoleService = context.service('role')
-    with core.Transaction(context):
+    with blnt.Transaction(context):
         await role_service.create({'name': 'root'})
         await role_service.create({'name': 'admin'})
 
 
 @seeder
-async def dev_user_seeder(context: core.BolinetteContext):
+async def dev_user_seeder(context: blnt.BolinetteContext):
     if context.env['PROFILE'] == 'development':
         role_service: RoleService = context.service('role')
         user_service: UserService = context.service('user')
-        with core.Transaction(context):
+        with blnt.Transaction(context):
             root = await role_service.get_by_name('root')
             admin = await role_service.get_by_name('admin')
             root_usr = await user_service.create({
@@ -47,12 +47,12 @@ async def dev_user_seeder(context: core.BolinetteContext):
 
 
 @seeder
-async def book_seeder(context: core.BolinetteContext):
+async def book_seeder(context: blnt.BolinetteContext):
     if context.env['PROFILE'] == 'development':
         user_service: UserService = context.service('user')
         person_service: PersonService = context.service('person')
         book_service: BookService = context.service('book')
-        with core.Transaction(context):
+        with blnt.Transaction(context):
             p1 = await person_service.create({'first_name': 'J.R.R.', 'last_name': 'Tolkien'})
             user = await user_service.get_by_username('root')
             await book_service.create(

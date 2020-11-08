@@ -1,20 +1,20 @@
-from bolinette import types, blnt, core
+from bolinette import types, core, blnt
 from bolinette.decorators import model
 
 
 @model('users_roles')
-class UsersRoles(blnt.Model):
+class UsersRoles(core.Model):
     user_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id'), primary_key=True)
     role_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('role', 'id'), primary_key=True)
 
 
 @model('user')
-class User(blnt.Model):
+class User(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     username = types.defs.Column(types.db.String, unique=True, nullable=False)
     password = types.defs.Column(types.db.Password, nullable=False)
-    email = types.defs.Column(types.db.Email, unique=core.init['USER_EMAIL_REQUIRED'],
-                              nullable=(not core.init['USER_EMAIL_REQUIRED']))
+    email = types.defs.Column(types.db.Email, unique=blnt.init['USER_EMAIL_REQUIRED'],
+                              nullable=(not blnt.init['USER_EMAIL_REQUIRED']))
 
     roles = types.defs.Relationship('role', secondary='users_roles', lazy='subquery',
                                     backref=types.defs.Backref('users', lazy=True))

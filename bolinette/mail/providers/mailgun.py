@@ -1,11 +1,11 @@
 import requests
 from bolinette.utils import logger
 
-from bolinette import core
+from bolinette import blnt
 
 
 class Mailgun:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.url = context.env['MAILGUN_URL']
         self.ready = True
         self.key = context.env['MAILGUN_API']

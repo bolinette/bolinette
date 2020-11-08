@@ -1,12 +1,12 @@
 import json
 
-from bolinette import core
+from bolinette import blnt
 from bolinette.testing import Mock
 from bolinette.utils.serializing import serialize
 
 
 class TestClient:
-    def __init__(self, client, context: core.BolinetteContext):
+    def __init__(self, client, context: blnt.BolinetteContext):
         self.client = client
         self.context = context
         self.mock = Mock(context)

@@ -3,7 +3,7 @@ from typing import Union
 from aiohttp.web_response import Response as AioResponse
 from bolinette.utils import files
 
-from bolinette import core, exceptions
+from bolinette import blnt, exceptions
 
 
 class Cookie:
@@ -24,7 +24,7 @@ class APIResponse:
 
 
 class Response:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self._exceptions = {
             exceptions.UnauthorizedError: self.unauthorized,
             exceptions.BadRequestError: self.bad_request,

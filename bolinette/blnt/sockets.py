@@ -6,12 +6,12 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from bolinette.utils import logger
 
-from bolinette import core, types, web
+from bolinette import blnt, types, web
 from bolinette.exceptions import APIError
 
 
 class BolinetteSockets:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self._topics: Dict[str, 'web.Topic'] = {}
         self._channels: Dict[str, List['web.TopicChannel']] = {}
@@ -73,7 +73,7 @@ class SocketHandler:
         pass
 
     async def __call__(self, request: Request):
-        context: core.BolinetteContext = request.app['blnt']
+        context: blnt.BolinetteContext = request.app['blnt']
         user_service = context.service('user')
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
@@ -112,12 +112,12 @@ class SocketHandler:
         logger.warning('Closed WS connection')
         return socket
 
-    async def process_topic_message(self, context: 'core.BolinetteContext',
+    async def process_topic_message(self, context: 'blnt.BolinetteContext',
                                     socket: aio_web.WebSocketResponse, payload, current_user):
         action = payload['action']
         topic = context.sockets.topic(payload['topic'])
         if topic is not None:
-            with core.Transaction(context):
+            with blnt.Transaction(context):
                 if action == 'subscribe':
                     await topic.receive_subscription(payload['channel'], socket)
                 elif action == 'send':

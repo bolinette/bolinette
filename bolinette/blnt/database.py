@@ -3,11 +3,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from bolinette import core
+from bolinette import blnt
 
 
 class DatabaseEngine:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.engine = create_engine(self._create_uri(context), echo=False)
         self.Session = sessionmaker()
         self.model = declarative_base()
@@ -20,7 +20,7 @@ class DatabaseEngine:
     async def drop_all(self):
         self.model.metadata.drop_all(self.engine)
 
-    def _create_uri(self, context: 'core.BolinetteContext'):
+    def _create_uri(self, context: 'blnt.BolinetteContext'):
         dbms = context.env.get('DBMS', 'SQLITE').lower()
         if dbms == 'sqlite':
             return 'sqlite:///' + context.instance_path(
@@ -32,6 +32,6 @@ class DatabaseEngine:
         logger.error(f'Unknown database system "{dbms}"')
         exit(1)
 
-    async def run_seeders(self, context: 'core.BolinetteContext'):
-        for func in core.cache.seeders:
+    async def run_seeders(self, context: 'blnt.BolinetteContext'):
+        for func in blnt.cache.seeders:
             await func(context)

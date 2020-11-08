@@ -1,11 +1,11 @@
-from bolinette import blnt, bcrypt
+from bolinette import core, bcrypt
 from bolinette.decorators import service
 from bolinette.defaults.services import FileService
 from bolinette.exceptions import ForbiddenError, BadRequestError
 
 
 @service('user')
-class UserService(blnt.Service):
+class UserService(core.Service):
     @staticmethod
     def encrypt_password(password):
         return bcrypt.hash_password(password)

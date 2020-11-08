@@ -1,9 +1,9 @@
-from bolinette import types, blnt
+from bolinette import types, core
 from bolinette.decorators import model
 
 
 @model('file')
-class File(blnt.Model):
+class File(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     key = types.defs.Column(types.db.String, nullable=False)
     name = types.defs.Column(types.db.String, nullable=False)

@@ -8,7 +8,7 @@ In normal circumstances, you should not have to use the cache.
 
 ## Example
 ```python
-from bolinette.core import cache
+from bolinette.blnt import cache
 
 srv = cache.services  # Dict[str, Type[blnt.Service]]
 ctrl = cache.controllers  # Dict[str, Type[blnt.Controller]]

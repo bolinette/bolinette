@@ -3,12 +3,12 @@ import traceback
 from bolinette.utils import logger
 from sqlalchemy.exc import SQLAlchemyError
 
-from bolinette import core
+from bolinette import blnt
 from bolinette.exceptions import APIError, APIErrors, InternalError
 
 
 class Transaction:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
 
     def __enter__(self):

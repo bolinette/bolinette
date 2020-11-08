@@ -3,17 +3,17 @@ import random
 import string
 from types import SimpleNamespace
 
-from bolinette import core, types
+from bolinette import blnt, types
 
 
 class Mocked:
-    def __init__(self, name, context: core.BolinetteContext):
+    def __init__(self, name, context: blnt.BolinetteContext):
         self.name = name
         self.context = context
         self.fields = SimpleNamespace()
 
     @staticmethod
-    def insert_entity(context: core.BolinetteContext, name, params):
+    def insert_entity(context: blnt.BolinetteContext, name, params):
         entity = context.table(name)(**params)
         context.db.session.add(entity)
         return entity
@@ -34,7 +34,7 @@ class Mocked:
 
 
 class Mock:
-    def __init__(self, context: core.BolinetteContext):
+    def __init__(self, context: blnt.BolinetteContext):
         self.context = context
 
     def _random_lower(self, rng, length):

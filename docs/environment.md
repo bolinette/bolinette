@@ -20,13 +20,13 @@ DEFAULT_BOOK_PRICE: 14.99
 ```
 
 ```python
-from bolinette import core, blnt, types
+from bolinette import blnt, core, types
 from bolinette.decorators import model
 
 @model('book')
-class Book(blnt.Model):
-    name = types.defs.Column(types.db.String, unique=core.init['UNIQUE_BOOK_NAME'])
-    price = types.defs.Column(types.db.Float, nullable=False, default=core.init['DEFAULT_BOOK_PRICE'])
+class Book(core.Model):
+    name = types.defs.Column(types.db.String, unique=blnt.init['UNIQUE_BOOK_NAME'])
+    price = types.defs.Column(types.db.Float, nullable=False, default=blnt.init['DEFAULT_BOOK_PRICE'])
 ```
 
 # Environment variables

@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import types, core, web
+from bolinette import types, blnt, web
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import BadRequestError, EntityNotFoundError
@@ -28,11 +28,11 @@ class UserController(web.Controller):
         now = datetime.utcnow()
         if set_access:
             access_token = self.context.jwt.create_access_token(now, user.username, fresh=fresh)
-            resp.cookies.append(core.Cookie('access_token', access_token,
+            resp.cookies.append(blnt.Cookie('access_token', access_token,
                                             expires=self.context.jwt.access_token_expires(now), path='/'))
         if set_refresh:
             refresh_token = self.context.jwt.create_refresh_token(now, user.username)
-            resp.cookies.append(core.Cookie('refresh_token', refresh_token,
+            resp.cookies.append(blnt.Cookie('refresh_token', refresh_token,
                                             expires=self.context.jwt.refresh_token_expires(now),
                                             path='/api/user/refresh'))
 
@@ -68,8 +68,8 @@ class UserController(web.Controller):
     @post('/logout')
     async def logout(self):
         resp = self.response.ok('user.logout.success')
-        resp.cookies.append(core.Cookie('access_token', None, delete=True, path='/'))
-        resp.cookies.append(core.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
+        resp.cookies.append(blnt.Cookie('access_token', None, delete=True, path='/'))
+        resp.cookies.append(blnt.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
         return resp
 
     @post('/token/refresh',
@@ -83,7 +83,7 @@ class UserController(web.Controller):
           returns=('user', 'private'),
           expects=('user', 'register'))
     async def register(self, payload):
-        if core.init.get('ADMIN_REGISTER_ONLY', True):
+        if blnt.init.get('ADMIN_REGISTER_ONLY', True):
             raise BadRequestError('global.register.admin_only')
         user = await self.user_service.create(payload)
         resp = self.response.created('user.registered', user)

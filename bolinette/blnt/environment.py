@@ -6,7 +6,7 @@ from typing import Dict, Any
 import yaml
 from bolinette.utils import paths, console
 
-from bolinette import core
+from bolinette import blnt
 from bolinette.exceptions import InitError
 
 
@@ -75,7 +75,7 @@ init = InitSettings()
 
 
 class Environment(Settings):
-    def __init__(self, context: 'core.BolinetteContext', *, profile=None, overrides=None):
+    def __init__(self, context: 'blnt.BolinetteContext', *, profile=None, overrides=None):
         super().__init__()
         self.context = context
         profile = profile or init.profile or 'development'

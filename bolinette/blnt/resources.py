@@ -5,14 +5,14 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
-from bolinette import core, types, web
+from bolinette import blnt, types, web
 from bolinette.exceptions import APIError, APIErrors, ForbiddenError
 from bolinette.utils import Pagination, functions
 from bolinette.utils.serializing import deserialize, serialize
 
 
 class BolinetteResources:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self._resources: Dict[str, 'BolinetteResource'] = {}
         self.cors = aiohttp_cors.setup(self.context.app, defaults={
@@ -43,7 +43,7 @@ class RouteHandler:
         self.route = route
 
     async def __call__(self, request: Request):
-        context: core.BolinetteContext = request.app['blnt']
+        context: blnt.BolinetteContext = request.app['blnt']
         user_service = context.service('user')
         current_user = None
         payload = await deserialize(request)
@@ -54,7 +54,7 @@ class RouteHandler:
         for key in request.query:
             query[key] = request.query[key]
         try:
-            with core.Transaction(context):
+            with blnt.Transaction(context):
                 if self.route.access is not None:
                     if (identity := self.route.access.check(context, request)) is not None:
                         current_user = await user_service.get_by_username(identity, safe=True)
@@ -79,7 +79,7 @@ class RouteHandler:
                 return resp
             if isinstance(resp, str):
                 return aio_web.Response(text=resp, status=200, content_type='text/plain')
-            if not isinstance(resp, core.APIResponse):
+            if not isinstance(resp, blnt.APIResponse):
                 return aio_web.Response(text='global.unserializable_response', status=500, content_type='text/plain')
 
             content = resp.content

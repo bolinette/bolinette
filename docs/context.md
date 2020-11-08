@@ -26,11 +26,11 @@ DEFAULT_BOOK_PRICE: 14.99
 ```
 
 ```python
-from bolinette import blnt
+from bolinette import core
 from bolinette.decorators import service
 
 @service('book')
-class BookService(blnt.Service):
+class BookService(core.Service):
     def create(self, values):
         if self.context.env['OVERRIDE_BOOK_PRICE']:
             values['price'] = self.context.env['DEFAULT_BOOK_PRICE']
@@ -52,7 +52,7 @@ Keep in mind that context objects will be created in every worker and stored dat
 In the example, the counter will be different in every worker and will not accurately count the API calls.
 
 ```python
-from bolinette import blnt
+from bolinette import core
 from bolinette.decorators import init_func, service
 
 class CustomState:
@@ -67,7 +67,7 @@ def init_fn(context):
     context['state'] = CustomState()
 
 @service('book')
-class BookService(blnt.Service):
+class BookService(core.Service):
     def __init__(self, context):
         super().__init__(context)
 

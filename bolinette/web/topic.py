@@ -3,13 +3,13 @@ from typing import Dict, List
 
 from aiohttp import web as aio_web
 
-from bolinette import core
+from bolinette import blnt
 
 
 class Topic:
     __blnt__: 'TopicMetadata' = None
 
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self.__props__ = TopicProps(self)
         self._subscriptions: Dict[str, List[aio_web.WebSocketResponse]] = {}

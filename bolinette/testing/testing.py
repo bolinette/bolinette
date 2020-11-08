@@ -3,7 +3,7 @@ from typing import Callable, Awaitable
 
 import pytest
 
-from bolinette import Bolinette, core
+from bolinette import Bolinette, blnt
 from bolinette.testing import TestClient, Mock
 
 
@@ -15,8 +15,8 @@ def client(loop, aiohttp_client):
     return TestClient(client, blnt.context)
 
 
-def bolitest(*, before: Callable[[core.BolinetteContext, Mock], Awaitable[None]] = None,
-             after: Callable[[core.BolinetteContext, Mock], Awaitable[None]] = None):
+def bolitest(*, before: Callable[[blnt.BolinetteContext, Mock], Awaitable[None]] = None,
+             after: Callable[[blnt.BolinetteContext, Mock], Awaitable[None]] = None):
     def wrapper(func):
         @wraps(func)
         async def inner(client: TestClient):

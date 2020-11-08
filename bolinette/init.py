@@ -1,14 +1,14 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import core, blnt, web
+from bolinette import blnt, core, web
 from bolinette.decorators import init_func
 
 
 @init_func
-def init_models(context: core.BolinetteContext):
+def init_models(context: blnt.BolinetteContext):
     models = {}
-    for model_name, model_cls in core.cache.models.items():
+    for model_name, model_cls in blnt.cache.models.items():
         models[model_name] = model_cls()
     orm_tables = {}
     orm_cols = {}
@@ -54,31 +54,31 @@ def init_models(context: core.BolinetteContext):
 
 
 @init_func
-def init_repositories(context: core.BolinetteContext):
+def init_repositories(context: blnt.BolinetteContext):
     for model_name, model in context.models:
-        context.add_repo(model_name, blnt.Repository(model_name, model, context))
+        context.add_repo(model_name, core.Repository(model_name, model, context))
 
 
 @init_func
-def init_mappings(context: core.BolinetteContext):
+def init_mappings(context: blnt.BolinetteContext):
     for model_name, model in context.models:
         context.mapping.register(model_name, model)
 
 
 @init_func
-def init_services(context: core.BolinetteContext):
-    for service_name, service_cls in core.cache.services.items():
+def init_services(context: blnt.BolinetteContext):
+    for service_name, service_cls in blnt.cache.services.items():
         context.add_service(service_name, service_cls(context))
 
 
 @init_func
-def init_controllers(context: core.BolinetteContext):
+def init_controllers(context: blnt.BolinetteContext):
     def _add_route(_controller: web.Controller, _route: web.ControllerRoute):
         path = f'{_controller.__blnt__.namespace}{_controller.__blnt__.path}{_route.path}'
         context.resources.add_route(path, _controller, _route)
         if _route.inner_route is not None:
             _add_route(_controller, _route.inner_route)
-    for controller_name, controller_cls in core.cache.controllers.items():
+    for controller_name, controller_cls in blnt.cache.controllers.items():
         controller = controller_cls(context)
         for _, route in controller.__props__.get_routes().items():
             _add_route(controller, route)
@@ -89,9 +89,9 @@ def init_controllers(context: core.BolinetteContext):
 
 
 @init_func
-def init_topics(context: core.BolinetteContext):
+def init_topics(context: blnt.BolinetteContext):
     context.sockets.init_socket_handler()
-    for topic_name, topic_cls in core.cache.topics.items():
+    for topic_name, topic_cls in blnt.cache.topics.items():
         topic = topic_cls(context)
         context.sockets.add_topic(topic_name, topic)
         for channel_name, channel in topic.__props__.get_channels().items():

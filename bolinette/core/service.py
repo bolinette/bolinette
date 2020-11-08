@@ -1,20 +1,20 @@
 from datetime import datetime
 
-from bolinette import core, blnt, utils
+from bolinette import blnt, core, utils
 from bolinette.exceptions import EntityNotFoundError
 
 
 class Service:
     __blnt__: 'ServiceMetadata' = None
 
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
 
     @property
-    def repo(self) -> blnt.Repository:
+    def repo(self) -> core.Repository:
         return self.context.repo(self.__blnt__.model_name)
 
     async def get(self, identifier, *, safe=False):
@@ -63,7 +63,7 @@ class Service:
                 if way:
                     order_by_query.append(column)
                 else:
-                    order_by_query.append(blnt.functions.desc(column))
+                    order_by_query.append(core.functions.desc(column))
         return query.order_by(*order_by_query)
 
     @staticmethod
@@ -78,7 +78,7 @@ class Service:
 class SimpleService:
     __blnt__: 'ServiceMetadata' = None
 
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
 
     def __repr__(self):
@@ -92,7 +92,7 @@ class ServiceMetadata:
 
 
 class HistorizedService(Service):
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         super().__init__(context)
 
     async def create(self, values, *, current_user=None):

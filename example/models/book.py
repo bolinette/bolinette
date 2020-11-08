@@ -1,12 +1,12 @@
 from typing import Any, List
 
-from bolinette import types, blnt, core
+from bolinette import types, core, blnt
 from bolinette.decorators import model, with_mixin
 
 
 @model('book')
 @with_mixin('historized')
-class Book(blnt.Model):
+class Book(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     pages = types.defs.Column(types.db.Integer, nullable=False)
@@ -28,7 +28,7 @@ class Book(blnt.Model):
 
     @classmethod
     def responses(cls):
-        base = core.cache.mixins.get('historized').response(cls)
+        base = blnt.cache.mixins.get('historized').response(cls)
         default: List[Any] = [
             types.mapping.Column(cls.id),
             types.mapping.Column(cls.name),

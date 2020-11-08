@@ -1,11 +1,11 @@
 from typing import Dict
 
-from bolinette import types, blnt, core
+from bolinette import types, core, blnt
 from bolinette.exceptions import InternalError
 
 
 class Mapping:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self._payloads: Dict[str, types.mapping.Definition] = {}
         self._responses: Dict[str, types.mapping.Definition] = {}
@@ -25,7 +25,7 @@ class Mapping:
     def response(self, model_name: str, key: str):
         return self._get_def(self._responses, model_name, key)
 
-    def register(self, model_name: str, model: 'blnt.Model'):
+    def register(self, model_name: str, model: 'core.Model'):
         def create_defs(collection, params):
             if params is None:
                 return

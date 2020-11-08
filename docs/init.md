@@ -13,15 +13,15 @@ functions in different files.
 ## Example
 
 ```python
-from bolinette import core, blnt
+from bolinette import blnt, core
 from bolinette.decorators import init_func, service
 
 @init_func
-def my_init_func(context: core.context):
+def my_init_func(context: blnt.context):
     context['calls'] = 0
 
 @service('book')
-class BookService(blnt.Service):
+class BookService(core.Service):
     def __init__(self, context):
         super().__init__(context)
 

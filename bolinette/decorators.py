@@ -1,30 +1,30 @@
 from typing import Type, Callable, List, Union, Tuple
 
-from bolinette import core, blnt, types, web
+from bolinette import blnt, core, types, web
 
 
 def model(model_name: str):
-    def decorator(model_cls: Type['blnt.Model']):
-        model_cls.__blnt__ = blnt.ModelMetadata(model_name)
-        core.cache.models[model_name] = model_cls
+    def decorator(model_cls: Type['core.Model']):
+        model_cls.__blnt__ = core.ModelMetadata(model_name)
+        blnt.cache.models[model_name] = model_cls
         return model_cls
     return decorator
 
 
 def model_property(function):
-    return blnt.ModelProperty(function.__name__, function)
+    return core.ModelProperty(function.__name__, function)
 
 
 def mixin(mixin_name: str):
-    def decorator(mixin_cls: Type['blnt.Mixin']):
-        core.cache.mixins[mixin_name] = mixin_cls
+    def decorator(mixin_cls: Type['core.Mixin']):
+        blnt.cache.mixins[mixin_name] = mixin_cls
         return mixin_cls
     return decorator
 
 
 def with_mixin(mixin_name: str):
     def decorator(model_cls):
-        mixin_cls = core.cache.mixins.get(mixin_name)
+        mixin_cls = blnt.cache.mixins.get(mixin_name)
         for col_name, col_def in mixin_cls.columns().items():
             setattr(model_cls, col_name, col_def)
         for rel_name, rel_def in mixin_cls.relationships(model_cls).items():
@@ -33,20 +33,20 @@ def with_mixin(mixin_name: str):
     return decorator
 
 
-def init_func(func: Callable[['core.BolinetteContext'], None]):
-    core.cache.init_funcs.append(func)
+def init_func(func: Callable[['blnt.BolinetteContext'], None]):
+    blnt.cache.init_funcs.append(func)
     return func
 
 
 def seeder(func):
-    core.cache.seeders.append(func)
+    blnt.cache.seeders.append(func)
     return func
 
 
 def service(service_name: str, *, model_name: str = None):
-    def decorator(service_cls: Type[Union['blnt.Service', 'blnt.SimpleService']]):
-        service_cls.__blnt__ = blnt.ServiceMetadata(service_name, model_name or service_name)
-        core.cache.services[service_name] = service_cls
+    def decorator(service_cls: Type[Union['core.Service', 'core.SimpleService']]):
+        service_cls.__blnt__ = core.ServiceMetadata(service_name, model_name or service_name)
+        blnt.cache.services[service_name] = service_cls
         return service_cls
     return decorator
 
@@ -60,7 +60,7 @@ def controller(controller_name: str, path: str = None, *,
 
     def decorator(controller_cls: Type['web.Controller']):
         controller_cls.__blnt__ = web.ControllerMetadata(controller_name, path, use_service, service_name, namespace)
-        core.cache.controllers[controller_name] = controller_cls
+        blnt.cache.controllers[controller_name] = controller_cls
         return controller_cls
     return decorator
 
@@ -125,7 +125,7 @@ def delete(path: str, *, access=None, expects=None, returns=None, roles: List[st
 def topic(topic_name: str):
     def decorator(topic_cls: Type['web.Topic']):
         topic_cls.__blnt__ = web.TopicMetadata(topic_name)
-        core.cache.topics[topic_name] = topic_cls
+        blnt.cache.topics[topic_name] = topic_cls
         return topic_cls
     return decorator
 

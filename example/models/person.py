@@ -1,9 +1,9 @@
-from bolinette import types, blnt
+from bolinette import types, core
 from bolinette.decorators import model
 
 
 @model('person')
-class Person(blnt.Model):
+class Person(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     first_name = types.defs.Column(types.db.String, nullable=False)
     last_name = types.defs.Column(types.db.String, nullable=False)

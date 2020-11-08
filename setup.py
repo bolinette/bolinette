@@ -1,10 +1,10 @@
 from bolinette.utils import files, paths
 from setuptools import setup, find_packages
 
-from bolinette import core
+from bolinette import blnt
 
 
-context = core.BolinetteContext(paths.dirname(__file__), None)
+context = blnt.BolinetteContext(paths.dirname(__file__), None)
 
 
 def project_packages(module):

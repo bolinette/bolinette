@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from aiohttp import web as aio_web
 from bolinette.utils import paths
 
-from bolinette import core, blnt, web
+from bolinette import blnt, core, web
 from bolinette.exceptions import InternalError
 
 
@@ -13,18 +13,18 @@ class BolinetteContext:
         self.origin = origin
         if app is not None:
             self.app = app
-            self.env = core.Environment(self, profile=profile, overrides=overrides)
-            self.db = core.DatabaseEngine(self)
-            self.jwt = core.JWT(self)
-            self.resources = core.BolinetteResources(self)
-            self.sockets = core.BolinetteSockets(self)
-            self.mapping = core.Mapping(self)
-            self.validator = core.Validator(self)
-            self.response = core.Response(self)
+            self.env = blnt.Environment(self, profile=profile, overrides=overrides)
+            self.db = blnt.DatabaseEngine(self)
+            self.jwt = blnt.JWT(self)
+            self.resources = blnt.BolinetteResources(self)
+            self.sockets = blnt.BolinetteSockets(self)
+            self.mapping = blnt.Mapping(self)
+            self.validator = blnt.Validator(self)
+            self.response = blnt.Response(self)
             self._tables: Dict[str, Any] = {}
-            self._models: Dict[str, 'blnt.Model'] = {}
-            self._repos: Dict[str, 'blnt.Repository'] = {}
-            self._services: Dict[str, 'blnt.Service'] = {}
+            self._models: Dict[str, 'core.Model'] = {}
+            self._repos: Dict[str, 'core.Repository'] = {}
+            self._services: Dict[str, 'core.Service'] = {}
             self._controllers: Dict[str, 'web.Controller'] = {}
             self._ctx = {}
 
@@ -37,7 +37,7 @@ class BolinetteContext:
     def model(self, name) -> Any:
         return self._models[name]
 
-    def add_model(self, name, model: 'blnt.Model'):
+    def add_model(self, name, model: 'core.Model'):
         self._models[name] = model
 
     def instance_path(self, *path):
@@ -75,7 +75,7 @@ class BolinetteContext:
     def repo(self, name) -> Any:
         return self._repos[name]
 
-    def add_repo(self, name, repo: 'blnt.Repository'):
+    def add_repo(self, name, repo: 'core.Repository'):
         self._repos[name] = repo
 
     @property
@@ -87,7 +87,7 @@ class BolinetteContext:
             raise InternalError(f'global.service.not_found:{name}')
         return self._services[name]
 
-    def add_service(self, name, service: 'blnt.Service'):
+    def add_service(self, name, service: 'core.Service'):
         self._services[name] = service
 
     @property
@@ -97,7 +97,7 @@ class BolinetteContext:
     def controller(self, name) -> Any:
         return self._controllers[name]
 
-    def add_controller(self, name, controller: 'blnt.Controller'):
+    def add_controller(self, name, controller: 'core.Controller'):
         self._controllers[name] = controller
 
     @property

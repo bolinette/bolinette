@@ -1,4 +1,3 @@
-import bolinette.core
 from bolinette.bcrypt import bcrypt
 import bolinette.defaults
 import bolinette.init

@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from bolinette import core, types, exceptions, blnt
+from bolinette import blnt, types, exceptions, core
 from bolinette.exceptions import APIErrors, APIError, EntityNotFoundError
 
 
 class Validator:
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
 
     def validate_payload(self, model: str, key: str, values, patch=False):
@@ -49,7 +49,7 @@ class Validator:
         for field in definition.fields:
             if isinstance(field, types.mapping.Reference):
                 value = params.get(field.foreign_key, None)
-                repo: blnt.Repository = self.context.repo(field.reference_model)
+                repo: core.Repository = self.context.repo(field.reference_model)
                 if value is not None and repo is not None:
                     entity = await repo.get_first_by(field.reference_key, value)
                     if entity is None:

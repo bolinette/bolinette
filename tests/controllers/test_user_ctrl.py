@@ -1,4 +1,4 @@
-from bolinette import core
+from bolinette import blnt
 from bolinette.testing import client, bolitest, Mock, Mocked
 from tests import utils
 
@@ -11,7 +11,7 @@ async def set_up(_, mock: Mock):
     utils.user.salt_password(mock(1, 'user')).insert()
 
 
-async def admin_set_up(context: core.BolinetteContext, mock: Mock):
+async def admin_set_up(context: blnt.BolinetteContext, mock: Mock):
     admin = Mocked.insert_entity(context, 'role', {'name': 'admin'})
     user1 = utils.user.salt_password(mock(1, 'user')).insert()
     user1.roles.append(admin)
@@ -19,7 +19,7 @@ async def admin_set_up(context: core.BolinetteContext, mock: Mock):
     mock(1, 'role').insert()
 
 
-async def root_set_up(context: core.BolinetteContext, mock: Mock):
+async def root_set_up(context: blnt.BolinetteContext, mock: Mock):
     root = Mocked.insert_entity(context, 'role', {'name': 'root'})
     admin = Mocked.insert_entity(context, 'role', {'name': 'admin'})
     user1 = utils.user.salt_password(mock(1, 'user')).insert()
