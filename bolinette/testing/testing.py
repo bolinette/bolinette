@@ -9,10 +9,10 @@ from bolinette.testing import TestClient, Mock
 
 @pytest.fixture
 def client(loop, aiohttp_client):
-    blnt = Bolinette(profile='test',
-                     overrides={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'})
-    client = loop.run_until_complete(aiohttp_client(blnt.app))
-    return TestClient(client, blnt.context)
+    bolinette = Bolinette(profile='test',
+                          overrides={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'})
+    client = loop.run_until_complete(aiohttp_client(bolinette.app))
+    return TestClient(client, bolinette.context)
 
 
 def bolitest(*, before: Callable[[blnt.BolinetteContext, Mock], Awaitable[None]] = None,

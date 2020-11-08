@@ -16,11 +16,11 @@ class BolinetteContext:
             self.env = blnt.Environment(self, profile=profile, overrides=overrides)
             self.db = blnt.DatabaseEngine(self)
             self.jwt = blnt.JWT(self)
-            self.resources = blnt.BolinetteResources(self)
-            self.sockets = blnt.BolinetteSockets(self)
+            self.resources = web.BolinetteResources(self)
+            self.sockets = web.BolinetteSockets(self)
             self.mapping = blnt.Mapping(self)
             self.validator = blnt.Validator(self)
-            self.response = blnt.Response(self)
+            self.response = web.Response(self)
             self._tables: Dict[str, Any] = {}
             self._models: Dict[str, 'core.Model'] = {}
             self._repos: Dict[str, 'core.Repository'] = {}
@@ -97,7 +97,7 @@ class BolinetteContext:
     def controller(self, name) -> Any:
         return self._controllers[name]
 
-    def add_controller(self, name, controller: 'core.Controller'):
+    def add_controller(self, name, controller: 'web.Controller'):
         self._controllers[name] = controller
 
     @property

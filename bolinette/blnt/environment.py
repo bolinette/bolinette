@@ -20,6 +20,9 @@ class Settings:
     def __contains__(self, key: str):
         return key.lower() in self._settings
 
+    def __setitem__(self, key: str, value):
+        self._settings[key.lower()] = value
+
     def get(self, key: str, default=None):
         item = self[key]
         return item if item is not None else default
@@ -117,6 +120,6 @@ class Environment(Settings):
         return settings
 
     def _check_secret_key(self):
-        if self['secret_key'] is None:
+        if self['SECRET_KEY'] is None:
             console.error('Warning: no SECRET_KEY set, using random one')
-            self._settings['secret_key'] = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+            self['SECRET_KEY'] = ''.join(random.choices(string.ascii_letters + string.digits, k=64))

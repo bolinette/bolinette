@@ -79,7 +79,7 @@ class RouteHandler:
                 return resp
             if isinstance(resp, str):
                 return aio_web.Response(text=resp, status=200, content_type='text/plain')
-            if not isinstance(resp, blnt.APIResponse):
+            if not isinstance(resp, web.APIResponse):
                 return aio_web.Response(text='global.unserializable_response', status=500, content_type='text/plain')
 
             content = resp.content

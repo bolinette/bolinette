@@ -28,13 +28,13 @@ class UserController(web.Controller):
         now = datetime.utcnow()
         if set_access:
             access_token = self.context.jwt.create_access_token(now, user.username, fresh=fresh)
-            resp.cookies.append(blnt.Cookie('access_token', access_token,
-                                            expires=self.context.jwt.access_token_expires(now), path='/'))
+            resp.cookies.append(web.Cookie('access_token', access_token,
+                                           expires=self.context.jwt.access_token_expires(now), path='/'))
         if set_refresh:
             refresh_token = self.context.jwt.create_refresh_token(now, user.username)
-            resp.cookies.append(blnt.Cookie('refresh_token', refresh_token,
-                                            expires=self.context.jwt.refresh_token_expires(now),
-                                            path='/api/user/refresh'))
+            resp.cookies.append(web.Cookie('refresh_token', refresh_token,
+                                           expires=self.context.jwt.refresh_token_expires(now),
+                                           path='/api/user/refresh'))
 
     @get('/me',
          access=types.web.AccessToken.Fresh,
@@ -68,8 +68,8 @@ class UserController(web.Controller):
     @post('/logout')
     async def logout(self):
         resp = self.response.ok('user.logout.success')
-        resp.cookies.append(blnt.Cookie('access_token', None, delete=True, path='/'))
-        resp.cookies.append(blnt.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
+        resp.cookies.append(web.Cookie('access_token', None, delete=True, path='/'))
+        resp.cookies.append(web.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
         return resp
 
     @post('/token/refresh',
