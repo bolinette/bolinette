@@ -2,19 +2,6 @@ from enum import unique, Enum, auto
 
 
 @unique
-class HttpMethod(Enum):
-    GET = auto()
-    POST = auto()
-    PUT = auto()
-    PATCH = auto()
-    DELETE = auto()
-
-    @property
-    def http_verb(self):
-        return self.name
-
-
-@unique
 class AccessToken(Enum):
     All = auto()
     Optional = auto()

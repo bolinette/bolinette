@@ -1,3 +1,5 @@
+from bolinette.web.method import HttpMethod
+from bolinette.web.token import AccessToken
 from bolinette.web.controller import (
     Controller, ControllerMetadata, ControllerRoute, ControllerExcepts, ControllerReturns
 )

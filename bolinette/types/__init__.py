@@ -1,1 +1,1 @@
-from bolinette.types import db, defs, web, mapping
+from bolinette.types import db, defs, mapping

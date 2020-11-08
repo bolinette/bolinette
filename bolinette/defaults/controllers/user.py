@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import types, blnt, web
+from bolinette import blnt, web
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import BadRequestError, EntityNotFoundError
@@ -20,8 +20,8 @@ class UserController(web.Controller):
 
     def default_routes(self):
         return [
-            self.defaults.get_all('private', access=types.web.AccessToken.Required, roles=['admin']),
-            self.defaults.get_one('private', key='username', access=types.web.AccessToken.Required, roles=['admin'])
+            self.defaults.get_all('private', access=web.AccessToken.Required, roles=['admin']),
+            self.defaults.get_one('private', key='username', access=web.AccessToken.Required, roles=['admin'])
         ]
 
     def _create_tokens(self, resp, user, *, set_access, set_refresh, fresh):
@@ -37,13 +37,13 @@ class UserController(web.Controller):
                                            path='/api/user/refresh'))
 
     @get('/me',
-         access=types.web.AccessToken.Fresh,
+         access=web.AccessToken.Fresh,
          returns=('user', 'private'))
     async def me(self, current_user):
         return self.response.ok('OK', current_user)
 
     @get('/info',
-         access=types.web.AccessToken.Required,
+         access=web.AccessToken.Required,
          returns=('user', 'private'))
     async def info(self, current_user):
         return self.response.ok('OK', current_user)
@@ -73,7 +73,7 @@ class UserController(web.Controller):
         return resp
 
     @post('/token/refresh',
-          access=types.web.AccessToken.Refresh)
+          access=web.AccessToken.Refresh)
     async def refresh(self, current_user):
         resp = self.response.ok('user.token.refreshed')
         self._create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
@@ -103,7 +103,7 @@ class UserController(web.Controller):
         return self.response.created('user.registered', user)
 
     @patch('/me',
-           access=types.web.AccessToken.Fresh,
+           access=web.AccessToken.Fresh,
            returns=('user', 'private'),
            expects=('user', 'register', 'patch'))
     async def update_user(self, payload, current_user):
@@ -113,7 +113,7 @@ class UserController(web.Controller):
         return resp
 
     @post('/{username}/roles',
-          access=types.web.AccessToken.Required,
+          access=web.AccessToken.Required,
           roles=['admin'],
           expects='role',
           returns=('user', 'private'))
@@ -124,7 +124,7 @@ class UserController(web.Controller):
         return self.response.created(f'user.roles.added:{user.username}:{role.name}', user)
 
     @delete('/{username}/roles/{role}',
-            access=types.web.AccessToken.Required,
+            access=web.AccessToken.Required,
             roles=['admin'],
             returns=('user', 'private'))
     async def delete_user_role(self, match, current_user):
@@ -134,7 +134,7 @@ class UserController(web.Controller):
         return self.response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
 
     @post('/picture',
-          access=types.web.AccessToken.Required,
+          access=web.AccessToken.Required,
           returns=('user', 'private'))
     async def upload_profile_picture(self, current_user, payload):
         picture = payload['file']

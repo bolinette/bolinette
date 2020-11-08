@@ -5,7 +5,7 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
-from bolinette import blnt, types, web
+from bolinette import blnt, web
 from bolinette.exceptions import APIError, APIErrors, ForbiddenError
 from bolinette.utils import Pagination, functions
 from bolinette.utils.serializing import deserialize, serialize
@@ -34,7 +34,7 @@ class BolinetteResources:
 class BolinetteResource:
     def __init__(self, resource: Resource):
         self.resource = resource
-        self.routes: Dict[types.web.HttpMethod, ResourceRoute] = {}
+        self.routes: Dict[web.HttpMethod, ResourceRoute] = {}
 
 
 class RouteHandler:

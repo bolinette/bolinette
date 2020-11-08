@@ -6,7 +6,7 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from bolinette.utils import logger
 
-from bolinette import blnt, types, web
+from bolinette import blnt, web
 from bolinette.exceptions import APIError
 
 
@@ -80,7 +80,7 @@ class SocketHandler:
         logger.warning('New WS connection')
 
         current_user = None
-        identity = types.web.AccessToken.Optional.check(context, request)
+        identity = web.AccessToken.Optional.check(context, request)
         if identity is not None:
             current_user = await user_service.get_by_username(identity)
         if current_user is not None:

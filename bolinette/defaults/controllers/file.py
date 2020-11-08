@@ -1,6 +1,6 @@
 from aiohttp import web as aio_web
 
-from bolinette import types, web
+from bolinette import web
 from bolinette.decorators import controller, get
 from bolinette.defaults.services import FileService
 
@@ -17,7 +17,7 @@ class FileController(web.Controller):
         ]
 
     @get('/{key}/download',
-         access=types.web.AccessToken.Fresh)
+         access=web.AccessToken.Fresh)
     async def download_file(self, match):
         file = await self.service.get_first_by('key', match['key'])
         headers = {

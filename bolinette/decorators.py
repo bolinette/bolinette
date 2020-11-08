@@ -1,6 +1,6 @@
 from typing import Type, Callable, List, Union, Tuple
 
-from bolinette import blnt, core, types, web
+from bolinette import blnt, core, web
 
 
 def model(model_name: str):
@@ -65,7 +65,7 @@ def controller(controller_name: str, path: str = None, *,
     return decorator
 
 
-def route(path: str, *, method: types.web.HttpMethod, access: 'types.web.AccessToken' = None,
+def route(path: str, *, method: web.HttpMethod, access: 'web.AccessToken' = None,
           expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
           roles: List[str] = None):
     if expects is not None:
@@ -90,36 +90,36 @@ def route(path: str, *, method: types.web.HttpMethod, access: 'types.web.AccessT
     return decorator
 
 
-def get(path: str, *, access: 'types.web.AccessToken' = None,
+def get(path: str, *, access: 'web.AccessToken' = None,
         expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
         returns: Union[str, Tuple[str, str]] = None,
         roles: List[str] = None):
-    return route(path, method=types.web.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=web.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
 
 
-def post(path: str, *, access: 'types.web.AccessToken' = None,
+def post(path: str, *, access: 'web.AccessToken' = None,
          expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
          returns: Union[str, Tuple[str, str]] = None,
          roles: List[str] = None):
-    return route(path, method=types.web.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=web.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
 
 
-def put(path: str, *, access: 'types.web.AccessToken' = None,
+def put(path: str, *, access: 'web.AccessToken' = None,
         expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
         returns: Union[str, Tuple[str, str]] = None,
         roles: List[str] = None):
-    return route(path, method=types.web.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=web.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
 
 
-def patch(path: str, *, access: 'types.web.AccessToken' = None,
+def patch(path: str, *, access: 'web.AccessToken' = None,
           expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
           returns: Union[str, Tuple[str, str]] = None,
           roles: List[str] = None):
-    return route(path, method=types.web.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=web.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def delete(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=types.web.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)
+    return route(path, method=web.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)
 
 
 def topic(topic_name: str):
