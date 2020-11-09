@@ -1,4 +1,4 @@
-from bolinette import types, core
+from bolinette import types, core, mapping
 from bolinette.decorators import model
 
 
@@ -12,10 +12,10 @@ class File(core.Model):
     @classmethod
     def responses(cls):
         yield [
-            types.mapping.Column(cls.key),
-            types.mapping.Column(cls.name),
-            types.mapping.Column(cls.mime)
+            mapping.Column(cls.key),
+            mapping.Column(cls.name),
+            mapping.Column(cls.mime)
         ]
         yield 'minimal', [
-            types.mapping.Column(cls.key)
+            mapping.Column(cls.key)
         ]

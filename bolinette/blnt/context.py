@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from aiohttp import web as aio_web
 from bolinette.utils import paths
 
-from bolinette import blnt, core, web
+from bolinette import blnt, core, web, mapping
 from bolinette.exceptions import InternalError
 
 
@@ -18,7 +18,7 @@ class BolinetteContext:
             self.jwt = blnt.JWT(self)
             self.resources = web.BolinetteResources(self)
             self.sockets = web.BolinetteSockets(self)
-            self.mapping = blnt.Mapping(self)
+            self.mapping = mapping.Mapper(self)
             self.validator = blnt.Validator(self)
             self.response = web.Response(self)
             self._tables: Dict[str, Any] = {}

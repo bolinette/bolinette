@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from bolinette import blnt, types, exceptions, core
+from bolinette import blnt, types, exceptions, core, mapping
 from bolinette.exceptions import APIErrors, APIError, EntityNotFoundError
 
 
@@ -15,10 +15,10 @@ class Validator:
         for field in definition.fields:
             field_key = None
             field_name = None
-            if isinstance(field, types.mapping.Field):
+            if isinstance(field, mapping.Field):
                 field_key = field.key
                 field_name = field.name
-            elif isinstance(field, types.mapping.Reference):
+            elif isinstance(field, mapping.Reference):
                 field_key = field.foreign_key
                 field_name = field.foreign_key
             if patch and field_name not in values:
@@ -38,7 +38,7 @@ class Validator:
         value = values.get(name, field.default)
         if not value and not field.nullable:
             raise exceptions.ParamNonNullableError(name)
-        if value is not None and isinstance(field, types.mapping.Field):
+        if value is not None and isinstance(field, mapping.Field):
             if field.type == types.db.Date:
                 value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
         return value
@@ -47,7 +47,7 @@ class Validator:
         api_errors = APIErrors()
         definition = self.context.mapping.payload(model, key)
         for field in definition.fields:
-            if isinstance(field, types.mapping.Reference):
+            if isinstance(field, mapping.Reference):
                 value = params.get(field.foreign_key, None)
                 repo: core.Repository = self.context.repo(field.reference_model)
                 if value is not None and repo is not None:

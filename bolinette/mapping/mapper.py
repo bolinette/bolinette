@@ -1,16 +1,16 @@
 from typing import Dict
 
-from bolinette import types, core, blnt
+from bolinette import core, blnt, mapping
 from bolinette.exceptions import InternalError
 
 
-class Mapping:
+class Mapper:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._payloads: Dict[str, types.mapping.Definition] = {}
-        self._responses: Dict[str, types.mapping.Definition] = {}
+        self._payloads: Dict[str, mapping.Definition] = {}
+        self._responses: Dict[str, mapping.Definition] = {}
 
-    def _get_def(self, collection, model_name, key) -> 'types.mapping.Definition':
+    def _get_def(self, collection, model_name, key) -> 'mapping.Definition':
         m = collection.get(model_name)
         if m is None:
             raise InternalError(f'mapping.unknown_model:{model_name}')
@@ -35,7 +35,7 @@ class Mapping:
                     payload = param
                 else:
                     model_key, payload = param
-                definition = types.mapping.Definition(model_name, model_key)
+                definition = mapping.Definition(model_name, model_key)
                 for field in payload:
                     definition.fields.append(field)
                 if definition.model_name not in collection:
@@ -53,7 +53,7 @@ class Mapping:
                     for e in entity]
         values = {}
         for field in definition.fields:
-            if isinstance(field, types.mapping.Field):
+            if isinstance(field, mapping.Field):
                 if field.function is not None:
                     value = field.function(entity)
                 else:
@@ -62,9 +62,9 @@ class Mapping:
                     value = field.formatting(value)
                 if not skip_none or value is not None:
                     values[field.name] = value
-            elif isinstance(field, types.mapping.Reference) and use_foreign_key:
+            elif isinstance(field, mapping.Reference) and use_foreign_key:
                 values[field.foreign_key] = getattr(entity, field.foreign_key)
-            elif isinstance(field, types.mapping.Definition):
+            elif isinstance(field, mapping.Definition):
                 d = self.response(field.model_name, field.model_key)
                 attr = None
                 if field.function and callable(field.function):
@@ -73,7 +73,7 @@ class Mapping:
                     attr = getattr(entity, field.name)
                 values[field.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
                                                    use_foreign_key=use_foreign_key)
-            elif isinstance(field, types.mapping.List):
+            elif isinstance(field, mapping.List):
                 d = self.response(field.element.model_name, field.element.model_key)
                 values[field.name] = self.marshall(d, getattr(entity, field.name), skip_none=skip_none,
                                                    as_list=True, use_foreign_key=use_foreign_key)

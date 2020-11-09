@@ -1,4 +1,4 @@
-from bolinette import types, core
+from bolinette import types, core, mapping
 from bolinette.decorators import model
 
 
@@ -10,15 +10,15 @@ class Role(core.Model):
     @classmethod
     def payloads(cls):
         yield [
-            types.mapping.Column(cls.name, required=True)
+            mapping.Column(cls.name, required=True)
         ]
 
     @classmethod
     def responses(cls):
         yield [
-            types.mapping.Column(cls.name)
+            mapping.Column(cls.name)
         ]
         yield 'complete', [
-            types.mapping.Column(cls.name),
-            types.mapping.List(types.mapping.Definition('user'), key='users')
+            mapping.Column(cls.name),
+            mapping.List(mapping.Definition('user'), key='users')
         ]

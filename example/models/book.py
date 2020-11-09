@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from bolinette import types, core, blnt
+from bolinette import types, core, blnt, mapping
 from bolinette.decorators import model, with_mixin
 
 
@@ -19,24 +19,24 @@ class Book(core.Model):
     @classmethod
     def payloads(cls):
         yield [
-            types.mapping.Column(cls.name, required=True),
-            types.mapping.Column(cls.pages, required=True),
-            types.mapping.Column(cls.price, required=True),
-            types.mapping.Column(cls.publication_date, required=True),
-            types.mapping.Reference(cls.author,  required=True)
+            mapping.Column(cls.name, required=True),
+            mapping.Column(cls.pages, required=True),
+            mapping.Column(cls.price, required=True),
+            mapping.Column(cls.publication_date, required=True),
+            mapping.Reference(cls.author,  required=True)
         ]
 
     @classmethod
     def responses(cls):
         base = blnt.cache.mixins.get('historized').response(cls)
         default: List[Any] = [
-            types.mapping.Column(cls.id),
-            types.mapping.Column(cls.name),
-            types.mapping.Column(cls.pages),
-            types.mapping.Column(cls.price),
-            types.mapping.Column(cls.publication_date)
+            mapping.Column(cls.id),
+            mapping.Column(cls.name),
+            mapping.Column(cls.pages),
+            mapping.Column(cls.price),
+            mapping.Column(cls.publication_date)
         ]
         yield default
         yield 'complete', default + [
-            types.mapping.Reference(cls.author)
+            mapping.Reference(cls.author)
         ] + base

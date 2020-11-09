@@ -1,1 +1,1 @@
-from bolinette.types import db, defs, mapping
+from bolinette.types import db, defs

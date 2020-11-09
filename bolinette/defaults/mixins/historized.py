@@ -1,4 +1,4 @@
-from bolinette import types, core
+from bolinette import types, core, mapping
 from bolinette.decorators import mixin
 
 
@@ -23,8 +23,8 @@ class Historized(core.Mixin):
     @staticmethod
     def response(model_cls):
         return [
-            types.mapping.Column(model_cls.created_on),
-            types.mapping.Column(model_cls.updated_on),
-            types.mapping.Reference(model_cls.created_by),
-            types.mapping.Reference(model_cls.updated_by),
+            mapping.Column(model_cls.created_on),
+            mapping.Column(model_cls.updated_on),
+            mapping.Reference(model_cls.created_by),
+            mapping.Reference(model_cls.updated_by),
         ]

@@ -1,4 +1,4 @@
-from bolinette import types, core
+from bolinette import types, core, mapping
 from bolinette.decorators import model
 
 
@@ -11,20 +11,20 @@ class Person(core.Model):
     @classmethod
     def payloads(cls):
         yield [
-            types.mapping.Column(cls.first_name, required=True),
-            types.mapping.Column(cls.last_name, required=True)
+            mapping.Column(cls.first_name, required=True),
+            mapping.Column(cls.last_name, required=True)
         ]
 
     @classmethod
     def responses(cls):
         yield [
-            types.mapping.Column(cls.first_name),
-            types.mapping.Column(cls.last_name),
-            types.mapping.Field(types.db.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}')
+            mapping.Column(cls.first_name),
+            mapping.Column(cls.last_name),
+            mapping.Field(types.db.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}')
         ]
         yield 'complete', [
-            types.mapping.Column(cls.first_name),
-            types.mapping.Column(cls.last_name),
-            types.mapping.Field(types.db.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
-            types.mapping.List(types.mapping.Definition('book'), key='books')
+            mapping.Column(cls.first_name),
+            mapping.Column(cls.last_name),
+            mapping.Field(types.db.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
+            mapping.List(mapping.Definition('book'), key='books')
         ]
