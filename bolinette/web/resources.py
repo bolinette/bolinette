@@ -93,11 +93,11 @@ class RouteHandler:
                 content['data'] = content['data'].items
 
             if self.route.returns is not None:
-                ret_def = context.mapping.response(self.route.returns.model, self.route.returns.key)
+                ret_def = context.mapper.response(self.route.returns.model, self.route.returns.key)
                 if content.get('data') is not None:
-                    content['data'] = context.mapping.marshall(ret_def, content['data'],
-                                                               skip_none=self.route.returns.skip_none,
-                                                               as_list=self.route.returns.as_list)
+                    content['data'] = context.mapper.marshall(ret_def, content['data'],
+                                                              skip_none=self.route.returns.skip_none,
+                                                              as_list=self.route.returns.as_list)
 
             serialized, mime = serialize(content, 'application/json')
 

@@ -62,7 +62,7 @@ def init_repositories(context: blnt.BolinetteContext):
 @init_func
 def init_mappings(context: blnt.BolinetteContext):
     for model_name, model in context.models:
-        context.mapping.register(model_name, model)
+        context.mapper.register(model_name, model)
 
 
 @init_func

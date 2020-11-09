@@ -25,12 +25,12 @@ class Mocked:
         return self.insert_entity(self.context, self.name, fields)
 
     def to_response(self, key='default') -> dict:
-        definition = self.context.mapping.response(self.name, key)
-        return self.context.mapping.marshall(definition, self.fields, use_foreign_key=True)
+        definition = self.context.mapper.response(self.name, key)
+        return self.context.mapper.marshall(definition, self.fields, use_foreign_key=True)
 
     def to_payload(self, key='default') -> dict:
-        definition = self.context.mapping.payload(self.name, key)
-        return self.context.mapping.marshall(definition, self.fields, use_foreign_key=True)
+        definition = self.context.mapper.payload(self.name, key)
+        return self.context.mapper.marshall(definition, self.fields, use_foreign_key=True)
 
 
 class Mock:

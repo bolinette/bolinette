@@ -18,7 +18,7 @@ class BolinetteContext:
             self.jwt = blnt.JWT(self)
             self.resources = web.BolinetteResources(self)
             self.sockets = web.BolinetteSockets(self)
-            self.mapping = mapping.Mapper(self)
+            self.mapper = mapping.Mapper(self)
             self.validator = blnt.Validator(self)
             self.response = web.Response(self)
             self._tables: Dict[str, Any] = {}

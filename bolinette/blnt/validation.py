@@ -11,7 +11,7 @@ class Validator:
     def validate_payload(self, model: str, key: str, values, patch=False):
         api_errors = APIErrors()
         valid = {}
-        definition = self.context.mapping.payload(model, key)
+        definition = self.context.mapper.payload(model, key)
         for field in definition.fields:
             field_key = None
             field_name = None
@@ -45,7 +45,7 @@ class Validator:
 
     async def link_foreign_entities(self, model: str, key: str, params):
         api_errors = APIErrors()
-        definition = self.context.mapping.payload(model, key)
+        definition = self.context.mapper.payload(model, key)
         for field in definition.fields:
             if isinstance(field, mapping.Reference):
                 value = params.get(field.foreign_key, None)
