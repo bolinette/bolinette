@@ -52,22 +52,28 @@ def service(service_name: str, *, model_name: str = None):
 
 
 def controller(controller_name: str, path: str = None, *,
-               namespace: str = '/api', use_service: bool = True, service_name: str = None):
+               namespace: str = '/api', use_service: bool = True,
+               service_name: str = None, middlewares: Union[str, List[str]] = None):
     if path is None:
         path = f'/{controller_name}'
     if service_name is None:
         service_name = controller_name
+    if middlewares is None:
+        middlewares = []
+    if isinstance(middlewares, str):
+        middlewares = [middlewares]
 
     def decorator(controller_cls: Type['web.Controller']):
-        controller_cls.__blnt__ = web.ControllerMetadata(controller_name, path, use_service, service_name, namespace)
+        controller_cls.__blnt__ = web.ControllerMetadata(
+            controller_name, path, use_service, service_name, namespace, middlewares)
         blnt.cache.controllers[controller_name] = controller_cls
         return controller_cls
     return decorator
 
 
-def route(path: str, *, method: web.HttpMethod, access: 'web.AccessToken' = None,
+def route(path: str, *, method: web.HttpMethod,
           expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
-          roles: List[str] = None):
+          middlewares: Union[str, List[str]] = None):
     if expects is not None:
         if isinstance(expects, tuple):
             expects = web.ControllerExcepts(expects[0], expects[1] if len(expects) > 1 else 'default',
@@ -80,46 +86,59 @@ def route(path: str, *, method: web.HttpMethod, access: 'web.AccessToken' = None
                                             as_list='as_list' in returns[2:], skip_none='skip_none' in returns[2:])
         elif isinstance(returns, str):
             returns = web.ControllerReturns(returns)
+    if middlewares is None:
+        middlewares = []
+    if isinstance(middlewares, str):
+        middlewares = [middlewares]
 
     def decorator(route_function: Callable):
         inner_route = None
         if isinstance(route_function, web.ControllerRoute):
             inner_route = route_function
             route_function = route_function.func
-        return web.ControllerRoute(route_function, path, method, access, expects, returns, roles, inner_route)
+        return web.ControllerRoute(route_function, path, method, expects, returns, inner_route, middlewares)
     return decorator
 
 
-def get(path: str, *, access: 'web.AccessToken' = None,
+def get(path: str, *,
         expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
         returns: Union[str, Tuple[str, str]] = None,
-        roles: List[str] = None):
-    return route(path, method=web.HttpMethod.GET, access=access, expects=expects, returns=returns, roles=roles)
+        middlewares: Union[str, List[str]] = None):
+    return route(path, method=web.HttpMethod.GET, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def post(path: str, *, access: 'web.AccessToken' = None,
+def post(path: str, *,
          expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
          returns: Union[str, Tuple[str, str]] = None,
-         roles: List[str] = None):
-    return route(path, method=web.HttpMethod.POST, access=access, expects=expects, returns=returns, roles=roles)
+         middlewares: Union[str, List[str]] = None):
+    return route(path, method=web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def put(path: str, *, access: 'web.AccessToken' = None,
-        expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+def put(path: str, *,
         returns: Union[str, Tuple[str, str]] = None,
-        roles: List[str] = None):
-    return route(path, method=web.HttpMethod.PUT, access=access, expects=expects, returns=returns, roles=roles)
+        expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+        middlewares: Union[str, List[str]] = None):
+    return route(path, method=web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def patch(path: str, *, access: 'web.AccessToken' = None,
+def patch(path: str, *,
           expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
           returns: Union[str, Tuple[str, str]] = None,
-          roles: List[str] = None):
-    return route(path, method=web.HttpMethod.PATCH, access=access, expects=expects, returns=returns, roles=roles)
+          middlewares: Union[str, List[str]] = None):
+    return route(path, method=web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def delete(path: str, *, access=None, expects=None, returns=None, roles: List[str] = None):
-    return route(path, method=web.HttpMethod.DELETE, access=access, expects=expects, returns=returns, roles=roles)
+def delete(path: str, *, expects=None, returns=None,
+           middlewares: Union[str, List[str]] = None):
+    return route(path, method=web.HttpMethod.DELETE, expects=expects, returns=returns, middlewares=middlewares)
+
+
+def middleware(name: str, *, priority: int = 10, pre_validation: bool = False):
+    def decorator(middleware_cls: Type['web.Middleware']):
+        middleware_cls.__blnt__ = web.MiddlewareMetadata(name, min(max(priority, 0), 10), pre_validation)
+        blnt.cache.middlewares[name] = middleware_cls
+        return middleware_cls
+    return decorator
 
 
 def topic(topic_name: str):

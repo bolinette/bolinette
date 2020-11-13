@@ -5,7 +5,7 @@ from bolinette.decorators import controller, get
 from bolinette.defaults.services import FileService
 
 
-@controller('file', '/file')
+@controller('file', '/file', middlewares=['auth'])
 class FileController(web.Controller):
     @property
     def file_service(self) -> FileService:
@@ -16,8 +16,7 @@ class FileController(web.Controller):
             self.defaults.get_one(key='key')
         ]
 
-    @get('/{key}/download',
-         access=web.AccessToken.Fresh)
+    @get('/{key}/download')
     async def download_file(self, match):
         file = await self.service.get_first_by('key', match['key'])
         headers = {

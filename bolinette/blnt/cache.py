@@ -9,6 +9,7 @@ class BolinetteCache:
         self.mixins: Dict[str, Type['core.Mixin']] = {}
         self.services: Dict[str, Type['core.Service']] = {}
         self.controllers: Dict[str, Type['web.Controller']] = {}
+        self.middlewares: Dict[str, Type['web.Middleware']] = {}
         self.topics: Dict[str, Type['web.Topic']] = {}
         self.init_funcs: List[Callable[['blnt.BolinetteContext'], None]] = []
         self.seeders = []

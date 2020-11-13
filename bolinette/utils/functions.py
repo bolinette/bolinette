@@ -17,6 +17,8 @@ def _parse_params(function, *args, **kwargs):
             cur_arg += 1
         elif key in kwargs:
             func_params[key] = kwargs[key]
+        else:
+            func_params[key] = None
     return func_params
 
 

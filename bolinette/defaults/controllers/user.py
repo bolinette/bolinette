@@ -20,8 +20,8 @@ class UserController(web.Controller):
 
     def default_routes(self):
         return [
-            self.defaults.get_all('private', access=web.AccessToken.Required, roles=['admin']),
-            self.defaults.get_one('private', key='username', access=web.AccessToken.Required, roles=['admin'])
+            self.defaults.get_all('private', middlewares=['auth|roles:admin']),
+            self.defaults.get_one('private', key='username', middlewares=['auth|roles:admin'])
         ]
 
     def _create_tokens(self, resp, user, *, set_access, set_refresh, fresh):
@@ -36,21 +36,15 @@ class UserController(web.Controller):
                                            expires=self.context.jwt.refresh_token_expires(now),
                                            path='/api/user/refresh'))
 
-    @get('/me',
-         access=web.AccessToken.Fresh,
-         returns=('user', 'private'))
+    @get('/me', returns=('user', 'private'), middlewares=['auth|fresh'])
     async def me(self, current_user):
         return self.response.ok('OK', current_user)
 
-    @get('/info',
-         access=web.AccessToken.Required,
-         returns=('user', 'private'))
+    @get('/info', returns=('user', 'private'), middlewares=['auth'])
     async def info(self, current_user):
         return self.response.ok('OK', current_user)
 
-    @post('/login',
-          returns=('user', 'private'),
-          expects=('user', 'login'))
+    @post('/login', expects=('user', 'login'), returns=('user', 'private'))
     async def login(self, payload):
         username = payload['username']
         password = payload['password']
@@ -72,16 +66,13 @@ class UserController(web.Controller):
         resp.cookies.append(web.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
         return resp
 
-    @post('/token/refresh',
-          access=web.AccessToken.Refresh)
+    @post('/token/refresh', middlewares=['auth'])
     async def refresh(self, current_user):
         resp = self.response.ok('user.token.refreshed')
         self._create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
         return resp
 
-    @post('/register',
-          returns=('user', 'private'),
-          expects=('user', 'register'))
+    @post('/register', expects=('user', 'register'), returns=('user', 'private'))
     async def register(self, payload):
         if blnt.init.get('ADMIN_REGISTER_ONLY', True):
             raise BadRequestError('global.register.admin_only')
@@ -90,10 +81,8 @@ class UserController(web.Controller):
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
-    @post('/register/admin',
-          roles=['admin'],
-          returns=('user', 'private'),
-          expects=('user', 'admin_register'))
+    @post('/register/admin', expects=('user', 'admin_register'),
+          returns=('user', 'private'), middlewares=['auth|roles:admin'])
     async def admin_register(self, payload):
         # send_mail = payload.pop('send_mail')
         payload['password'] = ''.join(random.choices(string.ascii_lowercase, k=32))
@@ -102,40 +91,28 @@ class UserController(web.Controller):
         #     await mail.sender.send(payload['email'], 'Welcome!', 'Welcome to Bolinette!')
         return self.response.created('user.registered', user)
 
-    @patch('/me',
-           access=web.AccessToken.Fresh,
-           returns=('user', 'private'),
-           expects=('user', 'register', 'patch'))
+    @patch('/me', expects=('user', 'register', 'patch'), returns=('user', 'private'), middlewares=['auth|fresh'])
     async def update_user(self, payload, current_user):
         user = await self.user_service.patch(current_user, payload)
         resp = self.response.ok('user.updated', user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
-    @post('/{username}/roles',
-          access=web.AccessToken.Required,
-          roles=['admin'],
-          expects='role',
-          returns=('user', 'private'))
+    @post('/{username}/roles', expects='role', returns=('user', 'private'), middlewares=['auth|roles:admin'])
     async def add_user_role(self, match, payload):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(payload['name'])
         await self.user_service.add_role(user, role)
         return self.response.created(f'user.roles.added:{user.username}:{role.name}', user)
 
-    @delete('/{username}/roles/{role}',
-            access=web.AccessToken.Required,
-            roles=['admin'],
-            returns=('user', 'private'))
+    @delete('/{username}/roles/{role}', returns=('user', 'private'), middlewares=['auth|roles:admin'])
     async def delete_user_role(self, match, current_user):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(match['role'])
         await self.user_service.remove_role(current_user, user, role)
         return self.response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
 
-    @post('/picture',
-          access=web.AccessToken.Required,
-          returns=('user', 'private'))
+    @post('/picture', returns=('user', 'private'), middlewares=['auth'])
     async def upload_profile_picture(self, current_user, payload):
         picture = payload['file']
         user = await self.user_service.save_profile_picture(current_user, picture)

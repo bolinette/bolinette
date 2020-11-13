@@ -6,9 +6,9 @@ from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import blnt, web
-from bolinette.exceptions import APIError, APIErrors, ForbiddenError
-from bolinette.utils import Pagination, functions
-from bolinette.utils.serializing import deserialize, serialize
+from bolinette.exceptions import APIError, APIErrors, InternalError
+from bolinette.utils import Pagination
+from bolinette.utils.serializing import serialize
 
 
 class BolinetteResources:
@@ -44,73 +44,21 @@ class RouteHandler:
 
     async def __call__(self, request: Request):
         context: blnt.BolinetteContext = request.app['blnt']
-        user_service = context.service('user')
-        current_user = None
-        payload = await deserialize(request)
-        match = {}
-        query = {}
+        params = {
+            'match': {},
+            'query': {}
+        }
         for key in request.match_info:
-            match[key] = request.match_info[key]
+            params['match'][key] = request.match_info[key]
         for key in request.query:
-            query[key] = request.query[key]
+            params['query'][key] = request.query[key]
+
         try:
-            with blnt.Transaction(context):
-                if self.route.access is not None:
-                    if (identity := self.route.access.check(context, request)) is not None:
-                        current_user = await user_service.get_by_username(identity, safe=True)
-
-                if self.route.roles and len(self.route.roles):
-                    user_roles = set(map(lambda r: r.name, current_user.roles))
-                    if 'root' not in user_roles and not len(user_roles.intersection(set(self.route.roles))):
-                        raise ForbiddenError(f'user.forbidden:{",".join(self.route.roles)}')
-
-                if self.route.expects is not None:
-                    payload = context.validator.validate_payload(self.route.expects.model, self.route.expects.key,
-                                                                 payload, self.route.expects.patch)
-                    await context.validator.link_foreign_entities(self.route.expects.model, self.route.expects.key,
-                                                                  payload)
-
-                resp = await functions.async_invoke(self.route.func, self.controller, payload=payload,
-                                                    match=match, query=query, current_user=current_user)
-
-            if resp is None:
-                return aio_web.Response(status=204)
-            if isinstance(resp, aio_web.Response):
-                return resp
-            if isinstance(resp, str):
-                return aio_web.Response(text=resp, status=200, content_type='text/plain')
-            if not isinstance(resp, web.APIResponse):
-                return aio_web.Response(text='global.unserializable_response', status=500, content_type='text/plain')
-
-            content = resp.content
-
-            if content.get('data') is not None and isinstance(content['data'], Pagination):
-                content['pagination'] = {
-                    'page': content['data'].page,
-                    'per_page': content['data'].per_page,
-                    'total': content['data'].total,
-                }
-                content['data'] = content['data'].items
-
-            if self.route.returns is not None:
-                ret_def = context.mapper.response(self.route.returns.model, self.route.returns.key)
-                if content.get('data') is not None:
-                    content['data'] = context.mapper.marshall(ret_def, content['data'],
-                                                              skip_none=self.route.returns.skip_none,
-                                                              as_list=self.route.returns.as_list)
-
-            serialized, mime = serialize(content, 'application/json')
-
-            web_response = aio_web.Response(text=serialized, status=resp.code, content_type=mime)
-            for cookie in resp.cookies:
-                if not cookie.delete:
-                    web_response.set_cookie(cookie.name, cookie.value,
-                                            expires=cookie.expires.strftime('%a, %d %b %Y %H:%M:%S GMT'),
-                                            path=cookie.path, httponly=cookie.http_only)
-                else:
-                    web_response.del_cookie(cookie.name, path=cookie.path)
-
-            return web_response
+            track = web.MiddlewareTrack()
+            resp = await self.route.call_middleware_chain(request, params, track)
+            if not track.done:
+                raise InternalError(f'internal.middleware.chain_stopped:{"->".join(track.steps)}')
+            return resp
         except (APIError, APIErrors) as ex:
             res = context.response.from_exception(ex)
             serialized, mime = serialize(res.content, 'application/json')
