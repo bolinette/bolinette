@@ -78,7 +78,7 @@ def init_controllers(context: blnt.BolinetteContext):
         if _route.expects is not None:
             model = _route.expects.model
             key = _route.expects.key if _route.expects.key is not None else 'default'
-            cmd = f'blnt_payload|model:{model}|key:{key}'
+            cmd = f'blnt_payload|model={model}|key={key}'
             if _route.expects.patch:
                 cmd += '|patch'
             sys_mdw.append(cmd)
@@ -87,7 +87,7 @@ def init_controllers(context: blnt.BolinetteContext):
         if _route.returns is not None:
             model = _route.returns.model
             key = _route.returns.key if _route.returns.key is not None else 'default'
-            cmd = f'blnt_response|model:{model}|key:{key}'
+            cmd = f'blnt_response|model={model}|key={key}'
             if _route.returns.as_list:
                 cmd += '|as_list'
             if _route.returns.skip_none:

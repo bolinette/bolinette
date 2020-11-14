@@ -3,6 +3,7 @@ from typing import Callable, List, Dict, Any
 from aiohttp.web_request import Request
 
 from bolinette import blnt, core, web
+from bolinette.exceptions import InitError
 from bolinette.utils import functions
 
 
@@ -83,15 +84,37 @@ class ControllerRoute:
         else:
             middleware = blnt.cache.middlewares[name](context)
         for arg in args:
-            arg_n, *arg_v = arg.split(':', maxsplit=1)
+            arg_n, *arg_v = arg.split('=', maxsplit=1)
+            arg_n, *filters = arg_n.split(':')
+            if len(filters) > 1:
+                raise InitError(f'[{self.controller.__class__.__name__}] middleware '
+                                f'"{name}|{arg_n}" has too many filters')
             if len(arg_v) == 0:
                 value = True
             else:
                 value = arg_v[0].split(',')
                 if len(value) == 1:
                     value = value[0]
+                if len(filters) == 1:
+                    value = self._apply_filters(value, filters[0], name, arg_n)
             middleware.options[arg_n] = value
         self.middlewares.append(middleware)
+
+    def _apply_filters(self, value, _filter, mdw, arg):
+        if _filter == 'int':
+            func = int
+        elif _filter == 'float':
+            func = float
+        else:
+            raise InitError(f'[{self.controller.__class__.__name__}] middleware '
+                            f'"{mdw}|{arg}": unknown filter "{_filter}"')
+        try:
+            if isinstance(value, list):
+                return [func(v) for v in value]
+            return func(value)
+        except ValueError:
+            raise InitError(f'[{self.controller.__class__.__name__}] middleware '
+                            f'"{mdw}|{arg}": unable to parse "{value}" as {_filter}')
 
     async def call_middleware_chain(self, request: Request, params: Dict[str, Any], track: 'MiddlewareTrack'):
         handles = ([MiddlewareHandle(name=m.__blnt__.name, func=m.handle) for m in self.middlewares]

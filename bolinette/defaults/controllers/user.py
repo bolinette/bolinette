@@ -20,8 +20,8 @@ class UserController(web.Controller):
 
     def default_routes(self):
         return [
-            self.defaults.get_all('private', middlewares=['auth|roles:admin']),
-            self.defaults.get_one('private', key='username', middlewares=['auth|roles:admin'])
+            self.defaults.get_all('private', middlewares=['auth|roles=admin']),
+            self.defaults.get_one('private', key='username', middlewares=['auth|roles=admin'])
         ]
 
     def _create_tokens(self, resp, user, *, set_access, set_refresh, fresh):
@@ -82,7 +82,7 @@ class UserController(web.Controller):
         return resp
 
     @post('/register/admin', expects=('user', 'admin_register'),
-          returns=('user', 'private'), middlewares=['auth|roles:admin'])
+          returns=('user', 'private'), middlewares=['auth|roles=admin'])
     async def admin_register(self, payload):
         # send_mail = payload.pop('send_mail')
         payload['password'] = ''.join(random.choices(string.ascii_lowercase, k=32))
@@ -98,14 +98,14 @@ class UserController(web.Controller):
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
-    @post('/{username}/roles', expects='role', returns=('user', 'private'), middlewares=['auth|roles:admin'])
+    @post('/{username}/roles', expects='role', returns=('user', 'private'), middlewares=['auth|roles=admin'])
     async def add_user_role(self, match, payload):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(payload['name'])
         await self.user_service.add_role(user, role)
         return self.response.created(f'user.roles.added:{user.username}:{role.name}', user)
 
-    @delete('/{username}/roles/{role}', returns=('user', 'private'), middlewares=['auth|roles:admin'])
+    @delete('/{username}/roles/{role}', returns=('user', 'private'), middlewares=['auth|roles=admin'])
     async def delete_user_role(self, match, current_user):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(match['role'])

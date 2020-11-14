@@ -1,4 +1,4 @@
-from bolinette import blnt, web
+from bolinette import blnt
 
 
 class Middleware:
