@@ -1,6 +1,8 @@
 import sys
 
 from example import bolinette
+# noinspection PyUnresolvedReferences
+import tests
 
 app = bolinette.app
 

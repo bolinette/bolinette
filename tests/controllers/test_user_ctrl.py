@@ -1,5 +1,5 @@
 from bolinette import blnt
-from bolinette.testing import client, bolitest, Mock, Mocked
+from bolinette.testing import bolitest, Mock, Mocked
 from tests import utils
 
 

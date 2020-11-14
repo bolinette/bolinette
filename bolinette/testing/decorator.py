@@ -1,22 +1,12 @@
 from functools import wraps
 from typing import Callable, Awaitable
 
-import pytest
-
-from bolinette import Bolinette, blnt
+from bolinette import blnt
 from bolinette.testing import TestClient, Mock
 
 
-@pytest.fixture
-def client(loop, aiohttp_client):
-    bolinette = Bolinette(profile='test',
-                          overrides={'DBMS': 'SQLITE', 'SECRET_KEY': 'super secret'})
-    client = loop.run_until_complete(aiohttp_client(bolinette.app))
-    return TestClient(client, bolinette.context)
-
-
-def bolitest(*, before: Callable[[blnt.BolinetteContext, Mock], Awaitable[None]] = None,
-             after: Callable[[blnt.BolinetteContext, Mock], Awaitable[None]] = None):
+def bolitest(*, before: Callable[['blnt.BolinetteContext', Mock], Awaitable[None]] = None,
+             after: Callable[['blnt.BolinetteContext', Mock], Awaitable[None]] = None):
     def wrapper(func):
         @wraps(func)
         async def inner(client: TestClient):
@@ -29,5 +19,6 @@ def bolitest(*, before: Callable[[blnt.BolinetteContext, Mock], Awaitable[None]]
             if after is not None:
                 await after(client.context, client.mock)
             await client.context.db.drop_all()
+        blnt.cache.test_funcs.append(inner)
         return inner
     return wrapper

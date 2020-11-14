@@ -1,3 +1,4 @@
 from bolinette.testing.mock import Mock, Mocked
 from bolinette.testing.client import TestClient
-from bolinette.testing.testing import client, bolitest
+from bolinette.testing.decorator import bolitest
+from bolinette.testing.runner import TestRunner

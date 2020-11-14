@@ -1,16 +1,29 @@
 import json
+from asyncio.events import AbstractEventLoop
 
-from bolinette import blnt
+from aiohttp import test_utils
+
+import bolinette
 from bolinette.testing import Mock
 from bolinette.utils.serializing import serialize
 
 
 class TestClient:
-    def __init__(self, client, context: blnt.BolinetteContext):
-        self.client = client
-        self.context = context
-        self.mock = Mock(context)
+    def __init__(self, blnt_app: 'bolinette.Bolinette', loop: AbstractEventLoop):
+        server = test_utils.TestServer(blnt_app.app, loop=loop)
+        self.client = test_utils.TestClient(server, loop=loop)
+        self.context = blnt_app.context
+        self.mock = Mock(blnt_app.context)
         self.cookies = {}
+
+    async def __aenter__(self):
+        await self.client.start_server()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.close()
+
+    def __await__(self):
+        return self.__aenter__().__await__()
 
     def payload(self, **payload):
         if 'csrf_access_token' in self.cookies:

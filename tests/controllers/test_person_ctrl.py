@@ -1,4 +1,4 @@
-from bolinette.testing import client, bolitest
+from bolinette.testing import bolitest
 from tests import utils
 import example
 

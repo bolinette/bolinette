@@ -1,4 +1,4 @@
-from bolinette.testing import client, bolitest, Mock
+from bolinette.testing import bolitest, Mock
 from tests import utils
 import example.models
 

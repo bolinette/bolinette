@@ -55,6 +55,8 @@ class InitSettings(Settings):
         self._reset(self._load_from_file('init.yaml'))
 
     def _read_profile(self):
+        if 'BLNT_PROFILE' in os.environ:
+            return os.environ['BLNT_PROFILE']
         try:
             with open(self._cwd_path('env', '.profile')) as f:
                 profile = f.read().split('\n')[0].strip()
