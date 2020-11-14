@@ -4,6 +4,7 @@ import string
 from typing import Dict, Any
 
 import yaml
+
 from bolinette.utils import paths, console
 
 from bolinette import blnt
@@ -40,10 +41,12 @@ class Settings:
             with open(self._cwd_path('env', file_name), 'r') as f:
                 d = yaml.safe_load(f)
                 if not isinstance(d, dict):
-                    raise InitError(inner=TypeError(f"'{file_name}' does not contain valid YAML syntax"))
+                    raise yaml.YAMLError()
                 return d
         except FileNotFoundError:
             return {}
+        except yaml.YAMLError:
+            raise InitError(f'File "{file_name}" does not contain valid YAML syntax')
 
 
 class InitSettings(Settings):
@@ -61,18 +64,18 @@ class InitSettings(Settings):
             with open(self._cwd_path('env', '.profile')) as f:
                 profile = f.read().split('\n')[0].strip()
                 if not profile:
-                    console.error(f"Warning: empty 'env/.profile', defaulting to '{self._DEFAULT_PROFILE}'")
+                    console.error(f'Warning: empty "env/.profile", defaulting to "{self._DEFAULT_PROFILE}"')
                     return self._DEFAULT_PROFILE
                 return profile
         except FileNotFoundError:
-            console.error(f"Warning: no 'env/.profile' file, defaulting to '{self._DEFAULT_PROFILE}'")
+            console.error(f'Warning: no "env/.profile" file, defaulting to "{self._DEFAULT_PROFILE}"')
             return self._DEFAULT_PROFILE
 
     def _init_checks(self):
         dirs = [('env',), ('instance',)]
         for d in dirs:
             if not paths.exists(self._cwd_path(*d)):
-                console.error(f"Warning: no '{'/'.join(d)}' dir, creating one")
+                console.error(f'Warning: no "{"/".join(d)}" dir, creating one')
                 paths.mkdir(self._cwd_path(*d))
 
 
@@ -97,21 +100,21 @@ class Environment(Settings):
     @property
     def _default_env(self):
         return {
-            'APP_NAME': 'DEFAULT_NAME',
-            'APP_DESC': 'DEFAULT_DESCRIPTION',
-            'APP_VERSION': '0.0.1',
-            'DBMS': 'SQLITE',
-            'DEBUG': True,
-            'HOST': '127.0.0.1',
-            'PORT': '5000',
-            'WEBAPP_FOLDER': self.context.root_path('webapp', 'dist')
+            'app_name': 'default_name',
+            'app_desc': 'default_description',
+            'app_version': '0.0.1',
+            'dbms': 'sqlite',
+            'debug': True,
+            'host': '127.0.0.1',
+            'port': '5000',
+            'webapp_folder': self.context.root_path('webapp', 'dist')
         }
 
     def _load_from_os(self):
         keys = {}
         for key in os.environ:
             if key.startswith('BLNT_'):
-                keys[key[5:]] = os.environ[key]
+                keys[key[5:].lower()] = os.environ[key]
         return keys
 
     def _merge_env_stack(self, stack):
@@ -122,6 +125,6 @@ class Environment(Settings):
         return settings
 
     def _check_secret_key(self):
-        if self['SECRET_KEY'] is None:
-            console.error('Warning: no SECRET_KEY set, using random one')
-            self['SECRET_KEY'] = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+        if self['secret_key'] is None:
+            console.error('Warning: no secret_key set, using random one')
+            self['secret_key'] = ''.join(random.choices(string.ascii_letters + string.digits, k=64))

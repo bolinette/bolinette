@@ -32,8 +32,8 @@ from bolinette.decorators import service
 @service('book')
 class BookService(core.Service):
     def create(self, values):
-        if self.context.env['OVERRIDE_BOOK_PRICE']:
-            values['price'] = self.context.env['DEFAULT_BOOK_PRICE']
+        if self.context.env['override_book_price']:
+            values['price'] = self.context.env['default_book_price']
         super().create(values)
 ```
 

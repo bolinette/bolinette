@@ -21,14 +21,14 @@ class DatabaseEngine:
         self.model.metadata.drop_all(self.engine)
 
     def _create_uri(self, context: 'blnt.BolinetteContext'):
-        dbms = context.env.get('DBMS', 'SQLITE').lower()
+        dbms = context.env.get('dbms', 'sqlite').lower()
         if dbms == 'sqlite':
             return 'sqlite:///' + context.instance_path(
-                context.env.get('SQLITE_FILE', f'{context.env["PROFILE"]}.db'))
+                context.env.get('sqlite_file', f'{context.env["profile"]}.db'))
         if dbms == 'memory':
             return 'sqlite://'
         if dbms == 'postgresql':
-            return 'postgresql://' + context.env['DB_URL']
+            return 'postgresql://' + context.env['db_url']
         logger.error(f'Unknown database system "{dbms}"')
         exit(1)
 

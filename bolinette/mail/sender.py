@@ -14,7 +14,7 @@ class Sender:
         self.provider = None
 
     def init_app(self):
-        provider = self.context.env['MAIL_PROVIDER']
+        provider = self.context.env['mail_provider']
         if provider:
             provider = provider.lower()
             if provider not in _providers:

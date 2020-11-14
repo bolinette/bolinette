@@ -25,8 +25,8 @@ from bolinette.decorators import model
 
 @model('book')
 class Book(core.Model):
-    name = types.defs.Column(types.db.String, unique=blnt.init['UNIQUE_BOOK_NAME'])
-    price = types.defs.Column(types.db.Float, nullable=False, default=blnt.init['DEFAULT_BOOK_PRICE'])
+    name = types.defs.Column(types.db.String, unique=blnt.init['unique_book_name'])
+    price = types.defs.Column(types.db.Float, nullable=False, default=blnt.init['default_book_price'])
 ```
 
 # Environment variables

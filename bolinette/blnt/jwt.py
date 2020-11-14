@@ -20,7 +20,7 @@ class JWT:
 
     @property
     def secret_key(self):
-        return self.context.env['SECRET_KEY']
+        return self.context.env['secret_key']
 
     def encode(self, payload):
         return py_jwt.encode(payload, self.secret_key, algorithm='HS256').decode('utf-8')

@@ -6,10 +6,10 @@ from bolinette import blnt
 
 class Mailgun:
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.url = context.env['MAILGUN_URL']
+        self.url = context.env['mailgun_url']
         self.ready = True
-        self.key = context.env['MAILGUN_API']
-        self.from_adr = context.env['MAILGUN_FROM']
+        self.key = context.env['mailgun_api']
+        self.from_adr = context.env['mailgun_from']
         self._validate_attrs()
 
     def _validate_attrs(self):

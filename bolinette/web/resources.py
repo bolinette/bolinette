@@ -6,8 +6,7 @@ from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import blnt, web
-from bolinette.exceptions import APIError, APIErrors, InternalError
-from bolinette.utils import Pagination
+from bolinette.exceptions import APIError, APIErrors, InternalError, InitError
 from bolinette.utils.serializing import serialize
 
 
@@ -15,13 +14,42 @@ class BolinetteResources:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self._resources: Dict[str, 'BolinetteResource'] = {}
-        self.cors = aiohttp_cors.setup(self.context.app, defaults={
-            "*": aiohttp_cors.ResourceOptions(
-                allow_credentials=True,
-                expose_headers="*",
-                allow_headers="*",
-            )
-        })
+        self.cors = aiohttp_cors.setup(self.context.app, defaults=self._setup_cors())
+
+    def _setup_cors(self):
+        try:
+            conf = {}
+            if 'cors' in self.context.env:
+                conf = self.context.env['cors']
+            if not isinstance(conf, dict):
+                raise ValueError()
+            defaults = {}
+            for site, config in conf.items():
+                if not isinstance(config, dict):
+                    raise ValueError()
+                defaults[site] = aiohttp_cors.ResourceOptions(
+                    allow_credentials=config.get('allow_credentials', False),
+                    expose_headers=config.get('expose_headers', ()),
+                    allow_headers=config.get('allow_headers', ())
+                )
+            return defaults
+        except ValueError:
+            raise InitError("""
+Invalid CORS config, you should have something like:
+
+cors:
+  "*":
+    allow_credentials: true
+    expose_headers: "*"
+    allow_headers: "*"
+  "http://client.example.org":
+    allow_credentials: true
+    expose_headers: "*"
+    allow_headers: "*"
+    max_age: 3600
+
+See https://github.com/aio-libs/aiohttp-cors for detailed config options
+""")
 
     def add_route(self, path: str, controller: 'web.Controller', route: 'web.ControllerRoute'):
         if path not in self._resources:

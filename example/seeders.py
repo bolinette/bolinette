@@ -17,7 +17,7 @@ async def role_seeder(context: blnt.BolinetteContext):
 
 @seeder
 async def dev_user_seeder(context: blnt.BolinetteContext):
-    if context.env['PROFILE'] == 'development':
+    if context.env['profile'] == 'development':
         role_service: RoleService = context.service('role')
         user_service: UserService = context.service('user')
         with blnt.Transaction(context):
@@ -48,7 +48,7 @@ async def dev_user_seeder(context: blnt.BolinetteContext):
 
 @seeder
 async def book_seeder(context: blnt.BolinetteContext):
-    if context.env['PROFILE'] == 'development':
+    if context.env['profile'] == 'development':
         user_service: UserService = context.service('user')
         person_service: PersonService = context.service('person')
         book_service: BookService = context.service('book')
