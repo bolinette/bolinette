@@ -1,4 +1,5 @@
-from typing import Type, Callable, List, Union, Tuple
+import inspect
+from typing import Type, Callable, List, Union
 
 from bolinette import blnt, core, web
 
@@ -71,27 +72,20 @@ def controller(controller_name: str, path: str = None, *,
     return decorator
 
 
-def route(path: str, *, method: web.HttpMethod,
-          expects: Union[str, Tuple[str, str]] = None, returns: Union[str, Tuple[str, str]] = None,
+def route(path: str, *, method: web.HttpMethod, expects: 'web.Excepts' = None, returns: 'web.Returns' = None,
           middlewares: Union[str, List[str]] = None):
-    if expects is not None:
-        if isinstance(expects, tuple):
-            expects = web.ControllerExcepts(expects[0], expects[1] if len(expects) > 1 else 'default',
-                                            patch='patch' in expects[2:])
-        elif isinstance(expects, str):
-            expects = web.ControllerExcepts(expects)
-    if returns is not None:
-        if isinstance(returns, tuple):
-            returns = web.ControllerReturns(returns[0], returns[1] if len(returns) > 1 else 'default',
-                                            as_list='as_list' in returns[2:], skip_none='skip_none' in returns[2:])
-        elif isinstance(returns, str):
-            returns = web.ControllerReturns(returns)
     if middlewares is None:
         middlewares = []
     if isinstance(middlewares, str):
         middlewares = [middlewares]
 
     def decorator(route_function: Callable):
+        if not isinstance(route_function, web.ControllerRoute) and not inspect.iscoroutinefunction(route_function):
+            raise ValueError(f'Route "{route_function.__name__}" must be an async function')
+        if expects is not None and not isinstance(expects, web.Excepts):
+            raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Expects')
+        if returns is not None and not isinstance(returns, web.Returns):
+            raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Returns')
         inner_route = None
         if isinstance(route_function, web.ControllerRoute):
             inner_route = route_function
@@ -100,35 +94,27 @@ def route(path: str, *, method: web.HttpMethod,
     return decorator
 
 
-def get(path: str, *,
-        expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
-        returns: Union[str, Tuple[str, str]] = None,
+def get(path: str, *, expects: 'web.Excepts' = None, returns: 'web.Returns' = None,
         middlewares: Union[str, List[str]] = None):
     return route(path, method=web.HttpMethod.GET, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def post(path: str, *,
-         expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
-         returns: Union[str, Tuple[str, str]] = None,
+def post(path: str, *, expects: 'web.Excepts' = None, returns: 'web.Returns' = None,
          middlewares: Union[str, List[str]] = None):
     return route(path, method=web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def put(path: str, *,
-        returns: Union[str, Tuple[str, str]] = None,
-        expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
+def put(path: str, *, expects: 'web.Excepts' = None, returns: 'web.Returns' = None,
         middlewares: Union[str, List[str]] = None):
     return route(path, method=web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def patch(path: str, *,
-          expects: Union[str, Tuple[str, str], Tuple[str, str, str]] = None,
-          returns: Union[str, Tuple[str, str]] = None,
+def patch(path: str, *, expects: 'web.Excepts' = None, returns: 'web.Returns' = None,
           middlewares: Union[str, List[str]] = None):
     return route(path, method=web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def delete(path: str, *, expects=None, returns=None,
+def delete(path: str, *, expects: 'web.Excepts' = None, returns: 'web.Returns' = None,
            middlewares: Union[str, List[str]] = None):
     return route(path, method=web.HttpMethod.DELETE, expects=expects, returns=returns, middlewares=middlewares)
 

@@ -1,6 +1,6 @@
 from bolinette.web.method import HttpMethod
 from bolinette.web.controller import (
-    Controller, ControllerMetadata, ControllerRoute, ControllerExcepts, ControllerReturns, MiddlewareTrack
+    Controller, ControllerMetadata, ControllerRoute, Excepts, Returns, MiddlewareTrack
 )
 from bolinette.web.middleware import Middleware, MiddlewareMetadata
 from bolinette.web.topic import Topic, TopicMetadata, TopicChannel

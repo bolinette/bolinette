@@ -36,15 +36,15 @@ class UserController(web.Controller):
                                            expires=self.context.jwt.refresh_token_expires(now),
                                            path='/api/user/refresh'))
 
-    @get('/me', returns=('user', 'private'), middlewares=['auth|fresh'])
+    @get('/me', returns=web.Returns('user', 'private'), middlewares=['auth|fresh'])
     async def me(self, current_user):
         return self.response.ok('OK', current_user)
 
-    @get('/info', returns=('user', 'private'), middlewares=['auth'])
+    @get('/info', returns=web.Returns('user', 'private'), middlewares=['auth'])
     async def info(self, current_user):
         return self.response.ok('OK', current_user)
 
-    @post('/login', expects=('user', 'login'), returns=('user', 'private'))
+    @post('/login', expects=web.Excepts('user', 'login'), returns=web.Returns('user', 'private'))
     async def login(self, payload):
         username = payload['username']
         password = payload['password']
@@ -72,7 +72,7 @@ class UserController(web.Controller):
         self._create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
         return resp
 
-    @post('/register', expects=('user', 'register'), returns=('user', 'private'))
+    @post('/register', expects=web.Excepts('user', 'register'), returns=web.Returns('user', 'private'))
     async def register(self, payload):
         if blnt.init.get('ADMIN_REGISTER_ONLY', True):
             raise BadRequestError('global.register.admin_only')
@@ -81,8 +81,8 @@ class UserController(web.Controller):
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
-    @post('/register/admin', expects=('user', 'admin_register'),
-          returns=('user', 'private'), middlewares=['auth|roles=admin'])
+    @post('/register/admin', expects=web.Excepts('user', 'admin_register'),
+          returns=web.Returns('user', 'private'), middlewares=['auth|roles=admin'])
     async def admin_register(self, payload):
         # send_mail = payload.pop('send_mail')
         payload['password'] = ''.join(random.choices(string.ascii_lowercase, k=32))
@@ -91,28 +91,30 @@ class UserController(web.Controller):
         #     await mail.sender.send(payload['email'], 'Welcome!', 'Welcome to Bolinette!')
         return self.response.created('user.registered', user)
 
-    @patch('/me', expects=('user', 'register', 'patch'), returns=('user', 'private'), middlewares=['auth|fresh'])
+    @patch('/me', expects=web.Excepts('user', 'register', patch=True), returns=web.Returns('user', 'private'),
+           middlewares=['auth|fresh'])
     async def update_user(self, payload, current_user):
         user = await self.user_service.patch(current_user, payload)
         resp = self.response.ok('user.updated', user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
-    @post('/{username}/roles', expects='role', returns=('user', 'private'), middlewares=['auth|roles=admin'])
+    @post('/{username}/roles', expects=web.Excepts('role'), returns=web.Returns('user', 'private'),
+          middlewares=['auth|roles=admin'])
     async def add_user_role(self, match, payload):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(payload['name'])
         await self.user_service.add_role(user, role)
         return self.response.created(f'user.roles.added:{user.username}:{role.name}', user)
 
-    @delete('/{username}/roles/{role}', returns=('user', 'private'), middlewares=['auth|roles=admin'])
+    @delete('/{username}/roles/{role}', returns=web.Returns('user', 'private'), middlewares=['auth|roles=admin'])
     async def delete_user_role(self, match, current_user):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(match['role'])
         await self.user_service.remove_role(current_user, user, role)
         return self.response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
 
-    @post('/picture', returns=('user', 'private'), middlewares=['auth'])
+    @post('/picture', returns=web.Returns('user', 'private'), middlewares=['auth'])
     async def upload_profile_picture(self, current_user, payload):
         picture = payload['file']
         user = await self.user_service.save_profile_picture(current_user, picture)

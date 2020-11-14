@@ -20,7 +20,9 @@ class Transaction:
             if not issubclass(exc_type, (APIError, APIErrors)):
                 logger.error(str(exc_val))
                 traceback.print_tb(exc_tb)
-                raise InternalError([str(exc_val)] + traceback.format_list(traceback.extract_tb(exc_tb)))
+                if self.context.env['debug']:
+                    raise InternalError([str(exc_val)] + traceback.format_list(traceback.extract_tb(exc_tb)))
+                raise InternalError('internal.error')
         else:
             try:
                 self.context.db.session.commit()

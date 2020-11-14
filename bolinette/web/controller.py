@@ -54,7 +54,7 @@ class ControllerProps:
 
 class ControllerRoute:
     def __init__(self, func: Callable, path: str, method: web.HttpMethod,
-                 expects: 'ControllerExcepts' = None, returns: 'ControllerReturns' = None,
+                 expects: 'Excepts' = None, returns: 'Returns' = None,
                  inner_route: 'ControllerRoute' = None, middlewares: List[str] = None):
         self.controller = None
         self.func = func
@@ -148,14 +148,14 @@ class MiddlewareTrack:
         self.steps.append(step)
 
 
-class ControllerExcepts:
+class Excepts:
     def __init__(self, model: str, key: str = 'default', *, patch: bool = False):
         self.model = model
         self.key = key
         self.patch = patch
 
 
-class ControllerReturns:
+class Returns:
     def __init__(self, model: str, key: str = 'default', *, as_list: bool = False, skip_none: bool = False):
         self.model = model
         self.key = key
@@ -187,7 +187,7 @@ class ControllerDefaults:
             return controller.response.ok('OK', resp)
 
         return ControllerRoute(route, '', web.HttpMethod.GET,
-                               returns=ControllerReturns(self.service.__blnt__.model_name, returns, as_list=True),
+                               returns=Returns(self.service.__blnt__.model_name, returns, as_list=True),
                                middlewares=middlewares)
 
     def get_one(self, returns='default', *, key='id', middlewares=None):
@@ -196,7 +196,7 @@ class ControllerDefaults:
             return controller.response.ok('OK', resp)
 
         return ControllerRoute(route, '/{value}', web.HttpMethod.GET,
-                               returns=ControllerReturns(self.service.__blnt__.model_name, returns),
+                               returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 
     def create(self, returns='default', expects='default', *, middlewares=None):
@@ -205,8 +205,8 @@ class ControllerDefaults:
             return controller.response.created(f'{controller.service.__blnt__.model_name}.created', resp)
 
         return ControllerRoute(route, '', web.HttpMethod.POST,
-                               expects=ControllerExcepts(self.service.__blnt__.model_name, expects),
-                               returns=ControllerReturns(self.service.__blnt__.model_name, returns),
+                               expects=Excepts(self.service.__blnt__.model_name, expects),
+                               returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 
     def update(self, returns='default', expects='default', *, key='id', middlewares=None):
@@ -216,8 +216,8 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         return ControllerRoute(route, '/{value}', web.HttpMethod.PUT,
-                               expects=ControllerExcepts(self.service.__blnt__.model_name, expects),
-                               returns=ControllerReturns(self.service.__blnt__.model_name, returns),
+                               expects=Excepts(self.service.__blnt__.model_name, expects),
+                               returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 
     def patch(self, returns='default', expects='default', *, key='id', middlewares=None):
@@ -227,8 +227,8 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         return ControllerRoute(route, '/{value}', web.HttpMethod.PATCH,
-                               expects=ControllerExcepts(self.service.__blnt__.model_name, expects, patch=True),
-                               returns=ControllerReturns(self.service.__blnt__.model_name, returns),
+                               expects=Excepts(self.service.__blnt__.model_name, expects, patch=True),
+                               returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 
     def delete(self, returns='default', *, key='id', middlewares=None):
@@ -238,5 +238,5 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.deleted', resp)
 
         return ControllerRoute(route, '/{value}', web.HttpMethod.DELETE,
-                               returns=ControllerReturns(self.service.__blnt__.model_name, returns),
+                               returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)

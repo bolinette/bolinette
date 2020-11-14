@@ -104,7 +104,7 @@ class Environment(Settings):
             'app_desc': 'default_description',
             'app_version': '0.0.1',
             'dbms': 'sqlite',
-            'debug': True,
+            'debug': False,
             'host': '127.0.0.1',
             'port': '5000',
             'webapp_folder': self.context.root_path('webapp', 'dist')
