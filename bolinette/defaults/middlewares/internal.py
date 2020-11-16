@@ -21,7 +21,7 @@ class PayloadMiddleware(web.Middleware):
 @middleware('blnt_response', priority=10, pre_validation=True)
 class ResponseMiddleware(web.Middleware):
     async def handle(self, request, params, next_func):
-        with blnt.Transaction(self.context):
+        async with blnt.Transaction(self.context):
             resp = await next_func(request, params)
         if resp is None:
             return aio_web.Response(status=204)

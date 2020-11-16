@@ -1,10 +1,13 @@
+import os
 import sys
 
-from example import bolinette
 # noinspection PyUnresolvedReferences
 import tests
 
-app = bolinette.app
-
 if __name__ == '__main__':
-    bolinette.run_command(sys.argv[1])
+    command = sys.argv[1]
+    if command == 'run_tests':
+        if 'BLNT_PROFILE' not in os.environ:
+            os.environ['BLNT_PROFILE'] = 'test'
+    from example import bolinette
+    bolinette.run_command(command)

@@ -3,12 +3,21 @@ from sqlalchemy import orm as sqlalchemy_orm
 
 from bolinette import blnt, core, web
 from bolinette.decorators import init_func
+from bolinette.exceptions import InitError
 
 
 @init_func
-def init_models(context: blnt.BolinetteContext):
+def init_relational_models(context: blnt.BolinetteContext):
     models = {}
+    model_databases = {}
     for model_name, model_cls in blnt.cache.models.items():
+        db_key = model_cls.__blnt__.database
+        if db_key in context.db:
+            if not context.db[db_key].relational:
+                continue
+            model_databases[model_name] = context.db[db_key]
+        else:
+            raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
         models[model_name] = model_cls()
     orm_tables = {}
     orm_cols = {}
@@ -23,7 +32,7 @@ def init_models(context: blnt.BolinetteContext):
                 att_name, attribute.type.sqlalchemy_type, ref, default=attribute.default,
                 primary_key=attribute.primary_key, nullable=attribute.nullable, unique=attribute.unique)
         orm_tables[model_name] = sqlalchemy.Table(model_name,
-                                                  context.db.model.metadata,
+                                                  model_databases[model_name].base.metadata,
                                                   *(orm_cols[model_name].values()))
 
     for model_name, model in models.items():
@@ -44,7 +53,7 @@ def init_models(context: blnt.BolinetteContext):
                                                              backref=backref)
 
         orm_defs['__table__'] = orm_tables[model_name]
-        orm_model = type(model_name, (context.db.model,), orm_defs)
+        orm_model = type(model_name, (model_databases[model_name].base,), orm_defs)
 
         for att_name, attribute in model.__props__.get_properties().items():
             setattr(orm_model, att_name, property(attribute.function))

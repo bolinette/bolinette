@@ -103,7 +103,7 @@ class Environment(Settings):
             'app_name': 'default_name',
             'app_desc': 'default_description',
             'app_version': '0.0.1',
-            'dbms': 'sqlite',
+            'database': None,
             'debug': False,
             'host': '127.0.0.1',
             'port': '5000',

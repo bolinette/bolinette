@@ -26,8 +26,9 @@ class Model:
 
 
 class ModelMetadata:
-    def __init__(self, name):
+    def __init__(self, name: str, database: str):
         self.name = name
+        self.database = database
 
 
 class ModelProps:

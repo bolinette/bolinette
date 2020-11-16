@@ -9,12 +9,13 @@ from bolinette.exceptions import InternalError
 
 class BolinetteContext:
     def __init__(self, origin: str, app: Optional[aio_web.Application], *, profile=None, overrides=None):
+        self._ctx = {}
         self.cwd = paths.cwd()
         self.origin = origin
         if app is not None:
             self.app = app
             self.env = blnt.Environment(self, profile=profile, overrides=overrides)
-            self.db = blnt.DatabaseEngine(self)
+            self.db = blnt.DatabaseManager(self)
             self.jwt = blnt.JWT(self)
             self.resources = web.BolinetteResources(self)
             self.sockets = web.BolinetteSockets(self)
@@ -26,7 +27,6 @@ class BolinetteContext:
             self._repos: Dict[str, 'core.Repository'] = {}
             self._services: Dict[str, 'core.Service'] = {}
             self._controllers: Dict[str, 'web.Controller'] = {}
-            self._ctx = {}
 
     def __getitem__(self, key):
         return self._ctx[key]

@@ -14,8 +14,10 @@ class Mocked:
 
     @staticmethod
     def insert_entity(context: 'blnt.BolinetteContext', name, params):
+        model = context.model(name)
+        database = context.db[model.__blnt__.database]
         entity = context.table(name)(**params)
-        context.db.session.add(entity)
+        database.session.add(entity)
         return entity
 
     def insert(self):

@@ -54,7 +54,7 @@ class ControllerProps:
 
 class ControllerRoute:
     def __init__(self, func: Callable, path: str, method: web.HttpMethod,
-                 expects: 'Excepts' = None, returns: 'Returns' = None,
+                 expects: 'Expects' = None, returns: 'Returns' = None,
                  inner_route: 'ControllerRoute' = None, middlewares: List[str] = None):
         self.controller = None
         self.func = func
@@ -148,7 +148,7 @@ class MiddlewareTrack:
         self.steps.append(step)
 
 
-class Excepts:
+class Expects:
     def __init__(self, model: str, key: str = 'default', *, patch: bool = False):
         self.model = model
         self.key = key
@@ -205,7 +205,7 @@ class ControllerDefaults:
             return controller.response.created(f'{controller.service.__blnt__.model_name}.created', resp)
 
         return ControllerRoute(route, '', web.HttpMethod.POST,
-                               expects=Excepts(self.service.__blnt__.model_name, expects),
+                               expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 
@@ -216,7 +216,7 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         return ControllerRoute(route, '/{value}', web.HttpMethod.PUT,
-                               expects=Excepts(self.service.__blnt__.model_name, expects),
+                               expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 
@@ -227,7 +227,7 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         return ControllerRoute(route, '/{value}', web.HttpMethod.PATCH,
-                               expects=Excepts(self.service.__blnt__.model_name, expects, patch=True),
+                               expects=Expects(self.service.__blnt__.model_name, expects, patch=True),
                                returns=Returns(self.service.__blnt__.model_name, returns),
                                middlewares=middlewares)
 

@@ -11,12 +11,12 @@ class Transaction:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
 
-    def __enter__(self):
-        pass
+    async def __aenter__(self):
+        await self.context.db.open_transaction()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            self.context.db.session.rollback()
+            await self.context.db.rollback_transaction()
             if not issubclass(exc_type, (APIError, APIErrors)):
                 logger.error(str(exc_val))
                 traceback.print_tb(exc_tb)
@@ -25,7 +25,7 @@ class Transaction:
                 raise InternalError('internal.error')
         else:
             try:
-                self.context.db.session.commit()
+                await self.context.db.close_transaction()
             except SQLAlchemyError as err:
-                self.context.db.session.rollback()
+                await self.context.db.rollback_transaction()
                 raise InternalError([f'global.internal_error:{err}'])

@@ -14,7 +14,7 @@ def bolitest(*, before: Callable[['blnt.BolinetteContext', Mock], Awaitable[None
             await client.context.db.create_all()
             if before is not None:
                 await before(client.context, client.mock)
-            client.context.db.session.commit()
+            await client.context.db.close_transaction()
             await func(client=client)
             if after is not None:
                 await after(client.context, client.mock)

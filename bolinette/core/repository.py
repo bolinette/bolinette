@@ -6,15 +6,15 @@ class Repository:
     def __init__(self, name: str, model: core.Model, context: 'blnt.BolinetteContext'):
         self.name = name
         self.model = model
+        self.database = context.db[model.__blnt__.database]
         self.table = context.table(name)
-        self.db = context.db
 
     def __repr__(self):
         return f'<Repository {self.name}>'
 
     @property
     def query(self):
-        return self.db.session.query(self.table)
+        return self.database.session.query(self.table)
 
     def column(self, name: str):
         return getattr(self.table, name)
@@ -34,7 +34,7 @@ class Repository:
     async def create(self, values):
         filtered = self._validate_model(values)
         entity = self.table(**filtered)
-        self.db.session.add(entity)
+        self.database.session.add(entity)
         return entity
 
     async def update(self, entity, values):
@@ -46,7 +46,7 @@ class Repository:
         return entity
 
     async def delete(self, entity):
-        self.db.session.delete(entity)
+        self.database.session.delete(entity)
         return entity
 
     def _validate_model(self, values: dict):
