@@ -1,12 +1,12 @@
 from bolinette import blnt, core
+from bolinette.core.repositories import Repository
 from bolinette.exceptions import APIErrors, ParamConflictError
 
 
-class Repository:
-    def __init__(self, name: str, model: core.Model, context: 'blnt.BolinetteContext'):
-        self.name = name
-        self.model = model
-        self.database = context.db[model.__blnt__.database]
+class RelationalRepository(Repository):
+    def __init__(self, name: str, model: 'core.Model', context: 'blnt.BolinetteContext'):
+        super().__init__(name, model, context)
+        self.database: 'blnt.database.RelationalDatabase' = context.db[model.__blnt__.database]
         self.table = context.table(name)
 
     def __repr__(self):

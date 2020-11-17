@@ -49,7 +49,7 @@ class Validator:
         for field in definition.fields:
             if isinstance(field, mapping.Reference):
                 value = params.get(field.foreign_key, None)
-                repo: core.Repository = self.context.repo(field.reference_model)
+                repo: core.RelationalRepository = self.context.repo(field.reference_model)
                 if value is not None and repo is not None:
                     entity = await repo.get_first_by(field.reference_key, value)
                     if entity is None:

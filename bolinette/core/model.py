@@ -1,6 +1,6 @@
 from typing import Dict, List, Union, Tuple
 
-from bolinette import types
+from bolinette import types, blnt
 
 MappingPyTyping = List[Union['types.mapping.Column', 'types.mapping.Field',
                              'types.mapping.List', 'types.mapping.Definition']]
@@ -10,8 +10,8 @@ MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 class Model:
     __blnt__: 'ModelMetadata' = None
 
-    def __init__(self):
-        self.__props__ = ModelProps(self)
+    def __init__(self, database: 'blnt.database.DatabaseEngine'):
+        self.__props__ = ModelProps(self, database)
 
     @classmethod
     def payloads(cls) -> MappingListPyTyping:
@@ -32,8 +32,9 @@ class ModelMetadata:
 
 
 class ModelProps:
-    def __init__(self, model):
+    def __init__(self, model, database: 'blnt.database.DatabaseEngine'):
         self.model = model
+        self.database = database
 
     def _get_attribute_of_type(self, attr_type):
         return dict([(name, attribute)

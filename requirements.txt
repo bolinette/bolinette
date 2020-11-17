@@ -3,6 +3,7 @@ aiohttp-cors==0.7.0
 bcrypt==3.2.0
 Jinja2==2.11.2
 PyJWT==1.7.1
+pymongo==3.11.0
 pytz==2020.4
 PyYAML==5.3.1
 requests==2.25.0

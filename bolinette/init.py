@@ -9,16 +9,15 @@ from bolinette.exceptions import InitError
 @init_func
 def init_relational_models(context: blnt.BolinetteContext):
     models = {}
-    model_databases = {}
     for model_name, model_cls in blnt.cache.models.items():
         db_key = model_cls.__blnt__.database
         if db_key in context.db:
             if not context.db[db_key].relational:
                 continue
-            model_databases[model_name] = context.db[db_key]
+            database = context.db[db_key]
         else:
             raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
-        models[model_name] = model_cls()
+        models[model_name] = model_cls(database)
     orm_tables = {}
     orm_cols = {}
     for model_name, model in models.items():
@@ -32,7 +31,7 @@ def init_relational_models(context: blnt.BolinetteContext):
                 att_name, attribute.type.sqlalchemy_type, ref, default=attribute.default,
                 primary_key=attribute.primary_key, nullable=attribute.nullable, unique=attribute.unique)
         orm_tables[model_name] = sqlalchemy.Table(model_name,
-                                                  model_databases[model_name].base.metadata,
+                                                  model.__props__.database.base.metadata,
                                                   *(orm_cols[model_name].values()))
 
     for model_name, model in models.items():
@@ -53,7 +52,7 @@ def init_relational_models(context: blnt.BolinetteContext):
                                                              backref=backref)
 
         orm_defs['__table__'] = orm_tables[model_name]
-        orm_model = type(model_name, (model_databases[model_name].base,), orm_defs)
+        orm_model = type(model_name, (model.__props__.database.base,), orm_defs)
 
         for att_name, attribute in model.__props__.get_properties().items():
             setattr(orm_model, att_name, property(attribute.function))
@@ -65,7 +64,10 @@ def init_relational_models(context: blnt.BolinetteContext):
 @init_func
 def init_repositories(context: blnt.BolinetteContext):
     for model_name, model in context.models:
-        context.add_repo(model_name, core.Repository(model_name, model, context))
+        if model.__props__.database.relational:
+            context.add_repo(model_name, core.RelationalRepository(model_name, model, context))
+        else:
+            context.add_repo(model_name, core.CollectionRepository(model_name, model, context))
 
 
 @init_func

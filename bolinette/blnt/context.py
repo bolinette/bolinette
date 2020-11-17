@@ -15,7 +15,7 @@ class BolinetteContext:
         if app is not None:
             self.app = app
             self.env = blnt.Environment(self, profile=profile, overrides=overrides)
-            self.db = blnt.DatabaseManager(self)
+            self.db = blnt.database.DatabaseManager(self)
             self.jwt = blnt.JWT(self)
             self.resources = web.BolinetteResources(self)
             self.sockets = web.BolinetteSockets(self)
@@ -60,7 +60,7 @@ class BolinetteContext:
 
     @property
     def models(self):
-        return iter(self._models.items())
+        return ((name, self._models[name]) for name in self._models)
 
     def table(self, name) -> Any:
         return self._tables[name]
@@ -70,7 +70,7 @@ class BolinetteContext:
 
     @property
     def tables(self):
-        return iter(self._tables.items())
+        return ((name, self._tables[name]) for name in self._tables)
 
     def repo(self, name) -> Any:
         return self._repos[name]
@@ -80,7 +80,7 @@ class BolinetteContext:
 
     @property
     def repos(self):
-        return iter(self._repos.items())
+        return ((name, self._repos[name]) for name in self._repos)
 
     def service(self, name) -> Any:
         if name not in self._services:
@@ -92,7 +92,7 @@ class BolinetteContext:
 
     @property
     def services(self):
-        return iter(self._services.items())
+        return ((name, self._services[name]) for name in self._services)
 
     def controller(self, name) -> Any:
         return self._controllers[name]
@@ -102,4 +102,4 @@ class BolinetteContext:
 
     @property
     def controllers(self):
-        return iter(self._repos.items())
+        return ((name, self._controllers[name]) for name in self._controllers)

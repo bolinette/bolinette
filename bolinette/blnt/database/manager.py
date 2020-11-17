@@ -1,60 +1,14 @@
 from typing import Dict
 
-from bolinette.exceptions import InternalError, InitError
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
 from bolinette import blnt
-
-
-class DatabaseEngine:
-    def __init__(self, relational: bool):
-        self.relational = relational
-
-    async def open_transaction(self):
-        raise NotImplementedError()
-
-    async def close_transaction(self):
-        raise NotImplementedError()
-
-    async def rollback_transaction(self):
-        raise NotImplementedError()
-
-    async def create_all(self):
-        raise NotImplementedError()
-
-    async def drop_all(self):
-        raise NotImplementedError()
-
-
-class RelationalDatabase(DatabaseEngine):
-    def __init__(self, uri):
-        super().__init__(relational=True)
-        self.engine = create_engine(uri, echo=False)
-        self.factory = sessionmaker(bind=self.engine)
-        self.base = declarative_base()
-        self.session = self.factory()
-
-    async def open_transaction(self):
-        pass
-
-    async def close_transaction(self):
-        self.session.commit()
-
-    async def rollback_transaction(self):
-        self.session.rollback()
-
-    async def create_all(self):
-        self.base.metadata.create_all(self.engine)
-
-    async def drop_all(self):
-        self.base.metadata.drop_all(self.engine)
+from bolinette.blnt.database import RelationalDatabase, CollectionDatabase, DatabaseEngine
+from bolinette.exceptions import InternalError, InitError
 
 
 class DatabaseManager:
     _DBMS = {
-        'sqlite://': RelationalDatabase
+        'sqlite://': RelationalDatabase,
+        'mongodb://': CollectionDatabase
     }
 
     def __init__(self, context: 'blnt.BolinetteContext'):

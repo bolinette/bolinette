@@ -14,7 +14,7 @@ class Service:
         return f'<Service {self.__blnt__.name}>'
 
     @property
-    def repo(self) -> core.Repository:
+    def repo(self) -> core.RelationalRepository:
         return self.context.repo(self.__blnt__.model_name)
 
     async def get(self, identifier, *, safe=False):
