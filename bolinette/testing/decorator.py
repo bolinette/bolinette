@@ -1,8 +1,9 @@
+import inspect
 from functools import wraps
 from typing import Callable, Awaitable
 
 from bolinette import blnt
-from bolinette.testing import TestClient, Mock
+from bolinette.testing import TestClient, Mock, Bolitest
 
 
 def bolitest(*, before: Callable[['blnt.BolinetteContext', Mock], Awaitable[None]] = None,
@@ -19,6 +20,6 @@ def bolitest(*, before: Callable[['blnt.BolinetteContext', Mock], Awaitable[None
             if after is not None:
                 await after(client.context, client.mock)
             await client.context.db.drop_all()
-        blnt.cache.test_funcs.append(inner)
+        blnt.cache.test_funcs.append(Bolitest(inner, inspect.getfile(func)))
         return inner
     return wrapper

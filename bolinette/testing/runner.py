@@ -3,11 +3,11 @@ import sys
 import traceback
 from asyncio import AbstractEventLoop
 from datetime import datetime
-from typing import Callable, Awaitable, List
+from typing import List
 
 from bolinette import blnt
 from bolinette import bolinette
-from bolinette.testing import TestClient
+from bolinette.testing import TestClient, Bolitest
 from bolinette.utils import console
 
 
@@ -21,27 +21,35 @@ class TestResult:
 
 
 class TestRunner:
-    def __init__(self):
-        pass
+    def __init__(self, context: 'blnt.BolinetteContext', run_only: List[str]):
+        self.context = context
+        self.run_only = run_only
 
     def run_tests(self, blnt_app: 'bolinette.Bolinette'):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._run_tests(blnt_app, loop, blnt.cache.test_funcs))
+        loop.run_until_complete(self._run_tests(blnt_app, loop, self._gather_tests()))
 
-    async def _run_tests(self, blnt_app: 'bolinette.Bolinette', loop: AbstractEventLoop,
-                         functions: List[Callable[[TestClient], Awaitable[None]]]):
+    def _gather_tests(self):
+        tests = []
+        for test in blnt.cache.test_funcs:
+            test.set_name(self.context.root_path('tests'))
+            if len(self.run_only) == 0 or test.name in self.run_only:
+                tests.append(test)
+        return tests
+
+    async def _run_tests(self, blnt_app: 'bolinette.Bolinette', loop: AbstractEventLoop, tests: List[Bolitest]):
         tests_start_time = datetime.now()
-        test_cnt = len(functions)
+        test_cnt = len(tests)
         console.print('** Bolinette API Tests **')
         console.print(f'Running {test_cnt} tests, starting at {tests_start_time}')
         console.print('====================\n')
         results = []
         test_index = 0
-        for test_func in functions:
+        for test in tests:
             client = TestClient(blnt_app, loop)
             async with client:
-                console.print(f'Running: {test_func.__name__} [{test_index + 1}/{test_cnt}]', end=' ')
-                result = await self._run_test(client, test_func)
+                console.print(f'Running: {test.name} [{test_index + 1}/{test_cnt}]', end=' ')
+                result = await self._run_test(client, test)
                 if result.ok:
                     console.print(f'OK in {result.time / 1000}ms')
                 else:
@@ -65,13 +73,13 @@ class TestRunner:
         if err_cnt > 0:
             sys.exit(1)
 
-    async def _run_test(self, client: TestClient, test_func: Callable[[TestClient], Awaitable[None]]) -> TestResult:
+    async def _run_test(self, client: TestClient, test: Bolitest) -> TestResult:
         time_start = datetime.now()
         try:
-            await test_func(client)
+            await test.func(client)
             time_end = datetime.now()
-            return TestResult(test_func.__name__, True, (time_end - time_start).microseconds)
-        except AssertionError as err:
+            return TestResult(test.name, True, (time_end - time_start).microseconds)
+        except Exception as err:
             time_end = datetime.now()
-            return TestResult(test_func.__name__, False, (time_end - time_start).microseconds,
+            return TestResult(test.name, False, (time_end - time_start).microseconds,
                               err, traceback.format_exc())

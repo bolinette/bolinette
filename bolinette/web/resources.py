@@ -1,3 +1,4 @@
+import traceback
 from typing import Dict
 
 import aiohttp_cors
@@ -7,6 +8,7 @@ from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import blnt, web
 from bolinette.exceptions import APIError, APIErrors, InternalError, InitError
+from bolinette.utils import console
 from bolinette.utils.serializing import serialize
 
 
@@ -89,6 +91,11 @@ class RouteHandler:
             return resp
         except (APIError, APIErrors) as ex:
             res = context.response.from_exception(ex)
+            if context.env['debug']:
+                stack = traceback.format_exc()
+                if isinstance(ex, InternalError):
+                    console.error(stack)
+                res.content['trace'] = stack.split('\n')
             serialized, mime = serialize(res.content, 'application/json')
             web_response = aio_web.Response(text=serialized, status=res.code, content_type=mime)
             return web_response

@@ -62,6 +62,24 @@ def init_relational_models(context: blnt.BolinetteContext):
 
 
 @init_func
+def init_collection_models(context: blnt.BolinetteContext):
+    models = {}
+    for model_name, model_cls in blnt.cache.models.items():
+        db_key = model_cls.__blnt__.database
+        if db_key in context.db:
+            if context.db[db_key].relational:
+                continue
+            database = context.db[db_key]
+        else:
+            raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
+        models[model_name] = model_cls(database)
+    for model_name, model in models.items():
+        for att_name, attribute in model.__props__.get_columns().items():
+            attribute.name = att_name
+        context.add_model(model_name, model)
+
+
+@init_func
 def init_repositories(context: blnt.BolinetteContext):
     for model_name, model in context.models:
         if model.__props__.database.relational:

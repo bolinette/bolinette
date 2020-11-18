@@ -7,6 +7,7 @@ from bolinette.utils import console, paths
 from bolinette import blnt
 from bolinette.commands import commands
 from bolinette.exceptions import InitError
+from bolinette.utils.functions import invoke
 
 
 class Bolinette:
@@ -30,8 +31,10 @@ class Bolinette:
         console.print(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app, port=self.context.env['port'])
 
-    def run_command(self, name, **kwargs):
+    def run_command(self, *args, **kwargs):
         kwargs['blnt'] = self
+        name = args[0]
+        kwargs['args'] = args[1:]
         if name in commands.commands:
             func = commands.commands[name]
             if inspect.isfunction(func):
@@ -39,4 +42,4 @@ class Bolinette:
                     loop = asyncio.get_event_loop()
                     loop.run_until_complete(func(self.context, **kwargs))
                 else:
-                    func(**kwargs)
+                    invoke(func, **kwargs)

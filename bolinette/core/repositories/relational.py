@@ -1,4 +1,4 @@
-from bolinette import blnt, core
+from bolinette import blnt, core, utils
 from bolinette.core.repositories import Repository
 from bolinette.exceptions import APIErrors, ParamConflictError
 
@@ -18,6 +18,16 @@ class RelationalRepository(Repository):
 
     def column(self, name: str):
         return getattr(self.table, name)
+
+    async def get_all(self, pagination=None, order_by=None):
+        if order_by is None:
+            order_by = []
+        query = self.query
+        if len(order_by) > 0:
+            query = await self._build_order_by(query, order_by)
+        if pagination is not None:
+            return self._paginate(query, pagination)
+        return query.all()
 
     async def get(self, identifier):
         return self.query.get(identifier)
@@ -79,3 +89,22 @@ class RelationalRepository(Repository):
             setattr(entity, key, new)
         if api_errors:
             raise api_errors
+
+    async def _build_order_by(self, query, params):
+        order_by_query = []
+        for col_name, way in params:
+            if hasattr(self.table, col_name):
+                column = getattr(self.table, col_name)
+                if way:
+                    order_by_query.append(column)
+                else:
+                    order_by_query.append(core.functions.desc(column))
+        return query.order_by(*order_by_query)
+
+    @staticmethod
+    def _paginate(query, pagination):
+        page = pagination['page']
+        per_page = pagination['per_page']
+        total = query.count()
+        items = query.offset(page * per_page).limit(per_page).all()
+        return utils.Pagination(items, page, per_page, total)

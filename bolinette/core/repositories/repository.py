@@ -7,6 +7,9 @@ class Repository:
         self.model = model
         self.context = context
 
+    async def get_all(self, pagination=None, order_by=None):
+        raise NotImplementedError()
+
     async def get(self, identifier):
         raise NotImplementedError()
 

@@ -10,4 +10,4 @@ if __name__ == '__main__':
         if 'BLNT_PROFILE' not in os.environ:
             os.environ['BLNT_PROFILE'] = 'test'
     from example import bolinette
-    bolinette.run_command(command)
+    bolinette.run_command(*sys.argv[1:])
