@@ -5,10 +5,9 @@ from typing import Dict, Any
 
 import yaml
 
-from bolinette.utils import paths, console
-
-from bolinette import blnt
+from bolinette import console, blnt
 from bolinette.exceptions import InitError
+from bolinette.utils import paths
 
 
 class Settings:

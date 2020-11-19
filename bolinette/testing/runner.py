@@ -5,10 +5,9 @@ from asyncio import AbstractEventLoop
 from datetime import datetime
 from typing import List
 
-from bolinette import blnt
+from bolinette import console, blnt
 from bolinette import bolinette
 from bolinette.testing import TestClient, Bolitest
-from bolinette.utils import console
 
 
 class TestResult:

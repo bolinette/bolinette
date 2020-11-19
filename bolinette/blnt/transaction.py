@@ -1,6 +1,5 @@
 import traceback
 
-from bolinette.utils import logger
 from sqlalchemy.exc import SQLAlchemyError
 
 from bolinette import blnt
@@ -18,7 +17,7 @@ class Transaction:
         if exc_type is not None:
             await self.context.db.rollback_transaction()
             if not issubclass(exc_type, (APIError, APIErrors)):
-                logger.error(str(exc_val))
+                self.context.logger.error(str(exc_val))
                 traceback.print_tb(exc_tb)
                 if self.context.env['debug']:
                     raise InternalError([str(exc_val)] + traceback.format_list(traceback.extract_tb(exc_tb)))

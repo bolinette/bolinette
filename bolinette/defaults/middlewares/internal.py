@@ -1,8 +1,8 @@
 from aiohttp import web as aio_web
 
 from bolinette import web, blnt
+from bolinette.blnt.database import Pagination
 from bolinette.decorators import middleware
-from bolinette.utils import Pagination
 from bolinette.utils.serializing import deserialize, serialize
 
 

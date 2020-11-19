@@ -12,6 +12,7 @@ class BolinetteContext:
         self._ctx = {}
         self.cwd = paths.cwd()
         self.origin = origin
+        self.logger = blnt.Logger()
         if app is not None:
             self.app = app
             self.env = blnt.Environment(self, profile=profile, overrides=overrides)

@@ -2,9 +2,9 @@ import asyncio
 import inspect
 
 from aiohttp import web as aio_web
-from bolinette.utils import console, paths
+from bolinette.utils import paths
 
-from bolinette import blnt
+from bolinette import blnt, console
 from bolinette.commands import commands
 from bolinette.exceptions import InitError
 from bolinette.utils.functions import invoke
@@ -28,8 +28,9 @@ class Bolinette:
             func(app['blnt'])
 
     def run(self):
-        console.print(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
-        aio_web.run_app(self.app, port=self.context.env['port'])
+        self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
+        aio_web.run_app(self.app, port=self.context.env['port'], access_log=self.context.logger)
+        self.context.logger.info(f"Bolinette stopped gracefully")
 
     def run_command(self, *args, **kwargs):
         kwargs['blnt'] = self

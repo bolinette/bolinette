@@ -1,4 +1,5 @@
-from bolinette import blnt, core, utils
+from bolinette import blnt, core
+from bolinette.blnt.database import Pagination
 from bolinette.core.repositories import Repository
 from bolinette.exceptions import APIErrors, ParamConflictError
 
@@ -107,4 +108,4 @@ class RelationalRepository(Repository):
         per_page = pagination['per_page']
         total = query.count()
         items = query.offset(page * per_page).limit(per_page).all()
-        return utils.Pagination(items, page, per_page, total)
+        return Pagination(items, page, per_page, total)
