@@ -3,7 +3,7 @@ from tests import utils
 
 
 def set_author(book: Mocked, author_id: int) -> Mocked:
-    book.fields.author_id = author_id
+    book['author_id'] = author_id
     return book
 
 

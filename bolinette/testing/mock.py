@@ -2,37 +2,59 @@ import datetime
 import random
 import string
 from types import SimpleNamespace
+from typing import Dict, Any
 
 from bolinette import blnt, types
 
 
 class Mocked:
     def __init__(self, name, context: 'blnt.BolinetteContext'):
-        self.name = name
         self.context = context
-        self.fields = SimpleNamespace()
+        self.name = name
+        self.model = self.context.model(self.name)
+        self.database = self.context.db[self.model.__blnt__.database]
+        self._fields = {}
+
+    def __getitem__(self, key):
+        return self._fields[key]
+
+    def __setitem__(self, key, value):
+        self._fields[key] = value
 
     @staticmethod
-    def insert_entity(context: 'blnt.BolinetteContext', name, params):
-        model = context.model(name)
-        database = context.db[model.__blnt__.database]
-        entity = context.table(name)(**params)
-        database.session.add(entity)
-        return entity
+    def insert_entity(context: 'blnt.BolinetteContext', name: str, params: Dict[str, Any]):
+        mocked = Mocked(name, context)
+        for key, value in params.items():
+            mocked[key] = value
+        return mocked.insert()
+
+    @property
+    def _to_object(self):
+        obj = SimpleNamespace()
+        for key, value in self._fields.items():
+            setattr(obj, key, value)
+        return obj
 
     def insert(self):
-        fields = {}
-        for key, value in self.fields.__dict__.items():
-            fields[key] = value
-        return self.insert_entity(self.context, self.name, fields)
+        entity = self.context.table(self.name)(**self._fields)
+        self.database.session.add(entity)
+        return entity
 
     def to_response(self, key='default') -> dict:
         definition = self.context.mapper.response(self.name, key)
-        return self.context.mapper.marshall(definition, self.fields, use_foreign_key=True)
+        return self.context.mapper.marshall(
+            definition,
+            self._to_object if self.database.relational else self._fields,
+            use_foreign_key=True
+        )
 
     def to_payload(self, key='default') -> dict:
         definition = self.context.mapper.payload(self.name, key)
-        return self.context.mapper.marshall(definition, self.fields, use_foreign_key=True)
+        return self.context.mapper.marshall(
+            definition,
+            self._to_object if self.database.relational else self._fields,
+            use_foreign_key=True
+        )
 
 
 class Mock:
@@ -66,19 +88,19 @@ class Mock:
                 continue
             col_type = column.type
             if col_type == types.db.String:
-                setattr(mocked.fields, column.name, self._random_lower(rng, 15))
+                mocked[column.name] = self._random_lower(rng, 15)
             if col_type == types.db.Email:
-                setattr(mocked.fields, column.name, f'{self._random_lower(rng, 10)}@{self._random_lower(rng, 5)}.com')
+                mocked[column.name] = f'{self._random_lower(rng, 10)}@{self._random_lower(rng, 5)}.com'
             if col_type == types.db.Password:
-                setattr(mocked.fields, column.name, (self._random_lower(rng, 10) + str(self._random_int(rng, 1, 100))
-                                                     + self._random_symbols(rng, 1)))
+                mocked[column.name] = (self._random_lower(rng, 10) + str(self._random_int(rng, 1, 100))
+                                       + self._random_symbols(rng, 1))
             if col_type == types.db.Integer:
-                setattr(mocked.fields, column.name, self._random_int(rng, 1, 100))
+                mocked[column.name] = self._random_int(rng, 1, 100)
             if col_type == types.db.Float:
-                setattr(mocked.fields, column.name, self._random_int(rng, 1, 100))
+                mocked[column.name] = self._random_int(rng, 1, 100)
             if col_type == types.db.Date:
-                setattr(mocked.fields, column.name, self._random_date(rng, datetime.datetime(1900, 1, 1),
-                                                                      datetime.datetime(2000, 1, 1)))
+                mocked[column.name] = self._random_date(rng, datetime.datetime(1900, 1, 1),
+                                                        datetime.datetime(2000, 1, 1))
         if post_mock_fn and callable(post_mock_fn):
             post_mock_fn(mocked)
         return mocked

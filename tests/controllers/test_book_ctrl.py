@@ -71,8 +71,8 @@ async def test_create_book(client):
     rv = await client.post('/book', book4.to_payload())
     assert rv['code'] == 201
     assert equal_books(rv['data'], book4.to_response(), author1.to_response())
-    assert rv['data']['created_by']['username'] == user1.fields.username
-    assert rv['data']['updated_by']['username'] == user1.fields.username
+    assert rv['data']['created_by']['username'] == user1['username']
+    assert rv['data']['updated_by']['username'] == user1['username']
 
 
 @bolitest(before=utils.book.set_up)
@@ -108,12 +108,12 @@ async def test_historized_entities(client):
 
     await client.post('/user/login', user1.to_payload('login'))
     await client.post('/book', book4.to_payload())
-    book4.fields.name = 'new name'
+    book4['name'] = 'new name'
     await client.post('/user/login', user2.to_payload('login'))
 
     rv2 = await client.put('/book/4', book4.to_payload())
-    assert rv2['data']['created_by']['username'] == user1.fields.username
-    assert rv2['data']['updated_by']['username'] == user2.fields.username
+    assert rv2['data']['created_by']['username'] == user1['username']
+    assert rv2['data']['updated_by']['username'] == user2['username']
 
 
 @bolitest(before=utils.book.set_up)
@@ -127,7 +127,7 @@ async def test_update_book(client):
     rv = await client.put('/book/1', book1.to_payload())
     assert rv['code'] == 200
     assert equal_books(rv['data'], book1.to_response(), author2.to_response())
-    assert rv['data']['updated_by']['username'] == user2.fields.username
+    assert rv['data']['updated_by']['username'] == user2['username']
 
 
 @bolitest(before=utils.book.set_up)
@@ -163,7 +163,7 @@ async def test_patch_book(client):
     rv = await client.patch('/book/1', {'name': 'new book name'})
     assert rv['code'] == 200
     assert rv['data']['name'] == 'new book name'
-    assert rv['data']['pages'] == book1.fields.pages
+    assert rv['data']['pages'] == book1['pages']
     assert rv['data']['author']['full_name'] == author1.to_response()['full_name']
 
 
