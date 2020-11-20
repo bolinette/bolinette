@@ -73,7 +73,7 @@ class BolinetteContext:
     def tables(self):
         return ((name, self._tables[name]) for name in self._tables)
 
-    def repo(self, name) -> Any:
+    def repo(self, name: str) -> 'core.Repository':
         return self._repos[name]
 
     def add_repo(self, name, repo: 'core.Repository'):

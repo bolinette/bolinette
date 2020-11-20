@@ -7,22 +7,22 @@ def _fix_mocked_user(user: Mocked):
     user['timezone'] = 'Europe/Paris'
 
 
-async def set_up(_, mock: Mock):
-    utils.user.salt_password(mock(1, 'user')).insert()
+async def set_up(mock: Mock):
+    await utils.user.salt_password(mock(1, 'user')).insert()
 
 
 async def admin_set_up(context: blnt.BolinetteContext, mock: Mock):
-    admin = Mocked.insert_entity(context, 'role', {'name': 'admin'})
-    user1 = utils.user.salt_password(mock(1, 'user')).insert()
+    admin = await Mocked.insert_entity(context, 'role', {'name': 'admin'})
+    user1 = await utils.user.salt_password(mock(1, 'user')).insert()
     user1.roles.append(admin)
-    utils.user.salt_password(mock(2, 'user')).insert()
-    mock(1, 'role').insert()
+    await utils.user.salt_password(mock(2, 'user')).insert()
+    await mock(1, 'role').insert()
 
 
 async def root_set_up(context: blnt.BolinetteContext, mock: Mock):
-    root = Mocked.insert_entity(context, 'role', {'name': 'root'})
-    admin = Mocked.insert_entity(context, 'role', {'name': 'admin'})
-    user1 = utils.user.salt_password(mock(1, 'user')).insert()
+    root = await Mocked.insert_entity(context, 'role', {'name': 'root'})
+    admin = await Mocked.insert_entity(context, 'role', {'name': 'admin'})
+    user1 = await utils.user.salt_password(mock(1, 'user')).insert()
     user1.roles.append(root)
     user1.roles.append(admin)
 

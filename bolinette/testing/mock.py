@@ -22,11 +22,11 @@ class Mocked:
         self._fields[key] = value
 
     @staticmethod
-    def insert_entity(context: 'blnt.BolinetteContext', name: str, params: Dict[str, Any]):
+    async def insert_entity(context: 'blnt.BolinetteContext', name: str, params: Dict[str, Any]):
         mocked = Mocked(name, context)
         for key, value in params.items():
             mocked[key] = value
-        return mocked.insert()
+        return await mocked.insert()
 
     @property
     def _to_object(self):
@@ -35,10 +35,8 @@ class Mocked:
             setattr(obj, key, value)
         return obj
 
-    def insert(self):
-        entity = self.context.table(self.name)(**self._fields)
-        self.database.session.add(entity)
-        return entity
+    async def insert(self):
+        return await self.context.repo(self.name).create(self._fields)
 
     def to_response(self, key='default') -> dict:
         definition = self.context.mapper.response(self.name, key)

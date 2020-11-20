@@ -20,7 +20,7 @@ class TestResult:
 
 
 class TestRunner:
-    def __init__(self, context: 'blnt.BolinetteContext', run_only: List[str]):
+    def __init__(self, context: 'blnt.BolinetteContext', run_only: str):
         self.context = context
         self.run_only = run_only
 
@@ -32,15 +32,22 @@ class TestRunner:
         tests = []
         for test in blnt.cache.test_funcs:
             test.set_name(self.context.root_path('tests'))
-            if len(self.run_only) == 0 or test.name in self.run_only:
+            if self._match_test(test):
                 tests.append(test)
         return tests
+
+    def _match_test(self, test: Bolitest):
+        if self.run_only is None:
+            return True
+        if '::' in self.run_only:
+            return self.run_only == test.name
+        return test.name.startswith(self.run_only)
 
     async def _run_tests(self, blnt_app: 'bolinette.Bolinette', loop: AbstractEventLoop, tests: List[Bolitest]):
         tests_start_time = datetime.now()
         test_cnt = len(tests)
         console.print('** Bolinette API Tests **')
-        console.print(f'Running {test_cnt} tests, starting at {tests_start_time}')
+        console.print(f'Running {test_cnt} tests ({self.run_only or "all tests"}), starting at {tests_start_time}')
         console.print('====================\n')
         results = []
         test_index = 0
@@ -56,17 +63,16 @@ class TestRunner:
                 results.append(result)
             test_index += 1
         tests_end_time = datetime.now()
-        console.print()
 
         err_cnt = 0
         for result in results:
             if result.error:
                 err_cnt += 1
-                console.error(f'========== ERROR: {result.name} ==========')
-                console.error(result.traceback)
+                console.error(f'\n========== ERROR: {result.name} ==========')
+                console.error(result.traceback, end='')
 
         await asyncio.sleep(.1)
-        console.print('====================')
+        console.print('\n====================')
         console.print(f'Ran {test_cnt} tests with {err_cnt} errors '
                       f'in {(tests_end_time - tests_start_time).seconds}s')
         if err_cnt > 0:

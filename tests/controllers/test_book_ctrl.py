@@ -3,10 +3,10 @@ from tests import utils
 import example.models
 
 
-async def big_set_up(_, mock: Mock):
-    mock(1, 'person').insert()
+async def big_set_up(mock: Mock):
+    await mock(1, 'person').insert()
     for i in range(100):
-        utils.book.set_author(mock(i, 'book'), 1).insert()
+        await utils.book.set_author(mock(i, 'book'), 1).insert()
 
 
 def equal_books(b1: dict, b2: dict, author: dict = None):
