@@ -1,4 +1,5 @@
 from bolinette import blnt, core
+from bolinette.exceptions import APIErrors, ParamConflictError
 
 
 class Repository:
@@ -33,3 +34,18 @@ class Repository:
 
     async def delete(self, entity):
         raise NotImplementedError()
+
+    async def _validate_model(self, values: dict):
+        api_errors = APIErrors()
+        for column in self.model.__props__.get_columns().values():
+            key = column.name
+            if column.primary_key:
+                continue
+            if key in values:
+                value = values.get(key)
+                if column.unique:
+                    if await self.get_first_by(column.name, value) is not None:
+                        api_errors.append(ParamConflictError(key, value))
+        if api_errors:
+            raise api_errors
+        return values

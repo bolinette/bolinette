@@ -1,6 +1,6 @@
-from datetime import datetime
+from dateutil import parser as date_parser
 
-from bolinette import blnt, types, exceptions, core, mapping
+from bolinette import blnt, types, exceptions, mapping
 from bolinette.exceptions import APIErrors, APIError, EntityNotFoundError
 
 
@@ -40,7 +40,7 @@ class Validator:
             raise exceptions.ParamNonNullableError(name)
         if value is not None and isinstance(field, mapping.Field):
             if field.type == types.db.Date:
-                value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+                value = date_parser.parse(value)
         return value
 
     async def link_foreign_entities(self, model: str, key: str, params):
@@ -49,7 +49,7 @@ class Validator:
         for field in definition.fields:
             if isinstance(field, mapping.Reference):
                 value = params.get(field.foreign_key, None)
-                repo: core.RelationalRepository = self.context.repo(field.reference_model)
+                repo = self.context.repo(field.reference_model)
                 if value is not None and repo is not None:
                     entity = await repo.get_first_by(field.reference_key, value)
                     if entity is None:

@@ -54,3 +54,22 @@ async def test_create_library_and_get(client: TestClient):
     assert rv['data']['key'] == library4['key']
     assert rv['data']['name'] == library4['name']
     assert rv['data']['address'] == library4['address']
+
+
+@bolitest(before=set_up)
+async def test_create_library_bad_request(client: TestClient):
+    rv = await client.post('/library', {})
+    assert rv['code'] == 400
+    assert 'param.required:key' in rv['messages']
+    assert 'param.required:name' in rv['messages']
+
+
+@bolitest(before=set_up)
+async def test_create_library_conflict(client: TestClient):
+    library1 = client.mock(1, 'library')
+    library4 = client.mock(4, 'library')
+    library4['key'] = library1['key']
+
+    rv = await client.post('/library', library4.to_payload())
+    assert rv['code'] == 409
+    assert f'param.conflict:key:{library1["key"]}' in rv['messages']

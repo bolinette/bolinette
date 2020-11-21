@@ -1,3 +1,7 @@
+from datetime import datetime
+
+from dateutil import parser as date_parser
+
 from bolinette.testing import bolitest, Mock, TestClient
 from tests import utils
 import example.models
@@ -107,13 +111,21 @@ async def test_historized_entities(client: TestClient):
     book4 = utils.book.set_author(client.mock(4, 'book'), 1)
 
     await client.post('/user/login', user1.to_payload('login'))
+    t_before_create = datetime.utcnow()
     await client.post('/book', book4.to_payload())
+    t_after_create = datetime.utcnow()
     book4['name'] = 'new name'
     await client.post('/user/login', user2.to_payload('login'))
 
-    rv2 = await client.put('/book/4', book4.to_payload())
-    assert rv2['data']['created_by']['username'] == user1['username']
-    assert rv2['data']['updated_by']['username'] == user2['username']
+    t_before_update = datetime.utcnow()
+    rv = await client.put('/book/4', book4.to_payload())
+    t_after_update = datetime.utcnow()
+    assert rv['data']['created_by']['username'] == user1['username']
+    assert rv['data']['updated_by']['username'] == user2['username']
+    created_on = date_parser.parse(rv['data']['created_on'])
+    updated_on = date_parser.parse(rv['data']['updated_on'])
+    assert t_before_create < created_on < t_after_create
+    assert t_before_update < updated_on < t_after_update
 
 
 @bolitest(before=utils.book.set_up)

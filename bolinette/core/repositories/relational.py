@@ -43,7 +43,7 @@ class RelationalRepository(Repository):
         return self.query.filter(criteria).all()
 
     async def create(self, values):
-        filtered = self._validate_model(values)
+        filtered = await self._validate_model(values)
         entity = self.table(**filtered)
         self.database.session.add(entity)
         return entity
@@ -59,20 +59,6 @@ class RelationalRepository(Repository):
     async def delete(self, entity):
         self.database.session.delete(entity)
         return entity
-
-    def _validate_model(self, values: dict):
-        api_errors = APIErrors()
-        for column in self.model.__props__.get_columns().values():
-            key = column.name
-            if column.primary_key:
-                continue
-            value = values.get(key, None)
-            if column.unique and value is not None:
-                if self.query.filter(self.column(key) == value).first() is not None:
-                    api_errors.append(ParamConflictError(key, value))
-        if api_errors:
-            raise api_errors
-        return values
 
     def _map_model(self, entity, values, patch=False):
         api_errors = APIErrors()
