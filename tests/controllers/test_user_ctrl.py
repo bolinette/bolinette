@@ -1,5 +1,5 @@
 from bolinette import blnt
-from bolinette.testing import bolitest, Mock, Mocked
+from bolinette.testing import bolitest, Mock, Mocked, TestClient
 from tests import utils
 
 
@@ -28,7 +28,7 @@ async def root_set_up(context: blnt.BolinetteContext, mock: Mock):
 
 
 @bolitest(before=set_up)
-async def test_login_failed(client):
+async def test_login_failed(client: TestClient):
     user1 = client.mock(1, 'user')
 
     rv = await client.post('/user/login', {'username': user1['username'],
@@ -43,7 +43,7 @@ async def test_login_failed(client):
 
 
 @bolitest(before=set_up)
-async def test_login(client):
+async def test_login(client: TestClient):
     user1 = client.mock(1, 'user')
 
     rv = await client.post('/user/login', user1.to_payload('login'))
@@ -51,13 +51,13 @@ async def test_login(client):
 
 
 @bolitest(before=set_up)
-async def test_access_user_info_failed(client):
+async def test_access_user_info_failed(client: TestClient):
     rv = await client.get('/user/me')
     assert rv['code'] == 401
 
 
 @bolitest(before=set_up)
-async def test_access_user_info(client):
+async def test_access_user_info(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -70,7 +70,7 @@ async def test_access_user_info(client):
 
 
 @bolitest(before=set_up)
-async def test_logout(client):
+async def test_logout(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -86,7 +86,7 @@ async def test_logout(client):
 
 
 @bolitest(before=set_up)
-async def test_register(client):
+async def test_register(client: TestClient):
     user2 = client.mock(2, 'user', post_mock_fn=_fix_mocked_user)
 
     rv = await client.post('/user/register', user2.to_payload('register'))
@@ -97,7 +97,7 @@ async def test_register(client):
 
 
 @bolitest(before=set_up)
-async def test_logged_in_after_register(client):
+async def test_logged_in_after_register(client: TestClient):
     user2 = client.mock(2, 'user', post_mock_fn=_fix_mocked_user)
 
     rv = await client.post('/user/register', user2.to_payload('register'))
@@ -110,7 +110,7 @@ async def test_logged_in_after_register(client):
 
 
 @bolitest(before=set_up)
-async def test_register_bad_request(client):
+async def test_register_bad_request(client: TestClient):
     rv = await client.post('/user/register', {})
     assert rv['code'] == 400
     assert 'param.required:username' in rv['messages']
@@ -119,7 +119,7 @@ async def test_register_bad_request(client):
 
 
 @bolitest(before=set_up)
-async def test_register_conflict(client):
+async def test_register_conflict(client: TestClient):
     user1 = client.mock(1, 'user', post_mock_fn=_fix_mocked_user)
 
     rv = await client.post('/user/register', user1.to_payload('register'))
@@ -129,7 +129,7 @@ async def test_register_conflict(client):
 
 
 @bolitest(before=set_up)
-async def test_change_username(client):
+async def test_change_username(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -141,7 +141,7 @@ async def test_change_username(client):
 
 
 @bolitest(before=set_up)
-async def test_change_password(client):
+async def test_change_password(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -154,7 +154,7 @@ async def test_change_password(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_get_users(client):
+async def test_get_users(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -165,7 +165,7 @@ async def test_get_users(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_get_users_forbidden(client):
+async def test_get_users_forbidden(client: TestClient):
     user1 = client.mock(2, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -176,7 +176,7 @@ async def test_get_users_forbidden(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_add_self_role(client):
+async def test_add_self_role(client: TestClient):
     user1 = client.mock(1, 'user')
     role1 = client.mock(1, 'role')
 
@@ -188,7 +188,7 @@ async def test_add_self_role(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_add_role_not_admin(client):
+async def test_add_role_not_admin(client: TestClient):
     user2 = client.mock(2, 'user')
     role1 = client.mock(1, 'role')
 
@@ -200,7 +200,7 @@ async def test_add_role_not_admin(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_remove_role(client):
+async def test_remove_role(client: TestClient):
     user1 = client.mock(1, 'user')
     role1 = client.mock(1, 'role')
 
@@ -213,7 +213,7 @@ async def test_remove_role(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_remove_role_not_found(client):
+async def test_remove_role_not_found(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -224,7 +224,7 @@ async def test_remove_role_not_found(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_remove_role_not_in_user_roles(client):
+async def test_remove_role_not_in_user_roles(client: TestClient):
     user1 = client.mock(1, 'user')
     role1 = client.mock(1, 'role')
 
@@ -236,7 +236,7 @@ async def test_remove_role_not_in_user_roles(client):
 
 
 @bolitest(before=admin_set_up)
-async def test_no_self_demotion(client):
+async def test_no_self_demotion(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -247,7 +247,7 @@ async def test_no_self_demotion(client):
 
 
 @bolitest(before=root_set_up)
-async def test_root_self_demotion(client):
+async def test_root_self_demotion(client: TestClient):
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))

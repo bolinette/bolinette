@@ -34,7 +34,8 @@ class CollectionRepository(Repository):
         raise InternalError('internal.feature.not_supported')
 
     async def create(self, values):
-        return self.collection.insert_one(values)
+        result = self.collection.insert_one(values)
+        return await self.get(result.inserted_id)
 
     async def update(self, entity, values):
         raise InternalError('internal.feature.not_supported')

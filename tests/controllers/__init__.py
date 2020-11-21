@@ -1,3 +1,4 @@
 import tests.controllers.test_user_ctrl
 import tests.controllers.test_book_ctrl
 import tests.controllers.test_person_ctrl
+import tests.controllers.test_library_ctrl

@@ -8,6 +8,14 @@ on:
 
 jobs:
   build:
+    services:
+      mongo:
+        image: mongo:4.4
+        env:
+          MONGO_INITDB_ROOT_USERNAME: mongo
+          MONGO_INITDB_ROOT_PASSWORD: mongo
+        ports:
+          - 27017:27017
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,7 +31,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install wheel
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Test with pytest
+    - name: Run Bolinette tests
       run: |
         python server.py run_tests
       env:
