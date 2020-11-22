@@ -2,6 +2,7 @@ from typing import Dict
 
 from bolinette import core, blnt, mapping
 from bolinette.exceptions import InternalError
+from bolinette.utils.functions import getattr_, hasattr_
 
 
 class Mapper:
@@ -52,40 +53,30 @@ class Mapper:
             return [self.marshall(definition, e, skip_none=skip_none, as_list=False, use_foreign_key=use_foreign_key)
                     for e in entity]
 
-        def _getattr(_entity, _key, _default):
-            if isinstance(_entity, dict):
-                return _entity.get(_key, _default)
-            return getattr(_entity, _key, _default)
-
-        def _hasattr(_entity, _key):
-            if isinstance(_entity, dict):
-                return _key in _entity
-            return hasattr(_entity, _key)
-
         values = {}
         for field in definition.fields:
             if isinstance(field, mapping.Field):
                 if field.function is not None:
                     value = field.function(entity)
                 else:
-                    value = _getattr(entity, field.key, None)
+                    value = getattr_(entity, field.key, None)
                 if field.formatting is not None:
                     value = field.formatting(value)
                 if not skip_none or value is not None:
                     values[field.name] = value
             elif isinstance(field, mapping.Reference) and use_foreign_key:
-                values[field.foreign_key] = _getattr(entity, field.foreign_key, None)
+                values[field.foreign_key] = getattr_(entity, field.foreign_key, None)
             elif isinstance(field, mapping.Definition):
                 d = self.response(field.model_name, field.model_key)
                 attr = None
                 if field.function and callable(field.function):
                     attr = field.function(entity)
-                elif _hasattr(entity, field.name):
-                    attr = _getattr(entity, field.name, None)
+                elif hasattr_(entity, field.name):
+                    attr = getattr_(entity, field.name, None)
                 values[field.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
                                                    use_foreign_key=use_foreign_key)
             elif isinstance(field, mapping.List):
                 d = self.response(field.element.model_name, field.element.model_key)
-                values[field.name] = self.marshall(d, _getattr(entity, field.name, None), skip_none=skip_none,
+                values[field.name] = self.marshall(d, getattr_(entity, field.name, None), skip_none=skip_none,
                                                    as_list=True, use_foreign_key=use_foreign_key)
         return values

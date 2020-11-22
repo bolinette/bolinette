@@ -32,3 +32,22 @@ def invoke(function: Callable[[Any], Any], *args, **kwargs):
     if inspect.isfunction(function):
         return function(**_parse_params(function, *args, **kwargs))
     raise InternalError(f'internal.not_function:{function.__name__}')
+
+
+def getattr_(entity, key, default):
+    if isinstance(entity, dict):
+        return entity.get(key, default)
+    return getattr(entity, key, default)
+
+
+def hasattr_(entity, key):
+    if isinstance(entity, dict):
+        return key in entity
+    return hasattr(entity, key)
+
+
+def setattr_(entity, key, value):
+    if isinstance(entity, dict):
+        entity[key] = value
+    else:
+        setattr(entity, key, value)

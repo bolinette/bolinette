@@ -1,5 +1,6 @@
 from bolinette import blnt, core
 from bolinette.exceptions import APIErrors, ParamConflictError
+from bolinette.utils.functions import getattr_, setattr_
 
 
 class Repository:
@@ -49,3 +50,20 @@ class Repository:
         if api_errors:
             raise api_errors
         return values
+
+    async def _map_model(self, entity, values, patch=False):
+        api_errors = APIErrors()
+        for _, column in self.model.__props__.get_columns().items():
+            key = column.name
+            if column.primary_key or (key not in values and patch):
+                continue
+            original = getattr_(entity, key, None)
+            new = values.get(key, None)
+            if original == new:
+                continue
+            if column.unique and new is not None:
+                if await self.get_first_by(column.name, new) is not None:
+                    api_errors.append(ParamConflictError(key, new))
+            setattr_(entity, key, new)
+        if api_errors:
+            raise api_errors

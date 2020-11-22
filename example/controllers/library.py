@@ -8,5 +8,8 @@ class LibraryController(web.Controller):
         return [
             self.defaults.create(),
             self.defaults.get_all(),
-            self.defaults.get_one(key='key')
+            self.defaults.get_one(key='key'),
+            self.defaults.update(key='key'),
+            self.defaults.patch(key='key'),
+            self.defaults.delete(key='key')
         ]

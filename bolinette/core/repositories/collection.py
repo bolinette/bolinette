@@ -39,10 +39,27 @@ class CollectionRepository(Repository):
         return await self.get(result.inserted_id)
 
     async def update(self, entity, values):
-        raise InternalError('internal.feature.not_supported')
+        _id = entity['_id']
+        del entity['_id']
+        await self._map_model(entity, values)
+        self.collection.update_one(
+            {'_id': _id},
+            {'$set': entity},
+            upsert=False
+        )
+        return await self.get(_id)
 
     async def patch(self, entity, values):
-        raise InternalError('internal.feature.not_supported')
+        _id = entity['_id']
+        del entity['_id']
+        await self._map_model(entity, values, patch=True)
+        self.collection.update_one(
+            {'_id': _id},
+            {'$set': entity},
+            upsert=False
+        )
+        return await self.get(_id)
 
     async def delete(self, entity):
-        raise InternalError('internal.feature.not_supported')
+        self.collection.delete_one({'_id': entity['_id']})
+        return entity

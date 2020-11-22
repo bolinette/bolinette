@@ -1,7 +1,6 @@
 from bolinette import blnt, core
 from bolinette.blnt.database import Pagination
 from bolinette.core.repositories import Repository
-from bolinette.exceptions import APIErrors, ParamConflictError
 
 
 class RelationalRepository(Repository):
@@ -16,9 +15,6 @@ class RelationalRepository(Repository):
     @property
     def query(self):
         return self.database.session.query(self.table)
-
-    def column(self, name: str):
-        return getattr(self.table, name)
 
     async def get_all(self, pagination=None, order_by=None):
         if order_by is None:
@@ -49,33 +45,16 @@ class RelationalRepository(Repository):
         return entity
 
     async def update(self, entity, values):
-        self._map_model(entity, values)
+        await self._map_model(entity, values)
         return entity
 
     async def patch(self, entity, values):
-        self._map_model(entity, values, patch=True)
+        await self._map_model(entity, values, patch=True)
         return entity
 
     async def delete(self, entity):
         self.database.session.delete(entity)
         return entity
-
-    def _map_model(self, entity, values, patch=False):
-        api_errors = APIErrors()
-        for _, column in self.model.__props__.get_columns().items():
-            key = column.name
-            if column.primary_key or (key not in values and patch):
-                continue
-            original = getattr(entity, key)
-            new = values.get(key, None)
-            if original == new:
-                continue
-            if column.unique and new is not None:
-                if self.query.filter(self.column(key) == new).first() is not None:
-                    api_errors.append(ParamConflictError(key, new))
-            setattr(entity, key, new)
-        if api_errors:
-            raise api_errors
 
     async def _build_order_by(self, query, params):
         order_by_query = []

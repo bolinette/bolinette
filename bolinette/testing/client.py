@@ -43,7 +43,8 @@ class TestClient:
         res = await self.client.post(f'/api{path}', data=serialize(data, 'application/json')[0],
                                      headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
-        return json.loads(await res.text())
+        text = await res.text()
+        return json.loads(text)
 
     async def put(self, path: str, data: dict = None) -> dict:
         if data is None:
@@ -51,7 +52,8 @@ class TestClient:
         res = await self.client.put(f'/api{path}', data=serialize(data, 'application/json')[0],
                                     headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
-        return json.loads(await res.text())
+        text = await res.text()
+        return json.loads(text)
 
     async def patch(self, path: str, data: dict = None) -> dict:
         if data is None:
@@ -59,12 +61,15 @@ class TestClient:
         res = await self.client.patch(f'/api{path}', data=serialize(data, 'application/json')[0],
                                       headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
-        return json.loads(await res.text())
+        text = await res.text()
+        return json.loads(text)
 
     async def get(self, path: str) -> dict:
         res = await self.client.get(f'/api{path}')
-        return json.loads(await res.text())
+        text = await res.text()
+        return json.loads(text)
 
     async def delete(self, path: str) -> dict:
         res = await self.client.delete(f'/api{path}')
-        return json.loads(await res.text())
+        text = await res.text()
+        return json.loads(text)
