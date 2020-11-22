@@ -112,7 +112,7 @@ async def test_logged_in_after_register(client: TestClient):
 @bolitest(before=set_up)
 async def test_register_bad_request(client: TestClient):
     rv = await client.post('/user/register', {})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.required:username' in rv['messages']
     assert 'param.required:password' in rv['messages']
     assert 'param.required:email' in rv['messages']
@@ -231,7 +231,7 @@ async def test_remove_role_not_in_user_roles(client: TestClient):
     await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.delete(f'/user/{user1["username"]}/roles/{role1["name"]}')
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert f'user.roles.not_found:{user1["username"]}:{role1["name"]}' in rv['messages']
 
 

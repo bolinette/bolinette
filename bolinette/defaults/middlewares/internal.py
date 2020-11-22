@@ -3,13 +3,17 @@ from aiohttp import web as aio_web
 from bolinette import web, blnt
 from bolinette.blnt.database import Pagination
 from bolinette.decorators import middleware
+from bolinette.exceptions import BadRequestError
 from bolinette.utils.serializing import deserialize, serialize
 
 
 @middleware('blnt_payload', priority=0, pre_validation=False)
 class PayloadMiddleware(web.Middleware):
     async def handle(self, request, params, next_func):
-        payload = await deserialize(request)
+        try:
+            payload = await deserialize(request)
+        except Exception:
+            raise BadRequestError('global.unserializable_payload')
         if 'model' in self.options:
             payload = self.context.validator.validate_payload(self.options['model'], self.options['key'],
                                                               payload, self.options.get('patch'))

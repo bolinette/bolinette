@@ -28,6 +28,7 @@ class Response:
         self._exceptions = {
             exceptions.UnauthorizedError: self.unauthorized,
             exceptions.BadRequestError: self.bad_request,
+            exceptions.UnprocessableEntityError: self.unprocessable_entity,
             exceptions.ConflictError: self.conflict,
             exceptions.NotFoundError: self.not_found,
             exceptions.ForbiddenError: self.forbidden,
@@ -72,6 +73,9 @@ class Response:
 
     def conflict(self, messages=None, data=None):
         return self.build_message(409, 'CONFLICT', messages, data)
+
+    def unprocessable_entity(self, messages=None, data=None):
+        return self.build_message(422, 'UNPROCESSABLE ENTITY', messages, data)
 
     def internal_server_error(self, messages=None, data=None):
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)

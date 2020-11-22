@@ -44,6 +44,11 @@ class BadRequestError(APIError):
         super().__init__(message, name=name)
 
 
+class UnprocessableEntityError(APIError):
+    def __init__(self, message, *, name='UnprocessableEntityError'):
+        super().__init__(message, name=name)
+
+
 class ForbiddenError(APIError):
     def __init__(self, message, *, name='ForbiddenError'):
         super().__init__(message, name=name)
@@ -59,12 +64,12 @@ class EntityNotFoundError(NotFoundError):
         super().__init__(f'entity.not_found:{model}:{key}:{value}', name='EntityNotFoundError')
 
 
-class ParamMissingError(BadRequestError):
+class ParamMissingError(UnprocessableEntityError):
     def __init__(self, key):
         super().__init__(f'param.required:{key}', name='ParamMissingError')
 
 
-class ParamNonNullableError(BadRequestError):
+class ParamNonNullableError(UnprocessableEntityError):
     def __init__(self, key):
         super().__init__(f'param.non_nullable:{key}', name='ParamMissingError')
 

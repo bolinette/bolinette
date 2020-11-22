@@ -5,7 +5,7 @@ from datetime import datetime
 from bolinette import blnt, web
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
-from bolinette.exceptions import BadRequestError, EntityNotFoundError
+from bolinette.exceptions import UnprocessableEntityError, EntityNotFoundError
 
 
 @controller('user', '/user')
@@ -75,7 +75,7 @@ class UserController(web.Controller):
     @post('/register', expects=web.Expects('user', 'register'), returns=web.Returns('user', 'private'))
     async def register(self, payload):
         if blnt.init.get('ADMIN_REGISTER_ONLY', True):
-            raise BadRequestError('global.register.admin_only')
+            raise UnprocessableEntityError('global.register.admin_only')
         user = await self.user_service.create(payload)
         resp = self.response.created('user.registered', user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)

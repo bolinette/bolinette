@@ -1,7 +1,7 @@
 from bolinette import core, bcrypt
 from bolinette.decorators import service
 from bolinette.defaults.services import FileService
-from bolinette.exceptions import ForbiddenError, BadRequestError
+from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
 
 
 @service('user')
@@ -43,7 +43,7 @@ class UserService(core.Service):
         if role.name == 'root':
             raise ForbiddenError('role.root.forbidden')
         if role in user.roles:
-            raise BadRequestError(f'user.roles.exists:{user.username}:{role.name}')
+            raise UnprocessableEntityError(f'user.roles.exists:{user.username}:{role.name}')
         user.roles.append(role)
 
     async def remove_role(self, current_user, user, role):
@@ -54,7 +54,7 @@ class UserService(core.Service):
                 and not await self.has_role(current_user, 'root')):
             raise ForbiddenError('role.admin.no_self_demotion')
         if role not in user.roles:
-            raise BadRequestError(f'user.roles.not_found:{user.username}:{role.name}')
+            raise UnprocessableEntityError(f'user.roles.not_found:{user.username}:{role.name}')
         user.roles.remove(role)
 
     async def save_profile_picture(self, user, request_file):

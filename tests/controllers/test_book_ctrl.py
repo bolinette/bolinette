@@ -86,7 +86,7 @@ async def test_create_book_bad_request(client: TestClient):
     await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.post('/book', {})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.required:name' in rv['messages']
     assert 'param.required:pages' in rv['messages']
     assert 'param.required:author_id' in rv['messages']
@@ -149,7 +149,7 @@ async def test_update_book_bad_request(client: TestClient):
     await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.put('/book/1', {'name': 'new book name'})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.required:pages' in rv['messages']
     assert 'param.required:author_id' in rv['messages']
 
@@ -186,7 +186,7 @@ async def test_patch_book_bad_request(client: TestClient):
     await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.patch('/book/1', {'name': ''})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.non_nullable:name' in rv['messages']
 
 

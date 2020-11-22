@@ -63,7 +63,7 @@ async def test_create_library_and_get(client: TestClient):
 @bolitest(before=set_up)
 async def test_create_library_bad_request(client: TestClient):
     rv = await client.post('/library', {})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.required:key' in rv['messages']
     assert 'param.required:name' in rv['messages']
 
@@ -112,7 +112,7 @@ async def test_update_library_bad_request(client: TestClient):
     library1 = client.mock(1, 'library')
 
     rv = await client.put(f'/library/{library1["key"]}', {})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.required:key' in rv['messages']
     assert 'param.required:name' in rv['messages']
 
@@ -142,7 +142,7 @@ async def test_patch_library_bad_request(client: TestClient):
     library1 = client.mock(1, 'library')
 
     rv = await client.patch(f'/library/{library1["key"]}', {'name': None})
-    assert rv['code'] == 400
+    assert rv['code'] == 422
     assert 'param.non_nullable:name' in rv['messages']
 
 
