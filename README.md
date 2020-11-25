@@ -30,17 +30,3 @@ pip install pip --upgrade && pip install bolinette
 ## Use the Bolinette CLI
 
 *The CLI is work in progress.*
-
-## Internal API
-
-- [Cache](./docs/cache.md)
-- [Exceptions](./docs/exceptions.md)
-- [Environment](./docs/environment.md)
-  - [Profile](./docs/environment.md#profile)
-  - [Init variables](./docs/environment.md#init-variables)
-  - [Environment variables](./docs/environment.md#environment-variables)
-- [Init function](./docs/init.md)
-- [Context](./docs/context.md)
-  - [app](./docs/context.md#aiohttp-application)
-  - [env](./docs/context.md#environment)
-- [Models](./docs/models.md)

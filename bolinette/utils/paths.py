@@ -35,5 +35,9 @@ def split(path):
     return os.path.split(path)
 
 
-def delete(path):
-    os.unlink(path)
+def rm(path):
+    os.remove(path)
+
+
+def rm_r(path):
+    os.rmdir(path)
