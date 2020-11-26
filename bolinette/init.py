@@ -37,19 +37,18 @@ def init_relational_models(context: blnt.BolinetteContext):
     for model_name, model in models.items():
         orm_defs = {}
         for att_name, attribute in model.__props__.get_relationships().items():
+            kwargs = {}
             attribute.name = att_name
-            backref = None
             if attribute.backref:
-                backref = sqlalchemy_orm.backref(attribute.backref.key, lazy=attribute.backref.lazy)
-            foreign_key = None
+                kwargs['backref'] = sqlalchemy_orm.backref(attribute.backref.key, lazy=attribute.backref.lazy)
             if attribute.foreign_key:
-                foreign_key = orm_cols[model_name][attribute.foreign_key.name]
-            secondary = None
+                if attribute.model_name == model_name:
+                    kwargs['remote_side'] = orm_cols[model_name][attribute.foreign_key.name]
+                else:
+                    kwargs['foreign_keys'] = orm_cols[model_name][attribute.foreign_key.name]
             if attribute.secondary:
-                secondary = orm_tables[attribute.secondary]
-            orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.model_name, secondary=secondary,
-                                                             lazy=attribute.lazy, foreign_keys=foreign_key,
-                                                             backref=backref)
+                kwargs['secondary'] = orm_tables[attribute.secondary]
+            orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.model_name,  lazy=attribute.lazy, **kwargs)
 
         orm_defs['__table__'] = orm_tables[model_name]
         orm_model = type(model_name, (model.__props__.database.base,), orm_defs)
