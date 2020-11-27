@@ -21,6 +21,9 @@ class Mocked:
     def __setitem__(self, key, value):
         self._fields[key] = value
 
+    def __contains__(self, key):
+        return key in self._fields
+
     @staticmethod
     async def insert_entity(context: 'blnt.BolinetteContext', name: str, params: Dict[str, Any]):
         mocked = Mocked(name, context)
@@ -57,6 +60,7 @@ class Mocked:
 
 class Mock:
     def __init__(self, context: 'blnt.BolinetteContext'):
+        self._id = None
         self.context = context
 
     def _random_lower(self, rng, length):
@@ -78,6 +82,7 @@ class Mock:
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
+        self._id = m_id
         columns = self.context.model(model_name).__props__.get_columns()
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)

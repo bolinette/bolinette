@@ -42,10 +42,9 @@ def init_relational_models(context: blnt.BolinetteContext):
             if attribute.backref:
                 kwargs['backref'] = sqlalchemy_orm.backref(attribute.backref.key, lazy=attribute.backref.lazy)
             if attribute.foreign_key:
-                if attribute.model_name == model_name:
-                    kwargs['remote_side'] = orm_cols[model_name][attribute.foreign_key.name]
-                else:
-                    kwargs['foreign_keys'] = orm_cols[model_name][attribute.foreign_key.name]
+                kwargs['foreign_keys'] = orm_cols[model_name][attribute.foreign_key.name]
+            if attribute.remote_side:
+                kwargs['remote_side'] = orm_cols[model_name][attribute.remote_side.name]
             if attribute.secondary:
                 kwargs['secondary'] = orm_tables[attribute.secondary]
             orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.model_name,  lazy=attribute.lazy, **kwargs)
