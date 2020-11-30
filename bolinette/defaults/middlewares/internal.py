@@ -1,4 +1,8 @@
+from typing import Dict, Any, Callable, Awaitable
+
 from aiohttp import web as aio_web
+from aiohttp.web_request import Request
+from aiohttp.web_response import Response
 
 from bolinette import web, blnt
 from bolinette.blnt.database import Pagination
@@ -7,13 +11,13 @@ from bolinette.exceptions import BadRequestError
 from bolinette.utils.serializing import deserialize, serialize
 
 
-@middleware('blnt_payload', priority=0, pre_validation=False)
-class PayloadMiddleware(web.Middleware):
+@middleware('blnt_payload', priority=6, auto_load=False, loadable=False)
+class PayloadMiddleware(web.InternalMiddleware):
     async def handle(self, request, params, next_func):
         try:
             payload = await deserialize(request)
         except Exception:
-            raise BadRequestError('global.unserializable_payload')
+            raise BadRequestError('global.payload.unserializable')
         if 'model' in self.options:
             payload = self.context.validator.validate_payload(self.options['model'], self.options['key'],
                                                               payload, self.options.get('patch'))
@@ -22,8 +26,18 @@ class PayloadMiddleware(web.Middleware):
         return await next_func(request, params)
 
 
-@middleware('blnt_response', priority=10, pre_validation=True)
-class ResponseMiddleware(web.Middleware):
+@middleware('blnt_headers', priority=0, auto_load=True, loadable=False)
+class HeadersMiddleware(web.InternalMiddleware):
+    async def handle(self, request: Request, params: Dict[str, Any],
+                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+        params['headers'] = {}
+        for key in request.headers:
+            params['headers'][key] = request.headers[key]
+        return await next_func(request, params)
+
+
+@middleware('blnt_response', priority=4, auto_load=False, loadable=False)
+class ResponseMiddleware(web.InternalMiddleware):
     async def handle(self, request, params, next_func):
         async with blnt.Transaction(self.context):
             resp = await next_func(request, params)
@@ -34,7 +48,7 @@ class ResponseMiddleware(web.Middleware):
         if isinstance(resp, str):
             return aio_web.Response(text=resp, status=200, content_type='text/plain')
         if not isinstance(resp, web.APIResponse):
-            return aio_web.Response(text='global.unserializable_response', status=500, content_type='text/plain')
+            return aio_web.Response(text='global.response.unserializable', status=500, content_type='text/plain')
 
         content = resp.content
 

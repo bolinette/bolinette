@@ -101,7 +101,7 @@ def init_services(context: blnt.BolinetteContext):
 @init_func
 def init_controllers(context: blnt.BolinetteContext):
     def _init_sys_middleware(_route: 'web.ControllerRoute'):
-        sys_mdw = []
+        sys_mdw = [m.__blnt__.name for m in blnt.cache.middlewares.values() if m.__blnt__.auto_load]
         if _route.expects is not None:
             model = _route.expects.model
             key = _route.expects.key if _route.expects.key is not None else 'default'

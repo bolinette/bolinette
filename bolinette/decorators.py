@@ -119,9 +119,9 @@ def delete(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' =
     return route(path, method=web.HttpMethod.DELETE, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def middleware(name: str, *, priority: int = 10, pre_validation: bool = False):
+def middleware(name: str, *, priority: int = 10, auto_load: bool = False, loadable: bool = True):
     def decorator(middleware_cls: Type['web.Middleware']):
-        middleware_cls.__blnt__ = web.MiddlewareMetadata(name, min(max(priority, 0), 10), pre_validation)
+        middleware_cls.__blnt__ = web.MiddlewareMetadata(name, priority, auto_load, loadable)
         blnt.cache.middlewares[name] = middleware_cls
         return middleware_cls
     return decorator

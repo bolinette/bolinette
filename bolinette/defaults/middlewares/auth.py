@@ -3,8 +3,8 @@ from bolinette.decorators import middleware
 from bolinette.exceptions import ForbiddenError, UnauthorizedError
 
 
-@middleware('auth', priority=0, pre_validation=True)
-class AuthMiddleware(web.Middleware):
+@middleware('auth', priority=2)
+class AuthMiddleware(web.InternalMiddleware):
     async def handle(self, request, params, next_func):
         identity = self.context.jwt.verify(request, optional=self.options.get('optional', False),
                                            fresh=self.options.get('fresh', False))

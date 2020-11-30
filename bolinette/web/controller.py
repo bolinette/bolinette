@@ -67,12 +67,16 @@ class ControllerRoute:
         self.middlewares: List['web.Middleware'] = []
 
     def init_middlewares(self, context: 'blnt.BolinetteContext', from_controller: List[str], system: List[str]):
-        for mdw in system + from_controller + self._mdw_defs:
+        for mdw in system:
+            self._parse_middleware_options(mdw, context, True)
+        for mdw in from_controller:
+            self._parse_middleware_options(mdw, context)
+        for mdw in self._mdw_defs:
             self._parse_middleware_options(mdw, context)
         self.middlewares = sorted(sorted(self.middlewares, key=lambda m: m.__blnt__.priority),
-                                  key=lambda m: m.__blnt__.pre_validation, reverse=True)
+                                  key=lambda m: m.system_priority)
 
-    def _parse_middleware_options(self, mdw: str, context):
+    def _parse_middleware_options(self, mdw: str, context, system: bool = False):
         name, *args = mdw.split('|')
         if name.startswith('!'):
             self.middlewares = list(filter(lambda m: m.__blnt__.name != name[1:], self.middlewares))
@@ -83,11 +87,16 @@ class ControllerRoute:
             middleware.options = {}
         else:
             middleware = blnt.cache.middlewares[name](context)
+
+        if not middleware.__blnt__.loadable and not system:
+            raise InitError(f'[{self.controller.__class__.__name__}] Middleware '
+                            f'"{mdw}" cannot be loaded in a controller')
+
         for arg in args:
             arg_n, *arg_v = arg.split('=', maxsplit=1)
             arg_n, *filters = arg_n.split(':')
             if len(filters) > 1:
-                raise InitError(f'[{self.controller.__class__.__name__}] middleware '
+                raise InitError(f'[{self.controller.__class__.__name__}] Middleware '
                                 f'"{name}|{arg_n}" has too many filters')
             if len(arg_v) == 0:
                 value = True
