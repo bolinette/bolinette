@@ -2,12 +2,14 @@ name: Run tests
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
-  build:
+  tests:
     services:
       mongo:
         image: mongo:4.4

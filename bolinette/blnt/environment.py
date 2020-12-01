@@ -23,6 +23,9 @@ class Settings:
     def __setitem__(self, key: str, value):
         self._settings[key.lower()] = value
 
+    def __repr__(self):
+        return repr(self._settings)
+
     def get(self, key: str, default=None):
         item = self[key]
         return item if item is not None else default

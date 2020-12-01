@@ -1,3 +1,5 @@
+import os
+
 from bolinette.utils import files, paths
 from setuptools import setup, find_packages
 
@@ -15,7 +17,7 @@ setup(
     name='Bolinette',
     packages=project_packages('bolinette'),
     include_package_data=True,
-    version=files.read_version(context.root_path()),
+    version=os.environ['BLNT_RELEASE_VERSION'],
     license='MIT',
     description='Bolinette, a web framework built on top of Flask',
     long_description=files.read_file(context.root_path('README.md')),
