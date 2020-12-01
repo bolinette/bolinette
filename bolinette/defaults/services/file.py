@@ -23,7 +23,7 @@ class FileService(core.Service):
             f.write(content)
 
     async def delete_file(self, key):
-        paths.delete(self.context.instance_path('uploads', key))
+        paths.rm(self.context.instance_path('uploads', key))
 
     async def delete(self, entity):
         ent = await super().delete(entity)

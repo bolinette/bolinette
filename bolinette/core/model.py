@@ -1,6 +1,7 @@
 from typing import Dict, List, Union, Tuple
 
-from bolinette import types, blnt
+from bolinette import types
+from bolinette.blnt.database.engines import DatabaseEngine
 
 MappingPyTyping = List[Union['types.mapping.Column', 'types.mapping.Field',
                              'types.mapping.List', 'types.mapping.Definition']]
@@ -10,7 +11,7 @@ MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 class Model:
     __blnt__: 'ModelMetadata' = None
 
-    def __init__(self, database: 'blnt.database.DatabaseEngine'):
+    def __init__(self, database: 'DatabaseEngine'):
         self.__props__ = ModelProps(self, database)
 
     @classmethod
@@ -32,7 +33,7 @@ class ModelMetadata:
 
 
 class ModelProps:
-    def __init__(self, model, database: 'blnt.database.DatabaseEngine'):
+    def __init__(self, model, database: 'DatabaseEngine'):
         self.model = model
         self.database = database
 

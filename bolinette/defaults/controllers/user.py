@@ -45,7 +45,7 @@ class UserController(web.Controller):
         return self.response.ok('OK', current_user)
 
     @post('/login', expects=web.Expects('user', 'login'), returns=web.Returns('user', 'private'))
-    async def login(self, payload, headers):
+    async def login(self, payload):
         username = payload['username']
         password = payload['password']
         try:

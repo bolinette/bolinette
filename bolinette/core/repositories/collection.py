@@ -1,6 +1,7 @@
 from bson import ObjectId
 
 from bolinette import blnt, core
+from bolinette.blnt.database.engines import CollectionDatabase
 from bolinette.core.repositories import Repository
 from bolinette.exceptions import InternalError
 
@@ -8,7 +9,7 @@ from bolinette.exceptions import InternalError
 class CollectionRepository(Repository):
     def __init__(self, name: str, model: 'core.Model', context: 'blnt.BolinetteContext'):
         super().__init__(name, model, context)
-        self.database: 'blnt.database.CollectionDatabase' = context.db[model.__blnt__.database]
+        self.database: 'CollectionDatabase' = context.db[model.__blnt__.database]
 
     @property
     def collection(self):

@@ -1,6 +1,8 @@
 from typing import Dict, Any, Optional
 
 from aiohttp import web as aio_web
+
+from bolinette.blnt.database import DatabaseManager
 from bolinette.utils import paths
 
 from bolinette import blnt, core, web, mapping
@@ -16,7 +18,7 @@ class BolinetteContext:
         if app is not None:
             self.app = app
             self.env = blnt.Environment(self, profile=profile, overrides=overrides)
-            self.db = blnt.database.DatabaseManager(self)
+            self.db = DatabaseManager(self)
             self.jwt = blnt.JWT(self)
             self.resources = web.BolinetteResources(self)
             self.sockets = web.BolinetteSockets(self)
@@ -73,7 +75,7 @@ class BolinetteContext:
     def tables(self):
         return ((name, self._tables[name]) for name in self._tables)
 
-    def repo(self, name: str) -> 'core.Repository':
+    def repo(self, name: str) -> Any:
         return self._repos[name]
 
     def add_repo(self, name, repo: 'core.Repository'):

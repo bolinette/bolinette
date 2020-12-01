@@ -1,7 +1,7 @@
 from typing import Dict
 
 from bolinette import blnt
-from bolinette.blnt.database import RelationalDatabase, CollectionDatabase, DatabaseEngine
+from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase, DatabaseEngine
 from bolinette.exceptions import InternalError, InitError
 
 

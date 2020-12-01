@@ -1,12 +1,13 @@
 from bolinette import blnt, core
 from bolinette.blnt.database import Pagination
+from bolinette.blnt.database.engines import RelationalDatabase
 from bolinette.core.repositories import Repository
 
 
 class RelationalRepository(Repository):
     def __init__(self, name: str, model: 'core.Model', context: 'blnt.BolinetteContext'):
         super().__init__(name, model, context)
-        self.database: 'blnt.database.RelationalDatabase' = context.db[model.__blnt__.database]
+        self.database: RelationalDatabase = context.db[model.__blnt__.database]
         self.table = context.table(name)
 
     def __repr__(self):

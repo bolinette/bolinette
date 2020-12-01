@@ -1,4 +1,3 @@
-from bolinette.blnt import database
 from bolinette.blnt.logging import Logger
 from bolinette.blnt.cache import cache
 from bolinette.blnt.environment import init, Environment

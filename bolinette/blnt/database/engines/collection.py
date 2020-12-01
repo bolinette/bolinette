@@ -2,9 +2,9 @@ import re
 
 from pymongo import MongoClient
 
-from bolinette.blnt.database import DatabaseEngine
+from bolinette.blnt.database.engines import DatabaseEngine
 
-_COLLECTION_REGEX = re.compile(r'^(.*)\[(.*)\]$')
+_COLLECTION_REGEX = re.compile(r'^(.*)\[(.*)]$')
 
 
 class CollectionDatabase(DatabaseEngine):

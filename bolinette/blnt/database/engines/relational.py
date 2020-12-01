@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from bolinette.blnt.database import DatabaseEngine
+from bolinette.blnt.database.engines import DatabaseEngine
 
 
 class RelationalDatabase(DatabaseEngine):
