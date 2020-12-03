@@ -2,11 +2,11 @@ from bson import ObjectId
 
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import CollectionDatabase
-from bolinette.core.repositories import Repository
+from bolinette.core.repositories import BaseRepository
 from bolinette.exceptions import InternalError
 
 
-class CollectionRepository(Repository):
+class CollectionRepository(BaseRepository):
     def __init__(self, name: str, model: 'core.Model', context: 'blnt.BolinetteContext'):
         super().__init__(name, model, context)
         self.database: 'CollectionDatabase' = context.db[model.__blnt__.database]

@@ -3,7 +3,7 @@ from bolinette.exceptions import APIErrors, ParamConflictError
 from bolinette.utils.functions import getattr_, setattr_
 
 
-class Repository:
+class BaseRepository:
     def __init__(self, name: str, model: 'core.Model', context: 'blnt.BolinetteContext'):
         self.name = name
         self.model = model

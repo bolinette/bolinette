@@ -81,7 +81,6 @@ class RouteHandler:
             params['match'][key] = request.match_info[key]
         for key in request.query:
             params['query'][key] = request.query[key]
-
         try:
             track = web.MiddlewareTrack()
             resp = await self.route.call_middleware_chain(request, params, track)

@@ -177,22 +177,8 @@ class ControllerDefaults:
         self.service: core.Service = controller.service
 
     def get_all(self, returns='default', *, middlewares=None):
-        async def route(controller, *, query, **kwargs):
-            pagination = None
-            order_by = []
-            if 'page' in query or 'per_page' in query:
-                pagination = {
-                    'page': int(query.get('page', 0)),
-                    'per_page': int(query.get('per_page', 20))
-                }
-            if 'order_by' in query:
-                columns = query['order_by'].split(',')
-                for column in columns:
-                    order_args = column.split(':')
-                    col_name = order_args[0]
-                    order_way = order_args[1] if len(order_args) > 1 else 'asc'
-                    order_by.append((col_name, order_way == 'asc'))
-            resp = await functions.async_invoke(controller.service.get_all, pagination=pagination, **kwargs)
+        async def route(controller, **kwargs):
+            resp = await functions.async_invoke(controller.service.get_all, **kwargs)
             return controller.response.ok('OK', resp)
 
         return ControllerRoute(route, '', web.HttpMethod.GET,

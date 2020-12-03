@@ -5,7 +5,7 @@ from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 
 from bolinette import web, blnt
-from bolinette.blnt.database import Pagination
+from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
 from bolinette.decorators import middleware
 from bolinette.exceptions import BadRequestError
 from bolinette.utils.serializing import deserialize, serialize
@@ -23,16 +23,6 @@ class PayloadMiddleware(web.InternalMiddleware):
                                                               payload, self.options.get('patch'))
             await self.context.validator.link_foreign_entities(self.options['model'], self.options['key'], payload)
         params['payload'] = payload
-        return await next_func(request, params)
-
-
-@middleware('blnt_headers', priority=0, auto_load=True, loadable=False)
-class HeadersMiddleware(web.InternalMiddleware):
-    async def handle(self, request: Request, params: Dict[str, Any],
-                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
-        params['headers'] = {}
-        for key in request.headers:
-            params['headers'][key] = request.headers[key]
         return await next_func(request, params)
 
 
@@ -56,7 +46,7 @@ class ResponseMiddleware(web.InternalMiddleware):
             content['pagination'] = {
                 'page': content['data'].page,
                 'per_page': content['data'].per_page,
-                'total': content['data'].total,
+                'total': content['data'].total
             }
             content['data'] = content['data'].items
 
@@ -79,3 +69,42 @@ class ResponseMiddleware(web.InternalMiddleware):
                 web_response.del_cookie(cookie.name, path=cookie.path)
 
         return web_response
+
+
+@middleware('blnt_headers', priority=0, auto_load=True, loadable=False)
+class HeadersMiddleware(web.InternalMiddleware):
+    async def handle(self, request: Request, params: Dict[str, Any],
+                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+        params['headers'] = {}
+        for key in request.headers:
+            params['headers'][key] = request.headers[key]
+        return await next_func(request, params)
+
+
+@middleware('blnt_query_pagination', priority=0, auto_load=True, loadable=False)
+class PaginationMiddleware(web.InternalMiddleware):
+    async def handle(self, request: Request, params: Dict[str, Any],
+                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+        if 'page' in request.query or 'per_page' in request.query:
+            try:
+                page = int(request.query.get('page', "1"))
+                per_page = int(request.query.get('per_page', "20"))
+            except ValueError:
+                raise BadRequestError('global.pagination.param_not_number')
+            params['pagination'] = PaginationParams(page, per_page)
+        return await next_func(request, params)
+
+
+@middleware('blnt_query_order_by', priority=0, auto_load=True, loadable=False)
+class OrderByMiddleware(web.InternalMiddleware):
+    async def handle(self, request: Request, params: Dict[str, Any],
+                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+        if 'order_by' in request.query:
+            order_by = []
+            columns = request.query['order_by'].split(',')
+            for column in columns:
+                col_name, *col_args = column.split(':')
+                order_way = col_args[0] if len(col_args) > 0 else 'asc'
+                order_by.append(OrderByParams(col_name, order_way == 'asc'))
+            params['order_by'] = order_by
+        return await next_func(request, params)

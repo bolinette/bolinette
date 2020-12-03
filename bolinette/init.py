@@ -81,7 +81,7 @@ def init_collection_models(context: blnt.BolinetteContext):
 def init_repositories(context: blnt.BolinetteContext):
     for model_name, model in context.models:
         if model.__props__.database.relational:
-            context.add_repo(model_name, core.RelationalRepository(model_name, model, context))
+            context.add_repo(model_name, core.Repository(model_name, model, context))
         else:
             context.add_repo(model_name, core.CollectionRepository(model_name, model, context))
 

@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import List
 
 from bolinette import blnt, core
+from bolinette.blnt.objects import PaginationParams, OrderByParams
 from bolinette.exceptions import EntityNotFoundError
 
 
@@ -14,7 +16,7 @@ class Service:
         return f'<Service {self.__blnt__.name}>'
 
     @property
-    def repo(self) -> core.RelationalRepository:
+    def repo(self) -> core.Repository:
         return self.context.repo(self.__blnt__.model_name)
 
     async def get(self, identifier, *, safe=False):
@@ -32,7 +34,7 @@ class Service:
             raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
         return entity
 
-    async def get_all(self, pagination=None, order_by=None):
+    async def get_all(self, pagination: PaginationParams = None, order_by: List[OrderByParams] = None):
         return await self.repo.get_all(pagination, order_by)
 
     async def create(self, values):
