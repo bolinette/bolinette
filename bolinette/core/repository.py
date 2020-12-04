@@ -2,8 +2,7 @@ from typing import List
 
 from bolinette import blnt, core
 from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
-from bolinette.blnt.database.engines import RelationalDatabase
-from bolinette.blnt.database.queries import RelationalQueryBuilder, BaseQuery
+from bolinette.blnt.database.queries import RelationalQueryBuilder, BaseQuery, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors
 from bolinette.utils.functions import setattr_, getattr_
 
@@ -13,12 +12,17 @@ class Repository:
         self.name = name
         self.model = model
         self.context = context
-        self._database: RelationalDatabase = context.db[model.__blnt__.database]
-        self._table = context.table(name)
-        self._query_builder = RelationalQueryBuilder(model, context)
+        self._query_builder = self._get_query_builder(model, context)
+
+    @staticmethod
+    def _get_query_builder(model: 'core.Model', context: 'blnt.BolinetteContext'):
+        db = context.db[model.__blnt__.database]
+        if db.relational:
+            return RelationalQueryBuilder(model, context)
+        return CollectionQueryBuilder(model, context)
 
     def __repr__(self):
-        return f'<BaseRepository {self.name}>'
+        return f'<Repository {self.name}>'
 
     def query(self):
         return self._query_builder.query()

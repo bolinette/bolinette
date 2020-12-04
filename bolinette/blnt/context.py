@@ -27,7 +27,7 @@ class BolinetteContext:
             self.response = web.Response(self)
             self._tables: Dict[str, Any] = {}
             self._models: Dict[str, 'core.Model'] = {}
-            self._repos: Dict[str, 'core.BaseRepository'] = {}
+            self._repos: Dict[str, 'core.Repository'] = {}
             self._services: Dict[str, 'core.Service'] = {}
             self._controllers: Dict[str, 'web.Controller'] = {}
 
@@ -78,7 +78,7 @@ class BolinetteContext:
     def repo(self, name: str) -> Any:
         return self._repos[name]
 
-    def add_repo(self, name, repo: 'core.BaseRepository'):
+    def add_repo(self, name, repo: 'core.Repository'):
         self._repos[name] = repo
 
     @property
