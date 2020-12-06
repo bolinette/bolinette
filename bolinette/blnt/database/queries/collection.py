@@ -4,6 +4,7 @@ from pymongo.collection import Collection
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import CollectionDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
+from bolinette.blnt.objects import OrderByParams
 
 
 class CollectionQueryBuilder(BaseQueryBuilder):
@@ -34,6 +35,9 @@ class CollectionQuery(BaseQuery):
         query = CollectionQuery(self._collection)
         self._base_clone(query)
         return query
+
+    def _order_by_from_params(self, params: OrderByParams):
+        return self._order_by_func(lambda c: c[params.column], desc=not params.ascending)
 
     async def all(self):
         return self._collection.find(self._build_filters())

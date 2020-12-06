@@ -27,4 +27,4 @@ class OrderByParams:
         self.ascending = ascending
 
     def __repr__(self):
-        return f'<OrderBy {self.column}:{"acs" if self.ascending else "desc"}>'
+        return f'<OrderBy {self.column}:{"asc" if self.ascending else "desc"}>'

@@ -1,8 +1,14 @@
+import re
+
 import sqlalchemy
 
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import RelationalDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
+from bolinette.blnt.objects import OrderByParams
+from bolinette.exceptions import UnprocessableEntityError
+
+_ATTRIBUTE_ERROR_PATTERN = re.compile(r'^type object \'([^\']*)\' has no attribute \'([^\']*)\'$')
 
 
 class RelationalQueryBuilder(BaseQueryBuilder):
@@ -35,6 +41,9 @@ class RelationalQuery(BaseQuery):
         self._base_clone(query)
         return query
 
+    def _order_by_from_params(self, params: OrderByParams):
+        return self._order_by_func(lambda t: getattr(t, params.column), desc=not params.ascending)
+
     async def all(self):
         return self._build_query().all()
 
@@ -55,10 +64,13 @@ class RelationalQuery(BaseQuery):
         if len(self._filters) > 0:
             query = query.filter_by(**self._filters)
         if len(self._order_by):
-            orders = []
             for func, desc in self._order_by:
-                col = func(self._table)
+                try:
+                    col = func(self._table)
+                except AttributeError as e:
+                    message = _ATTRIBUTE_ERROR_PATTERN.match(e.args[0])
+                    raise UnprocessableEntityError(f'{message.group(1)}.no_column_in_entity:{message.group(2)}')
                 if desc:
                     col = sqlalchemy.desc(col)
-                orders.append(col)
+                query = query.order_by(col)
         return query

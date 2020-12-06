@@ -2,6 +2,7 @@ from abc import abstractmethod, ABC
 from typing import Callable, Any, Dict, List, Tuple, Optional
 
 from bolinette import blnt, core
+from bolinette.blnt.objects import OrderByParams
 
 
 class BaseQueryBuilder(ABC):
@@ -31,7 +32,7 @@ class BaseQuery(ABC):
 
     def _base_clone(self, query: 'BaseQuery'):
         query._filters = dict(self._filters)
-        query._order_by = dict(self._order_by)
+        query._order_by = list(self._order_by)
         query._limit = self._limit
         query._offset = self._offset
 
@@ -53,6 +54,13 @@ class BaseQuery(ABC):
 
     def order_by(self, function: Callable[[Any], Any], *, desc: bool = False) -> 'BaseQuery':
         return self._clone()._order_by_func(function, desc=desc)
+
+    @abstractmethod
+    def _order_by_from_params(self, params: OrderByParams) -> 'BaseQuery':
+        pass
+
+    def order_by_from_params(self, params: OrderByParams) -> 'BaseQuery':
+        return self._clone()._order_by_from_params(params)
 
     def _offset_func(self, offset: int) -> 'BaseQuery':
         self._offset = offset

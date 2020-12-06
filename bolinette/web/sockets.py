@@ -5,7 +5,7 @@ import aiohttp
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 
-from bolinette import console, blnt, web
+from bolinette import blnt, web
 from bolinette.exceptions import APIError
 
 
@@ -76,7 +76,7 @@ class SocketHandler:
         user_service = context.service('user')
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
-        logger.warning('New WS connection')
+        context.logger.warning('New WS connection')
 
         current_user = None
         identity = web.AccessToken.Optional.check(context, request)
@@ -99,16 +99,16 @@ class SocketHandler:
                     else:
                         await self.process_topic_message(context, socket, payload, current_user)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    logger.warning(f'ws connection closed with exception {socket.exception()})')
+                    context.logger.warning(f'ws connection closed with exception {socket.exception()})')
             except APIError as e:
-                logger.error(e.message)
+                context.logger.error(e.message)
 
         if current_user is not None:
             context.sockets.delete_socket_session(current_user.username)
         else:
             context.sockets.delete_anon_socket_session(socket)
 
-        logger.warning('Closed WS connection')
+        context.logger.warning('Closed WS connection')
         return socket
 
     async def process_topic_message(self, context: 'blnt.BolinetteContext',

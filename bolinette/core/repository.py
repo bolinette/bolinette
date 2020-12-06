@@ -2,7 +2,7 @@ from typing import List
 
 from bolinette import blnt, core
 from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
-from bolinette.blnt.database.queries import RelationalQueryBuilder, BaseQuery, CollectionQueryBuilder
+from bolinette.blnt.database.queries import RelationalQueryBuilder, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors
 from bolinette.utils.functions import setattr_, getattr_
 
@@ -32,7 +32,8 @@ class Repository:
             order_by = []
         query = self.query()
         if len(order_by) > 0:
-            query = await self._build_order_by(query, order_by)
+            for order in order_by:
+                query = query.order_by_from_params(order)
         if pagination is not None:
             return await self._paginate(query, pagination)
         return await query.all()
@@ -61,17 +62,6 @@ class Repository:
 
     async def delete(self, entity):
         return await self._query_builder.delete_entity(entity)
-
-    async def _build_order_by(self, query: BaseQuery, params):
-        order_by_query = []
-        for col_name, way in params:
-            if hasattr(self._table, col_name):
-                column = getattr(self._table, col_name)
-                if way:
-                    order_by_query.append(column)
-                else:
-                    order_by_query.append(core.functions.desc(column))
-        return query.order_by(*order_by_query)
 
     async def _paginate(self, query, pagination: PaginationParams):
         page = pagination.page

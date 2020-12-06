@@ -1,8 +1,7 @@
 import getpass
 
-from bolinette.utils import console
-
 import bolinette
+from bolinette import console
 from bolinette.commands import command
 from bolinette.exceptions import ParamConflictError, EntityNotFoundError
 

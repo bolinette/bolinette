@@ -1,5 +1,3 @@
-from bolinette.utils import logger
-
 from bolinette import blnt
 from bolinette.mail.providers import Mailgun
 
@@ -18,8 +16,8 @@ class Sender:
         if provider:
             provider = provider.lower()
             if provider not in _providers:
-                logger.warning(f'Unknown "{provider}" mail provider. '
-                               f'Available: {", ".join(_providers.keys())}')
+                self.context.logger.warning(f'Unknown "{provider}" mail provider. '
+                                            f'Available: {", ".join(_providers.keys())}')
             else:
                 self.provider = _providers[provider](self.context)
 
@@ -28,4 +26,4 @@ class Sender:
             try:
                 self.provider.send(to, subject, content)
             except Exception as ex:
-                logger.error(str(ex))
+                self.context.logger.error(str(ex))
