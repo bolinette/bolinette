@@ -78,6 +78,11 @@ def init_collection_models(context: blnt.BolinetteContext):
 
 
 @init_func
+async def init_databases(context: blnt.BolinetteContext):
+    await context.db.create_all()
+
+
+@init_func
 def init_repositories(context: blnt.BolinetteContext):
     for model_name, model in context.models:
         context.add_repo(model_name, core.Repository(model_name, model, context))

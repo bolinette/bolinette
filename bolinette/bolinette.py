@@ -25,7 +25,12 @@ class Bolinette:
     @staticmethod
     def run_init_functions(app):
         for func in blnt.cache.init_funcs:
-            func(app['blnt'])
+            if inspect.isfunction(func):
+                if inspect.iscoroutinefunction(func):
+                    loop = asyncio.get_event_loop()
+                    loop.run_until_complete(func(app['blnt']))
+                else:
+                    func(app['blnt'])
 
     def run(self):
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
