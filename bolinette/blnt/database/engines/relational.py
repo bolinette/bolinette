@@ -12,6 +12,7 @@ class RelationalDatabase(DatabaseEngine):
         self._factory = sessionmaker(bind=self._engine)
         self._base = declarative_base()
         self._session = self._factory()
+        self._base.metadata.create_all(self._engine)
 
     @property
     def base(self):

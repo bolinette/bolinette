@@ -77,6 +77,10 @@ class Mapper:
                                                    use_foreign_key=use_foreign_key)
             elif isinstance(field, mapping.List):
                 d = self.response(field.element.model_name, field.element.model_key)
-                values[field.name] = self.marshall(d, getattr_(entity, field.name, None), skip_none=skip_none,
-                                                   as_list=True, use_foreign_key=use_foreign_key)
+                if field.function and callable(field.function):
+                    e_list = field.function(entity)
+                else:
+                    e_list = getattr_(entity, field.name, None)
+                values[field.name] = self.marshall(d, e_list, skip_none=skip_none, as_list=True,
+                                                   use_foreign_key=use_foreign_key)
         return values

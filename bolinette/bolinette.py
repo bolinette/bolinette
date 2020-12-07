@@ -29,7 +29,10 @@ class Bolinette:
 
     def run(self):
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
-        aio_web.run_app(self.app, port=self.context.env['port'], access_log=self.context.logger)
+        aio_web.run_app(self.app,
+                        host=self.context.env.get('host', '127.0.0.1'),
+                        port=self.context.env['port'],
+                        access_log=self.context.logger)
         self.context.logger.info(f"Bolinette stopped gracefully")
 
     def run_command(self, *args, **kwargs):
