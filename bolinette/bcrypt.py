@@ -2,11 +2,11 @@ import bcrypt as py_bcrypt
 
 
 class Bcrypt:
-    def hash_password(self, password):
-        return py_bcrypt.hashpw(password.encode(), py_bcrypt.gensalt())
+    def hash_password(self, password: str):
+        return py_bcrypt.hashpw(password.encode(), py_bcrypt.gensalt(16)).decode()
 
-    def check_password(self, hashed, password):
-        return py_bcrypt.checkpw(password.encode(), hashed)
+    def check_password(self, hashed: str, password: str):
+        return py_bcrypt.checkpw(password.encode(), hashed.encode())
 
 
 bcrypt = Bcrypt()

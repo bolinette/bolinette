@@ -8,6 +8,7 @@ from bolinette.exceptions import InternalError, InitError
 class DatabaseManager:
     _DBMS = {
         'sqlite://': RelationalDatabase,
+        'postgresql://': RelationalDatabase,
         'mongodb://': CollectionDatabase
     }
 

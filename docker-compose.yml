@@ -1,0 +1,9 @@
+version: "3"
+services:
+  bolinette:
+    build: .
+    ports:
+      - 127.0.0.1:5000:5000
+    environment:
+      BLNT_HOST: 0.0.0.0
+      BLNT_PORT: 5000
