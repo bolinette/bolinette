@@ -8,8 +8,8 @@ from bolinette.utils.functions import getattr_, hasattr_
 class Mapper:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._payloads: Dict[str, mapping.Definition] = {}
-        self._responses: Dict[str, mapping.Definition] = {}
+        self._payloads: Dict[str, Dict[str, mapping.Definition]] = {}
+        self._responses: Dict[str, Dict[str, mapping.Definition]] = {}
 
     def _get_def(self, collection, model_name, key) -> 'mapping.Definition':
         m = collection.get(model_name)
@@ -23,8 +23,20 @@ class Mapper:
     def payload(self, model_name: str, key: str):
         return self._get_def(self._payloads, model_name, key)
 
+    @property
+    def payloads(self):
+        for model_name in self._payloads:
+            for key in self._payloads[model_name]:
+                yield model_name, key, self._payloads[model_name][key]
+
     def response(self, model_name: str, key: str):
         return self._get_def(self._responses, model_name, key)
+
+    @property
+    def responses(self):
+        for model_name in self._responses:
+            for key in self._responses[model_name]:
+                yield model_name, key, self._responses[model_name][key]
 
     def register(self, model_name: str, model: 'core.Model'):
         def create_defs(collection, params):

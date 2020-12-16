@@ -102,45 +102,12 @@ def init_services(context: blnt.BolinetteContext):
 
 @init_func
 def init_controllers(context: blnt.BolinetteContext):
-    def _init_sys_middleware(_route: 'web.ControllerRoute'):
-        sys_mdw = [m.__blnt__.name for m in blnt.cache.middlewares.values() if m.__blnt__.auto_load]
-        if _route.expects is not None:
-            model = _route.expects.model
-            key = _route.expects.key if _route.expects.key is not None else 'default'
-            cmd = f'blnt_payload|model={model}|key={key}'
-            if _route.expects.patch:
-                cmd += '|patch'
-            sys_mdw.append(cmd)
-        else:
-            sys_mdw.append('blnt_payload')
-        if _route.returns is not None:
-            model = _route.returns.model
-            key = _route.returns.key if _route.returns.key is not None else 'default'
-            cmd = f'blnt_response|model={model}|key={key}'
-            if _route.returns.as_list:
-                cmd += '|as_list'
-            if _route.returns.skip_none:
-                cmd += '|skip_none'
-            sys_mdw.append(cmd)
-        else:
-            sys_mdw.append('blnt_response')
-        return sys_mdw
-
-    def _add_route(_controller: web.Controller, _route: web.ControllerRoute):
-        path = f'{_controller.__blnt__.namespace}{_controller.__blnt__.path}{_route.path}'
-        _route.controller = _controller
-        _route.init_middlewares(context, _controller.__blnt__.middlewares, _init_sys_middleware(_route))
-        context.resources.add_route(path, _controller, _route)
-        if _route.inner_route is not None:
-            _add_route(_controller, _route.inner_route)
-
     for controller_name, controller_cls in blnt.cache.controllers.items():
         controller = controller_cls(context)
-        for _, route in controller.__props__.get_routes().items():
-            _add_route(controller, route)
-        if isinstance(controller, web.Controller):
-            for route in controller.default_routes():
-                _add_route(controller, route)
+        for _, route in controller.__props__.get_routes():
+            route.setup(controller)
+        for route in controller.default_routes():
+            route.setup(controller)
         context.add_controller(controller_name, controller)
 
 

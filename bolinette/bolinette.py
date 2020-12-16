@@ -2,12 +2,12 @@ import asyncio
 import inspect
 
 from aiohttp import web as aio_web
-from bolinette.utils import paths
 
 from bolinette import blnt, console
 from bolinette.commands import commands
 from bolinette.exceptions import InitError
-from bolinette.utils.functions import invoke
+from bolinette.utils import paths
+from bolinette.utils.functions import invoke, async_invoke
 
 
 class Bolinette:
@@ -33,6 +33,9 @@ class Bolinette:
                     func(app['blnt'])
 
     def run(self):
+        if self.context.env['build_docs']:
+            self.context.docs.build()
+        self.context.docs.setup()
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app,
                         host=self.context.env.get('host', '127.0.0.1'),
@@ -49,6 +52,6 @@ class Bolinette:
             if inspect.isfunction(func):
                 if inspect.iscoroutinefunction(func):
                     loop = asyncio.get_event_loop()
-                    loop.run_until_complete(func(self.context, **kwargs))
+                    loop.run_until_complete(async_invoke(func, self.context, **kwargs))
                 else:
                     invoke(func, **kwargs)

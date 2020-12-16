@@ -1,7 +1,10 @@
+from os import PathLike
 from typing import Union
 
 from aiohttp.web_response import Response as AioResponse
-from bolinette.utils import files
+from jinja2 import TemplateNotFound
+
+from bolinette.utils import files, paths
 
 from bolinette import blnt, exceptions
 
@@ -80,11 +83,20 @@ class Response:
     def internal_server_error(self, messages=None, data=None):
         return self.build_message(500, 'INTERNAL SERVER ERROR', messages, data)
 
-    def render_template(self, name: str, params: dict = None):
-        path = self.context.templates_path(f'{name}.jinja2')
+    def render_template(self, name: PathLike, params: dict = None, workdir: PathLike = None):
+        if workdir is None:
+            workdir = self.context.templates_path()
         if params is None:
             params = {}
-        content = files.render_template(path, params)
+        for key, value in self.context.manifest.items():
+            if key not in params:
+                params[key] = value
+        try:
+            content = files.render_template(workdir, name, params)
+        except TemplateNotFound:
+            error_404_wd = self.context.internal_path('_files', 'templates')
+            error_404 = paths.join('errors', '404.html.jinja2')
+            content = files.render_template(error_404_wd, error_404, params)
         return AioResponse(body=content, status=200, content_type='text/html')
 
     def from_exception(self, exception: Union[exceptions.APIError, exceptions.APIErrors]):

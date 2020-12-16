@@ -3,7 +3,8 @@ from typing import Dict, Any, Optional
 from aiohttp import web as aio_web
 
 from bolinette.blnt.database import DatabaseManager
-from bolinette.utils import paths
+from bolinette.docs import Documentation
+from bolinette.utils import paths, files
 
 from bolinette import blnt, core, web, mapping
 from bolinette.exceptions import InternalError
@@ -18,6 +19,8 @@ class BolinetteContext:
         if app is not None:
             self.app = app
             self.env = blnt.Environment(self, profile=profile, overrides=overrides)
+            self.manifest = files.read_manifest(self.root_path()) or {}
+            self.docs = Documentation(self)
             self.db = DatabaseManager(self)
             self.jwt = blnt.JWT(self)
             self.resources = web.BolinetteResources(self)

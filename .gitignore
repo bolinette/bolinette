@@ -64,3 +64,4 @@ venv.bak/
 .vscode/
 static/*
 templates/*
+swagger.yaml

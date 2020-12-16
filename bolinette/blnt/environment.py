@@ -109,6 +109,7 @@ class Environment(Settings):
             'debug': False,
             'host': '127.0.0.1',
             'port': '5000',
+            'build_docs': False,
             'webapp_folder': self.context.root_path('webapp', 'dist')
         }
 

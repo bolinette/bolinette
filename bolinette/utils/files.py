@@ -1,3 +1,5 @@
+from os import PathLike
+
 import jinja2
 import yaml
 from jinja2 import TemplateNotFound
@@ -23,15 +25,6 @@ def read_file(path):
         return None
 
 
-def read_version(path):
-    try:
-        with open(paths.join(path, '.version')) as f:
-            for line in f:
-                return line.strip().replace('\n', '')
-    except FileNotFoundError:
-        return None
-
-
 def read_requirements(path):
     try:
         with open(paths.join(path, 'requirements.txt')) as f:
@@ -48,18 +41,11 @@ def read_manifest(path):
         return None
 
 
-def render_template(path, params):
-    template_path, template_name = paths.split(path)
-    if not len(template_path):
-        template_path = paths.join(paths.dirname(__file__), 'files')
+def render_template(workdir: PathLike, path: PathLike, params):
     jinja_env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(searchpath=template_path),
+        loader=jinja2.FileSystemLoader(searchpath=workdir),
         keep_trailing_newline=True,
         trim_blocks=True,
         lstrip_blocks=True
     )
-    try:
-        template = jinja_env.get_template(template_name)
-    except TemplateNotFound:
-        raise InternalError(f'internal.template.not_found:{path}')
-    return template.render(**params)
+    return jinja_env.get_template(path).render(**params)

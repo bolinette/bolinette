@@ -6,4 +6,7 @@ from bolinette.decorators import controller, get
 class HomeController(web.Controller):
     @get('')
     async def home_template(self):
+        """
+        Renders and returns the index.html jinja template
+        """
         return self.response.render_template('index.html')

@@ -1,0 +1,37 @@
+{% extends "common/base.jinja2" %}
+{% block title %}Error 404 - Bolinette{% endblock %}
+{% block content %}
+  <div class="page-404">
+    <h1>{% block code %}{% endblock %}</h1>
+    <h2>{% block error %}{% endblock %}</h2>
+    <p>{% block message %}{% endblock %}</p>
+  </div>
+{% endblock %}
+{% block style %}
+  <style>
+    .page-404 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .page-404 h1 {
+      margin: 0 0 -40px 0;
+      padding: 0;
+      font-size: 10rem;
+      color: black;
+    }
+
+    .page-404 h2 {
+      margin: 0;
+      padding: 0;
+      font-size: 3.5rem;
+      color: rgba(0, 0, 0, .75);
+    }
+
+    .page-404 p {
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+  </style>
+{% endblock %}

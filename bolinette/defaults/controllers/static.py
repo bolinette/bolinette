@@ -18,6 +18,9 @@ class StaticController(web.Controller):
 
     @get('/{route:.*}')
     async def get_static_file(self, match):
+        """
+        Gets a static file from its path relative to the app static folder
+        """
         route = match['route'].split('/')
         if route == ['']:
             route = ['index.html']

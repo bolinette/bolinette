@@ -14,8 +14,15 @@ from bolinette.utils.serializing import serialize
 class BolinetteResources:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._resources: Dict[str, 'BolinetteResource'] = {}
+        self._aiohttp_resources: Dict[str, 'BolinetteResource'] = {}
+        self._routes: Dict[str, Dict[web.HttpMethod, web.ControllerRoute]] = {}
         self.cors = aiohttp_cors.setup(self.context.app, defaults=self._setup_cors())
+
+    @property
+    def routes(self):
+        for path, methods in self._routes.items():
+            for method, route in methods.items():
+                yield path, method, route
 
     def _setup_cors(self):
         try:
@@ -53,11 +60,14 @@ See https://github.com/aio-libs/aiohttp-cors for detailed config options
 """)
 
     def add_route(self, path: str, controller: 'web.Controller', route: 'web.ControllerRoute'):
-        if path not in self._resources:
-            self._resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
+        if path not in self._routes:
+            self._routes[path] = {}
+        self._routes[path][route.method] = route
+        if path not in self._aiohttp_resources:
+            self._aiohttp_resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
         handler = RouteHandler(controller, route)
-        self._resources[path].routes[route.method] = self.cors.add(
-            self._resources[path].resource.add_route(route.method.http_verb, handler.__call__))
+        self._aiohttp_resources[path].routes[route.method] = self.cors.add(
+            self._aiohttp_resources[path].resource.add_route(route.method.http_verb, handler.__call__))
 
 
 class BolinetteResource:

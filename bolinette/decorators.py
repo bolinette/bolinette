@@ -90,7 +90,9 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
         if isinstance(route_function, web.ControllerRoute):
             inner_route = route_function
             route_function = route_function.func
-        return web.ControllerRoute(route_function, path, method, expects, returns, inner_route, middlewares)
+        docstring = route_function.__doc__
+        return web.ControllerRoute(route_function, path, method, docstring,
+                                   expects, returns, inner_route, middlewares)
     return decorator
 
 

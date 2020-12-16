@@ -11,4 +11,7 @@ class TimezoneController(web.Controller):
 
     @get('')
     async def all_timezones(self):
+        """
+        Gets all available IANA timezones
+        """
         return self.response.ok('OK', await self.tz_service.get_all())

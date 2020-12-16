@@ -1,0 +1,45 @@
+{% extends "common/base.jinja2" %}
+{% block title %}Error 404 - Bolinette{% endblock %}
+{% block content %}
+  <div class="no-docs">
+    <p>No docs where built for this
+      <span class="blnt-bolinette"><span class="blnt-b">B</span>olinette</span>
+      App</p>
+    <div>
+      <hr/>
+      <p>
+        Run the command <code>blnt init docs</code> to build the
+        <a href="https://swagger.io/specification/">OpenAPI v3</a> documentation
+      </p>
+    </div>
+  </div>
+{% endblock %}
+{% block style %}
+  <style>
+    .no-docs {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+
+    .no-docs .blnt-bolinette {
+      font-family: Arial, sans-serif;
+      font-weight: bolder;
+      font-size: 1.5rem;
+      color: black;
+    }
+
+    .no-docs .blnt-bolinette .blnt-b {
+      color: red;
+    }
+
+    .no-docs code {
+      background-color: #2b2b2b;
+      border-radius: 5px;
+      padding: 5px;
+      color: white;
+    }
+  </style>
+{% endblock %}
