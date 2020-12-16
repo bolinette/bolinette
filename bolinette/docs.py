@@ -161,6 +161,10 @@ class Documentation:
                 for field in definition.fields:
                     if isinstance(field, mapping.Field):
                         properties[field.name] = self._type_map[field.type]
+                    elif isinstance(field, mapping.Definition):
+                        properties[field.name] = {
+                            '$ref': f'#/components/schemas/{def_type}.{field.model_name}.{field.model_key}'
+                        }
                 schema = {
                     'type': 'object',
                     'properties': properties

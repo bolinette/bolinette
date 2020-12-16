@@ -35,7 +35,7 @@ def read_requirements(path):
 
 def read_manifest(path):
     try:
-        with open(paths.join(path, 'manifest.blnt.yml')) as f:
+        with open(paths.join(path, 'manifest.blnt.yaml')) as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
         return None
