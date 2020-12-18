@@ -50,7 +50,7 @@ class Documentation:
             self._build_route(path, method, route, routes)
         return routes
 
-    def _build_route(self, path: str, method: web.HttpMethod, route: web.ControllerRoute, routes: dict[str, Any]):
+    def _build_route(self, path: str, method: web.HttpMethod, route: web.ControllerRoute, routes: Dict[str, Any]):
         if route.controller is not None:
             if not path:
                 path = '/'

@@ -1,4 +1,4 @@
-from typing import Callable, List, Dict, Any, Generator, Optional
+from typing import Callable, List, Dict, Any, Generator, Optional, Tuple
 
 from aiohttp.web_request import Request
 
@@ -48,7 +48,7 @@ class ControllerProps:
                 for name, attribute in vars(self.controller.__class__).items()
                 if isinstance(attribute, attr_type))
 
-    def get_routes(self) -> Generator[tuple[str, 'ControllerRoute'], Any, None]:
+    def get_routes(self) -> Generator[Tuple[str, 'ControllerRoute'], Any, None]:
         return self._get_attribute_of_type(ControllerRoute)
 
 
