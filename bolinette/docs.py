@@ -165,6 +165,15 @@ class Documentation:
                         properties[field.name] = {
                             '$ref': f'#/components/schemas/{def_type}.{field.model_name}.{field.model_key}'
                         }
+                    elif isinstance(field, mapping.List):
+                        elem = field.element
+                        if isinstance(elem, mapping.Definition):
+                            properties[field.name] = {
+                                'type': 'array',
+                                'items': {
+                                    '$ref': f'#/components/schemas/{def_type}.{elem.model_name}.{elem.model_key}'
+                                }
+                            }
                 schema = {
                     'type': 'object',
                     'properties': properties
