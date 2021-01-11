@@ -1,3 +1,5 @@
 from bolinette import Bolinette
 
-bolinette = Bolinette()
+
+def create_app():
+    return Bolinette()

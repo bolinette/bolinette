@@ -1,4 +1,8 @@
-from bolinette.testing import Mock, bolitest, TestClient
+from bolinette.testing import Mock, bolitest
+# noinspection PyUnresolvedReferences
+from bolinette.testing.fixture import client
+# noinspection PyUnresolvedReferences
+import example.models
 
 
 async def set_up(mock: Mock):
@@ -12,14 +16,14 @@ def libraries_equal(l1, l2):
 
 
 @bolitest(before=set_up)
-async def test_get_libraries(client: TestClient):
+async def test_get_libraries(client):
     rv = await client.get('/library')
     assert rv['code'] == 200
     assert len(rv['data']) == 3
 
 
 @bolitest(before=set_up)
-async def test_get_one_library(client: TestClient):
+async def test_get_one_library(client):
     library2 = client.mock(2, 'library')
 
     rv = await client.get(f'/library/{library2["key"]}')
@@ -30,14 +34,14 @@ async def test_get_one_library(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_get_one_library_not_found(client: TestClient):
+async def test_get_one_library_not_found(client):
     rv = await client.get('/library/unknown_key')
     assert rv['code'] == 404
     assert 'entity.not_found:library:key:unknown_key' in rv['messages']
 
 
 @bolitest(before=set_up)
-async def test_create_library(client: TestClient):
+async def test_create_library(client):
     library4 = client.mock(4, 'library')
 
     rv = await client.post('/library', library4.to_payload())
@@ -48,7 +52,7 @@ async def test_create_library(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_create_library_and_get(client: TestClient):
+async def test_create_library_and_get(client):
     library4 = client.mock(4, 'library')
 
     await client.post('/library', library4.to_payload())
@@ -61,7 +65,7 @@ async def test_create_library_and_get(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_create_library_bad_request(client: TestClient):
+async def test_create_library_bad_request(client):
     rv = await client.post('/library', {})
     assert rv['code'] == 422
     assert 'param.required:key' in rv['messages']
@@ -69,7 +73,7 @@ async def test_create_library_bad_request(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_create_library_conflict(client: TestClient):
+async def test_create_library_conflict(client):
     library1 = client.mock(1, 'library')
     library4 = client.mock(4, 'library')
     library4['key'] = library1['key']
@@ -80,7 +84,7 @@ async def test_create_library_conflict(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_update_library(client: TestClient):
+async def test_update_library(client):
     library1 = client.mock(1, 'library')
     key = library1['key']
     library1['key'] = 'new_library_key'
@@ -93,14 +97,15 @@ async def test_update_library(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_update_library_and_get(client: TestClient):
+async def test_update_library_and_get(client):
     library1 = client.mock(1, 'library')
     key = library1['key']
     library1['key'] = 'new_library_key'
     library1['name'] = 'New Library Name'
     library1['address'] = 'New Library Address'
 
-    await client.put(f'/library/{key}', library1.to_response())
+    rv = await client.put(f'/library/{key}', library1.to_response())
+    assert rv['code'] == 200
 
     rv = await client.get('/library/new_library_key')
     assert rv['code'] == 200
@@ -108,7 +113,7 @@ async def test_update_library_and_get(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_update_library_bad_request(client: TestClient):
+async def test_update_library_bad_request(client):
     library1 = client.mock(1, 'library')
 
     rv = await client.put(f'/library/{library1["key"]}', {})
@@ -118,7 +123,7 @@ async def test_update_library_bad_request(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_update_library_conflict(client: TestClient):
+async def test_update_library_conflict(client):
     library1 = client.mock(1, 'library')
     library2 = client.mock(2, 'library')
 
@@ -128,7 +133,7 @@ async def test_update_library_conflict(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_patch_library(client: TestClient):
+async def test_patch_library(client):
     library1 = client.mock(1, 'library')
     library1['name'] = 'New Library Name'
 
@@ -138,7 +143,7 @@ async def test_patch_library(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_patch_library_bad_request(client: TestClient):
+async def test_patch_library_bad_request(client):
     library1 = client.mock(1, 'library')
 
     rv = await client.patch(f'/library/{library1["key"]}', {'name': None})
@@ -147,7 +152,7 @@ async def test_patch_library_bad_request(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_patch_library_conflict(client: TestClient):
+async def test_patch_library_conflict(client):
     library1 = client.mock(1, 'library')
     library2 = client.mock(2, 'library')
 
@@ -157,7 +162,7 @@ async def test_patch_library_conflict(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_delete_library(client: TestClient):
+async def test_delete_library(client):
     library1 = client.mock(1, 'library')
 
     rv = await client.delete(f'/library/{library1["key"]}')
@@ -166,6 +171,6 @@ async def test_delete_library(client: TestClient):
 
 
 @bolitest(before=set_up)
-async def test_delete_library_not_found(client: TestClient):
+async def test_delete_library_not_found(client):
     rv = await client.delete('/library/unknown_key')
     assert rv['code'] == 404

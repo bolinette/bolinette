@@ -1,6 +1,8 @@
 from typing import Optional
 
-from bolinette.testing import Mock, TestClient, bolitest, Mocked
+# noinspection PyUnresolvedReferences
+from bolinette.testing.fixture import client
+from bolinette.testing import Mock, bolitest, Mocked
 
 
 def assert_tags_equal(t1s, t2s):
@@ -27,7 +29,7 @@ def set_parent_id(tag: Mocked, parent_id: Optional[int]) -> Mocked:
     return tag
 
 
-async def setup(mock: Mock):
+async def tags_setup(mock: Mock):
     await set_parent_id(mock(1, 'tag'), None).insert()
     await set_parent_id(mock(2, 'tag'), None).insert()
     await set_parent_id(mock(3, 'tag'), None).insert()
@@ -36,8 +38,8 @@ async def setup(mock: Mock):
     await set_parent_id(mock(6, 'tag'), 4).insert()
 
 
-@bolitest(before=setup)
-async def test_get_tags(client: TestClient):
+@bolitest(before=tags_setup)
+async def test_get_tags(client):
     rv = await client.get('/tag')
     assert rv['code'] == 200
     assert len(rv['data']) == 6
@@ -46,8 +48,8 @@ async def test_get_tags(client: TestClient):
         assert rv['data'][i]['name'] == tag['name']
 
 
-@bolitest(before=setup)
-async def test_get_tag(client: TestClient):
+@bolitest(before=tags_setup)
+async def test_get_tag(client):
     tag1 = client.mock(1, 'tag')
     tag4 = client.mock(4, 'tag')
     tag6 = client.mock(6, 'tag')

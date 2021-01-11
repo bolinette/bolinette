@@ -1,12 +1,8 @@
-import re
-
 import sqlalchemy
 
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import RelationalDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
-
-_ATTRIBUTE_ERROR_PATTERN = re.compile(r'^type object \'([^\']*)\' has no attribute \'([^\']*)\'$')
 
 
 class RelationalQueryBuilder(BaseQueryBuilder):
@@ -21,6 +17,9 @@ class RelationalQueryBuilder(BaseQueryBuilder):
     async def insert_entity(self, values):
         entity = self._table(**values)
         self._database.session.add(entity)
+        return entity
+
+    async def update_entity(self, entity):
         return entity
 
     async def delete_entity(self, entity):

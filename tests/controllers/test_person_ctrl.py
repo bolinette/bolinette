@@ -1,10 +1,13 @@
-from bolinette.testing import bolitest, TestClient
+from bolinette.testing import bolitest
+# noinspection PyUnresolvedReferences
+from bolinette.testing.fixture import client
 from tests import utils
-import example
+# noinspection PyUnresolvedReferences
+import example.models
 
 
 @bolitest(before=utils.book.set_up)
-async def test_get_person(client: TestClient):
+async def test_get_person(client):
     person1 = client.mock(1, 'person')
 
     rv = await client.get('/person/1')

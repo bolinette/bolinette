@@ -18,6 +18,10 @@ class BaseQueryBuilder(ABC):
         pass
 
     @abstractmethod
+    async def update_entity(self, entity):
+        pass
+
+    @abstractmethod
     async def delete_entity(self, entity):
         pass
 

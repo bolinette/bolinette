@@ -1,7 +1,7 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import blnt, core, web
+from bolinette import blnt, core
 from bolinette.decorators import init_func
 from bolinette.exceptions import InitError
 

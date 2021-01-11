@@ -84,6 +84,7 @@ class ControllerRoute:
             self.inner_route.setup(controller)
 
     def _init_middlewares(self, context: 'blnt.BolinetteContext', from_controller: List[str], system: List[str]):
+        self.middlewares = []
         for mdw in system:
             self._parse_middleware_options(mdw, context, True)
         for mdw in from_controller:
@@ -286,7 +287,7 @@ class ControllerDefaults:
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(route, f'/{{{key}}}', web.HttpMethod.PATCH, docstring,
+        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.PATCH, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects, patch=True),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)

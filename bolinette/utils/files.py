@@ -2,9 +2,7 @@ from os import PathLike
 
 import jinja2
 import yaml
-from jinja2 import TemplateNotFound
 
-from bolinette.exceptions import InternalError
 from bolinette.utils import paths
 
 

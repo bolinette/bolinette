@@ -1,0 +1,16 @@
+import random
+import string
+
+import pytest
+
+from bolinette import Bolinette
+from bolinette.testing import TestClient
+
+
+@pytest.fixture
+def client(loop):
+    bolinette = Bolinette(profile='test', overrides={
+        'secret_key': ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+    })
+    client = TestClient(bolinette, loop)
+    return client

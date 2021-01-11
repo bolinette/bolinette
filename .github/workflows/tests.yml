@@ -35,6 +35,6 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run Bolinette tests
       run: |
-        python server.py run_tests
+        pytest
       env:
         BLNT_PROFILE: test

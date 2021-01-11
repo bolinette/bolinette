@@ -22,6 +22,12 @@ class CollectionQueryBuilder(BaseQueryBuilder):
         result = self._collection.insert_one(values)
         return self._collection.find_one({'_id': ObjectId(result.inserted_id)})
 
+    async def update_entity(self, entity):
+        values = dict(entity)
+        _id = values.pop('_id')
+        self._collection.update_one({'_id': _id}, {'$set': values})
+        return self._collection.find_one({'_id': ObjectId(_id)})
+
     async def delete_entity(self, entity):
         self._collection.delete_one({'_id': entity['_id']})
         return entity

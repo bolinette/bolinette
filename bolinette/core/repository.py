@@ -54,16 +54,17 @@ class Repository:
 
     async def update(self, entity, values: Dict[str, Any]):
         await self._map_model(entity, values)
-        return entity
+        return await self._query_builder.update_entity(entity)
 
     async def patch(self, entity, values: Dict[str, Any]):
         await self._map_model(entity, values, patch=True)
-        return entity
+        return await self._query_builder.update_entity(entity)
 
     async def delete(self, entity):
         return await self._query_builder.delete_entity(entity)
 
-    async def _paginate(self, query: BaseQuery, pagination: PaginationParams):
+    @staticmethod
+    async def _paginate(query: BaseQuery, pagination: PaginationParams):
         page = pagination.page
         per_page = pagination.per_page
         total = await query.count()
