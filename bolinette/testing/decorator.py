@@ -22,8 +22,10 @@ def bolitest(*, before: Callable[[Any], Awaitable[None]] = None,
                 if after is not None:
                     await async_invoke(after, context=client.context, mock=client.mock)
                 await client.context.db.drop_all()
-            except Exception:
+            except Exception as e:
                 await client.context.db.rollback_transaction()
+                await client.context.db.drop_all()
+                raise e
         blnt.cache.test_funcs.append(Bolitest(inner, inspect.getfile(func)))
         return inner
     return wrapper

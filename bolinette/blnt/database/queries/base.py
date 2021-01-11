@@ -1,8 +1,7 @@
 from abc import abstractmethod, ABC
-from typing import Callable, Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, Callable
 
 from bolinette import blnt, core
-from bolinette.blnt.objects import OrderByParams
 
 
 class BaseQueryBuilder(ABC):
@@ -25,13 +24,15 @@ class BaseQueryBuilder(ABC):
 
 class BaseQuery(ABC):
     def __init__(self):
-        self._filters: Dict[str, Any] = {}
-        self._order_by: List[Tuple[Callable[[Any], Any], bool]] = []
+        self._filters_by: Dict[str, Any] = {}
+        self._filters: List[Callable[[Any], Any]] = []
+        self._order_by: List[Tuple[str, bool]] = []
         self._offset = 0
         self._limit: Optional[int] = None
 
     def _base_clone(self, query: 'BaseQuery'):
-        query._filters = dict(self._filters)
+        query._filters_by = dict(self._filters_by)
+        query._filters = list(self._filters)
         query._order_by = list(self._order_by)
         query._limit = self._limit
         query._offset = self._offset
@@ -42,25 +43,25 @@ class BaseQuery(ABC):
 
     def _filter_by_func(self, **kwargs) -> 'BaseQuery':
         for key in kwargs:
-            self._filters[key] = kwargs[key]
+            self._filters_by[key] = kwargs[key]
         return self
 
     def filter_by(self, **kwargs) -> 'BaseQuery':
         return self._clone()._filter_by_func(**kwargs)
 
-    def _order_by_func(self, function: Callable[[Any], Any], *, desc: bool = False) -> 'BaseQuery':
-        self._order_by.append((function, desc))
+    def _filter_func(self, function: Callable[[Any], Any]):
+        self._filters.append(function)
         return self
 
-    def order_by(self, function: Callable[[Any], Any], *, desc: bool = False) -> 'BaseQuery':
-        return self._clone()._order_by_func(function, desc=desc)
+    def filter(self, function: Callable[[Any], Any]):
+        return self._clone()._filter_func(function)
 
-    @abstractmethod
-    def _order_by_from_params(self, params: OrderByParams) -> 'BaseQuery':
-        pass
+    def _order_by_func(self, column: str, *, desc: bool = False) -> 'BaseQuery':
+        self._order_by.append((column, desc))
+        return self
 
-    def order_by_from_params(self, params: OrderByParams) -> 'BaseQuery':
-        return self._clone()._order_by_from_params(params)
+    def order_by(self, column: str, *, desc: bool = False) -> 'BaseQuery':
+        return self._clone()._order_by_func(column, desc=desc)
 
     def _offset_func(self, offset: int) -> 'BaseQuery':
         self._offset = offset

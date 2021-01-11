@@ -23,10 +23,10 @@ class JWT:
         return self.context.env['secret_key']
 
     def encode(self, payload):
-        return py_jwt.encode(payload, self.secret_key, algorithm='HS256').decode('utf-8')
+        return py_jwt.encode(payload, self.secret_key, algorithm='HS256')
 
     def decode(self, token):
-        return py_jwt.decode(token, self.secret_key, algorithm='HS256')
+        return py_jwt.decode(token, self.secret_key, algorithms=['HS256'])
 
     def create_access_token(self, date, identity, *, fresh=False):
         payload = {

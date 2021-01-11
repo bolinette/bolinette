@@ -5,8 +5,6 @@ import sqlalchemy
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import RelationalDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
-from bolinette.blnt.objects import OrderByParams
-from bolinette.exceptions import UnprocessableEntityError
 
 _ATTRIBUTE_ERROR_PATTERN = re.compile(r'^type object \'([^\']*)\' has no attribute \'([^\']*)\'$')
 
@@ -41,9 +39,6 @@ class RelationalQuery(BaseQuery):
         self._base_clone(query)
         return query
 
-    def _order_by_from_params(self, params: OrderByParams):
-        return self._order_by_func(lambda t: getattr(t, params.column), desc=not params.ascending)
-
     async def all(self):
         return self._build_query().all()
 
@@ -61,16 +56,19 @@ class RelationalQuery(BaseQuery):
 
     def _build_query(self):
         query = self._query()
+        if len(self._filters_by) > 0:
+            query = query.filter_by(**self._filters_by)
         if len(self._filters) > 0:
-            query = query.filter_by(**self._filters)
-        if len(self._order_by):
-            for func, desc in self._order_by:
-                try:
-                    col = func(self._table)
-                except AttributeError as e:
-                    message = _ATTRIBUTE_ERROR_PATTERN.match(e.args[0])
-                    raise UnprocessableEntityError(f'{message.group(1)}.no_column_in_entity:{message.group(2)}')
-                if desc:
-                    col = sqlalchemy.desc(col)
-                query = query.order_by(col)
+            for function in self._filters:
+                query = query.filter(function(self._table))
+        if len(self._order_by) > 0:
+            for column, desc in self._order_by:
+                if hasattr(self._table, column):
+                    col = getattr(self._table, column)
+                    if desc:
+                        col = sqlalchemy.desc(col)
+                    query = query.order_by(col)
+        query = query.offset(self._offset)
+        if self._limit is not None:
+            query = query.limit(self._limit)
         return query

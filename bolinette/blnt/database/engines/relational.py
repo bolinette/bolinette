@@ -9,9 +9,9 @@ class RelationalDatabase(DatabaseEngine):
     def __init__(self, uri):
         super().__init__(relational=True)
         self._engine = create_engine(uri, echo=False)
-        self._factory = sessionmaker(bind=self._engine)
         self._base = declarative_base()
-        self._session = self._factory()
+        self._Session = sessionmaker(bind=self._engine)
+        self._session = self._Session()
 
     @property
     def base(self):

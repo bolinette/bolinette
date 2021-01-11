@@ -27,9 +27,10 @@ class Model:
 
 
 class ModelMetadata:
-    def __init__(self, name: str, database: str):
+    def __init__(self, name: str, database: str, relational: bool):
         self.name = name
         self.database = database
+        self.relational = relational
 
 
 class ModelProps:

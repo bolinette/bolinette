@@ -27,7 +27,6 @@ class BolinetteContext:
             self.sockets = web.BolinetteSockets(self)
             self.mapper = mapping.Mapper(self)
             self.validator = blnt.Validator(self)
-            self.response = web.Response(self)
             self._tables: Dict[str, Any] = {}
             self._models: Dict[str, 'core.Model'] = {}
             self._repos: Dict[str, 'core.Repository'] = {}
@@ -63,6 +62,9 @@ class BolinetteContext:
 
     def internal_path(self, *path):
         return paths.join(self.origin, *path)
+
+    def internal_files_path(self, *path):
+        return paths.join(self.origin, '_files', *path)
 
     @property
     def models(self):

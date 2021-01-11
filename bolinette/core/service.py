@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any
 
 from bolinette import blnt, core
 from bolinette.blnt.objects import PaginationParams, OrderByParams
@@ -25,25 +25,25 @@ class Service:
             raise EntityNotFoundError(model=self.__blnt__.name, key='id', value=identifier)
         return entity
 
-    async def get_by(self, key, value):
+    async def get_by(self, key: str, value):
         return await self.repo.get_by(key, value)
 
-    async def get_first_by(self, key, value, *, safe=False):
+    async def get_first_by(self, key: str, value, *, safe=False):
         entity = await self.repo.get_first_by(key, value)
         if entity is None and not safe:
             raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
         return entity
 
-    async def get_all(self, pagination: PaginationParams = None, order_by: List[OrderByParams] = None):
+    async def get_all(self, *, pagination: PaginationParams = None, order_by: List[OrderByParams] = None):
         return await self.repo.get_all(pagination, order_by)
 
-    async def create(self, values):
+    async def create(self, values: Dict[str, Any]):
         return await self.repo.create(values)
 
-    async def update(self, entity, values):
+    async def update(self, entity, values: Dict[str, Any]):
         return await self.repo.update(entity, values)
 
-    async def patch(self, entity, values):
+    async def patch(self, entity, values: Dict[str, Any]):
         return await self.repo.patch(entity, values)
 
     async def delete(self, entity):

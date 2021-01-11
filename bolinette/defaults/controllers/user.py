@@ -21,7 +21,7 @@ class UserController(web.Controller):
     def default_routes(self):
         return [
             self.defaults.get_all('private', middlewares=['auth|roles=admin']),
-            self.defaults.get_one('private', key='username', middlewares=['auth|roles=admin'])
+            self.defaults.get_one('private', prefix='/u', key='username', middlewares=['auth|roles=admin'])
         ]
 
     def _create_tokens(self, resp, user, *, set_access, set_refresh, fresh):
@@ -41,7 +41,7 @@ class UserController(web.Controller):
         """
         Gets current user's details
         """
-        return self.response.ok('OK', current_user)
+        return current_user
 
     @post('/login', expects=web.Expects('user', 'login'), returns=web.Returns('user', 'private'))
     async def login(self, payload):

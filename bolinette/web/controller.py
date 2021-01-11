@@ -13,7 +13,7 @@ class Controller:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.__props__ = ControllerProps(self)
         self.context = context
-        self.response = context.response
+        self.response = web.Response(context)
         if self.__blnt__.use_service:
             self.defaults = ControllerDefaults(self)
 
@@ -166,17 +166,15 @@ class ControllerRoute:
             raise InitError(f'[{self.controller.__class__.__name__}] middleware '
                             f'"{mdw}|{arg}": unable to parse "{value}" as {_filter}')
 
-    async def call_middleware_chain(self, request: Request, params: Dict[str, Any], track: 'MiddlewareTrack'):
+    async def call_middleware_chain(self, request: Request, params: Dict[str, Any]):
         handles = ([MiddlewareHandle(name=m.__blnt__.name, func=m.handle) for m in self.middlewares]
                    + [MiddlewareHandle('__ctrl_call', self._final_middleware_call)])
-        return await self._call_middleware(handles, 0, request, params, track)
+        return await self._call_middleware(handles, 0, request, params)
 
     async def _call_middleware(self, handles: List['MiddlewareHandle'], index: int, request: Request,
-                               params: Dict[str, Any], track: 'MiddlewareTrack'):
+                               params: Dict[str, Any]):
         async def _next(_request, _params):
-            return await self._call_middleware(handles, index + 1, _request, _params, track)
-        track.append(handles[index].name)
-        track.done = handles[index].name == '__ctrl_call'
+            return await self._call_middleware(handles, index + 1, _request, _params)
         return await handles[index].func(request, params, _next)
 
     async def _final_middleware_call(self, _1, params: Dict[str, Any], _2):
@@ -187,15 +185,6 @@ class MiddlewareHandle:
     def __init__(self, name: str, func: Callable):
         self.name = name
         self.func = func
-
-
-class MiddlewareTrack:
-    def __init__(self):
-        self.done = False
-        self.steps: List[str] = []
-
-    def append(self, step: str):
-        self.steps.append(step)
 
 
 class Expects:
@@ -217,7 +206,8 @@ class ControllerDefaults:
     def __init__(self, controller: Controller):
         self.service: core.Service = controller.service
 
-    def get_all(self, returns='default', *, middlewares: List[str] = None, docstring: str = None):
+    def get_all(self, returns='default', *, prefix='',
+                middlewares: List[str] = None, docstring: str = None):
         async def route(controller, **kwargs):
             resp = await functions.async_invoke(controller.service.get_all, **kwargs)
             return controller.response.ok('OK', resp)
@@ -228,11 +218,12 @@ class ControllerDefaults:
 
         -response 200 returns: The list of {model_name} entities
         """
-        return ControllerRoute(route, '', web.HttpMethod.GET, docstring,
+        return ControllerRoute(route, f'{prefix}', web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
-    def get_one(self, returns='default', *, key='id', middlewares: List[str] = None, docstring: str = None):
+    def get_one(self, returns='default', *, key='id', prefix='',
+                middlewares: List[str] = None, docstring: str = None):
         async def route(controller, *, match, **kwargs):
             resp = await functions.async_invoke(controller.service.get_first_by, key, match.get(key), **kwargs)
             return controller.response.ok('OK', resp)
@@ -243,11 +234,12 @@ class ControllerDefaults:
 
         -response 200 returns: The {model_name} entity
         """
-        return ControllerRoute(route, f'/{{{key}}}', web.HttpMethod.GET, docstring,
+        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def create(self, returns='default', expects='default', *, middlewares: List[str] = None, docstring: str = None):
+    def create(self, returns='default', expects='default', *, prefix='',
+               middlewares: List[str] = None, docstring: str = None):
         async def route(controller, payload, **kwargs):
             resp = await functions.async_invoke(controller.service.create, payload, **kwargs)
             return controller.response.created(f'{controller.service.__blnt__.model_name}.created', resp)
@@ -258,12 +250,12 @@ class ControllerDefaults:
 
         -response 201 returns: The created {model_name} entity
         """
-        return ControllerRoute(route, '', web.HttpMethod.POST, docstring,
+        return ControllerRoute(route, f'{prefix}', web.HttpMethod.POST, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def update(self, returns='default', expects='default', *, key='id',
+    def update(self, returns='default', expects='default', *, key='id', prefix='',
                middlewares: List[str] = None, docstring: str = None):
         async def route(controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
@@ -276,12 +268,12 @@ class ControllerDefaults:
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(route, f'/{{{key}}}', web.HttpMethod.PUT, docstring,
+        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.PUT, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def patch(self, returns='default', expects='default', *, key='id',
+    def patch(self, returns='default', expects='default', *, key='id', prefix='',
               middlewares: List[str] = None, docstring: str = None):
         async def route(controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
@@ -299,7 +291,8 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def delete(self, returns='default', *, key='id', middlewares: List[str] = None, docstring: str = None):
+    def delete(self, returns='default', *, key='id', prefix='',
+               middlewares: List[str] = None, docstring: str = None):
         async def route(controller, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
             resp = await functions.async_invoke(controller.service.delete, entity, **kwargs)
@@ -311,6 +304,6 @@ class ControllerDefaults:
 
         -response 200 returns: The deleted {model_name} entity
         """
-        return ControllerRoute(route, f'/{{{key}}}', web.HttpMethod.DELETE, docstring,
+        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.DELETE, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)

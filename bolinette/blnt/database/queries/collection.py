@@ -1,10 +1,11 @@
 from bson import ObjectId
+from pymongo import ASCENDING, DESCENDING
 from pymongo.collection import Collection
+from pymongo.cursor import Cursor
 
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import CollectionDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
-from bolinette.blnt.objects import OrderByParams
 
 
 class CollectionQueryBuilder(BaseQueryBuilder):
@@ -36,11 +37,8 @@ class CollectionQuery(BaseQuery):
         self._base_clone(query)
         return query
 
-    def _order_by_from_params(self, params: OrderByParams):
-        return self._order_by_func(lambda c: c[params.column], desc=not params.ascending)
-
     async def all(self):
-        return self._collection.find(self._build_filters())
+        return self._apply_params(self._collection.find(self._build_filters()))
 
     async def first(self):
         return self._collection.find_one(self._build_filters())
@@ -49,14 +47,23 @@ class CollectionQuery(BaseQuery):
         return self._collection.find_one({'_id': ObjectId(identifier)})
 
     async def count(self):
-        pass
+        return self._collection.count_documents(self._build_filters())
+
+    def _apply_params(self, cursor: Cursor):
+        cursor.skip(self._offset)
+        if self._limit is not None:
+            cursor.limit(self._limit)
+        if len(self._order_by) > 0:
+            order_by = [(column, DESCENDING if desc else ASCENDING) for column, desc in self._order_by]
+            cursor.sort(order_by)
+        return cursor
 
     def _build_filters(self):
         params = {}
-        if len(self._filters) > 0:
-            for key in self._filters:
+        if len(self._filters_by) > 0:
+            for key in self._filters_by:
                 if key == '_id':
-                    params[key] = ObjectId(self._filters[key])
+                    params[key] = ObjectId(self._filters_by[key])
                 else:
-                    params[key] = self._filters[key]
+                    params[key] = self._filters_by[key]
         return params

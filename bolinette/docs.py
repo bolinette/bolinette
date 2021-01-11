@@ -205,4 +205,4 @@ class NoDocsController(web.Controller):
             'version': self.context.manifest.get('version', '0.0.1')
         }
         return self.response.render_template('no_docs.html.jinja2', params,
-                                             self.context.internal_path('_files', 'templates'))
+                                             self.context.internal_files_path('templates'))

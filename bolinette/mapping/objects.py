@@ -1,7 +1,9 @@
+from abc import ABC
+
 from bolinette import types
 
 
-class MappingObject:
+class MappingObject(ABC):
     def __init__(self, *, key=None, name=None, default=None, required=False,
                  nullable=True, function=False, formatting=False):
         self.key = key

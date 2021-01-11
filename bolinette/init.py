@@ -105,8 +105,10 @@ def init_controllers(context: blnt.BolinetteContext):
     for controller_name, controller_cls in blnt.cache.controllers.items():
         controller = controller_cls(context)
         for _, route in controller.__props__.get_routes():
+            route.controller = controller
             route.setup(controller)
         for route in controller.default_routes():
+            route.controller = controller
             route.setup(controller)
         context.add_controller(controller_name, controller)
 

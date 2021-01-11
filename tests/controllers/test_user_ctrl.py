@@ -52,7 +52,7 @@ async def test_login(client: TestClient):
 
 @bolitest(before=set_up)
 async def test_access_user_info_failed(client: TestClient):
-    rv = await client.get('/user/me')
+    rv = await client.get('/user/info')
     assert rv['code'] == 401
 
 
@@ -62,7 +62,7 @@ async def test_access_user_info(client: TestClient):
 
     await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.get('/user/me')
+    rv = await client.get('/user/info')
     assert rv['code'] == 200
     assert rv['data'].get('username') == user1['username']
     assert rv['data'].get('email') == user1['email']
@@ -75,13 +75,13 @@ async def test_logout(client: TestClient):
 
     await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.get('/user/me')
+    rv = await client.get('/user/info')
     assert rv['code'] == 200
 
     rv = await client.post('/user/logout')
     assert rv['code'] == 200
 
-    rv = await client.get('/user/me')
+    rv = await client.get('/user/info')
     assert rv['code'] == 401
 
 
@@ -103,7 +103,7 @@ async def test_logged_in_after_register(client: TestClient):
     rv = await client.post('/user/register', user2.to_payload('register'))
     assert rv['code'] == 201
 
-    rv = await client.get('/user/me')
+    rv = await client.get('/user/info')
     assert rv['code'] == 200
     assert rv['data'].get('username') == user2['username']
     assert rv['data'].get('email') == user2['email']
@@ -149,7 +149,7 @@ async def test_change_password(client: TestClient):
     await client.post('/user/logout')
     await client.post('/user/login', {'username': user1['username'], 'password': 'new_password'})
 
-    rv = await client.get('/user/me')
+    rv = await client.get('/user/info')
     assert rv['code'] == 200
 
 

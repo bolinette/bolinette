@@ -94,7 +94,7 @@ class Response:
         try:
             content = files.render_template(workdir, name, params)
         except TemplateNotFound:
-            error_404_wd = self.context.internal_path('_files', 'templates')
+            error_404_wd = self.context.internal_files_path('templates')
             error_404 = paths.join('errors', '404.html.jinja2')
             content = files.render_template(error_404_wd, error_404, params)
         return AioResponse(body=content, status=200, content_type='text/html')

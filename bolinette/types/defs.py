@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Literal
 
 from bolinette import types
 
@@ -38,7 +38,7 @@ class Backref:
 
 class Relationship:
     def __init__(self, model_name: str, *, backref: Backref = None, foreign_key: Column = None,
-                 lazy: Union[bool, str] = False, secondary: str = None, remote_side: Column = None):
+                 lazy: Union[bool, Literal['subquery']] = False, secondary: str = None, remote_side: Column = None):
         self.model_name = model_name
         self.foreign_key = foreign_key
         self.backref = backref

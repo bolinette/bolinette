@@ -1,12 +1,13 @@
 import inspect
-from typing import Type, Callable, List, Union
+from typing import Type, Callable, List, Union, Literal
 
 from bolinette import blnt, core, web
 
 
-def model(model_name: str, database: str = 'default'):
+def model(model_name: str, *, database: str = 'default',
+          model_type: Literal['relational', 'collection'] = 'relational'):
     def decorator(model_cls: Type['core.Model']):
-        model_cls.__blnt__ = core.ModelMetadata(model_name, database)
+        model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational')
         blnt.cache.models[model_name] = model_cls
         return model_cls
     return decorator
@@ -36,6 +37,11 @@ def with_mixin(mixin_name: str):
 
 def init_func(func: Callable[['blnt.BolinetteContext'], None]):
     blnt.cache.init_funcs.append(func)
+    return func
+
+
+def with_context(func: Callable[['blnt.BolinetteContext'], None]):
+    blnt.cache.with_ctx_funcs.append(func)
     return func
 
 

@@ -33,12 +33,15 @@ class ResponseMiddleware(web.InternalMiddleware):
             resp = await next_func(request, params)
         if resp is None:
             return aio_web.Response(status=204)
-        if isinstance(resp, aio_web.Response):
+        elif isinstance(resp, aio_web.Response):
             return resp
-        if isinstance(resp, str):
+        elif isinstance(resp, str):
             return aio_web.Response(text=resp, status=200, content_type='text/plain')
-        if not isinstance(resp, web.APIResponse):
-            return aio_web.Response(text='global.response.unserializable', status=500, content_type='text/plain')
+        elif not isinstance(resp, web.APIResponse):
+            if 'model' in self.options:
+                resp = web.Response(self.context).ok('OK', resp)
+            else:
+                return aio_web.Response(text='global.response.unserializable', status=500, content_type='text/plain')
 
         content = resp.content
 
@@ -87,7 +90,7 @@ class PaginationMiddleware(web.InternalMiddleware):
                      next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
         if 'page' in request.query or 'per_page' in request.query:
             try:
-                page = int(request.query.get('page', "1"))
+                page = int(request.query.get('page', "0"))
                 per_page = int(request.query.get('per_page', "20"))
             except ValueError:
                 raise BadRequestError('global.pagination.param_not_number')

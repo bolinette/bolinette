@@ -85,20 +85,18 @@ class RouteHandler:
         context: blnt.BolinetteContext = request.app['blnt']
         params = {
             'match': {},
-            'query': {}
+            'query': {},
+            'request': request
         }
         for key in request.match_info:
             params['match'][key] = request.match_info[key]
         for key in request.query:
             params['query'][key] = request.query[key]
         try:
-            track = web.MiddlewareTrack()
-            resp = await self.route.call_middleware_chain(request, params, track)
-            if not track.done:
-                raise InternalError(f'internal.middleware.chain_stopped:{"->".join(track.steps)}')
+            resp = await self.route.call_middleware_chain(request, params)
             return resp
         except (APIError, APIErrors) as ex:
-            res = context.response.from_exception(ex)
+            res = web.Response(context).from_exception(ex)
             if context.env['debug']:
                 stack = traceback.format_exc()
                 if isinstance(ex, InternalError):
