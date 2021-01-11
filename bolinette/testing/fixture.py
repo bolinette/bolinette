@@ -9,8 +9,9 @@ from bolinette.testing import TestClient
 
 @pytest.fixture
 def client(loop):
+    async def create_client():
+        return TestClient(bolinette, loop)
     bolinette = Bolinette(profile='test', overrides={
         'secret_key': ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     })
-    client = TestClient(bolinette, loop)
-    return client
+    return loop.run_until_complete(create_client())
