@@ -1,7 +1,7 @@
 # Exceptions
 
 Any request can be aborted at any time by raising an Error.
-The error is caught at top level and a readable error is sent to the client.
+The error is caught at top level, and a readable error is sent to the client.
 All errors are located inside the [`bolinette.exceptions`](../bolinette/exceptions.py) package and inherit `APIError`.
 
 ## Error codes
