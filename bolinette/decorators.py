@@ -28,6 +28,7 @@ def mixin(mixin_name: str):
 def with_mixin(mixin_name: str):
     def decorator(model_cls):
         mixin_cls = blnt.cache.mixins.get(mixin_name)
+        model_cls.__mixins__[mixin_name] = mixin_cls
         for col_name, col_def in mixin_cls.columns().items():
             setattr(model_cls, col_name, col_def)
         for rel_name, rel_def in mixin_cls.relationships(model_cls).items():

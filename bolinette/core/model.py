@@ -1,6 +1,6 @@
-from typing import List, Union, Tuple, Any, Generator
+from typing import List, Union, Tuple, Any, Generator, Dict
 
-from bolinette import types
+from bolinette import core, types
 from bolinette.blnt.database.engines import DatabaseEngine
 from bolinette.exceptions import InitError
 
@@ -11,6 +11,7 @@ MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 
 class Model:
     __blnt__: 'ModelMetadata' = None
+    __mixins__: Dict[str, 'core.Mixin'] = {}
 
     def __init__(self, database: 'DatabaseEngine'):
         self.__props__ = ModelProps(self, database)
@@ -22,6 +23,10 @@ class Model:
     @classmethod
     def responses(cls) -> MappingListPyTyping:
         pass
+
+    @classmethod
+    def get_mixin(cls, name: str):
+        return cls.__mixins__[name]
 
     def __repr__(self):
         return f'<Model {self.__blnt__.name}>'

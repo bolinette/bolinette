@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from bolinette import types, core, blnt, mapping
+from bolinette import types, core, mapping
 from bolinette.decorators import model, with_mixin
 
 
@@ -30,7 +30,7 @@ class Book(core.Model):
 
     @classmethod
     def responses(cls):
-        base = blnt.cache.mixins.get('historized').response(cls)
+        base = cls.get_mixin('historized').response(cls)
         default: List[Any] = [
             mapping.Column(cls.uid),
             mapping.Column(cls.name),
