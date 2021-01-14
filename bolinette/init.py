@@ -28,7 +28,7 @@ def init_relational_models(context: blnt.BolinetteContext):
             if attribute.reference:
                 ref = sqlalchemy.ForeignKey(f'{attribute.reference.model_name}.{attribute.reference.column_name}')
             orm_cols[model_name][att_name] = sqlalchemy.Column(
-                att_name, attribute.type.sqlalchemy_type, ref, default=attribute.default,
+                att_name, attribute.type.sqlalchemy_type, ref, default=attribute.default, index=attribute.model_id,
                 primary_key=attribute.primary_key, nullable=attribute.nullable, unique=attribute.unique)
         orm_tables[model_name] = sqlalchemy.Table(model_name,
                                                   model.__props__.database.base.metadata,

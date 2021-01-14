@@ -15,10 +15,10 @@ class BolinetteContext:
         self._ctx = {}
         self.cwd = paths.cwd()
         self.origin = origin
-        self.logger = blnt.Logger()
+        self.env = blnt.Environment(self, profile=profile, overrides=overrides)
+        self.logger = blnt.Logger(self)
         if app is not None:
             self.app = app
-            self.env = blnt.Environment(self, profile=profile, overrides=overrides)
             self.manifest = files.read_manifest(self.root_path()) or {}
             self.docs = Documentation(self)
             self.db = DatabaseManager(self)

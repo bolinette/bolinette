@@ -30,7 +30,8 @@ class Settings:
         item = self[key]
         return item if item is not None else default
 
-    def _cwd_path(self, *path):
+    @staticmethod
+    def _cwd_path(*path):
         return paths.join(paths.cwd(), *path)
 
     def _reset(self, settings: Dict[str, Any]):
@@ -107,20 +108,23 @@ class Environment(Settings):
             'app_version': '0.0.1',
             'database': None,
             'debug': False,
+            'json_logging': False,
             'host': '127.0.0.1',
             'port': '5000',
             'build_docs': False,
             'webapp_folder': self.context.root_path('webapp', 'dist')
         }
 
-    def _load_from_os(self):
+    @staticmethod
+    def _load_from_os():
         keys = {}
         for key in os.environ:
             if key.startswith('BLNT_'):
                 keys[key[5:].lower()] = os.environ[key]
         return keys
 
-    def _merge_env_stack(self, stack):
+    @staticmethod
+    def _merge_env_stack(stack):
         settings = {}
         for source in stack:
             for key, value in source.items():
