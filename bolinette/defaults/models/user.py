@@ -2,7 +2,7 @@ from bolinette import types, core, blnt, mapping
 from bolinette.decorators import model
 
 
-@model('users_roles')
+@model('users_roles', join_table=True)
 class UsersRoles(core.Model):
     user_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id'), primary_key=True)
     role_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('role', 'id'), primary_key=True)
@@ -11,7 +11,7 @@ class UsersRoles(core.Model):
 @model('user')
 class User(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    username = types.defs.Column(types.db.String, unique=True, nullable=False)
+    username = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
     password = types.defs.Column(types.db.Password, nullable=False)
     email = types.defs.Column(types.db.Email, unique=blnt.init['user_email_required'],
                               nullable=(not blnt.init['user_email_required']))

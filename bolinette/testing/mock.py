@@ -86,7 +86,7 @@ class Mock:
         columns = self.context.model(model_name).__props__.get_columns()
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
-        for _, column in columns.items():
+        for _, column in columns:
             if column.primary_key:
                 continue
             col_type = column.type

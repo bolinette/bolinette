@@ -5,6 +5,7 @@ from bolinette.decorators import model
 @model('person')
 class Person(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
+    uid = types.defs.Column(types.db.String, nullable=False, unique=True, model_id=True)
     first_name = types.defs.Column(types.db.String, nullable=False)
     last_name = types.defs.Column(types.db.String, nullable=False)
 

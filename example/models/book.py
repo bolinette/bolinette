@@ -8,6 +8,7 @@ from bolinette.decorators import model, with_mixin
 @with_mixin('historized')
 class Book(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
+    uid = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
     name = types.defs.Column(types.db.String, nullable=False)
     pages = types.defs.Column(types.db.Integer, nullable=False)
     price = types.defs.Column(types.db.Float, nullable=False)
@@ -19,6 +20,7 @@ class Book(core.Model):
     @classmethod
     def payloads(cls):
         yield [
+            mapping.Column(cls.uid, required=True),
             mapping.Column(cls.name, required=True),
             mapping.Column(cls.pages, required=True),
             mapping.Column(cls.price, required=True),
@@ -30,7 +32,7 @@ class Book(core.Model):
     def responses(cls):
         base = blnt.cache.mixins.get('historized').response(cls)
         default: List[Any] = [
-            mapping.Column(cls.id),
+            mapping.Column(cls.uid),
             mapping.Column(cls.name),
             mapping.Column(cls.pages),
             mapping.Column(cls.price),

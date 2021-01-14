@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from bolinette import blnt, core
 from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
 from bolinette.blnt.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
-from bolinette.exceptions import ParamConflictError, APIErrors
+from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
 from bolinette.utils.functions import setattr_, getattr_
 
 
@@ -73,22 +73,31 @@ class Repository:
 
     async def _validate_model(self, values: Dict[str, Any]):
         api_errors = APIErrors()
-        for column in self.model.__props__.get_columns().values():
+        ignore_keys = []
+        for _, relationship in self.model.__props__.get_relationships():
+            key = relationship.name
+            if key in values and values[key] is not None:
+                ignore_keys.append(relationship.foreign_key.name)
+        for _, column in self.model.__props__.get_columns():
             key = column.name
-            if column.primary_key:
+            if column.primary_key or key in ignore_keys:
                 continue
             if key in values:
                 value = values.get(key)
+                if value is None and not column.nullable:
+                    api_errors.append(ParamNonNullableError(key))
                 if column.unique:
                     if await self.get_first_by(column.name, value) is not None:
                         api_errors.append(ParamConflictError(key, value))
+            elif not column.nullable:
+                api_errors.append(ParamNonNullableError(key))
         if api_errors:
             raise api_errors
         return values
 
     async def _map_model(self, entity, values: Dict[str, Any], patch=False):
         api_errors = APIErrors()
-        for _, column in self.model.__props__.get_columns().items():
+        for _, column in self.model.__props__.get_columns():
             key = column.name
             if column.primary_key or (key not in values and patch):
                 continue
@@ -96,6 +105,8 @@ class Repository:
             new = values.get(key, None)
             if original == new:
                 continue
+            if new is None and not column.nullable:
+                api_errors.append(ParamNonNullableError(key))
             if column.unique and new is not None:
                 if await self.get_first_by(column.name, new) is not None:
                     api_errors.append(ParamConflictError(key, new))

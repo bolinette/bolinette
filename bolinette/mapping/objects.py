@@ -1,5 +1,7 @@
 from abc import ABC
+from typing import Union
 
+from bolinette import mapping
 from bolinette import types
 
 
@@ -36,8 +38,8 @@ class Column(Field):
 
 
 class List(MappingObject):
-    def __init__(self, element, *, key=None, name=None, default=None,
-                 required=False, function=None, formatting=None):
+    def __init__(self, element: Union['types.db.DataType', 'mapping.Definition'], *,
+                 key=None, name=None, default=None, required=False, function=None, formatting=None):
         super().__init__(key=key, name=name, default=default, required=required,
                          function=function, formatting=formatting)
         self.element = element

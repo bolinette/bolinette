@@ -1,8 +1,8 @@
 from typing import Dict
 
-from bolinette import core, blnt, mapping
+from bolinette import core, blnt, mapping, types
 from bolinette.exceptions import InternalError
-from bolinette.utils.functions import getattr_, hasattr_
+from bolinette.utils.functions import getattr_, hasattr_, invoke
 
 
 class Mapper:
@@ -11,7 +11,8 @@ class Mapper:
         self._payloads: Dict[str, Dict[str, mapping.Definition]] = {}
         self._responses: Dict[str, Dict[str, mapping.Definition]] = {}
 
-    def _get_def(self, collection, model_name, key) -> 'mapping.Definition':
+    @staticmethod
+    def _get_def(collection, model_name, key) -> 'mapping.Definition':
         m = collection.get(model_name)
         if m is None:
             raise InternalError(f'mapping.unknown_model:{model_name}')
@@ -64,35 +65,52 @@ class Mapper:
         if as_list:
             return [self.marshall(definition, e, skip_none=skip_none, as_list=False, use_foreign_key=use_foreign_key)
                     for e in entity]
-
         values = {}
         for field in definition.fields:
-            if isinstance(field, mapping.Field):
-                if field.function is not None:
-                    value = field.function(entity)
-                else:
-                    value = getattr_(entity, field.key, None)
-                if field.formatting is not None:
-                    value = field.formatting(value)
-                if not skip_none or value is not None:
-                    values[field.name] = value
-            elif isinstance(field, mapping.Reference) and use_foreign_key:
-                values[field.foreign_key] = getattr_(entity, field.foreign_key, None)
-            elif isinstance(field, mapping.Definition):
-                d = self.response(field.model_name, field.model_key)
-                attr = None
-                if field.function and callable(field.function):
-                    attr = field.function(entity)
-                elif hasattr_(entity, field.name):
-                    attr = getattr_(entity, field.name, None)
-                values[field.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
-                                                   use_foreign_key=use_foreign_key)
-            elif isinstance(field, mapping.List):
-                d = self.response(field.element.model_name, field.element.model_key)
-                if field.function and callable(field.function):
-                    e_list = field.function(entity)
-                else:
-                    e_list = getattr_(entity, field.name, None)
-                values[field.name] = self.marshall(d, e_list, skip_none=skip_none, as_list=True,
-                                                   use_foreign_key=use_foreign_key)
+            self._marshall_object(values, field, entity, skip_none, use_foreign_key)
         return values
+
+    def _marshall_object(self, values, field, entity, skip_none: bool, use_foreign_key: bool):
+        if isinstance(field, mapping.Field):
+            self._marshall_field(values, field, entity, skip_none)
+        elif isinstance(field, mapping.Reference) and use_foreign_key:
+            values[field.foreign_key] = getattr_(entity, field.foreign_key, None)
+        elif isinstance(field, mapping.Definition):
+            self._marshall_definition(values, field, entity, skip_none, use_foreign_key)
+        elif isinstance(field, mapping.List):
+            self._marshall_list(values, field, entity, skip_none, use_foreign_key)
+
+    @staticmethod
+    def _marshall_field(values, field: 'mapping.Field', entity, skip_none: bool):
+        if field.function is not None:
+            value = field.function(entity)
+        else:
+            value = getattr_(entity, field.key, None)
+        if field.formatting is not None:
+            value = field.formatting(value)
+        if not skip_none or value is not None:
+            values[field.name] = value
+
+    def _marshall_definition(self, values, definition: 'mapping.Definition', entity,
+                             skip_none: bool, use_foreign_key: bool):
+        d = self.response(definition.model_name, definition.model_key)
+        attr = None
+        if definition.function and callable(definition.function):
+            attr = definition.function(entity)
+        elif hasattr_(entity, definition.name):
+            attr = getattr_(entity, definition.name, None)
+        values[definition.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
+                                                use_foreign_key=use_foreign_key)
+
+    def _marshall_list(self, values, field: 'mapping.List', entity, skip_none: bool, use_foreign_key: bool):
+        if field.function and callable(field.function):
+            e_list = invoke(field.function, entity)
+        else:
+            e_list = getattr_(entity, field.name, None)
+        elem = field.element
+        if isinstance(elem, types.db.DataType):
+            values[field.name] = [e for e in e_list]
+        elif isinstance(elem, mapping.Definition):
+            d = self.response(elem.model_name, elem.model_key)
+            values[field.name] = self.marshall(d, e_list, skip_none=skip_none, as_list=True,
+                                               use_foreign_key=use_foreign_key)

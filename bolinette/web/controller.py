@@ -223,13 +223,14 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
-    def get_one(self, returns='default', *, key='id', prefix='',
+    def get_one(self, returns='default', *, key: str = None, prefix='',
                 middlewares: List[str] = None, docstring: str = None):
         async def route(controller, *, match, **kwargs):
             resp = await functions.async_invoke(controller.service.get_first_by, key, match.get(key), **kwargs)
             return controller.response.ok('OK', resp)
 
         model_name = self.service.__blnt__.model_name
+        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Gets one record from {model_name} collection, identified by {key} field
 
@@ -256,7 +257,7 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def update(self, returns='default', expects='default', *, key='id', prefix='',
+    def update(self, returns='default', expects='default', *, key: str = None, prefix='',
                middlewares: List[str] = None, docstring: str = None):
         async def route(controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
@@ -264,6 +265,7 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         model_name = self.service.__blnt__.model_name
+        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Updates all fields from one {model_name} entity, identified by {key} field
 
@@ -274,7 +276,7 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def patch(self, returns='default', expects='default', *, key='id', prefix='',
+    def patch(self, returns='default', expects='default', *, key: str = None, prefix='',
               middlewares: List[str] = None, docstring: str = None):
         async def route(controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
@@ -282,6 +284,7 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
 
         model_name = self.service.__blnt__.model_name
+        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Updates some fields from one {model_name} entity, identified by {key} field
 
@@ -292,7 +295,7 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
-    def delete(self, returns='default', *, key='id', prefix='',
+    def delete(self, returns='default', *, key: str = None, prefix='',
                middlewares: List[str] = None, docstring: str = None):
         async def route(controller, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
@@ -300,6 +303,7 @@ class ControllerDefaults:
             return controller.response.ok(f'{controller.service.__blnt__.model_name}.deleted', resp)
 
         model_name = self.service.__blnt__.model_name
+        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Deletes on record from {model_name} collection, identified by {key} field
 

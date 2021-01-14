@@ -5,7 +5,7 @@ from bolinette.decorators import model
 @model('library', database='mongo')
 class Library(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    key = types.defs.Column(types.db.String, nullable=False, unique=True)
+    key = types.defs.Column(types.db.String, nullable=False, unique=True, model_id=True)
     name = types.defs.Column(types.db.String, nullable=False)
     address = types.defs.Column(types.db.String)
 

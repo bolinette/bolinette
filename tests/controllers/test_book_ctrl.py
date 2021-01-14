@@ -46,7 +46,7 @@ async def test_get_book(client):
     author1 = client.mock(1, 'person')
     book1 = utils.book.set_author(client.mock(1, 'book'), 1)
 
-    rv = await client.get('/book/1')
+    rv = await client.get(f'/book/{book1["uid"]}')
     assert rv['code'] == 200
     assert equal_books(rv['data'], book1.to_response(), author1.to_response())
 
@@ -56,7 +56,7 @@ async def test_get_book2(client):
     author2 = client.mock(2, 'person')
     book3 = utils.book.set_author(client.mock(3, 'book'), 2)
 
-    rv = await client.get('/book/3')
+    rv = await client.get(f'/book/{book3["uid"]}')
     assert rv['code'] == 200
     assert equal_books(rv['data'], book3.to_response(), author2.to_response())
 
@@ -121,7 +121,8 @@ async def test_historized_entities(client):
     await client.post('/user/login', user2.to_payload('login'))
 
     t_before_update = datetime.utcnow()
-    rv = await client.put('/book/4', book4.to_payload())
+    rv = await client.put(f'/book/{book4["uid"]}', book4.to_payload())
+    assert rv['code'] == 200
     t_after_update = datetime.utcnow()
     assert rv['data']['created_by']['username'] == user1['username']
     assert rv['data']['updated_by']['username'] == user2['username']
@@ -139,7 +140,7 @@ async def test_update_book(client):
 
     await client.post('/user/login', user2.to_payload('login'))
 
-    rv = await client.put('/book/1', book1.to_payload())
+    rv = await client.put(f'/book/{book1["uid"]}', book1.to_payload())
     assert rv['code'] == 200
     assert equal_books(rv['data'], book1.to_response(), author2.to_response())
     assert rv['data']['updated_by']['username'] == user2['username']
@@ -175,7 +176,7 @@ async def test_patch_book(client):
 
     await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.patch('/book/1', {'name': 'new book name'})
+    rv = await client.patch(f'/book/{book1["uid"]}', {'name': 'new book name'})
     assert rv['code'] == 200
     assert rv['data']['name'] == 'new book name'
     assert rv['data']['pages'] == book1['pages']
@@ -207,13 +208,14 @@ async def test_update_book_author_not_found(client):
 @bolitest(before=utils.book.set_up)
 async def test_delete_book(client):
     user1 = client.mock(1, 'user')
+    book1 = client.mock(1, 'book')
 
     await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.delete('/book/1')
+    rv = await client.delete(f'/book/{book1["uid"]}')
     assert rv['code'] == 200
 
-    rv = await client.get('/book/1')
+    rv = await client.get(f'/book/{book1["uid"]}')
     assert rv['code'] == 404
 
 

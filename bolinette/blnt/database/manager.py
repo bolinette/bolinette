@@ -1,8 +1,9 @@
+import traceback
 from typing import Dict
 
-from bolinette import blnt
+from bolinette import blnt, Console
 from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase, DatabaseEngine
-from bolinette.exceptions import InternalError, InitError
+from bolinette.exceptions import InternalError, InitError, APIError, APIErrors
 
 
 class DatabaseManager:
@@ -75,4 +76,14 @@ class DatabaseManager:
 
     async def run_seeders(self, context: 'blnt.BolinetteContext'):
         for func in blnt.cache.seeders:
-            await func(context)
+            try:
+                await func(context)
+            except (APIError, APIErrors) as e:
+                traceback.print_exc()
+                console = Console()
+                console.error(f'Seeder {func.__name__} raised errors')
+                if isinstance(e, APIError):
+                    console.error(e.message)
+                elif isinstance(e, APIErrors):
+                    for error in e.errors:
+                        console.error(error.message)

@@ -5,9 +5,10 @@ from bolinette import blnt, core, web
 
 
 def model(model_name: str, *, database: str = 'default',
-          model_type: Literal['relational', 'collection'] = 'relational'):
+          model_type: Literal['relational', 'collection'] = 'relational',
+          join_table: bool = False):
     def decorator(model_cls: Type['core.Model']):
-        model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational')
+        model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational', join_table)
         blnt.cache.models[model_name] = model_cls
         return model_cls
     return decorator

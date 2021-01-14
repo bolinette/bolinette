@@ -22,7 +22,7 @@ def init_relational_models(context: blnt.BolinetteContext):
     orm_cols = {}
     for model_name, model in models.items():
         orm_cols[model_name] = {}
-        for att_name, attribute in model.__props__.get_columns().items():
+        for att_name, attribute in model.__props__.get_columns():
             attribute.name = att_name
             ref = None
             if attribute.reference:
@@ -36,7 +36,7 @@ def init_relational_models(context: blnt.BolinetteContext):
 
     for model_name, model in models.items():
         orm_defs = {}
-        for att_name, attribute in model.__props__.get_relationships().items():
+        for att_name, attribute in model.__props__.get_relationships():
             kwargs = {}
             attribute.name = att_name
             if attribute.backref:
@@ -52,7 +52,7 @@ def init_relational_models(context: blnt.BolinetteContext):
         orm_defs['__table__'] = orm_tables[model_name]
         orm_model = type(model_name, (model.__props__.database.base,), orm_defs)
 
-        for att_name, attribute in model.__props__.get_properties().items():
+        for att_name, attribute in model.__props__.get_properties():
             setattr(orm_model, att_name, property(attribute.function))
 
         context.add_model(model_name, model)
@@ -72,7 +72,7 @@ def init_collection_models(context: blnt.BolinetteContext):
             raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
         models[model_name] = model_cls(database)
     for model_name, model in models.items():
-        for att_name, attribute in model.__props__.get_columns().items():
+        for att_name, attribute in model.__props__.get_columns():
             attribute.name = att_name
         context.add_model(model_name, model)
 

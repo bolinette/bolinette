@@ -14,12 +14,13 @@ class Reference:
 
 class Column:
     def __init__(self, data_type: 'types.db.DataType', *, reference: Reference = None, primary_key: bool = False,
-                 nullable: bool = True, unique: bool = False, default=None):
+                 nullable: bool = True, unique: bool = False, model_id: bool = False, default=None):
         self.type = data_type
         self.reference = reference
         self.primary_key = primary_key
         self.nullable = nullable
         self.unique = unique
+        self.model_id = model_id
         self.name = None
         self.default = default
 
