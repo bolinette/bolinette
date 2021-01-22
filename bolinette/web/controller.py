@@ -134,38 +134,20 @@ class ControllerRoute:
             raise InitError(f'[{self.controller.__class__.__name__}] Middleware '
                             f'"{mdw}" cannot be loaded in a controller')
 
+        parsed_args = {}
         for arg in args:
             arg_n, *arg_v = arg.split('=', maxsplit=1)
-            arg_n, *filters = arg_n.split(':')
-            if len(filters) > 1:
-                raise InitError(f'[{self.controller.__class__.__name__}] Middleware '
-                                f'"{name}|{arg_n}" has too many filters')
-            if len(arg_v) == 0:
-                value = True
+            parsed_args[arg_n] = arg_v[0] if len(arg_v) else True
+        def_options = middleware.define_options()
+        for opt_name, option in def_options.items():
+            if opt_name in parsed_args:
+                middleware.options[opt_name] = option.validate(parsed_args[opt_name])
+            elif option.required:
+                raise InitError(f'[{self.controller.__class__.__name__}] Middleware "{mdw}" '
+                                f'option "{opt_name}" is missing from declaration string')
             else:
-                value = arg_v[0].split(',')
-                if len(value) == 1:
-                    value = value[0]
-                if len(filters) == 1:
-                    value = self._apply_filters(value, filters[0], name, arg_n)
-            middleware.options[arg_n] = value
+                middleware.options[opt_name] = option.default
         self.middlewares.append(middleware)
-
-    def _apply_filters(self, value, _filter, mdw, arg):
-        if _filter == 'int':
-            func = int
-        elif _filter == 'float':
-            func = float
-        else:
-            raise InitError(f'[{self.controller.__class__.__name__}] middleware '
-                            f'"{mdw}|{arg}": unknown filter "{_filter}"')
-        try:
-            if isinstance(value, list):
-                return [func(v) for v in value]
-            return func(value)
-        except ValueError:
-            raise InitError(f'[{self.controller.__class__.__name__}] middleware '
-                            f'"{mdw}|{arg}": unable to parse "{value}" as {_filter}')
 
     async def call_middleware_chain(self, request: Request, params: Dict[str, Any]):
         handles = ([MiddlewareHandle(name=m.__blnt__.name, func=m.handle) for m in self.middlewares]

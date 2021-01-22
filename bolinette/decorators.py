@@ -104,9 +104,9 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
     return decorator
 
 
-def get(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
+def get(path: str, *, returns: 'web.Returns' = None,
         middlewares: Union[str, List[str]] = None):
-    return route(path, method=web.HttpMethod.GET, expects=expects, returns=returns, middlewares=middlewares)
+    return route(path, method=web.HttpMethod.GET, expects=None, returns=returns, middlewares=middlewares)
 
 
 def post(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
@@ -124,12 +124,12 @@ def patch(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = 
     return route(path, method=web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
 
 
-def delete(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
+def delete(path: str, *, returns: 'web.Returns' = None,
            middlewares: Union[str, List[str]] = None):
-    return route(path, method=web.HttpMethod.DELETE, expects=expects, returns=returns, middlewares=middlewares)
+    return route(path, method=web.HttpMethod.DELETE, expects=None, returns=returns, middlewares=middlewares)
 
 
-def middleware(name: str, *, priority: int = 10, auto_load: bool = False, loadable: bool = True):
+def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loadable: bool = True):
     def decorator(middleware_cls: Type['web.Middleware']):
         middleware_cls.__blnt__ = web.MiddlewareMetadata(name, priority, auto_load, loadable)
         blnt.cache.middlewares[name] = middleware_cls
