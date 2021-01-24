@@ -9,7 +9,8 @@ from bolinette.decorators import get, controller
 
 @controller('static', namespace='', use_service=False)
 class StaticController(web.Controller):
-    async def _file_sender(self, path):
+    @staticmethod
+    async def _file_sender(path):
         with open(path, 'rb') as file:
             chunk = file.read(2 ** 16)
             while chunk:

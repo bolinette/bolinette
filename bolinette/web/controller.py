@@ -191,9 +191,9 @@ class ControllerDefaults:
 
     def get_all(self, returns='default', *, prefix='',
                 middlewares: List[str] = None, docstring: str = None):
-        async def route(controller, **kwargs):
+        async def route(controller: web.Controller, **kwargs):
             resp = await functions.async_invoke(controller.service.get_all, **kwargs)
-            return controller.response.ok('OK', resp)
+            return controller.response.ok(data=resp)
 
         model_name = self.service.__blnt__.model_name
         docstring = docstring or f"""
@@ -207,9 +207,9 @@ class ControllerDefaults:
 
     def get_one(self, returns='default', *, key: str = None, prefix='',
                 middlewares: List[str] = None, docstring: str = None):
-        async def route(controller, *, match, **kwargs):
+        async def route(controller: web.Controller, *, match, **kwargs):
             resp = await functions.async_invoke(controller.service.get_first_by, key, match.get(key), **kwargs)
-            return controller.response.ok('OK', resp)
+            return controller.response.ok(data=resp)
 
         model_name = self.service.__blnt__.model_name
         key = key or self.service.repo.model.__props__.model_id.name
@@ -224,9 +224,9 @@ class ControllerDefaults:
 
     def create(self, returns='default', expects='default', *, prefix='',
                middlewares: List[str] = None, docstring: str = None):
-        async def route(controller, payload, **kwargs):
+        async def route(controller: web.Controller, payload, **kwargs):
             resp = await functions.async_invoke(controller.service.create, payload, **kwargs)
-            return controller.response.created(f'{controller.service.__blnt__.model_name}.created', resp)
+            return controller.response.created(messages=f'{controller.service.__blnt__.model_name}.created', data=resp)
 
         model_name = self.service.__blnt__.model_name
         docstring = docstring or f"""
@@ -241,10 +241,10 @@ class ControllerDefaults:
 
     def update(self, returns='default', expects='default', *, key: str = None, prefix='',
                middlewares: List[str] = None, docstring: str = None):
-        async def route(controller, payload, match, **kwargs):
+        async def route(controller: web.Controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
             resp = await functions.async_invoke(controller.service.update, entity, payload, **kwargs)
-            return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
+            return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.updated', data=resp)
 
         model_name = self.service.__blnt__.model_name
         key = key or self.service.repo.model.__props__.model_id.name
@@ -260,10 +260,10 @@ class ControllerDefaults:
 
     def patch(self, returns='default', expects='default', *, key: str = None, prefix='',
               middlewares: List[str] = None, docstring: str = None):
-        async def route(controller, payload, match, **kwargs):
+        async def route(controller: web.Controller, payload, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
             resp = await functions.async_invoke(controller.service.patch, entity, payload, **kwargs)
-            return controller.response.ok(f'{controller.service.__blnt__.model_name}.updated', resp)
+            return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.updated', data=resp)
 
         model_name = self.service.__blnt__.model_name
         key = key or self.service.repo.model.__props__.model_id.name
@@ -279,10 +279,10 @@ class ControllerDefaults:
 
     def delete(self, returns='default', *, key: str = None, prefix='',
                middlewares: List[str] = None, docstring: str = None):
-        async def route(controller, match, **kwargs):
+        async def route(controller: web.Controller, match, **kwargs):
             entity = await controller.service.get_first_by(key, match.get(key))
             resp = await functions.async_invoke(controller.service.delete, entity, **kwargs)
-            return controller.response.ok(f'{controller.service.__blnt__.model_name}.deleted', resp)
+            return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.deleted', data=resp)
 
         model_name = self.service.__blnt__.model_name
         key = key or self.service.repo.model.__props__.model_id.name

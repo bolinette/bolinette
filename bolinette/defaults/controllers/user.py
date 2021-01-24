@@ -53,17 +53,17 @@ class UserController(web.Controller):
         user = await self.user_service.get_by_username(username, safe=True)
         if user is not None:
             if self.user_service.check_password(user, password):
-                resp = self.response.ok('user.login.success', user)
+                resp = self.response.ok(messages='user.login.success', data=user)
                 self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
                 return resp
-        return self.response.unauthorized('user.login.wrong_credentials')
+        return self.response.unauthorized(messages='user.login.wrong_credentials')
 
     @post('/logout')
     async def logout(self):
         """
         Deletes authentication cookies, effectively logging the user off
         """
-        resp = self.response.ok('user.logout.success')
+        resp = self.response.ok(messages='user.logout.success')
         resp.cookies.append(web.Cookie('access_token', None, delete=True, path='/'))
         resp.cookies.append(web.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
         return resp
@@ -73,7 +73,7 @@ class UserController(web.Controller):
         """
         Creates a new fresh JWT
         """
-        resp = self.response.ok('user.token.refreshed')
+        resp = self.response.ok(messages='user.token.refreshed')
         self._create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
         return resp
 
@@ -91,7 +91,7 @@ class UserController(web.Controller):
         if blnt.init.get('ADMIN_REGISTER_ONLY', True):
             raise ForbiddenError('global.register.admin_only')
         user = await self.user_service.create(payload)
-        resp = self.response.created('user.registered', user)
+        resp = self.response.created(messages='user.registered', data=user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
@@ -105,7 +105,7 @@ class UserController(web.Controller):
         """
         payload['password'] = ''.join(random.choices(string.ascii_lowercase, k=32))
         user = await self.user_service.create(payload)
-        return self.response.created('user.registered', user)
+        return self.response.created(messages='user.registered', data=user)
 
     @patch('/me', expects=web.Expects('user', 'register', patch=True), returns=web.Returns('user', 'private'),
            middlewares=['auth|fresh'])
@@ -116,7 +116,7 @@ class UserController(web.Controller):
         Requires a fresh JWT.
         """
         user = await self.user_service.patch(current_user, payload)
-        resp = self.response.ok('user.updated', user)
+        resp = self.response.ok(messages='user.updated', data=user)
         self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
         return resp
 
@@ -131,7 +131,7 @@ class UserController(web.Controller):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(payload['name'])
         await self.user_service.add_role(user, role)
-        return self.response.created(f'user.roles.added:{user.username}:{role.name}', user)
+        return self.response.created(messages=f'user.roles.added:{user.username}:{role.name}', data=user)
 
     @delete('/{username}/roles/{role}', returns=web.Returns('user', 'private'), middlewares=['auth|roles=admin'])
     async def delete_user_role(self, match, current_user):
@@ -143,7 +143,7 @@ class UserController(web.Controller):
         user = await self.user_service.get_by_username(match['username'])
         role = await self.role_service.get_by_name(match['role'])
         await self.user_service.remove_role(current_user, user, role)
-        return self.response.ok(f'user.roles.removed:{user.username}:{role.name}', user)
+        return self.response.ok(messages=f'user.roles.removed:{user.username}:{role.name}', data=user)
 
     @post('/picture', returns=web.Returns('user', 'private'), middlewares=['auth'])
     async def upload_profile_picture(self, current_user, payload):
@@ -152,4 +152,4 @@ class UserController(web.Controller):
         """
         picture = payload['file']
         user = await self.user_service.save_profile_picture(current_user, picture)
-        return self.response.ok(f'user.picture.uploaded', user)
+        return self.response.ok(messages=f'user.picture.uploaded', data=user)

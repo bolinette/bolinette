@@ -54,7 +54,7 @@ class ResponseMiddleware(web.InternalMiddleware):
             return aio_web.Response(text=resp, status=200, content_type='text/plain')
         elif not isinstance(resp, web.APIResponse):
             if self.options['model'] is not None:
-                resp = web.Response(self.context).ok('OK', resp)
+                resp = web.Response(self.context).ok(data=resp)
             else:
                 return aio_web.Response(text='global.response.unserializable', status=500, content_type='text/plain')
 

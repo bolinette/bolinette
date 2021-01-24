@@ -14,4 +14,4 @@ class TimezoneController(web.Controller):
         """
         Gets all available IANA timezones
         """
-        return self.response.ok('OK', await self.tz_service.get_all())
+        return self.response.ok(data=await self.tz_service.get_all())
