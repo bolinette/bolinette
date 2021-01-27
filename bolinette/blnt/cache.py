@@ -12,6 +12,7 @@ class BolinetteCache:
         self.middlewares: Dict[str, Type['web.Middleware']] = {}
         self.topics: Dict[str, Type['web.Topic']] = {}
         self.init_funcs: List[Callable[['blnt.BolinetteContext'], None]] = []
+        self.commands: Dict[str, Callable] = {}
         self.seeders = []
 
 

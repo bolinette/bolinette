@@ -2,7 +2,7 @@ import getpass
 
 import bolinette
 from bolinette import console
-from bolinette.commands import command
+from bolinette.decorators import command
 from bolinette.exceptions import ParamConflictError, EntityNotFoundError
 
 

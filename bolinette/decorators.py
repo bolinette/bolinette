@@ -4,6 +4,13 @@ from typing import Type, Callable, List, Union, Literal
 from bolinette import blnt, core, web
 
 
+def command(name):
+    def inner(func):
+        blnt.cache.commands[name] = func
+        return func
+    return inner
+
+
 def model(model_name: str, *, database: str = 'default',
           model_type: Literal['relational', 'collection'] = 'relational',
           join_table: bool = False):

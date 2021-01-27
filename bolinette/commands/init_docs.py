@@ -1,5 +1,5 @@
 from bolinette import blnt
-from bolinette.commands import command
+from bolinette.decorators import command
 
 
 @command('init_docs')

@@ -1,5 +1,5 @@
 import bolinette
-from bolinette.commands import command
+from bolinette.decorators import command
 
 
 @command('run_server')

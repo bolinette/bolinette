@@ -4,7 +4,6 @@ import inspect
 from aiohttp import web as aio_web
 
 from bolinette import blnt, console
-from bolinette.commands import commands
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
 from bolinette.utils.functions import invoke, async_invoke
@@ -47,8 +46,8 @@ class Bolinette:
         kwargs['blnt'] = self
         name = args[0]
         kwargs['args'] = args[1:]
-        if name in commands.commands:
-            func = commands.commands[name]
+        if name in blnt.cache.commands:
+            func = blnt.cache.commands[name]
             if inspect.isfunction(func):
                 if inspect.iscoroutinefunction(func):
                     loop = asyncio.get_event_loop()
