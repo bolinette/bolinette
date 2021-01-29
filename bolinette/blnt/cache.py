@@ -1,6 +1,7 @@
 from typing import List, Callable, Dict, Type
 
 from bolinette import blnt, core, web
+from bolinette.blnt.commands import Command
 
 
 class BolinetteCache:
@@ -12,7 +13,7 @@ class BolinetteCache:
         self.middlewares: Dict[str, Type['web.Middleware']] = {}
         self.topics: Dict[str, Type['web.Topic']] = {}
         self.init_funcs: List[Callable[['blnt.BolinetteContext'], None]] = []
-        self.commands: Dict[str, Callable] = {}
+        self.commands: Dict[str, Command] = {}
         self.seeders = []
 
 

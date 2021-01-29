@@ -74,14 +74,17 @@ class DatabaseManager:
         for _, engine in self.engines.items():
             await engine.drop_all()
 
-    async def run_seeders(self, context: 'blnt.BolinetteContext'):
+    async def run_seeders(self, log: bool = False, tab: int = 0):
         for func in blnt.cache.seeders:
+            if log:
+                self.context.logger.info(f'{" " * tab}- Running {func.__name__}')
             try:
-                await func(context)
+                await func(self.context)
             except (APIError, APIErrors) as e:
                 traceback.print_exc()
+                if log:
+                    self.context.logger.info(f'Seeder {func.__name__} raised errors')
                 console = Console()
-                console.error(f'Seeder {func.__name__} raised errors')
                 if isinstance(e, APIError):
                     console.error(e.message)
                 elif isinstance(e, APIErrors):

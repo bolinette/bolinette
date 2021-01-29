@@ -1,13 +1,19 @@
 import getpass
 
 import bolinette
-from bolinette import console
+from bolinette import Console
+from bolinette.blnt import Transaction
+from bolinette.blnt.commands import Argument, ArgType
 from bolinette.decorators import command
-from bolinette.exceptions import ParamConflictError, EntityNotFoundError
+from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors
 
 
-@command('create_user')
-def create_user(blnt: 'bolinette.Bolinette', *, username, email, roles):
+@command('create_user', 'Add a user to the database',
+         Argument(ArgType.Argument, 'username', summary='The new user\'s username'),
+         Argument(ArgType.Argument, 'email', summary='The new user\'s email'),
+         Argument(ArgType.Option, 'roles', flag='r', summary='The user\'s roles, comma separated'))
+async def create_user(blnt: 'bolinette.Bolinette', username: str, email: str, roles: str = None):
+    console = Console()
     user_service = blnt.context.service('user')
     role_service = blnt.context.service('role')
     while True:
@@ -16,24 +22,28 @@ def create_user(blnt: 'bolinette.Bolinette', *, username, email, roles):
         if password == password2:
             break
         console.error('Passwords don\'t match')
-    with blnt.app.app_context():
+    async with Transaction(blnt.context, print_error=False, propagate_error=False):
         user_roles = []
-        if user_roles is not None:
+        if roles is not None:
             for role_name in [r.strip() for r in roles.split(',')]:
                 try:
-                    user_roles.append(role_service.get_by_name(role_name))
+                    user_roles.append(await role_service.get_by_name(role_name))
                 except EntityNotFoundError:
                     console.error(f'Role "{role_name}" does not exist')
                     exit(1)
         try:
-            user = user_service.create({
+            user = await user_service.create({
                 'username': username,
                 'password': password,
                 'email': email
             })
             for role in user_roles:
                 user.roles.append(role)
-        except ParamConflictError as ex:
-            console.error(f'Conflict: {ex.message.split(":")[1]} already exists')
+        except (APIError, APIErrors) as ex:
+            if isinstance(ex, APIError):
+                errors = [ex]
+            else:
+                errors = ex.errors
+            for err in [err for err in errors if isinstance(err, ParamConflictError)]:
+                console.error(f'Conflict: {err.message.split(":")[1]} already exists')
             exit(1)
-        blnt.context.db.session.commit()

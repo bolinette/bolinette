@@ -4,9 +4,9 @@ import inspect
 from aiohttp import web as aio_web
 
 from bolinette import blnt, console
+from bolinette.blnt.commands import Parser
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
-from bolinette.utils.functions import invoke, async_invoke
 
 
 class Bolinette:
@@ -31,26 +31,17 @@ class Bolinette:
                 else:
                     func(app['blnt'])
 
-    def run(self):
+    def run(self, *, host: str = None, port: int = None):
         if self.context.env['build_docs']:
             self.context.docs.build()
         self.context.docs.setup()
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app,
-                        host=self.context.env.get('host', '127.0.0.1'),
-                        port=self.context.env['port'],
+                        host=host or self.context.env['host'],
+                        port=port or self.context.env['port'],
                         access_log=self.context.logger)
         self.context.logger.info(f"Bolinette stopped gracefully")
 
-    def run_command(self, *args, **kwargs):
-        kwargs['blnt'] = self
-        name = args[0]
-        kwargs['args'] = args[1:]
-        if name in blnt.cache.commands:
-            func = blnt.cache.commands[name]
-            if inspect.isfunction(func):
-                if inspect.iscoroutinefunction(func):
-                    loop = asyncio.get_event_loop()
-                    loop.run_until_complete(async_invoke(func, self.context, **kwargs))
-                else:
-                    invoke(func, **kwargs)
+    def run_command(self):
+        parser = Parser(self, blnt.cache.commands)
+        parser.run()

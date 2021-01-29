@@ -26,13 +26,12 @@ Use the following code to set up the base of your Bolinette app.
 
 ```python
 # server.py
-import sys
 from bolinette import Bolinette
 
 blnt = Bolinette()
 
 if __name__ == '__main__':
-    blnt.run_command(*sys.argv[1:])
+    blnt.run_command()
 ```
 
 Then use one of the internal commands.

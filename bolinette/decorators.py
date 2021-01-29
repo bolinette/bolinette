@@ -2,11 +2,12 @@ import inspect
 from typing import Type, Callable, List, Union, Literal
 
 from bolinette import blnt, core, web
+from bolinette.blnt.commands import Command, Argument
 
 
-def command(name):
+def command(name: str, summary: str, *args: Argument):
     def inner(func):
-        blnt.cache.commands[name] = func
+        blnt.cache.commands[name] = Command(name, func, summary, list(args))
         return func
     return inner
 
