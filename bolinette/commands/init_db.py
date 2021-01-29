@@ -1,10 +1,9 @@
 from bolinette import blnt
-from bolinette.blnt.commands import Argument, ArgType
 from bolinette.decorators import command
 
 
-@command('init_db', 'Initialize the database',
-         Argument(ArgType.Flag, 'seeders', flag='s', summary='Run the seeders after database creation'))
+@command('init_db', 'Initialize the database')
+@command.argument('flag', 'seeders', flag='s', summary='Run the seeders after database creation')
 async def init_db(context: 'blnt.BolinetteContext', seeders: bool):
     context.logger.info('==== Initializing database ====')
     context.logger.info('**** Dropping all tables')

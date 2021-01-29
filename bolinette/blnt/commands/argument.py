@@ -1,17 +1,9 @@
-from enum import Enum, unique, auto
-from typing import Type
-
-
-@unique
-class ArgType(Enum):
-    Argument = auto()
-    Option = auto()
-    Flag = auto()
-    Count = auto()
+from typing import Type, Literal
 
 
 class Argument:
-    def __init__(self, arg_type: ArgType, name: str, *, flag: str = None, summary: str = None,
+    def __init__(self, arg_type: Literal['arg', 'option', 'flag', 'count'],
+                 name: str, *, flag: str = None, summary: str = None,
                  value_type: Type = None, default=None, choices: list = None):
         self.arg_type = arg_type
         self.name = name

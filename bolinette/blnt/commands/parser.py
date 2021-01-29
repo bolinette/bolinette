@@ -6,7 +6,7 @@ from typing import Dict
 
 import bolinette
 from bolinette import Console
-from bolinette.blnt.commands import Command, Argument, ArgType
+from bolinette.blnt.commands import Command, Argument
 from bolinette.utils.functions import async_invoke, invoke
 
 
@@ -15,9 +15,9 @@ class Parser:
         self.blnt = blnt
         self.commands = commands
         self._factories = {
-            ArgType.Argument: self._create_argument,
-            ArgType.Option: self._create_option,
-            ArgType.Flag: self._create_flag
+            'argument': self._create_argument,
+            'option': self._create_option,
+            'flag': self._create_flag
         }
 
     def run(self):

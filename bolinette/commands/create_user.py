@@ -3,15 +3,14 @@ import getpass
 import bolinette
 from bolinette import Console
 from bolinette.blnt import Transaction
-from bolinette.blnt.commands import Argument, ArgType
 from bolinette.decorators import command
 from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors
 
 
-@command('create_user', 'Add a user to the database',
-         Argument(ArgType.Argument, 'username', summary='The new user\'s username'),
-         Argument(ArgType.Argument, 'email', summary='The new user\'s email'),
-         Argument(ArgType.Option, 'roles', flag='r', summary='The user\'s roles, comma separated'))
+@command('create_user', 'Add a user to the database')
+@command.argument('argument', 'username', summary='The new user\'s username')
+@command.argument('argument', 'email', summary='The new user\'s email')
+@command.argument('option', 'roles', flag='r', summary='The user\'s roles, comma separated')
 async def create_user(blnt: 'bolinette.Bolinette', username: str, email: str, roles: str = None):
     console = Console()
     user_service = blnt.context.service('user')
