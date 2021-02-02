@@ -6,31 +6,45 @@ from bolinette.exceptions import InternalError
 
 def _parse_params(function, *args, **kwargs):
     cur_arg = 0
-    func_params = {}
+    arg_cnt = len(args)
+    out_args = []
+    out_kwargs = {}
     for key, param in inspect.signature(function).parameters.items():
-        if param.kind == param.VAR_KEYWORD:
-            for name, value in kwargs.items():
-                if name not in func_params:
-                    func_params[name] = value
-        elif param.kind in [param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD] and cur_arg < len(args):
-            func_params[key] = args[cur_arg]
-            cur_arg += 1
-        elif key in kwargs:
-            func_params[key] = kwargs[key]
-        else:
-            func_params[key] = None
-    return func_params
+        if param.kind == param.POSITIONAL_ONLY:
+            if cur_arg < arg_cnt:
+                out_args.append(args[cur_arg])
+                cur_arg += 1
+            else:
+                out_args.append(param.default if not param.empty else None)
+        elif param.kind == param.KEYWORD_ONLY:
+            out_kwargs[key] = kwargs.pop(key, param.default if not param.empty else None)
+        elif param.kind == param.POSITIONAL_OR_KEYWORD:
+            if cur_arg < arg_cnt:
+                out_args.append(args[cur_arg])
+                cur_arg += 1
+            else:
+                out_args.append(kwargs.pop(key, param.default if not param.empty else None))
+        elif param.kind == param.VAR_POSITIONAL:
+            while cur_arg < arg_cnt:
+                out_args.append(args[cur_arg])
+                cur_arg += 1
+        elif param.kind == param.VAR_KEYWORD:
+            for p_name, p_value in kwargs.items():
+                out_kwargs[p_name] = p_value
+    return out_args, out_kwargs
 
 
 async def async_invoke(function: Callable[[Any], Awaitable[Any]], *args, **kwargs):
     if inspect.iscoroutinefunction(function):
-        return await function(**_parse_params(function, *args, **kwargs))
+        args, kwargs = _parse_params(function, *args, **kwargs)
+        return await function(*args, **kwargs)
     raise InternalError(f'internal.not_async_function:{function.__name__}')
 
 
 def invoke(function: Callable[[Any], Any], *args, **kwargs):
     if inspect.isfunction(function):
-        return function(**_parse_params(function, *args, **kwargs))
+        args, kwargs = _parse_params(function, *args, **kwargs)
+        return function(*args, **kwargs)
     raise InternalError(f'internal.not_function:{function.__name__}')
 
 
