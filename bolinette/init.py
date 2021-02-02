@@ -119,5 +119,5 @@ def init_topics(context: blnt.BolinetteContext):
     for topic_name, topic_cls in blnt.cache.topics.items():
         topic = topic_cls(context)
         context.sockets.add_topic(topic_name, topic)
-        for channel_name, channel in topic.__props__.get_channels().items():
+        for channel_name, channel in topic.__props__.get_channels():
             context.sockets.add_channel(topic_name, channel)

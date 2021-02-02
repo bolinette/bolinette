@@ -1,4 +1,5 @@
 import asyncio
+from json import JSONDecodeError
 from typing import Dict, List, Union
 
 import aiohttp
@@ -7,6 +8,7 @@ from aiohttp.web_request import Request
 
 from bolinette import blnt, web
 from bolinette.exceptions import APIError
+from bolinette.utils.functions import async_invoke
 
 
 class BolinetteSockets:
@@ -76,10 +78,9 @@ class SocketHandler:
         user_service = context.service('user')
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
-        context.logger.warning('New WS connection')
 
         current_user = None
-        identity = web.AccessToken.Optional.check(context, request)
+        identity = context.jwt.verify(request, optional=True, fresh=True)
         if identity is not None:
             current_user = await user_service.get_by_username(identity)
         if current_user is not None:
@@ -102,25 +103,30 @@ class SocketHandler:
                     context.logger.warning(f'ws connection closed with exception {socket.exception()})')
             except APIError as e:
                 context.logger.error(e.message)
+            except JSONDecodeError:
+                context.logger.error('sockets.non_deserializable_payload')
 
         if current_user is not None:
             context.sockets.delete_socket_session(current_user.username)
         else:
             context.sockets.delete_anon_socket_session(socket)
-
-        context.logger.warning('Closed WS connection')
         return socket
+
+    async def _subscribe(self, topic: web.Topic, socket: aio_web.WebSocketResponse, payload, current_user):
+        if await async_invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
+            await topic.receive_subscription(payload['channel'], socket)
 
     async def process_topic_message(self, context: 'blnt.BolinetteContext',
                                     socket: aio_web.WebSocketResponse, payload, current_user):
         action = payload['action']
         topic = context.sockets.topic(payload['topic'])
         if topic is not None:
-            with blnt.Transaction(context):
+            async with blnt.Transaction(context):
                 if action == 'subscribe':
-                    await topic.receive_subscription(payload['channel'], socket)
+                    await self._subscribe(topic, socket, payload, current_user)
                 elif action == 'send':
                     channels = context.sockets.channels(payload['topic'])
                     for channel in channels:
                         if channel.re.match(payload['channel']):
-                            await channel.function(topic, socket=socket, payload=payload, current_user=current_user)
+                            await async_invoke(channel.function, topic, socket=socket, payload=payload,
+                                               current_user=current_user)

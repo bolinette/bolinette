@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List
+from typing import Dict, List, Generator, Tuple, Any
 
 from aiohttp import web as aio_web
 
@@ -19,15 +19,26 @@ class Topic:
             self._subscriptions[channel] = []
         self._subscriptions[channel].append(resp)
 
-    def _remove_closed_connections(self, channel: str):
+    async def validate_subscription(self, *args, **kwargs) -> bool:
+        return True
+
+    def _remove_closed_connections(self, channel: str) -> List[aio_web.WebSocketResponse]:
         subs = self._subscriptions.get(channel)
         if subs is None:
-            return
+            return []
         self._subscriptions[channel] = list(filter(lambda c: not c.closed, subs))
         return self._subscriptions[channel]
 
     def subscriptions(self, channel: str) -> List[aio_web.WebSocketResponse]:
-        return self._remove_closed_connections(channel) or []
+        return self._remove_closed_connections(channel)
+
+    @staticmethod
+    async def send(socket: aio_web.WebSocketResponse, data):
+        await socket.send_json({'data': data})
+
+    @staticmethod
+    async def send_error(socket: aio_web.WebSocketResponse, error: str):
+        await socket.send_json({'error': error})
 
     def __repr__(self):
         return f'<Topic {self.__blnt__.name}>'
@@ -43,11 +54,11 @@ class TopicProps:
         self.topic = topic
 
     def _get_attribute_of_type(self, attr_type):
-        return dict([(name, attribute)
-                     for name, attribute in vars(self.topic.__class__).items()
-                     if isinstance(attribute, attr_type)])
+        return ((name, attribute)
+                for name, attribute in vars(self.topic.__class__).items()
+                if isinstance(attribute, attr_type))
 
-    def get_channels(self) -> Dict[str, 'TopicChannel']:
+    def get_channels(self) -> Generator[Tuple[str, 'TopicChannel'], Any, None]:
         return self._get_attribute_of_type(TopicChannel)
 
 
