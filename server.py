@@ -3,4 +3,4 @@ if __name__ == '__main__':
     # noinspection PyUnresolvedReferences
     import tests
     bolinette = create_app()
-    bolinette.run_command()
+    bolinette.exec_cmd_args()

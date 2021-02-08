@@ -49,7 +49,7 @@ You can just run the web app like this.
 from bolinette import Bolinette
 
 blnt = Bolinette()
-blnt.run()
+blnt.start_server()
 ```
 
 ## What's next?

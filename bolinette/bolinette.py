@@ -31,7 +31,7 @@ class Bolinette:
                 else:
                     func(app['blnt'])
 
-    def run(self, *, host: str = None, port: int = None):
+    def start_server(self, *, host: str = None, port: int = None):
         if self.context.env['build_docs']:
             self.context.docs.build()
         self.context.docs.setup()
@@ -42,6 +42,6 @@ class Bolinette:
                         access_log=self.context.logger)
         self.context.logger.info(f"Bolinette stopped gracefully")
 
-    def run_command(self):
+    def exec_cmd_args(self):
         parser = Parser(self, blnt.cache.commands)
         parser.run()
