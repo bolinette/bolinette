@@ -17,28 +17,26 @@ class Book(core.Model):
     author_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('person', 'id'), nullable=False)
     author = types.defs.Relationship('person', foreign_key=author_id, backref=types.defs.Backref('books'), lazy=False)
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield [
-            mapping.Column(cls.uid, required=True),
-            mapping.Column(cls.name, required=True),
-            mapping.Column(cls.pages, required=True),
-            mapping.Column(cls.price, required=True),
-            mapping.Column(cls.publication_date, required=True),
-            mapping.Reference(cls.author,  required=True)
+            mapping.Column(self.uid, required=True),
+            mapping.Column(self.name, required=True),
+            mapping.Column(self.pages, required=True),
+            mapping.Column(self.price, required=True),
+            mapping.Column(self.publication_date, required=True),
+            mapping.Reference(self.author, required=True)
         ]
 
-    @classmethod
-    def responses(cls):
-        base = cls.get_mixin('historized').response(cls)
+    def responses(self):
+        base = self.get_mixin('historized').response(self)
         default: List[Any] = [
-            mapping.Column(cls.uid),
-            mapping.Column(cls.name),
-            mapping.Column(cls.pages),
-            mapping.Column(cls.price),
-            mapping.Column(cls.publication_date)
+            mapping.Column(self.uid),
+            mapping.Column(self.name),
+            mapping.Column(self.pages),
+            mapping.Column(self.price),
+            mapping.Column(self.publication_date)
         ]
         yield default
         yield 'complete', default + [
-            mapping.Reference(cls.author)
+            mapping.Reference(self.author)
         ] + base

@@ -7,18 +7,16 @@ class Role(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield [
-            mapping.Column(cls.name, required=True)
+            mapping.Column(self.name, required=True)
         ]
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         yield [
-            mapping.Column(cls.name)
+            mapping.Column(self.name)
         ]
         yield 'complete', [
-            mapping.Column(cls.name),
+            mapping.Column(self.name),
             mapping.List(mapping.Definition('user'), key='users')
         ]

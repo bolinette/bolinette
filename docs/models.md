@@ -214,27 +214,25 @@ class Book(core.Model):
     price = types.defs.Column(types.db.Float)
     publication_date = types.defs.Column(types.db.Date)
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield [
-            mapping.Column(cls.uid, required=True),
-            mapping.Column(cls.name, required=True),
-            mapping.Column(cls.pages, required=True),
-            mapping.Column(cls.price),
-            mapping.Column(cls.publication_date)
+            mapping.Column(self.uid, required=True),
+            mapping.Column(self.name, required=True),
+            mapping.Column(self.pages, required=True),
+            mapping.Column(self.price),
+            mapping.Column(self.publication_date)
         ]
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         yield [
-            mapping.Column(cls.uid),
-            mapping.Column(cls.name)
+            mapping.Column(self.uid),
+            mapping.Column(self.name)
         ]
         yield 'complete', [
-            mapping.Column(cls.uid),
-            mapping.Column(cls.name),
-            mapping.Column(cls.pages),
-            mapping.Column(cls.price),
-            mapping.Column(cls.publication_date)
+            mapping.Column(self.uid),
+            mapping.Column(self.name),
+            mapping.Column(self.pages),
+            mapping.Column(self.price),
+            mapping.Column(self.publication_date)
         ]
 ```

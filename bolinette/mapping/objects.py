@@ -1,8 +1,7 @@
 from abc import ABC
 from typing import Union
 
-from bolinette import mapping
-from bolinette import types
+from bolinette import core, mapping, types
 
 
 class MappingObject(ABC):
@@ -31,7 +30,7 @@ class Field(MappingObject):
 
 
 class Column(Field):
-    def __init__(self, column: 'types.defs.Column', *, name=None, default=None, required=False,
+    def __init__(self, column: 'core.models.Column', *, name=None, default=None, required=False,
                  function=None, formatting=None):
         super().__init__(column.type, key=column.name, name=name, default=default, required=required,
                          nullable=column.nullable, function=function, formatting=formatting)
@@ -62,10 +61,10 @@ class Definition(MappingObject):
 
 
 class Reference(Definition):
-    def __init__(self, relationship: 'types.defs.Relationship', model_key='default', *, name=None, default=None,
+    def __init__(self, relationship: 'core.models.Relationship', model_key='default', *, name=None, default=None,
                  required=False, function=None, formatting=None):
-        super().__init__(relationship.model_name, model_key, key=relationship.name, name=name, default=default,
+        super().__init__(relationship.target_model_name, model_key, key=relationship.name, name=name, default=default,
                          required=required, function=function, formatting=formatting)
         self.foreign_key = relationship.foreign_key.name
-        self.reference_model = relationship.foreign_key.reference.model_name
-        self.reference_key = relationship.foreign_key.reference.column_name
+        self.reference_model = relationship.foreign_key.reference.target_model_name
+        self.reference_key = relationship.foreign_key.reference.target_column_name

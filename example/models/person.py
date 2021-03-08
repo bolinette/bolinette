@@ -9,23 +9,21 @@ class Person(core.Model):
     first_name = types.defs.Column(types.db.String, nullable=False)
     last_name = types.defs.Column(types.db.String, nullable=False)
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield [
-            mapping.Column(cls.first_name, required=True),
-            mapping.Column(cls.last_name, required=True)
+            mapping.Column(self.first_name, required=True),
+            mapping.Column(self.last_name, required=True)
         ]
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         yield [
-            mapping.Column(cls.first_name),
-            mapping.Column(cls.last_name),
+            mapping.Column(self.first_name),
+            mapping.Column(self.last_name),
             mapping.Field(types.db.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}')
         ]
         yield 'complete', [
-            mapping.Column(cls.first_name),
-            mapping.Column(cls.last_name),
+            mapping.Column(self.first_name),
+            mapping.Column(self.last_name),
             mapping.Field(types.db.String, name='full_name', function=lambda p: f'{p.first_name} {p.last_name}'),
             mapping.List(mapping.Definition('book'), key='books')
         ]

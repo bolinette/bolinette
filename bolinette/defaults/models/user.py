@@ -24,33 +24,31 @@ class User(core.Model):
 
     timezone = types.defs.Column(types.db.String)
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield 'register', [
-            mapping.Column(cls.username, required=True),
-            mapping.Column(cls.email, required=True),
-            mapping.Column(cls.password, required=True),
-            mapping.Column(cls.timezone)
+            mapping.Column(self.username, required=True),
+            mapping.Column(self.email, required=True),
+            mapping.Column(self.password, required=True),
+            mapping.Column(self.timezone)
         ]
         yield 'admin_register', [
-            mapping.Column(cls.username, required=True),
-            mapping.Column(cls.email, required=True),
+            mapping.Column(self.username, required=True),
+            mapping.Column(self.email, required=True),
             mapping.Field(types.db.Boolean, name='send_mail', required=True)
         ]
         yield 'login', [
-            mapping.Column(cls.username, required=True),
-            mapping.Column(cls.password, required=True)
+            mapping.Column(self.username, required=True),
+            mapping.Column(self.password, required=True)
         ]
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         default = [
-            mapping.Column(cls.username),
-            mapping.Reference(cls.profile_picture, 'minimal')
+            mapping.Column(self.username),
+            mapping.Reference(self.profile_picture, 'minimal')
         ]
         yield default
         yield 'private', default + [
-            mapping.Column(cls.email),
+            mapping.Column(self.email),
             mapping.List(mapping.Definition('role'), key='roles'),
-            mapping.Column(cls.timezone)
+            mapping.Column(self.timezone)
         ]

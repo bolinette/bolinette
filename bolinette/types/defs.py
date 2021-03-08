@@ -1,52 +1,37 @@
-from typing import Union, Literal
+from typing import Optional, Any, Literal, Union
 
-from bolinette import types
+from bolinette import types, core
+from bolinette.utils import InitProxy
 
 
 class Reference:
-    def __init__(self, model_name: str, column_name: str):
-        self.model_name = model_name
-        self.column_name = column_name
-
-    def __repr__(self):
-        return f'<Reference -> {self.model_name}.{self.column_name}'
+    def __new__(cls, model_name: str, column_name: str) -> InitProxy['core.models.Reference']:
+        return InitProxy(core.models.Reference, model_name=model_name, column_name=column_name)
 
 
 class Column:
-    def __init__(self, data_type: 'types.db.DataType', *, reference: Reference = None, primary_key: bool = False,
-                 nullable: bool = True, unique: bool = False, model_id: bool = False, default=None):
-        self.type = data_type
-        self.reference = reference
-        self.primary_key = primary_key
-        self.nullable = nullable
-        self.unique = unique
-        self.model_id = model_id
-        self.name = None
-        self.default = default
-
-    def __repr__(self):
-        return f'<Column {self.name}: {repr(self.type)}>'
+    def __new__(cls, data_type: 'types.db.DataType', *,
+                reference: Optional['core.models.Reference'] = None,
+                primary_key: bool = False,
+                nullable: bool = True,
+                unique: bool = False,
+                model_id: bool = False,
+                default: Optional[Any] = None) -> InitProxy['core.models.Column']:
+        return InitProxy(core.models.Column, data_type=data_type, reference=reference, primary_key=primary_key,
+                         nullable=nullable, unique=unique, model_id=model_id, default=default)
 
 
 class Backref:
-    def __init__(self, key: str, *, lazy: bool = True):
-        self.key = key
-        self.lazy = lazy
-
-    def __repr__(self):
-        return f'<Backref <- {self.key}' + (' lazy ' if self.lazy else '') + '>'
+    def __new__(cls, key: str, *, lazy: bool = True) -> InitProxy['core.models.Backref']:
+        return InitProxy(core.models.Backref, key=key, lazy=lazy)
 
 
 class Relationship:
-    def __init__(self, model_name: str, *, backref: Backref = None, foreign_key: Column = None,
-                 lazy: Union[bool, Literal['subquery']] = False, secondary: str = None, remote_side: Column = None):
-        self.model_name = model_name
-        self.foreign_key = foreign_key
-        self.backref = backref
-        self.secondary = secondary
-        self.remote_side = remote_side
-        self.lazy = lazy
-        self.name = None
-
-    def __repr__(self):
-        return f'<Relationship {self.name} -> {self.model_name}' + (' lazy ' if self.lazy else '') + '>'
+    def __new__(cls, model_name: str, *,
+                backref: 'core.models.Backref' = None,
+                foreign_key: 'core.models.Column' = None,
+                lazy: Union[bool, Literal['subquery']] = False,
+                secondary: str = None,
+                remote_side: 'core.models.Column' = None) -> InitProxy['core.models.Relationship']:
+        return InitProxy(core.models.Relationship, model_name=model_name, backref=backref, foreign_key=foreign_key,
+                         lazy=lazy, secondary=secondary, remote_side=remote_side)

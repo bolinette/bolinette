@@ -9,18 +9,16 @@ class Library(core.Model):
     name = types.defs.Column(types.db.String, nullable=False)
     address = types.defs.Column(types.db.String)
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield [
-            mapping.Column(cls.key, required=True),
-            mapping.Column(cls.name, required=True),
-            mapping.Column(cls.address)
+            mapping.Column(self.key, required=True),
+            mapping.Column(self.name, required=True),
+            mapping.Column(self.address)
         ]
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         yield [
-            mapping.Column(cls.key),
-            mapping.Column(cls.name),
-            mapping.Column(cls.address)
+            mapping.Column(self.key),
+            mapping.Column(self.name),
+            mapping.Column(self.address)
         ]

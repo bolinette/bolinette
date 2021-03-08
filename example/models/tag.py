@@ -11,18 +11,16 @@ class Tag(core.Model):
     parent = types.defs.Relationship('tag', remote_side=id, lazy=True,
                                      backref=types.defs.Backref('children', lazy=False))
 
-    @classmethod
-    def payloads(cls):
+    def payloads(self):
         yield [
-            mapping.Column(cls.name, required=True),
+            mapping.Column(self.name, required=True),
         ]
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         yield [
-            mapping.Column(cls.name)
+            mapping.Column(self.name)
         ]
         yield 'complete', [
-            mapping.Column(cls.name),
+            mapping.Column(self.name),
             mapping.List(mapping.Definition('tag', 'complete'), key='children')
         ]

@@ -9,13 +9,12 @@ class File(core.Model):
     name = types.defs.Column(types.db.String, nullable=False)
     mime = types.defs.Column(types.db.String, nullable=False)
 
-    @classmethod
-    def responses(cls):
+    def responses(self):
         yield [
-            mapping.Column(cls.key),
-            mapping.Column(cls.name),
-            mapping.Column(cls.mime)
+            mapping.Column(self.key),
+            mapping.Column(self.name),
+            mapping.Column(self.mime)
         ]
         yield 'minimal', [
-            mapping.Column(cls.key)
+            mapping.Column(self.key)
         ]

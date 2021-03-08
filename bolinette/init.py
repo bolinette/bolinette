@@ -4,20 +4,49 @@ from sqlalchemy import orm as sqlalchemy_orm
 from bolinette import blnt, core
 from bolinette.decorators import init_func
 from bolinette.exceptions import InitError
+from bolinette.utils import InitProxy
+
+
+@init_func
+def init_model_classes(context: blnt.BolinetteContext):
+    models = {}
+    proxies = {}
+    for model_name, model_cls in blnt.cache.models.items():
+        db_key = model_cls.__blnt__.database
+        if db_key not in context.db:
+            raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
+        model = model_cls(context.db[db_key])
+        for col_name, proxy in model.__props__.get_proxies(core.models.Column):
+            col = proxy.instantiate(name=col_name, model=model)
+            proxies[proxy] = col
+            setattr(model, col_name, col)
+        models[model_name] = model
+    for model_name, model in models.items():
+        for rel_name, proxy in model.__props__.get_proxies(core.models.Relationship):
+            rel = proxy.instantiate(name=rel_name, model=model, models=models)
+            proxies[proxy] = rel
+            setattr(model, rel_name, rel)
+    for model_name, model in models.items():
+        for col_name, col in model.__props__.get_columns():
+            if isinstance(col.reference, InitProxy) and col.reference.of_type(core.models.Reference):
+                col.reference = col.reference.instantiate(model=model, column=col, models=models)
+        for rel_name, rel in model.__props__.get_relationships():
+            if isinstance(rel.backref, InitProxy) and rel.backref.of_type(core.models.Backref):
+                rel.backref = rel.backref.instantiate(model=model, relationship=rel)
+            if isinstance(rel.foreign_key, InitProxy) and rel.foreign_key.of_type(core.models.Column):
+                rel.foreign_key = proxies[rel.foreign_key]
+            if isinstance(rel.remote_side, InitProxy) and rel.remote_side.of_type(core.models.Column):
+                rel.remote_side = proxies[rel.remote_side]
+    for model_name, model in models.items():
+        context.add_model(model_name, model)
 
 
 @init_func
 def init_relational_models(context: blnt.BolinetteContext):
     models = {}
-    for model_name, model_cls in blnt.cache.models.items():
-        db_key = model_cls.__blnt__.database
-        if db_key in context.db:
-            if not context.db[db_key].relational:
-                continue
-            database = context.db[db_key]
-        else:
-            raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
-        models[model_name] = model_cls(database)
+    for model_name, model in context.models:
+        if model.__props__.database.relational:
+            models[model_name] = model
     orm_tables = {}
     orm_cols = {}
     for model_name, model in models.items():
@@ -26,7 +55,7 @@ def init_relational_models(context: blnt.BolinetteContext):
             attribute.name = att_name
             ref = None
             if attribute.reference:
-                ref = sqlalchemy.ForeignKey(f'{attribute.reference.model_name}.{attribute.reference.column_name}')
+                ref = sqlalchemy.ForeignKey(attribute.reference.target_path)
             orm_cols[model_name][att_name] = sqlalchemy.Column(
                 att_name, attribute.type.sqlalchemy_type, ref, default=attribute.default, index=attribute.model_id,
                 primary_key=attribute.primary_key, nullable=attribute.nullable, unique=attribute.unique)
@@ -46,8 +75,8 @@ def init_relational_models(context: blnt.BolinetteContext):
             if attribute.remote_side:
                 kwargs['remote_side'] = orm_cols[model_name][attribute.remote_side.name]
             if attribute.secondary:
-                kwargs['secondary'] = orm_tables[attribute.secondary]
-            orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.model_name,  lazy=attribute.lazy, **kwargs)
+                kwargs['secondary'] = orm_tables[attribute.secondary.__blnt__.name]
+            orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.target_model_name, lazy=attribute.lazy, **kwargs)
 
         orm_defs['__table__'] = orm_tables[model_name]
         orm_model = type(model_name, (model.__props__.database.base,), orm_defs)
@@ -55,26 +84,7 @@ def init_relational_models(context: blnt.BolinetteContext):
         for att_name, attribute in model.__props__.get_properties():
             setattr(orm_model, att_name, property(attribute.function))
 
-        context.add_model(model_name, model)
         context.add_table(model_name, orm_model)
-
-
-@init_func
-def init_collection_models(context: blnt.BolinetteContext):
-    models = {}
-    for model_name, model_cls in blnt.cache.models.items():
-        db_key = model_cls.__blnt__.database
-        if db_key in context.db:
-            if context.db[db_key].relational:
-                continue
-            database = context.db[db_key]
-        else:
-            raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
-        models[model_name] = model_cls(database)
-    for model_name, model in models.items():
-        for att_name, attribute in model.__props__.get_columns():
-            attribute.name = att_name
-        context.add_model(model_name, model)
 
 
 @init_func

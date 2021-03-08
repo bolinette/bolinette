@@ -1,11 +1,11 @@
 from typing import Dict
 
-from bolinette import types
+from bolinette import core, types
 
 
 class Mixin:
     @staticmethod
-    def columns() -> Dict[str, 'types.defs.Column']:
+    def columns() -> Dict[str, 'core.models.Column']:
         pass
 
     @staticmethod
