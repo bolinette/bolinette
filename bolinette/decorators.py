@@ -3,6 +3,7 @@ import typing as _typing
 
 from bolinette import blnt, core, web
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
+from bolinette.utils import InitProxy
 
 
 def model(model_name: str, *, database: str = 'default',
@@ -100,8 +101,9 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
             inner_route = route_function
             route_function = route_function.func
         docstring = route_function.__doc__
-        return web.ControllerRoute(route_function, path, method, docstring,
-                                   expects, returns, inner_route, middlewares)
+        return InitProxy(web.ControllerRoute, func=route_function, path=path, method=method,
+                         docstring=docstring, expects=expects, returns=returns, inner_route=inner_route,
+                         middlewares=middlewares)
     return decorator
 
 

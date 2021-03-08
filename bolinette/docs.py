@@ -186,8 +186,8 @@ class Documentation:
             setup_swagger(self.context.app, swagger_url='/api', ui_version=3, swagger_from_file=self.swagger_path)
         else:
             no_docs_ctrl = NoDocsController(self.context)
-            no_docs_route: web.ControllerRoute = no_docs_ctrl.get_no_docs
-            no_docs_route.setup(no_docs_ctrl)
+            no_docs_route: web.ControllerRoute = no_docs_ctrl.get_no_docs.instantiate(controller=no_docs_ctrl)
+            no_docs_route.setup()
             self.context.resources.add_route('/api', no_docs_ctrl, no_docs_route)
 
 

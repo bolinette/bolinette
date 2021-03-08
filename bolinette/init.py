@@ -1,7 +1,7 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import blnt, core
+from bolinette import blnt, core, web
 from bolinette.decorators import init_func
 from bolinette.exceptions import InitError
 from bolinette.utils import InitProxy
@@ -114,12 +114,15 @@ def init_services(context: blnt.BolinetteContext):
 def init_controllers(context: blnt.BolinetteContext):
     for controller_name, controller_cls in blnt.cache.controllers.items():
         controller = controller_cls(context)
+        for route_name, proxy in controller.__props__.get_proxies(web.ControllerRoute):
+            route = proxy.instantiate(controller=controller)
+            setattr(controller, route_name, route)
         for _, route in controller.__props__.get_routes():
             route.controller = controller
-            route.setup(controller)
+            route.setup()
         for route in controller.default_routes():
             route.controller = controller
-            route.setup(controller)
+            route.setup()
         context.add_controller(controller_name, controller)
 
 

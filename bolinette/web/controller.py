@@ -39,24 +39,19 @@ class ControllerMetadata:
         self.middlewares = middlewares
 
 
-class ControllerProps:
+class ControllerProps(blnt.Properties):
     def __init__(self, controller):
-        self.controller = controller
-
-    def _get_attribute_of_type(self, attr_type):
-        return ((name, attribute)
-                for name, attribute in vars(self.controller.__class__).items()
-                if isinstance(attribute, attr_type))
+        super().__init__(controller)
 
     def get_routes(self) -> Generator[Tuple[str, 'ControllerRoute'], Any, None]:
         return self._get_attribute_of_type(ControllerRoute)
 
 
 class ControllerRoute:
-    def __init__(self, func: Callable, path: str, method: web.HttpMethod, docstring: Optional[str],
-                 expects: 'Expects' = None, returns: 'Returns' = None,
+    def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
+                 docstring: Optional[str], expects: 'Expects' = None, returns: 'Returns' = None,
                  inner_route: 'ControllerRoute' = None, middlewares: List[str] = None):
-        self.controller = None
+        self.controller = controller
         self.func = func
         self.path = path
         self.method = method
@@ -76,15 +71,14 @@ class ControllerRoute:
             return self.path
         return f'{self.controller.__blnt__.namespace}{self.controller.__blnt__.path}{self.path}'
 
-    def setup(self, controller: 'web.Controller'):
-        self.controller = controller
-        self._init_middlewares(controller.context, controller.__blnt__.middlewares, self._init_sys_middleware())
-        controller.context.resources.add_route(self.full_path, controller, self)
+    def setup(self):
+        self._init_middlewares(self.controller.context, self.controller.__blnt__.middlewares,
+                               self._init_sys_middleware())
+        self.controller.context.resources.add_route(self.full_path, self.controller, self)
         if self.inner_route is not None:
-            self.inner_route.setup(controller)
+            self.inner_route.setup()
 
     def _init_middlewares(self, context: 'blnt.BolinetteContext', from_controller: List[str], system: List[str]):
-        self.middlewares = []
         for mdw in system:
             self._parse_middleware_options(mdw, context, True)
         for mdw in from_controller:
@@ -187,6 +181,7 @@ class Returns:
 
 class ControllerDefaults:
     def __init__(self, controller: Controller):
+        self.controller = controller
         self.service: core.Service = controller.service
 
     def get_all(self, returns='default', *, prefix='',
@@ -201,7 +196,7 @@ class ControllerDefaults:
 
         -response 200 returns: The list of {model_name} entities
         """
-        return ControllerRoute(route, f'{prefix}', web.HttpMethod.GET, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}', web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
@@ -218,7 +213,7 @@ class ControllerDefaults:
 
         -response 200 returns: The {model_name} entity
         """
-        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.GET, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
@@ -234,7 +229,7 @@ class ControllerDefaults:
 
         -response 201 returns: The created {model_name} entity
         """
-        return ControllerRoute(route, f'{prefix}', web.HttpMethod.POST, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}', web.HttpMethod.POST, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
@@ -253,7 +248,7 @@ class ControllerDefaults:
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.PUT, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.PUT, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
@@ -272,7 +267,7 @@ class ControllerDefaults:
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.PATCH, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.PATCH, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects, patch=True),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
@@ -291,6 +286,6 @@ class ControllerDefaults:
 
         -response 200 returns: The deleted {model_name} entity
         """
-        return ControllerRoute(route, f'{prefix}/{{{key}}}', web.HttpMethod.DELETE, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.DELETE, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)

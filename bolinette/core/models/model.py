@@ -1,6 +1,6 @@
-from typing import List, Union, Tuple, Dict, Optional, Type, Iterator
+from typing import List, Union, Tuple, Dict, Iterator
 
-from bolinette import core, utils
+from bolinette import core, blnt
 from bolinette.blnt.database.engines import DatabaseEngine
 from bolinette.exceptions import InitError
 
@@ -40,8 +40,9 @@ class ModelMetadata:
         self.join = join
 
 
-class ModelProps:
+class ModelProps(blnt.Properties):
     def __init__(self, model: Model, database: 'DatabaseEngine'):
+        super().__init__(model)
         self.model = model
         self.database = database
         # self.model_id: 'core.models.Column' = self._set_model_id()
@@ -67,22 +68,6 @@ class ModelProps:
             raise InitError(f'Model "{self.model.__blnt__.name}"\'s model id should be either '
                             'a unique column or a primary key')
         return model_id
-
-    def _get_cls_attribute_of_type(self, attr_type):
-        return ((name, attribute)
-                for name, attribute in vars(self.model.__class__).items()
-                if isinstance(attribute, attr_type))
-
-    def get_proxies(self, of_type: Optional[Type] = None) -> Iterator[Tuple[str, 'utils.InitProxy']]:
-        proxies = self._get_cls_attribute_of_type(utils.InitProxy)
-        if of_type is not None:
-            return filter(lambda p: p[1].of_type(of_type), proxies)
-        return proxies
-
-    def _get_attribute_of_type(self, attr_type):
-        return ((name, attribute)
-                for name, attribute in vars(self.model).items()
-                if isinstance(attribute, attr_type))
 
     def get_columns(self) -> Iterator[Tuple[str, 'core.models.Column']]:
         return self._get_attribute_of_type(core.models.Column)
