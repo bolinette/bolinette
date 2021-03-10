@@ -44,7 +44,7 @@ class ControllerProps(blnt.Properties):
         super().__init__(controller)
 
     def get_routes(self) -> Generator[Tuple[str, 'ControllerRoute'], Any, None]:
-        return self._get_attribute_of_type(ControllerRoute)
+        return self._get_attributes_of_type(self.parent, ControllerRoute)
 
 
 class ControllerRoute:
@@ -125,7 +125,7 @@ class ControllerRoute:
             middleware = blnt.cache.middlewares[name](context)
 
         if not middleware.__blnt__.loadable and not system:
-            raise InitError(f'[{self.controller.__class__.__name__}] Middleware '
+            raise InitError(f'[{type(self.controller).__name__}] Middleware '
                             f'"{mdw}" cannot be loaded in a controller')
 
         parsed_args = {}
@@ -137,7 +137,7 @@ class ControllerRoute:
             if opt_name in parsed_args:
                 middleware.options[opt_name] = option.validate(parsed_args[opt_name])
             elif option.required:
-                raise InitError(f'[{self.controller.__class__.__name__}] Middleware "{mdw}" '
+                raise InitError(f'[{type(self.controller).__name__}] Middleware "{mdw}" '
                                 f'option "{opt_name}" is missing from declaration string')
             else:
                 middleware.options[opt_name] = option.default

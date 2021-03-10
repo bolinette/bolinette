@@ -4,6 +4,7 @@ from typing import Dict, List, Generator, Tuple, Any
 from aiohttp import web as aio_web
 
 from bolinette import blnt
+from bolinette.blnt import Properties
 
 
 class Topic:
@@ -49,17 +50,12 @@ class TopicMetadata:
         self.name = name
 
 
-class TopicProps:
+class TopicProps(Properties):
     def __init__(self, topic: Topic):
-        self.topic = topic
-
-    def _get_attribute_of_type(self, attr_type):
-        return ((name, attribute)
-                for name, attribute in vars(self.topic.__class__).items()
-                if isinstance(attribute, attr_type))
+        super().__init__(topic)
 
     def get_channels(self) -> Generator[Tuple[str, 'TopicChannel'], Any, None]:
-        return self._get_attribute_of_type(TopicChannel)
+        return self._get_cls_attributes_of_type(type(self.parent), TopicChannel)
 
 
 class TopicChannel:

@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 
 from bolinette import blnt
@@ -17,6 +18,9 @@ async def role_seeder(context: blnt.BolinetteContext):
 
 @seeder
 async def dev_user_seeder(context: blnt.BolinetteContext):
+    rng = random.Random()
+    first_names = ['Bob', 'Jack', 'Bill', 'Joe']
+    last_names = ['Smith', 'Johnson', 'Jones', 'Miller']
     if context.env['profile'] == 'development':
         role_service: RoleService = context.service('role')
         user_service: UserService = context.service('user')
@@ -26,7 +30,9 @@ async def dev_user_seeder(context: blnt.BolinetteContext):
             root_usr = await user_service.create({
                 'username': 'root',
                 'password': 'root',
-                'email': f'root@localhost'
+                'email': f'root@localhost',
+                'first_name': rng.choice(first_names),
+                'last_name': rng.choice(last_names),
             })
             root_usr.roles.append(root)
             root_usr.roles.append(admin)
@@ -40,7 +46,9 @@ async def dev_user_seeder(context: blnt.BolinetteContext):
                 user = await user_service.create({
                     'username': f'user_{i}',
                     'password': 'test',
-                    'email': f'user{i}@test.com'
+                    'email': f'user{i}@test.com',
+                    'first_name': rng.choice(first_names),
+                    'last_name': rng.choice(last_names),
                 })
                 user.roles.append(roles[i % 3])
                 user.roles.append(roles[(i + 1) % 3])

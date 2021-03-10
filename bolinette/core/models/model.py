@@ -70,13 +70,13 @@ class ModelProps(blnt.Properties):
         return model_id
 
     def get_columns(self) -> Iterator[Tuple[str, 'core.models.Column']]:
-        return self._get_attribute_of_type(core.models.Column)
+        return self._get_attributes_of_type(self.parent, core.models.Column)
 
     def get_relationships(self) -> Iterator[Tuple[str, 'core.models.Relationship']]:
-        return self._get_attribute_of_type(core.models.Relationship)
+        return self._get_attributes_of_type(self.parent, core.models.Relationship)
 
     def get_properties(self) -> Iterator[Tuple[str, 'ModelProperty']]:
-        return self._get_attribute_of_type(ModelProperty)
+        return self._get_attributes_of_type(self.parent, ModelProperty)
 
 
 class ModelProperty:
