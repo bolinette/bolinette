@@ -4,7 +4,7 @@ from pymongo import MongoClient
 
 from bolinette.blnt.database.engines import DatabaseEngine
 
-_COLLECTION_REGEX = re.compile(r'^(.*)\[(.*)]$')
+_COLLECTION_REGEX = re.compile(r'^([^/]+://[^/]+/?)(.*)$')
 
 
 class CollectionDatabase(DatabaseEngine):
@@ -13,7 +13,7 @@ class CollectionDatabase(DatabaseEngine):
         db = 'bolinette'
         if match := _COLLECTION_REGEX.match(uri):
             uri = match.group(1)
-            db = match.group(2)
+            db = match.group(2) or db
         self.client = MongoClient(uri)
         self.db = self.client[db]
 

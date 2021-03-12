@@ -10,7 +10,8 @@ class DatabaseManager:
     _DBMS = {
         'sqlite://': RelationalDatabase,
         'postgresql://': RelationalDatabase,
-        'mongodb://': CollectionDatabase
+        'mongodb://': CollectionDatabase,
+        'mongodb+srv://': CollectionDatabase,
     }
 
     def __init__(self, context: 'blnt.BolinetteContext'):

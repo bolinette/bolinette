@@ -2,6 +2,7 @@ aiohttp==3.7.4
 aiohttp-cors==0.7.0
 aiohttp-swagger==1.0.15
 bcrypt==3.2.0
+dnspython==2.1.0
 Jinja2==2.11.3
 json-logging==1.2.11
 psycopg2-binary==2.8.6

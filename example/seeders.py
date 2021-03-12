@@ -5,7 +5,7 @@ from bolinette import blnt
 from bolinette.decorators import seeder
 from bolinette.defaults.services import RoleService, UserService
 
-from example.services import BookService, PersonService
+from example.services import BookService, PersonService, LibraryService
 
 
 @seeder
@@ -73,3 +73,19 @@ async def book_seeder(context: blnt.BolinetteContext):
             await book_service.create(
                 {'uid': 'LOTR_3', 'name': 'The Return of the King', 'pages': 745, 'author': p1,
                  'price': 25.7, 'publication_date': datetime(1955, 10, 20)}, current_user=user)
+
+
+@seeder
+async def library_seeder(context: blnt.BolinetteContext):
+    if context.env['profile'] == 'development':
+        library_service: LibraryService = context.service('library')
+        async with blnt.Transaction(context):
+            await library_service.create({
+                'key': 'dwntwn_bks', 'name': 'Downtown books'
+            })
+            await library_service.create({
+                'key': 'knlg', 'name': 'Unlimited Knowledge'
+            })
+            await library_service.create({
+                'key': 'sph_bks', 'name': 'Sophie\'s books'
+            })
