@@ -1,4 +1,4 @@
 name: Bolinette
 desc: The fast and easy Python web framework
 module: example
-version: 0.7.6
+version: {{ version }}

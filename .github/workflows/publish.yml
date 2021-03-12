@@ -29,7 +29,7 @@ jobs:
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        BLNT_RELEASE_VERSION: ${{ steps.get_version.outputs.VERSION }}
+        BLNT_VERSION: ${{ steps.get_version.outputs.VERSION }}
       run: |
         python setup.py sdist bdist_wheel
         twine upload dist/*
