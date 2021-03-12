@@ -25,39 +25,25 @@ class BolinetteResources:
                 yield path, method, route
 
     def _setup_cors(self):
-        try:
-            conf = {}
-            if 'cors' in self.context.env:
-                conf = self.context.env['cors']
-            if not isinstance(conf, dict):
-                raise ValueError()
-            defaults = {}
-            for site, config in conf.items():
-                if not isinstance(config, dict):
-                    raise ValueError()
-                defaults[site] = aiohttp_cors.ResourceOptions(
-                    allow_credentials=config.get('allow_credentials', False),
-                    expose_headers=config.get('expose_headers', ()),
-                    allow_headers=config.get('allow_headers', ())
-                )
-            return defaults
-        except ValueError:
-            raise InitError("""
-Invalid CORS config, you should have something like:
-
-cors:
-  "*":
-    allow_credentials: true
-    expose_headers: "*"
-    allow_headers: "*"
-  "http://client.example.org":
-    allow_credentials: true
-    expose_headers: "*"
-    allow_headers: "*"
-    max_age: 3600
-
-See https://github.com/aio-libs/aiohttp-cors for detailed config options
-""")
+        parsed_conf = {}
+        conf = self.context.env.get_all(startswith='cors.')
+        for key, value in conf.items():
+            keys = key.split('.', maxsplit=2)
+            if len(keys) == 3:
+                _, site, prop = keys
+                if site not in parsed_conf:
+                    parsed_conf[site] = {}
+                parsed_conf[site][prop] = value
+        cors = {}
+        for site, conf in parsed_conf.items():
+            cors[site] = aiohttp_cors.ResourceOptions(
+                allow_credentials=conf.get('allow_credentials', False),
+                expose_headers=conf.get('expose_headers', ()),
+                allow_headers=conf.get('allow_headers', ()),
+                max_age=conf.get('max_age', None),
+                allow_methods=conf.get('allow_methods', None),
+            )
+        return cors
 
     def add_route(self, path: str, controller: 'web.Controller', route: 'web.ControllerRoute'):
         if path not in self._routes:

@@ -28,16 +28,15 @@ class DatabaseManager:
             else:
                 raise InitError(f'Unsupported database system for URI "{_uri}"')
         try:
-            conf = self.context.env['database']
-            if isinstance(conf, str):
-                _init_database('default', conf)
-            elif isinstance(conf, dict):
-                for name, uri in conf.items():
-                    if not isinstance(uri, str):
-                        raise ValueError()
-                    _init_database(name, uri)
-            else:
+            env_key_prefix = 'database.'
+            conf = self.context.env.get_all(startswith=env_key_prefix)
+            if len(conf) <= 0:
                 raise ValueError()
+            for db_name, ctn_str in conf.items():
+                if not isinstance(ctn_str, str):
+                    raise ValueError()
+                db_name = db_name[len(env_key_prefix):] or 'default'
+                _init_database(db_name, ctn_str)
         except ValueError:
             raise InitError('Bad database configuration in env files')
 

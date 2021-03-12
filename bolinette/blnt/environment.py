@@ -1,7 +1,7 @@
 import os
 import random
 import string
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 import yaml
 
@@ -30,6 +30,11 @@ class Settings:
         item = self[key]
         return item if item is not None else default
 
+    def get_all(self, *, startswith: str = None) -> Dict[str, Any]:
+        if startswith is not None:
+            return dict(((k, v) for k, v in self._settings.items() if k.startswith(startswith)))
+        return dict(self._settings)
+
     @staticmethod
     def _cwd_path(*path):
         return paths.join(paths.cwd(), *path)
@@ -38,6 +43,22 @@ class Settings:
         self._settings = {}
         for key, value in settings.items():
             self._settings[key.lower()] = value
+
+    def _flatten_value(self, keys: Dict[str, str], prefix: str, value):
+        if isinstance(value, dict):
+            self._flatten_dict(value, keys=keys, prefix=prefix)
+        elif isinstance(value, list):
+            for index in range(len(value)):
+                self._flatten_value(keys, f'{prefix}-{index}', value[index])
+        else:
+            keys[prefix.lower()] = value
+
+    def _flatten_dict(self, d: dict, *, keys: Dict[str, str] = None, prefix: str = None) -> Dict[str, str]:
+        keys = keys or {}
+        prefix = prefix + '.' if prefix else ''
+        for key, value in d.items():
+            self._flatten_value(keys, prefix + key, value)
+        return keys
 
     def _load_from_file(self, file_name):
         try:
@@ -102,21 +123,14 @@ class Environment(Settings):
 
     @property
     def _default_env(self):
-        return {
-            'app_name': 'default_name',
-            'app_desc': 'default_description',
-            'app_version': '0.0.1',
-            'database': None,
-            'debug': False,
-            'json_logging': False,
-            'host': '127.0.0.1',
-            'port': '5000',
-            'build_docs': False,
-            'webapp_folder': self.context.root_path('webapp', 'dist'),
-            'access_token_validity': 1,
-            'refresh_token_validity': 30,
-            'credentials': 'cookies'
-        }
+        try:
+            with open(self.context.internal_files_path('env', 'default.yaml'), 'r') as f:
+                d = yaml.safe_load(f)
+                if not isinstance(d, dict):
+                    raise yaml.YAMLError()
+                return d
+        except FileNotFoundError:
+            return {}
 
     @staticmethod
     def _load_from_os():
@@ -126,13 +140,12 @@ class Environment(Settings):
                 keys[key[5:].lower()] = os.environ[key]
         return keys
 
-    @staticmethod
-    def _merge_env_stack(stack):
+    def _merge_env_stack(self, stack):
         settings = {}
         for source in stack:
             for key, value in source.items():
                 settings[key.lower()] = value
-        return settings
+        return self._flatten_dict(settings)
 
     def _check_secret_key(self):
         if self['secret_key'] is None:

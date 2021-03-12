@@ -1,0 +1,12 @@
+app_name: default_name
+app_desc: default_description
+app_version: 0.0.1
+database: null
+debug: false
+json_logging: false
+host: 127.0.0.1
+port: 5000
+build_docs: false
+access_token_validity: 1
+refresh_token_validity: 30
+credentials: cookies
