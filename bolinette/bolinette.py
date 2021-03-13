@@ -13,13 +13,13 @@ from bolinette.utils import paths
 class Bolinette:
     def __init__(self, *, extensions: List[BolinetteExtension] = None,
                  profile: str = None, overrides: Dict[str, Any] = None):
-        self._built = False
-        self.app = aio_web.Application()
+        self._init = False
+        self._init_ext = False
+        self.app = None
         try:
-            self.context = blnt.BolinetteContext(paths.dirname(__file__), self.app, extensions=extensions,
+            self.context = blnt.BolinetteContext(paths.dirname(__file__), extensions=extensions,
                                                  profile=profile, overrides=overrides)
             self.context.use_extension(Extensions.ALL)
-            self.app['blnt'] = self.context
         except InitError as init_error:
             console.error(f'Error raised during Bolinette init phase\n{str(init_error)}')
             exit(1)
@@ -29,14 +29,37 @@ class Bolinette:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(func(self.context))
 
-    def init(self):
-        if self._built:
+    def init(self, *, force=False):
+        if self._init and not force:
             return
         self._run_init_functions()
-        self._built = True
+        self._init = True
+
+    def init_extensions(self, *, force=False):
+        if self._init_ext and not force:
+            return
+        self.app = None
+        if self.context.has_extension(Extensions.WEB):
+            self._init_web()
+        if self.context.has_extension(Extensions.SOCKETS):
+            self._init_sockets()
+        self._init_ext = True
+
+    def _init_web(self):
+        if self.app is None:
+            self.app = aio_web.Application()
+            self.app['blnt'] = self.context
+        self.context.init_web(self.app)
+
+    def _init_sockets(self):
+        if self.app is None:
+            self.app = aio_web.Application()
+            self.app['blnt'] = self.context
+        self.context.init_sockets(self.app)
 
     def start_server(self, *, host: str = None, port: int = None):
         self.init()
+        self.init_extensions()
         if self.context.env['build_docs']:
             self.context.docs.build()
         self.context.docs.setup()
@@ -55,5 +78,6 @@ class Bolinette:
 
     def exec_cmd_args(self):
         self.init()
+        self.init_extensions()
         parser = Parser(self, blnt.cache.commands)
         parser.run()

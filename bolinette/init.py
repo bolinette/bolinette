@@ -126,9 +126,8 @@ async def init_controllers(context: blnt.BolinetteContext):
         context.add_controller(controller_name, controller)
 
 
-@init_func(extension=Extensions.TOPICS)
+@init_func(extension=Extensions.SOCKETS)
 async def init_topics(context: blnt.BolinetteContext):
-    context.sockets.init_socket_handler()
     for topic_name, topic_cls in blnt.cache.topics.items():
         topic = topic_cls(context)
         context.sockets.add_topic(topic_name, topic)

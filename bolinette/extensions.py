@@ -17,5 +17,5 @@ class BolinetteExtension:
 class Extensions:
     MODELS = BolinetteExtension('models')
     WEB = BolinetteExtension('web', [MODELS])
-    TOPICS = BolinetteExtension('topics', [MODELS])
+    SOCKETS = BolinetteExtension('sockets', [MODELS])
     ALL = BolinetteExtension('all')

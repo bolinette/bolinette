@@ -74,7 +74,7 @@ class ControllerRoute:
     def setup(self):
         self._init_middlewares(self.controller.context, self.controller.__blnt__.middlewares,
                                self._init_sys_middleware())
-        self.controller.context.resources.add_route(self.full_path, self.controller, self)
+        self.controller.context.resources.add_route(self.full_path, self)
         if self.inner_route is not None:
             self.inner_route.setup()
 

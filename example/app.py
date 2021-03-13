@@ -1,4 +1,4 @@
-from bolinette import Bolinette, Extensions
+from bolinette import Bolinette
 
 
 def create_app():

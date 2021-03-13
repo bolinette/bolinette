@@ -14,9 +14,9 @@ from bolinette.utils.serializing import serialize
 class BolinetteResources:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._aiohttp_resources: Dict[str, 'BolinetteResource'] = {}
         self._routes: Dict[str, Dict[web.HttpMethod, web.ControllerRoute]] = {}
-        self.cors = aiohttp_cors.setup(self.context.app, defaults=self._setup_cors())
+        self._aiohttp_resources: Dict[str, 'BolinetteResource'] = None
+        self.cors = None
 
     @property
     def routes(self):
@@ -45,15 +45,22 @@ class BolinetteResources:
             )
         return cors
 
-    def add_route(self, path: str, controller: 'web.Controller', route: 'web.ControllerRoute'):
+    def init_web(self, app: aio_web.Application):
+        self._aiohttp_resources = {}
+        self.cors = aiohttp_cors.setup(app, defaults=self._setup_cors())
+        for path, methods in self._routes.items():
+            for method, route in methods.items():
+                if path not in self._aiohttp_resources:
+                    self._aiohttp_resources[path] = BolinetteResource(
+                        self.cors.add(self.context.app.router.add_resource(path)))
+                handler = RouteHandler(route)
+                self._aiohttp_resources[path].routes[method] = self.cors.add(
+                    self._aiohttp_resources[path].resource.add_route(method.http_verb, handler.__call__))
+
+    def add_route(self, path: str, route: 'web.ControllerRoute'):
         if path not in self._routes:
             self._routes[path] = {}
         self._routes[path][route.method] = route
-        if path not in self._aiohttp_resources:
-            self._aiohttp_resources[path] = BolinetteResource(self.cors.add(self.context.app.router.add_resource(path)))
-        handler = RouteHandler(controller, route)
-        self._aiohttp_resources[path].routes[route.method] = self.cors.add(
-            self._aiohttp_resources[path].resource.add_route(route.method.http_verb, handler.__call__))
 
 
 class BolinetteResource:
@@ -63,8 +70,8 @@ class BolinetteResource:
 
 
 class RouteHandler:
-    def __init__(self, controller: 'web.Controller', route: 'web.ControllerRoute'):
-        self.controller = controller
+    def __init__(self, route: 'web.ControllerRoute'):
+        self.controller = route.controller
         self.route = route
 
     async def __call__(self, request: Request):

@@ -2,42 +2,49 @@ from typing import Dict, Any, Optional, List
 
 from aiohttp import web as aio_web
 
-from bolinette.blnt.database import DatabaseManager
-from bolinette.docs import Documentation
-from bolinette.utils import paths, files
-
 from bolinette import blnt, core, web, mapping, BolinetteExtension, Extensions
 from bolinette.exceptions import InternalError
+from bolinette.blnt.database import DatabaseManager
+from bolinette.utils import paths, files
+from bolinette.docs import Documentation
 
 
 class BolinetteContext:
-    def __init__(self, origin: str, app: Optional[aio_web.Application],
-                 *, extensions: List[BolinetteExtension] = None, profile: str = None,
-                 overrides: Dict[str, Any] = None):
+    def __init__(self, origin: str, *, extensions: List[BolinetteExtension] = None,
+                 profile: str = None, overrides: Dict[str, Any] = None):
         self._ctx = {}
         self._extensions = []
+        self._tables: Dict[str, Any] = {}
+        self._models: Dict[str, 'core.Model'] = {}
+        self._repos: Dict[str, 'core.Repository'] = {}
+        self._services: Dict[str, 'core.Service'] = {}
+        self._controllers: Dict[str, 'web.Controller'] = {}
+
         for ext in extensions or []:
             self.use_extension(ext)
+
+        self.app = None
         self.cwd = paths.cwd()
         self.origin = origin
         self.env = blnt.Environment(self, profile=profile, overrides=overrides)
         self.manifest = files.read_manifest(
             self.root_path(), params={'version': self.env.get('version', '0.0.0')}) or {}
         self.logger = blnt.Logger(self)
-        if app is not None:
-            self.app = app
-            self.docs = Documentation(self)
-            self.db = DatabaseManager(self)
-            self.jwt = blnt.JWT(self)
-            self.resources = web.BolinetteResources(self)
-            self.sockets = web.BolinetteSockets(self)
-            self.mapper = mapping.Mapper(self)
-            self.validator = blnt.Validator(self)
-            self._tables: Dict[str, Any] = {}
-            self._models: Dict[str, 'core.Model'] = {}
-            self._repos: Dict[str, 'core.Repository'] = {}
-            self._services: Dict[str, 'core.Service'] = {}
-            self._controllers: Dict[str, 'web.Controller'] = {}
+        self.db = DatabaseManager(self)
+        self.mapper = mapping.Mapper(self)
+        self.validator = blnt.Validator(self)
+        self.jwt = blnt.JWT(self)
+        self.resources = web.BolinetteResources(self)
+        self.docs = Documentation(self)
+        self.sockets = web.BolinetteSockets(self)
+
+    def init_web(self, app: aio_web.Application):
+        self.app = app
+        self.resources.init_web(app)
+
+    def init_sockets(self, app: aio_web.Application):
+        self.app = app
+        self.sockets.init_socket_handler()
 
     def __getitem__(self, key):
         return self._ctx[key]
