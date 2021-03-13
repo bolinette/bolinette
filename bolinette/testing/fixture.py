@@ -14,4 +14,5 @@ def client(loop):
     bolinette = Bolinette(profile='test', overrides={
         'secret_key': ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     })
+    bolinette.init()
     return loop.run_until_complete(create_client())

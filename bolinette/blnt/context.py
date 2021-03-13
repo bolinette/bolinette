@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from aiohttp import web as aio_web
 
@@ -6,13 +6,18 @@ from bolinette.blnt.database import DatabaseManager
 from bolinette.docs import Documentation
 from bolinette.utils import paths, files
 
-from bolinette import blnt, core, web, mapping
+from bolinette import blnt, core, web, mapping, BolinetteExtension, Extensions
 from bolinette.exceptions import InternalError
 
 
 class BolinetteContext:
-    def __init__(self, origin: str, app: Optional[aio_web.Application], *, profile=None, overrides=None):
+    def __init__(self, origin: str, app: Optional[aio_web.Application],
+                 *, extensions: List[BolinetteExtension] = None, profile: str = None,
+                 overrides: Dict[str, Any] = None):
         self._ctx = {}
+        self._extensions = []
+        for ext in extensions or []:
+            self.use_extension(ext)
         self.cwd = paths.cwd()
         self.origin = origin
         self.env = blnt.Environment(self, profile=profile, overrides=overrides)
@@ -42,6 +47,18 @@ class BolinetteContext:
 
     def model(self, name) -> Any:
         return self._models[name]
+
+    def clear_extensions(self):
+        self._extensions = []
+
+    def use_extension(self, ext: BolinetteExtension):
+        if ext not in self._extensions:
+            for sub_ext in ext.dependencies:
+                self.use_extension(sub_ext)
+            self._extensions.append(ext)
+
+    def has_extension(self, ext: BolinetteExtension):
+        return Extensions.ALL in self._extensions or ext in self._extensions
 
     def add_model(self, name, model: 'core.Model'):
         self._models[name] = model

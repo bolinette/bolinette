@@ -1,9 +1,10 @@
+import functools as _functools
 import inspect as _inspect
 import typing as _typing
 
 from bolinette import blnt, core, web
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
-from bolinette.utils import InitProxy
+from bolinette.utils import InitProxy as _InitProxy
 
 
 def model(model_name: str, *, database: str = 'default',
@@ -39,14 +40,15 @@ def with_mixin(mixin_name: str):
     return decorator
 
 
-def init_func(func: _typing.Callable[['blnt.BolinetteContext'], None]):
-    blnt.cache.init_funcs.append(func)
-    return func
-
-
-def with_context(func: _typing.Callable[['blnt.BolinetteContext'], None]):
-    blnt.cache.with_ctx_funcs.append(func)
-    return func
+def init_func(*, extension: str = None):
+    def decorator(func: _typing.Callable[['blnt.BolinetteContext'], _typing.Awaitable[None]]):
+        @_functools.wraps(func)
+        async def inner(context: blnt.BolinetteContext):
+            if extension is None or context.has_extension(extension):
+                return await func(context)
+        blnt.cache.init_funcs.append(inner)
+        return inner
+    return decorator
 
 
 def seeder(func):
@@ -101,9 +103,9 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
             inner_route = route_function
             route_function = route_function.func
         docstring = route_function.__doc__
-        return InitProxy(web.ControllerRoute, func=route_function, path=path, method=method,
-                         docstring=docstring, expects=expects, returns=returns, inner_route=inner_route,
-                         middlewares=middlewares)
+        return _InitProxy(web.ControllerRoute, func=route_function, path=path, method=method,
+                          docstring=docstring, expects=expects, returns=returns, inner_route=inner_route,
+                          middlewares=middlewares)
     return decorator
 
 

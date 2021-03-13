@@ -1,0 +1,21 @@
+from typing import List
+
+
+class BolinetteExtension:
+    def __init__(self, name: str, dependencies: List['BolinetteExtension'] = None):
+        self.name = name
+        self.dependencies = dependencies or []
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return (isinstance(other, BolinetteExtension) and self.name == other.name
+                or isinstance(other, str) and self.name == other)
+
+
+class Extensions:
+    MODELS = BolinetteExtension('models')
+    WEB = BolinetteExtension('web', [MODELS])
+    TOPICS = BolinetteExtension('topics', [MODELS])
+    ALL = BolinetteExtension('all')

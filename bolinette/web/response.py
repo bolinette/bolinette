@@ -84,7 +84,7 @@ class Response:
     def internal_server_error(self, *, messages: Union[str, List[str]] = None, data=None):
         return self._build_message(500, 'INTERNAL SERVER ERROR', messages, data)
 
-    def render_template(self, name: PathLike, params: dict = None, workdir: PathLike = None):
+    def render_template(self, name: PathLike, params: dict = None, workdir: PathLike = None, *, status = 200):
         if workdir is None:
             workdir = self.context.templates_path()
         if params is None:
@@ -98,7 +98,8 @@ class Response:
             error_404_wd = self.context.internal_files_path('templates')
             error_404 = paths.join('errors', '404.html.jinja2')
             content = files.render_template(error_404_wd, error_404, params)
-        return AioResponse(body=content, status=200, content_type='text/html')
+            status = 404
+        return AioResponse(body=content, status=status, content_type='text/html')
 
     def from_exception(self, exception: Union[exceptions.APIError, exceptions.APIErrors]):
         messages = []
