@@ -1,10 +1,11 @@
 import asyncio
-import inspect
+import sys
+from datetime import datetime
 from typing import Dict, Any, List
 
 from aiohttp import web as aio_web
 
-from bolinette import blnt, console, BolinetteExtension, Extensions
+from bolinette import blnt, BolinetteExtension, Extensions, Console
 from bolinette.blnt.commands import Parser
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
@@ -13,6 +14,7 @@ from bolinette.utils import paths
 class Bolinette:
     def __init__(self, *, extensions: List[BolinetteExtension] = None,
                  profile: str = None, overrides: Dict[str, Any] = None):
+        self._start_time = datetime.utcnow()
         self._init = False
         self._init_ext = False
         self.app = None
@@ -21,13 +23,25 @@ class Bolinette:
                                                  profile=profile, overrides=overrides)
             self.context.use_extension(Extensions.ALL)
         except InitError as init_error:
-            console.error(f'Error raised during Bolinette init phase\n{str(init_error)}')
+            Console().error(f'Error raised during Bolinette init phase\n{str(init_error)}')
             exit(1)
+        self.console = Console(debug=self.context.env.debug)
 
     def _run_init_functions(self):
+        index = 0
         for func in blnt.cache.init_funcs:
+            if not self.context.has_extension(func.extension):
+                continue
             loop = asyncio.get_event_loop()
+            if index == 0:
+                self.console.debug('Running Bolinette init functions: ', end='')
+            else:
+                self.console.debug(', ', end='')
+            self.console.debug(str(func), end='')
             loop.run_until_complete(func(self.context))
+            index += 1
+        if index > 0:
+            self.console.debug('')
 
     def init(self, *, force=False):
         if self._init and not force:
@@ -58,11 +72,16 @@ class Bolinette:
         self.context.init_sockets(self.app)
 
     def start_server(self, *, host: str = None, port: int = None):
+        if not self.context.has_extension((Extensions.WEB, Extensions.SOCKETS)):
+            self.context.logger.error(f'The web or sockets extensions must be activated to start the aiohttp server!')
+            sys.exit(1)
         self.init()
         self.init_extensions()
-        if self.context.env['build_docs']:
-            self.context.docs.build()
-        self.context.docs.setup()
+        if self.context.has_extension(Extensions.WEB):
+            if self.context.env['build_docs']:
+                self.context.docs.build()
+            self.context.docs.setup()
+        self.console.debug(f'Startup took {int((datetime.utcnow() - self._start_time).microseconds / 1000)}ms')
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app,
                         host=host or self.context.env['host'],

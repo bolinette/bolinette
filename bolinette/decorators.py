@@ -1,8 +1,7 @@
-import functools as _functools
 import inspect as _inspect
 import typing as _typing
 
-from bolinette import blnt, core, web
+from bolinette import blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
 from bolinette.utils import InitProxy as _InitProxy
 
@@ -40,14 +39,10 @@ def with_mixin(mixin_name: str):
     return decorator
 
 
-def init_func(*, extension: str = None):
+def init_func(*, extension: BolinetteExtension = None):
     def decorator(func: _typing.Callable[['blnt.BolinetteContext'], _typing.Awaitable[None]]):
-        @_functools.wraps(func)
-        async def inner(context: blnt.BolinetteContext):
-            if extension is None or context.has_extension(extension):
-                return await func(context)
-        blnt.cache.init_funcs.append(inner)
-        return inner
+        blnt.cache.init_funcs.append(blnt.InitFunc(func, extension))
+        return func
     return decorator
 
 

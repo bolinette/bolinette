@@ -13,6 +13,9 @@ class BolinetteExtension:
         return (isinstance(other, BolinetteExtension) and self.name == other.name
                 or isinstance(other, str) and self.name == other)
 
+    def __repr__(self):
+        return f'<Extensions {self.name}>'
+
 
 class Extensions:
     MODELS = BolinetteExtension('models')

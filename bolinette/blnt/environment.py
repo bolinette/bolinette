@@ -132,6 +132,10 @@ class Environment(Settings):
         except FileNotFoundError:
             return {}
 
+    @property
+    def debug(self):
+        return self.get('debug', False)
+
     @staticmethod
     def _load_from_os():
         keys = {}

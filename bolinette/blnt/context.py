@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Tuple, List, Union
 
 from aiohttp import web as aio_web
 
@@ -64,8 +64,14 @@ class BolinetteContext:
                 self.use_extension(sub_ext)
             self._extensions.append(ext)
 
-    def has_extension(self, ext: BolinetteExtension):
-        return Extensions.ALL in self._extensions or ext in self._extensions
+    def has_extension(self, ext: Union[Tuple[BolinetteExtension, ...], BolinetteExtension]):
+        if Extensions.ALL in self._extensions:
+            return True
+        if isinstance(ext, BolinetteExtension):
+            return ext in self._extensions
+        if isinstance(ext, tuple):
+            return len(ext) > 0 and any(self.has_extension(b) for b in ext)
+        raise ValueError('BolinetteContext.has_extensions only accepts BolinetteExtensions instances')
 
     def add_model(self, name, model: 'core.Model'):
         self._models[name] = model
