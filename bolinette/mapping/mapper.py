@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Literal, Type
 
 from bolinette import core, blnt, mapping, types
 from bolinette.exceptions import InternalError
@@ -39,16 +39,41 @@ class Mapper:
             for key in self._responses[model_name]:
                 yield model_name, key, self._responses[model_name][key]
 
+    def _extract_defs(self, model: 'core.Model', model_cls: Type['core.Model'],
+                      collection: Literal['payloads', 'responses'],
+                      merge_defs: Literal['ignore', 'append', 'overwrite']):
+        defs = {}
+        for parent in model_cls.__bases__:
+            if issubclass(parent, core.Model) and parent != core.Model:
+                for _key, _def in self._extract_defs(model, parent, collection, merge_defs).items():
+                    defs[_key] = _def
+        def_func = getattr(model_cls, collection)
+        if hasattr_(def_func, '__func__'):
+            def_func = def_func.__func__
+        def_gen = def_func(model)
+        if def_gen is None:
+            return defs
+        new_defs = list(def_gen)
+        for _def in new_defs:
+            if isinstance(_def, list):
+                model_key = 'default'
+                payload = _def
+            else:
+                model_key, payload = _def
+            if model_key in defs:
+                if merge_defs == 'append':
+                    for _param in payload:
+                        defs[model_key].append(_param)
+                elif merge_defs == 'overwrite':
+                    defs[model_key] = payload
+            else:
+                defs[model_key] = payload
+        return defs
+
     def register(self, model_name: str, model: 'core.Model'):
-        def create_defs(collection, params):
-            if params is None:
-                return
-            for param in params:
-                if isinstance(param, list):
-                    model_key = 'default'
-                    payload = param
-                else:
-                    model_key, payload = param
+        def create_defs(collection, attr_name: Literal['payloads', 'responses']):
+            defs = self._extract_defs(model, type(model), attr_name, model.__blnt__.merge_defs)
+            for model_key, payload in defs.items():
                 definition = mapping.Definition(model_name, model_key)
                 for field in payload:
                     definition.fields.append(field)
@@ -56,8 +81,8 @@ class Mapper:
                     collection[definition.model_name] = {}
                 collection[definition.model_name][definition.model_key] = definition
 
-        create_defs(self._payloads, model.payloads())
-        create_defs(self._responses, model.responses())
+        create_defs(self._payloads, 'payloads')
+        create_defs(self._responses, 'responses')
 
     def marshall(self, definition, entity, *, skip_none=False, as_list=False, use_foreign_key=False):
         if not entity:

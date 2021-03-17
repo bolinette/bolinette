@@ -102,6 +102,7 @@ async def init_repositories(context: blnt.BolinetteContext):
 async def init_mappings(context: blnt.BolinetteContext):
     for model_name, model in context.models:
         context.mapper.register(model_name, model)
+    i=2
 
 
 @init_func(extension=Extensions.MODELS)

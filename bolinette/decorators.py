@@ -6,11 +6,14 @@ from bolinette.blnt.commands import Command as _Command, Argument as _Argument
 from bolinette.utils import InitProxy as _InitProxy
 
 
-def model(model_name: str, *, database: str = 'default',
+def model(model_name: str, *,
+          database: str = 'default',
           model_type: _typing.Literal['relational', 'collection'] = 'relational',
+          definitions: _typing.Literal['ignore', 'append', 'overwrite'] = 'ignore',
           join_table: bool = False):
     def decorator(model_cls: _typing.Type['core.Model']):
-        model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational', join_table)
+        model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational',
+                                                join_table, definitions)
         blnt.cache.models[model_name] = model_cls
         return model_cls
     return decorator

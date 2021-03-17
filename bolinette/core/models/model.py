@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Dict, Iterator
+from typing import List, Union, Tuple, Dict, Iterator, Literal
 
 from bolinette import core, blnt
 from bolinette.blnt.database.engines import DatabaseEngine
@@ -33,11 +33,13 @@ class Model:
 
 
 class ModelMetadata:
-    def __init__(self, name: str, database: str, relational: bool, join: bool):
+    def __init__(self, name: str, database: str, relational: bool, join: bool,
+                 merge_defs: Literal['ignore', 'append', 'overwrite']):
         self.name = name
         self.database = database
         self.relational = relational
         self.join = join
+        self.merge_defs = merge_defs
 
 
 class ModelProps(blnt.Properties):
