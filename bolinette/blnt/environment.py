@@ -1,7 +1,7 @@
 import os
 import random
 import string
-from typing import Dict, Any, Union
+from typing import Dict, Any
 
 import yaml
 

@@ -63,12 +63,10 @@ class ControllerRoute:
         self.middlewares: List['web.Middleware'] = []
 
     def __repr__(self):
-        return f'<Route {self.method.name} {self.full_path} {self._mdw_defs}>'
+        return f'<Route {self.method.name} "{self.full_path}" {self._mdw_defs}>'
 
     @property
     def full_path(self):
-        if self.controller is None:
-            return self.path
         return f'{self.controller.__blnt__.namespace}{self.controller.__blnt__.path}{self.path}'
 
     def setup(self):

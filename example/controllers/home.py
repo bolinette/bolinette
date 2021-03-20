@@ -10,3 +10,12 @@ class HomeController(web.Controller):
         Renders and returns the index.html jinja template
         """
         return self.response.render_template('index.html')
+
+    @get('/hello')
+    @get('/hello/{name}')
+    async def hello(self, match):
+        if 'name' in match:
+            name = match['name']
+        else:
+            name = 'user'
+        return self.response.ok(data=f'Hello {name}!')

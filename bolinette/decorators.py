@@ -90,16 +90,15 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
         middlewares = [middlewares]
 
     def decorator(route_function: _typing.Callable):
-        if not isinstance(route_function, web.ControllerRoute) and not _inspect.iscoroutinefunction(route_function):
+        if not isinstance(route_function, _InitProxy) and not _inspect.iscoroutinefunction(route_function):
             raise ValueError(f'Route "{route_function.__name__}" must be an async function')
         if expects is not None and not isinstance(expects, web.Expects):
             raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Expects')
         if returns is not None and not isinstance(returns, web.Returns):
             raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Returns')
         inner_route = None
-        if isinstance(route_function, web.ControllerRoute):
+        if isinstance(route_function, _InitProxy):
             inner_route = route_function
-            route_function = route_function.func
         docstring = route_function.__doc__
         return _InitProxy(web.ControllerRoute, func=route_function, path=path, method=method,
                           docstring=docstring, expects=expects, returns=returns, inner_route=inner_route,

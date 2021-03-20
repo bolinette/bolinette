@@ -37,39 +37,39 @@ class TestClient:
                 split = header.split(';')[0].split('=')
                 self.cookies[split[0]] = split[1]
 
-    async def post(self, path: str, data: dict = None) -> dict:
+    async def post(self, path: str, data: dict = None, *, prefix='/api') -> dict:
         if data is None:
             data = {}
-        res = await self.client.post(f'/api{path}', data=serialize(data, 'application/json')[0],
+        res = await self.client.post(f'{prefix}{path}', data=serialize(data, 'application/json')[0],
                                      headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
         text = await res.text()
         return json.loads(text)
 
-    async def put(self, path: str, data: dict = None) -> dict:
+    async def put(self, path: str, data: dict = None, *, prefix='/api') -> dict:
         if data is None:
             data = {}
-        res = await self.client.put(f'/api{path}', data=serialize(data, 'application/json')[0],
+        res = await self.client.put(f'{prefix}{path}', data=serialize(data, 'application/json')[0],
                                     headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
         text = await res.text()
         return json.loads(text)
 
-    async def patch(self, path: str, data: dict = None) -> dict:
+    async def patch(self, path: str, data: dict = None, *, prefix='/api') -> dict:
         if data is None:
             data = {}
-        res = await self.client.patch(f'/api{path}', data=serialize(data, 'application/json')[0],
+        res = await self.client.patch(f'{prefix}{path}', data=serialize(data, 'application/json')[0],
                                       headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
         text = await res.text()
         return json.loads(text)
 
-    async def get(self, path: str) -> dict:
-        res = await self.client.get(f'/api{path}')
+    async def get(self, path: str, *, prefix='/api') -> dict:
+        res = await self.client.get(f'{prefix}{path}')
         text = await res.text()
         return json.loads(text)
 
-    async def delete(self, path: str) -> dict:
-        res = await self.client.delete(f'/api{path}')
+    async def delete(self, path: str, *, prefix='/api') -> dict:
+        res = await self.client.delete(f'{prefix}{path}')
         text = await res.text()
         return json.loads(text)

@@ -7,7 +7,7 @@ from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
 from bolinette import console, blnt, web
-from bolinette.exceptions import APIError, APIErrors, InternalError, InitError
+from bolinette.exceptions import APIError, APIErrors, InternalError
 from bolinette.utils.serializing import serialize
 
 
@@ -15,7 +15,7 @@ class BolinetteResources:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self._routes: Dict[str, Dict[web.HttpMethod, web.ControllerRoute]] = {}
-        self._aiohttp_resources: Dict[str, 'BolinetteResource'] = None
+        self._aiohttp_resources: Dict[str, 'BolinetteResource'] = {}
         self.cors = None
 
     @property

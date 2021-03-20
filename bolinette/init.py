@@ -102,7 +102,6 @@ async def init_repositories(context: blnt.BolinetteContext):
 async def init_mappings(context: blnt.BolinetteContext):
     for model_name, model in context.models:
         context.mapper.register(model_name, model)
-    i=2
 
 
 @init_func(extension=Extensions.MODELS)
@@ -113,10 +112,16 @@ async def init_services(context: blnt.BolinetteContext):
 
 @init_func(extension=Extensions.WEB)
 async def init_controllers(context: blnt.BolinetteContext):
+    def _init_route(_ctrl: web.Controller, _proxy: InitProxy):
+        _route = _proxy.instantiate(controller=_ctrl)
+        if _route.inner_route is not None:
+            _route.inner_route, _route.func = _init_route(_ctrl, _route.inner_route)
+        return _route, _route.func
+
     for controller_name, controller_cls in blnt.cache.controllers.items():
         controller = controller_cls(context)
         for route_name, proxy in controller.__props__.get_proxies(web.ControllerRoute):
-            route = proxy.instantiate(controller=controller)
+            route, _ = _init_route(controller, proxy)
             setattr(controller, route_name, route)
         for _, route in controller.__props__.get_routes():
             route.controller = controller
