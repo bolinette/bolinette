@@ -85,7 +85,7 @@ class Mapper:
         create_defs(self._responses, 'responses')
 
     def marshall(self, definition, entity, *, skip_none=False, as_list=False, use_foreign_key=False):
-        if not entity:
+        if entity is None:
             return None
         if as_list:
             return [self.marshall(definition, e, skip_none=skip_none, as_list=False, use_foreign_key=use_foreign_key)
