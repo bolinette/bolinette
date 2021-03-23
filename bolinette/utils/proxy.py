@@ -15,4 +15,4 @@ class InitProxy(Generic[T]):
         return self._proxy_cls == proxy_cls
 
     def __repr__(self):
-        return f'<InitProxy #{self.__hash__()}>'
+        return f'<InitProxy #{self.__hash__()}: {repr(self._proxy_cls)}>'

@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
@@ -30,13 +32,21 @@ async def init_model_classes(context: blnt.BolinetteContext):
         for col_name, col in model.__props__.get_columns():
             if isinstance(col.reference, InitProxy) and col.reference.of_type(core.models.Reference):
                 col.reference = col.reference.instantiate(model=model, column=col, models=models)
+        added_back_refs: Dict[core.Model, List[core.models.ColumnList]] = {}
         for rel_name, rel in model.__props__.get_relationships():
             if isinstance(rel.backref, InitProxy) and rel.backref.of_type(core.models.Backref):
                 rel.backref = rel.backref.instantiate(model=model, relationship=rel)
+                if rel.backref.key not in added_back_refs:
+                    added_back_refs[rel.target_model] = []
+                added_back_refs[rel.target_model].append(
+                    core.models.ColumnList(rel.backref.key, rel.target_model, model))
             if isinstance(rel.foreign_key, InitProxy) and rel.foreign_key.of_type(core.models.Column):
                 rel.foreign_key = proxies[rel.foreign_key]
             if isinstance(rel.remote_side, InitProxy) and rel.remote_side.of_type(core.models.Column):
                 rel.remote_side = proxies[rel.remote_side]
+        for target_model, back_refs in added_back_refs.items():
+            for back_ref in back_refs:
+                setattr(target_model, back_ref.name, back_ref)
     for model_name, model in models.items():
         context.add_model(model_name, model)
 

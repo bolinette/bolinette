@@ -24,6 +24,9 @@ class Mocked:
     def __contains__(self, key):
         return key in self._fields
 
+    def __repr__(self):
+        return repr(self._fields)
+
     @staticmethod
     async def insert_entity(context: 'blnt.BolinetteContext', name: str, params: Dict[str, Any]):
         mocked = Mocked(name, context)
@@ -83,9 +86,10 @@ class Mock:
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
         self._id = m_id
-        columns = self.context.model(model_name).__props__.get_columns()
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
+        model = self.context.model(model_name)
+        columns = model.__props__.get_columns()
         for _, column in columns:
             if column.primary_key:
                 continue
@@ -104,6 +108,9 @@ class Mock:
             if col_type == types.db.Date:
                 mocked[column.name] = self._random_date(rng, datetime.datetime(1900, 1, 1),
                                                         datetime.datetime(2000, 1, 1))
+        back_refs = model.__props__.get_back_refs()
+        for att_name, _ in back_refs:
+            mocked[att_name] = []
         if post_mock_fn and callable(post_mock_fn):
             post_mock_fn(mocked)
         return mocked

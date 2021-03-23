@@ -80,6 +80,9 @@ class ModelProps(blnt.Properties):
     def get_properties(self) -> Iterator[Tuple[str, 'ModelProperty']]:
         return self._get_attributes_of_type(self.parent, ModelProperty)
 
+    def get_back_refs(self) -> Iterator[Tuple[str, 'core.models.ColumnList']]:
+        return self._get_attributes_of_type(self.parent, core.models.ColumnList)
+
 
 class ModelProperty:
     def __init__(self, name, function):

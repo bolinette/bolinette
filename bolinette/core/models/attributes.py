@@ -65,6 +65,13 @@ class Column:
         return s + '>'
 
 
+class ColumnList:
+    def __init__(self, name: str, model: 'core.Model', origin: 'core.Model'):
+        self.name = name
+        self.model = model
+        self.origin = origin
+
+
 class Backref:
     def __init__(self, model: 'core.Model', relationship: 'core.models.Relationship',
                  key: str, lazy: bool):
