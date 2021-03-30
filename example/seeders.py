@@ -61,9 +61,9 @@ async def book_seeder(context: blnt.BolinetteContext):
         person_service: PersonService = context.service('person')
         book_service: BookService = context.service('book')
         async with blnt.Transaction(context):
-            p1 = await person_service.create(
-                {'uid': 'JRR_TOLKIEN', 'first_name': 'J.R.R.', 'last_name': 'Tolkien'})
             user = await user_service.get_by_username('root')
+            p1 = await person_service.create(
+                {'uid': 'JRR_TOLKIEN', 'first_name': 'J.R.R.', 'last_name': 'Tolkien'}, current_user=user)
             await book_service.create(
                 {'uid': 'LOTR_1', 'name': 'The Fellowship of the Ring', 'pages': 678, 'author': p1,
                  'price': 23.45, 'publication_date': datetime(1954, 7, 29)}, current_user=user)

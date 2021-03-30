@@ -1,5 +1,6 @@
 import inspect as _inspect
 import typing as _typing
+from typing import Callable, List
 
 from bolinette import blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
@@ -7,13 +8,14 @@ from bolinette.utils import InitProxy as _InitProxy
 
 
 def model(model_name: str, *,
+          mixins: List[str] = None,
           database: str = 'default',
           model_type: _typing.Literal['relational', 'collection'] = 'relational',
           definitions: _typing.Literal['ignore', 'append', 'overwrite'] = 'ignore',
           join_table: bool = False):
     def decorator(model_cls: _typing.Type['core.Model']):
         model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational',
-                                                join_table, definitions)
+                                                join_table, mixins or [], definitions)
         blnt.cache.models[model_name] = model_cls
         return model_cls
     return decorator
@@ -23,23 +25,19 @@ def model_property(function):
     return core.ModelProperty(function.__name__, function)
 
 
-def mixin(mixin_name: str):
-    def decorator(mixin_cls: _typing.Type['core.Mixin']):
-        blnt.cache.mixins[mixin_name] = mixin_cls
-        return mixin_cls
-    return decorator
+class _MixinDecorator:
+    def __call__(self, mixin_name: str):
+        def decorator(mixin_cls: _typing.Type['core.Mixin']):
+            blnt.cache.mixins[mixin_name] = mixin_cls
+            return mixin_cls
+        return decorator
+
+    @staticmethod
+    def service_method(func: Callable):
+        return core.MixinServiceMethod(func.__name__, func)
 
 
-def with_mixin(mixin_name: str):
-    def decorator(model_cls):
-        mixin_cls = blnt.cache.mixins.get(mixin_name)
-        model_cls.__mixins__[mixin_name] = mixin_cls
-        for col_name, col_def in mixin_cls.columns().items():
-            setattr(model_cls, col_name, col_def)
-        for rel_name, rel_def in mixin_cls.relationships(model_cls).items():
-            setattr(model_cls, rel_name, rel_def)
-        return model_cls
-    return decorator
+mixin = _MixinDecorator()
 
 
 def init_func(*, extension: BolinetteExtension = None):
@@ -153,18 +151,17 @@ def channel(rule: str):
     return decorator
 
 
-# noinspection PyPep8Naming
-class command:
+class _CommandDecorator:
     @staticmethod
     def _create_command(func):
         return _Command(func.__name__, func)
 
-    def __new__(cls, name: str, summary: str):
+    def __call__(self, name: str, summary: str):
         def decorator(arg):
             if isinstance(arg, _Command):
                 cmd = arg
             elif _inspect.isfunction(arg):
-                cmd = cls._create_command(arg)
+                cmd = self._create_command(arg)
             else:
                 raise ValueError('@command must only decorate function or async functions')
             cmd.name = name
@@ -173,15 +170,14 @@ class command:
             return cmd
         return decorator
 
-    @classmethod
-    def argument(cls, arg_type: _typing.Literal['argument', 'option', 'flag', 'count'],
+    def argument(self, arg_type: _typing.Literal['argument', 'option', 'flag', 'count'],
                  name: str, *, flag: str = None, summary: str = None,
                  value_type: _typing.Type = None, default=None, choices: list = None):
         def decorator(arg):
             if isinstance(arg, _Command):
                 cmd = arg
             elif _inspect.isfunction(arg):
-                cmd = cls._create_command(arg)
+                cmd = self._create_command(arg)
             else:
                 raise ValueError('@command.argument must only decorate function or async functions')
             if arg_type not in ['argument', 'option', 'flag', 'count']:
@@ -190,3 +186,6 @@ class command:
                                       default=default, choices=choices))
             return cmd
         return decorator
+
+
+command = _CommandDecorator()

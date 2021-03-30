@@ -3,7 +3,7 @@ from bolinette.decorators import service
 
 
 @service('book')
-class BookService(core.HistorizedService):
+class BookService(core.Service):
     def __init__(self, context: 'blnt.BolinetteContext'):
         super().__init__(context)
 

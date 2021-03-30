@@ -11,7 +11,6 @@ MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
 
 class Model:
     __blnt__: 'ModelMetadata' = None
-    __mixins__: Dict[str, 'core.Mixin'] = {}
 
     def __init__(self, database: 'DatabaseEngine'):
         self.__props__ = ModelProps(self, database)
@@ -24,21 +23,21 @@ class Model:
     def responses(cls) -> MappingListPyTyping:
         pass
 
-    @classmethod
-    def get_mixin(cls, name: str):
-        return cls.__mixins__[name]
+    def get_mixin(self, name: str):
+        return self.__props__.mixins[name]
 
     def __repr__(self):
         return f'<Model {self.__blnt__.name}>'
 
 
 class ModelMetadata:
-    def __init__(self, name: str, database: str, relational: bool, join: bool,
+    def __init__(self, name: str, database: str, relational: bool, join: bool, mixins: List[str],
                  merge_defs: Literal['ignore', 'append', 'overwrite']):
         self.name = name
         self.database = database
         self.relational = relational
         self.join = join
+        self.mixins = mixins
         self.merge_defs = merge_defs
 
 
@@ -47,6 +46,7 @@ class ModelProps(blnt.Properties):
         super().__init__(model)
         self.model = model
         self.database = database
+        self.mixins: Dict[str, core.Mixin] = {}
         # self.model_id: 'core.models.Column' = self._set_model_id()
 
     @property

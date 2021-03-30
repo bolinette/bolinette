@@ -22,12 +22,24 @@ async def init_model_classes(context: blnt.BolinetteContext):
             col = proxy.instantiate(name=col_name, model=model)
             proxies[proxy] = col
             setattr(model, col_name, col)
+        for mixin_name in model.__blnt__.mixins:
+            if mixin_name not in blnt.cache.mixins:
+                raise InitError(f'Model "{model_name}": mixin "{mixin_name}" is not defined')
+            mixin = blnt.cache.mixins[mixin_name]()
+            for col_name, proxy in mixin.columns().items():
+                col = proxy.instantiate(name=col_name, model=model)
+                setattr(model, col_name, col)
+            model.__props__.mixins[mixin_name] = mixin
         models[model_name] = model
     for model_name, model in models.items():
         for rel_name, proxy in model.__props__.get_proxies(core.models.Relationship):
             rel = proxy.instantiate(name=rel_name, model=model, models=models)
             proxies[proxy] = rel
             setattr(model, rel_name, rel)
+        for _, mixin in model.__props__.mixins.items():
+            for rel_name, proxy in mixin.relationships(model).items():
+                rel = proxy.instantiate(name=rel_name, model=model, models=models)
+                setattr(model, rel_name, rel)
     for model_name, model in models.items():
         for col_name, col in model.__props__.get_columns():
             if isinstance(col.reference, InitProxy) and col.reference.of_type(core.models.Reference):
