@@ -2,7 +2,7 @@ from bolinette import types, core, mapping
 from bolinette.decorators import model
 
 
-@model('person')
+@model('person', mixins=['historized'])
 class Person(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     uid = types.defs.Column(types.db.String, nullable=False, unique=True, model_id=True)

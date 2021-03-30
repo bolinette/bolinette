@@ -5,7 +5,7 @@ from bolinette import utils
 
 
 class Properties:
-    def __init__(self, parent: object):
+    def __init__(self, parent):
         self.parent = parent
 
     @staticmethod

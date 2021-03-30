@@ -1,23 +1,21 @@
-from datetime import datetime
 from typing import List, Dict, Any
 
-from bolinette import blnt, core
+from bolinette import blnt
 from bolinette.blnt.objects import PaginationParams, OrderByParams
 from bolinette.exceptions import EntityNotFoundError
+from bolinette.utils.functions import async_invoke
 
 
 class Service:
     __blnt__: 'ServiceMetadata' = None
 
     def __init__(self, context: 'blnt.BolinetteContext'):
+        self.__props__ = ServiceProps(self)
         self.context = context
+        self.repo = context.repo(self.__blnt__.model_name)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
-
-    @property
-    def repo(self) -> core.Repository:
-        return self.context.repo(self.__blnt__.model_name)
 
     async def get(self, identifier, *, safe=False):
         entity = await self.repo.get(identifier)
@@ -37,16 +35,20 @@ class Service:
     async def get_all(self, *, pagination: PaginationParams = None, order_by: List[OrderByParams] = None):
         return await self.repo.get_all(pagination, order_by)
 
-    async def create(self, values: Dict[str, Any]):
+    async def create(self, values: Dict[str, Any], **kwargs):
+        await self.__props__.call_mixin_methods('create', self, values=values, **kwargs)
         return await self.repo.create(values)
 
-    async def update(self, entity, values: Dict[str, Any]):
+    async def update(self, entity, values: Dict[str, Any], **kwargs):
+        await self.__props__.call_mixin_methods('update', self, entity=entity, values=values, **kwargs)
         return await self.repo.update(entity, values)
 
-    async def patch(self, entity, values: Dict[str, Any]):
+    async def patch(self, entity, values: Dict[str, Any], **kwargs):
+        await self.__props__.call_mixin_methods('patch', self, entity=entity, values=values, **kwargs)
         return await self.repo.patch(entity, values)
 
-    async def delete(self, entity):
+    async def delete(self, entity, **kwargs):
+        await self.__props__.call_mixin_methods('delete', self, entity=entity, **kwargs)
         return await self.repo.delete(entity)
 
 
@@ -66,31 +68,8 @@ class ServiceMetadata:
         self.model_name = model_name
 
 
-class HistorizedService(Service):
-    def __init__(self, context: 'blnt.BolinetteContext'):
-        super().__init__(context)
-
-    async def create(self, values, *, current_user=None):
-        if current_user:
-            now = datetime.utcnow()
-            values['created_on'] = now
-            values['created_by_id'] = current_user.id
-            values['updated_on'] = now
-            values['updated_by_id'] = current_user.id
-        return await super().create(values)
-
-    async def update(self, entity, values, *, current_user=None):
-        if current_user:
-            now = datetime.utcnow()
-            values['created_on'] = entity.created_on
-            values['created_by_id'] = entity.created_by_id
-            values['updated_on'] = now
-            values['updated_by_id'] = current_user.id
-        return await super().update(entity, values)
-
-    async def patch(self, entity, values, *, current_user=None):
-        if current_user:
-            now = datetime.utcnow()
-            values['updated_on'] = now
-            values['updated_by_id'] = current_user.id
-        return await super().patch(entity, values)
+class ServiceProps(blnt.Properties):
+    async def call_mixin_methods(self, method_name: str, *args, **kwargs):
+        for _, mixin in self.parent.repo.model.__props__.mixins.items():
+            if method_name in mixin:
+                await async_invoke(mixin[method_name].func, *args, **kwargs)
