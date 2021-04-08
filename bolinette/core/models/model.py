@@ -78,7 +78,7 @@ class ModelProps(blnt.Properties):
         return self._get_attributes_of_type(self.parent, core.models.Relationship)
 
     def get_properties(self) -> Iterator[Tuple[str, 'ModelProperty']]:
-        return self._get_attributes_of_type(self.parent, ModelProperty)
+        return self._get_cls_attributes_of_type(type(self.parent), ModelProperty)
 
     def get_back_refs(self) -> Iterator[Tuple[str, 'core.models.ColumnList']]:
         return self._get_attributes_of_type(self.parent, core.models.ColumnList)
