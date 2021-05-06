@@ -54,6 +54,9 @@ class Bolinette:
             return
         self.app = None
         if self.context.has_extension(Extensions.WEB):
+            if self.context.env['build_docs']:
+                self.context.docs.build()
+            self.context.docs.setup()
             self._init_web()
         if self.context.has_extension(Extensions.SOCKETS):
             self._init_sockets()
@@ -77,10 +80,6 @@ class Bolinette:
             sys.exit(1)
         self.init()
         self.init_extensions()
-        if self.context.has_extension(Extensions.WEB):
-            if self.context.env['build_docs']:
-                self.context.docs.build()
-            self.context.docs.setup()
         self.console.debug(f'Startup took {int((datetime.utcnow() - self._start_time).microseconds / 1000)}ms')
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app,

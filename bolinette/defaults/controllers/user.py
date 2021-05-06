@@ -28,11 +28,11 @@ class UserController(web.Controller):
         now = datetime.utcnow()
         if set_access:
             access_token = self.context.jwt.create_access_token(now, user.username, fresh=fresh)
-            resp.cookies.append(web.Cookie('access_token', access_token,
+            resp.cookies.append(web.Cookie('access_token', access_token, http_only=True,
                                            expires=self.context.jwt.access_token_expires(now), path='/'))
         if set_refresh:
             refresh_token = self.context.jwt.create_refresh_token(now, user.username)
-            resp.cookies.append(web.Cookie('refresh_token', refresh_token,
+            resp.cookies.append(web.Cookie('refresh_token', refresh_token, http_only=True,
                                            expires=self.context.jwt.refresh_token_expires(now),
                                            path='/api/user/refresh'))
 

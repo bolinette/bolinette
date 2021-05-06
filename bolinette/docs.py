@@ -188,7 +188,6 @@ class Documentation:
             no_docs_ctrl = NoDocsController(self.context)
             no_docs_route: web.ControllerRoute = no_docs_ctrl.get_no_docs.instantiate(controller=no_docs_ctrl)
             no_docs_route.setup()
-            self.context.resources.add_route('/api', no_docs_ctrl, no_docs_route)
 
 
 class NoDocsController(web.Controller):
@@ -197,7 +196,7 @@ class NoDocsController(web.Controller):
     def __init__(self, context: 'blnt.BolinetteContext'):
         super().__init__(context)
 
-    @get('/api')
+    @get('')
     async def get_no_docs(self):
         params = {
             'name': self.context.manifest.get('name', 'Bolinette App'),
