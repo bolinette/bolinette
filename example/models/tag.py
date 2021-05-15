@@ -14,13 +14,17 @@ class Tag(core.Model):
     def payloads(self):
         yield [
             mapping.Column(self.name, required=True),
+            mapping.Column(self.parent_id, required=False)
         ]
 
     def responses(self):
         yield [
+            mapping.Column(self.id),
             mapping.Column(self.name)
         ]
         yield 'complete', [
+            mapping.Column(self.id),
             mapping.Column(self.name),
-            mapping.List(mapping.Definition('tag', 'complete'), key='children')
+            mapping.List(mapping.Definition('tag', 'complete'), key='children'),
+            mapping.List(mapping.Definition('label'), key='labels')
         ]

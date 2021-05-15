@@ -13,15 +13,19 @@ from bolinette.utils import InitProxy
 async def init_model_classes(context: blnt.BolinetteContext):
     models = {}
     proxies = {}
+
+    # Instantiate models & process columns
     for model_name, model_cls in blnt.cache.models.items():
         db_key = model_cls.__blnt__.database
         if db_key not in context.db:
             raise InitError(f'Undefined "{db_key}" database for model "{model_name}"')
         model = model_cls(context.db[db_key])
+        # Instantiate columns
         for col_name, proxy in model.__props__.get_proxies(core.models.Column):
             col = proxy.instantiate(name=col_name, model=model)
             proxies[proxy] = col
             setattr(model, col_name, col)
+        # Add mixin columns
         for mixin_name in model.__blnt__.mixins:
             if mixin_name not in blnt.cache.mixins:
                 raise InitError(f'Model "{model_name}": mixin "{mixin_name}" is not defined')
@@ -31,34 +35,63 @@ async def init_model_classes(context: blnt.BolinetteContext):
                 setattr(model, col_name, col)
             model.__props__.mixins[mixin_name] = mixin
         models[model_name] = model
+
+    for _, model in models.items():
+        # Process auto generated primary keys
+        primary = [c for _, c in model.__props__.get_columns() if c.primary_key]
+        if len(primary) == 1 and primary[0].auto_increment is None:
+            primary[0].auto_increment = True
+        for column in primary:
+            column.nullable = False
+        # Find model id
+        model_id = [c for _, c in model.__props__.get_columns() if c.model_id]
+        if not model_id:
+            model.__props__.model_id = None
+        elif len(model_id) == 1:
+            model.__props__.model_id = model_id[0]
+        else:
+            model.__props__.model_id = model_id
+
+    # Process relationships
     for model_name, model in models.items():
+        # Instantiate relationships
         for rel_name, proxy in model.__props__.get_proxies(core.models.Relationship):
             rel = proxy.instantiate(name=rel_name, model=model, models=models)
             proxies[proxy] = rel
             setattr(model, rel_name, rel)
+        # Add mixin relationships
         for _, mixin in model.__props__.mixins.items():
             for rel_name, proxy in mixin.relationships(model).items():
                 rel = proxy.instantiate(name=rel_name, model=model, models=models)
                 setattr(model, rel_name, rel)
+
+    # Process references
     for model_name, model in models.items():
+        # Instantiate references
         for col_name, col in model.__props__.get_columns():
             if isinstance(col.reference, InitProxy) and col.reference.of_type(core.models.Reference):
                 col.reference = col.reference.instantiate(model=model, column=col, models=models)
+        # Process back references
         added_back_refs: Dict[core.Model, List[core.models.ColumnList]] = {}
         for rel_name, rel in model.__props__.get_relationships():
+            # Instantiate back references
             if isinstance(rel.backref, InitProxy) and rel.backref.of_type(core.models.Backref):
                 rel.backref = rel.backref.instantiate(model=model, relationship=rel)
                 if rel.backref.key not in added_back_refs:
                     added_back_refs[rel.target_model] = []
                 added_back_refs[rel.target_model].append(
                     core.models.ColumnList(rel.backref.key, rel.target_model, model))
+            # Link foreign keys
             if isinstance(rel.foreign_key, InitProxy) and rel.foreign_key.of_type(core.models.Column):
                 rel.foreign_key = proxies[rel.foreign_key]
+            # Link remote side foreign keys for same-model-references
             if isinstance(rel.remote_side, InitProxy) and rel.remote_side.of_type(core.models.Column):
                 rel.remote_side = proxies[rel.remote_side]
+        # Add back refs to the target model
         for target_model, back_refs in added_back_refs.items():
             for back_ref in back_refs:
                 setattr(target_model, back_ref.name, back_ref)
+
     for model_name, model in models.items():
         context.add_model(model_name, model)
 
@@ -79,8 +112,10 @@ async def init_relational_models(context: blnt.BolinetteContext):
             if attribute.reference:
                 ref = sqlalchemy.ForeignKey(attribute.reference.target_path)
             orm_cols[model_name][att_name] = sqlalchemy.Column(
-                att_name, attribute.type.sqlalchemy_type, ref, default=attribute.default, index=attribute.model_id,
-                primary_key=attribute.primary_key, nullable=attribute.nullable, unique=attribute.unique)
+                att_name, attribute.type.sqlalchemy_type, ref,
+                default=attribute.default, index=attribute.model_id,
+                primary_key=attribute.primary_key, nullable=attribute.nullable,
+                unique=attribute.unique, autoincrement=attribute.auto_increment)
         orm_tables[model_name] = sqlalchemy.Table(model_name,
                                                   model.__props__.database.base.metadata,
                                                   *(orm_cols[model_name].values()))

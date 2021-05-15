@@ -5,7 +5,7 @@ from bolinette import blnt
 from bolinette.decorators import seeder
 from bolinette.defaults.services import RoleService, UserService
 
-from example.services import BookService, PersonService, LibraryService
+from example.services import BookService, PersonService, LibraryService, TagService, LabelService
 
 
 @seeder
@@ -89,3 +89,20 @@ async def library_seeder(context: blnt.BolinetteContext):
             await library_service.create({
                 'key': 'sph_bks', 'name': 'Sophie\'s books'
             })
+
+
+@seeder
+async def tag_seeder(context: blnt.BolinetteContext):
+    if context.env['profile'] == 'development':
+        tag_service: TagService = context.service('tag')
+        label_service: LabelService = context.service('label')
+        async with blnt.Transaction(context):
+            t1 = await tag_service.create({'name': 't1'})
+            t2 = await tag_service.create({'name': 't2'})
+            t11 = await tag_service.create({'name': 't11', 'parent': t1})
+            await tag_service.create({'name': 't111', 'parent': t11})
+            await tag_service.create({'name': 't21', 'parent': t2})
+
+            await label_service.create({'name': 'l11', 'tag': t1, 'id': 1})
+            await label_service.create({'name': 'l12', 'tag': t1, 'id': 2})
+            await label_service.create({'name': 'l21', 'tag': t2, 'id': 1})

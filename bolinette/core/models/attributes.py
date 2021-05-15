@@ -42,11 +42,13 @@ class Reference:
 
 
 class Column:
-    def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType', reference: Optional[Reference],
-                 primary_key: bool, nullable: bool, unique: bool, model_id: bool, default: Optional[Any]):
+    def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType',
+                 reference: Optional[Reference], primary_key: bool, auto: Optional[bool],
+                 nullable: bool, unique: bool, model_id: bool, default: Optional[Any]):
         self.name = name
         self.type = data_type
         self.model = model
+        self.auto_increment = auto
         self.reference = reference
         self.primary_key = primary_key
         self.nullable = nullable

@@ -1,8 +1,7 @@
-from typing import List, Union, Tuple, Dict, Iterator, Literal
+from typing import List, Union, Tuple, Dict, Iterator, Literal, Optional
 
 from bolinette import core, blnt
 from bolinette.blnt.database.engines import DatabaseEngine
-from bolinette.exceptions import InitError
 
 MappingPyTyping = List[Union['types.mapping.Column', 'types.mapping.Field',
                              'types.mapping.List', 'types.mapping.Definition']]
@@ -15,12 +14,10 @@ class Model:
     def __init__(self, database: 'DatabaseEngine'):
         self.__props__ = ModelProps(self, database)
 
-    @classmethod
-    def payloads(cls) -> MappingListPyTyping:
+    def payloads(self) -> MappingListPyTyping:
         pass
 
-    @classmethod
-    def responses(cls) -> MappingListPyTyping:
+    def responses(self) -> MappingListPyTyping:
         pass
 
     def get_mixin(self, name: str):
@@ -47,29 +44,7 @@ class ModelProps(blnt.Properties):
         self.model = model
         self.database = database
         self.mixins: Dict[str, core.Mixin] = {}
-        # self.model_id: 'core.models.Column' = self._set_model_id()
-
-    @property
-    def model_id(self):
-        attrs = filter(lambda col: col[1].model_id, self.get_columns())
-        model_id = next(attrs)
-        return model_id[1]
-
-    def _set_model_id(self):
-        model_id = None
-        if self.model.__blnt__.join:
-            return model_id
-        for col_name, column in self.get_columns():
-            if column.model_id and model_id is not None:
-                raise InitError(f'Model "{self.model.__blnt__.name}" already has a model id')
-            if column.model_id:
-                model_id = column
-        if model_id is None:
-            raise InitError(f'Model "{self.model.__blnt__.name}" has no column marked as model id')
-        if not model_id.unique and not model_id.primary_key:
-            raise InitError(f'Model "{self.model.__blnt__.name}"\'s model id should be either '
-                            'a unique column or a primary key')
-        return model_id
+        self.model_id: Union['core.models.Column', List['core.models.Column'], None] = None
 
     def get_columns(self) -> Iterator[Tuple[str, 'core.models.Column']]:
         return self._get_attributes_of_type(self.parent, core.models.Column)

@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 
-from bolinette import blnt
+from bolinette import blnt, core
 from bolinette.blnt.objects import PaginationParams, OrderByParams
 from bolinette.exceptions import EntityNotFoundError
 from bolinette.utils.functions import async_invoke
@@ -12,7 +12,7 @@ class Service:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.__props__ = ServiceProps(self)
         self.context = context
-        self.repo = context.repo(self.__blnt__.model_name)
+        self.repo: core.Repository = context.repo(self.__blnt__.model_name)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
@@ -29,6 +29,14 @@ class Service:
     async def get_first_by(self, key: str, value, *, safe=False):
         entity = await self.repo.get_first_by(key, value)
         if entity is None and not safe:
+            raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
+        return entity
+
+    async def get_first_by_keys(self, keys: Dict[str, Any], *, safe=False):
+        entity = await self.repo.query().filter_by(**keys).first()
+        if entity is None and not safe:
+            key = ','.join(keys.keys())
+            value = ','.join(keys.values())
             raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
         return entity
 

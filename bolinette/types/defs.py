@@ -13,12 +13,13 @@ class Column:
     def __new__(cls, data_type: 'types.db.DataType', *,
                 reference: Optional['core.models.Reference'] = None,
                 primary_key: bool = False,
+                auto: Optional[bool] = None,
                 nullable: bool = True,
                 unique: bool = False,
                 model_id: bool = False,
                 default: Optional[Any] = None) -> InitProxy['core.models.Column']:
         return InitProxy(core.models.Column, data_type=data_type, reference=reference, primary_key=primary_key,
-                         nullable=nullable, unique=unique, model_id=model_id, default=default)
+                         auto=auto, nullable=nullable, unique=unique, model_id=model_id, default=default)
 
 
 class Backref:

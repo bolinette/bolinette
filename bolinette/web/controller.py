@@ -1,4 +1,4 @@
-from typing import Callable, List, Dict, Any, Generator, Optional, Tuple
+from typing import Callable, List, Dict, Any, Generator, Optional, Tuple, Union
 
 from aiohttp.web_request import Request
 
@@ -182,13 +182,33 @@ class ControllerDefaults:
         self.controller = controller
         self.service: core.Service = controller.service
 
+    def _get_url_keys(self, key: Optional[Union[str, List[str]]], *, route: str) -> List[str]:
+        if key is None:
+            model_id = self.service.repo.model.__props__.model_id
+            if model_id is None:
+                raise InitError(f'Default route "{route}" for controller "{self.service.repo.model.__blnt__.name}" '
+                                f'must define a key or set model_id=True in one or more columns in the model')
+            if not isinstance(model_id, list):
+                model_id = [model_id]
+            key = [m.name for m in model_id]
+        if not isinstance(key, list):
+            key = [key]
+        return key
+
+    def _get_url(self, keys: List[str], *, prefix='') -> str:
+        return f'{prefix}/' + '/'.join([f'{{key_{i}}}' for i in range(len(keys))])
+
+    def _get_match_params(self, keys: List[str], match: Dict[str, Any]) -> Dict[str, Any]:
+        return dict((keys[i], match.get(f'key_{i}')) for i in range(len(keys)))
+
     def get_all(self, returns='default', *, prefix='',
                 middlewares: List[str] = None, docstring: str = None):
+        model_name = self.service.__blnt__.model_name
+
         async def route(controller: web.Controller, **kwargs):
             resp = await functions.async_invoke(controller.service.get_all, **kwargs)
             return controller.response.ok(data=resp)
 
-        model_name = self.service.__blnt__.model_name
         docstring = docstring or f"""
         Gets all records from {model_name} collection
 
@@ -198,30 +218,34 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
-    def get_one(self, returns='default', *, key: str = None, prefix='',
-                middlewares: List[str] = None, docstring: str = None):
+    def get_one(self, returns='default', *, key: Union[str, List[str], None] = None,
+                prefix='', middlewares: List[str] = None, docstring: str = None):
+        model_name = self.service.__blnt__.model_name
+        url_keys = self._get_url_keys(key, route='get_one')
+        url = self._get_url(url_keys, prefix=prefix)
+
         async def route(controller: web.Controller, *, match, **kwargs):
-            resp = await functions.async_invoke(controller.service.get_first_by, key, match.get(key), **kwargs)
+            keys = self._get_match_params(url_keys, match)
+            resp = await functions.async_invoke(controller.service.get_first_by_keys, keys, **kwargs)
             return controller.response.ok(data=resp)
 
-        model_name = self.service.__blnt__.model_name
-        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Gets one record from {model_name} collection, identified by {key} field
 
         -response 200 returns: The {model_name} entity
         """
-        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.GET, docstring,
+        return ControllerRoute(self.controller, route, url, web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
     def create(self, returns='default', expects='default', *, prefix='',
                middlewares: List[str] = None, docstring: str = None):
+        model_name = self.service.__blnt__.model_name
+
         async def route(controller: web.Controller, payload, **kwargs):
             resp = await functions.async_invoke(controller.service.create, payload, **kwargs)
             return controller.response.created(messages=f'{controller.service.__blnt__.model_name}.created', data=resp)
 
-        model_name = self.service.__blnt__.model_name
         docstring = docstring or f"""
         Inserts a new entity in {model_name} collection
 
@@ -234,56 +258,65 @@ class ControllerDefaults:
 
     def update(self, returns='default', expects='default', *, key: str = None, prefix='',
                middlewares: List[str] = None, docstring: str = None):
+        model_name = self.service.__blnt__.model_name
+        url_keys = self._get_url_keys(key, route='update')
+        url = self._get_url(url_keys, prefix=prefix)
+
         async def route(controller: web.Controller, payload, match, **kwargs):
-            entity = await controller.service.get_first_by(key, match.get(key))
+            keys = self._get_match_params(url_keys, match)
+            entity = await controller.service.get_first_by_keys(keys)
             resp = await functions.async_invoke(controller.service.update, entity, payload, **kwargs)
             return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.updated', data=resp)
 
-        model_name = self.service.__blnt__.model_name
-        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Updates all fields from one {model_name} entity, identified by {key} field
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.PUT, docstring,
+        return ControllerRoute(self.controller, route, url, web.HttpMethod.PUT, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
     def patch(self, returns='default', expects='default', *, key: str = None, prefix='',
               middlewares: List[str] = None, docstring: str = None):
+        model_name = self.service.__blnt__.model_name
+        url_keys = self._get_url_keys(key, route='patch')
+        url = self._get_url(url_keys, prefix=prefix)
+
         async def route(controller: web.Controller, payload, match, **kwargs):
-            entity = await controller.service.get_first_by(key, match.get(key))
+            keys = self._get_match_params(url_keys, match)
+            entity = await controller.service.get_first_by_keys(keys)
             resp = await functions.async_invoke(controller.service.patch, entity, payload, **kwargs)
             return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.updated', data=resp)
 
-        model_name = self.service.__blnt__.model_name
-        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Updates some fields from one {model_name} entity, identified by {key} field
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.PATCH, docstring,
+        return ControllerRoute(self.controller, route, url, web.HttpMethod.PATCH, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects, patch=True),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
     def delete(self, returns='default', *, key: str = None, prefix='',
                middlewares: List[str] = None, docstring: str = None):
+        model_name = self.service.__blnt__.model_name
+        url_keys = self._get_url_keys(key, route='delete')
+        url = self._get_url(url_keys, prefix=prefix)
+
         async def route(controller: web.Controller, match, **kwargs):
-            entity = await controller.service.get_first_by(key, match.get(key))
+            keys = self._get_match_params(url_keys, match)
+            entity = await controller.service.get_first_by_keys(keys)
             resp = await functions.async_invoke(controller.service.delete, entity, **kwargs)
             return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.deleted', data=resp)
 
-        model_name = self.service.__blnt__.model_name
-        key = key or self.service.repo.model.__props__.model_id.name
         docstring = docstring or f"""
         Deletes on record from {model_name} collection, identified by {key} field
 
         -response 200 returns: The deleted {model_name} entity
         """
-        return ControllerRoute(self.controller, route, f'{prefix}/{{{key}}}', web.HttpMethod.DELETE, docstring,
+        return ControllerRoute(self.controller, route, url, web.HttpMethod.DELETE, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)

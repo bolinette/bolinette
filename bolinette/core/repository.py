@@ -77,10 +77,11 @@ class Repository:
         for _, relationship in self.model.__props__.get_relationships():
             key = relationship.name
             if key in values and values[key] is not None:
-                ignore_keys.append(relationship.foreign_key.name)
+                if relationship.foreign_key is not None:
+                    ignore_keys.append(relationship.foreign_key.name)
         for _, column in self.model.__props__.get_columns():
             key = column.name
-            if column.primary_key or key in ignore_keys:
+            if column.auto_increment or key in ignore_keys:
                 continue
             if key in values:
                 value = values.get(key)

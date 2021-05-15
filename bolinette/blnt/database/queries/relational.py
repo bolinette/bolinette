@@ -1,8 +1,10 @@
 import sqlalchemy
+from sqlalchemy import orm as sqlalchemy_orm
 
 from bolinette import blnt, core
 from bolinette.blnt.database.engines import RelationalDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
+from bolinette.exceptions import InternalError
 
 
 class RelationalQueryBuilder(BaseQueryBuilder):
@@ -50,13 +52,24 @@ class RelationalQuery(BaseQuery):
     async def count(self):
         return self._build_query().count()
 
-    def _query(self):
+    def _query(self) -> sqlalchemy_orm.Query:
         return self._database.session.query(self._table)
+
+    def _build_filters_by(self, query: sqlalchemy_orm.Query) -> sqlalchemy_orm.Query:
+        for key, value in self._filters_by.items():
+            path = key.split('.')
+            if len(path) == 1:
+                query = query.filter(getattr(self._table, key) == value)
+            elif len(path) == 2:
+                query = query.filter(getattr(self._table, path[0]).has(**{path[1]: value}))
+            else:
+                raise InternalError(f'internal.query.wrong_model_id_path:{key}')
+        return query
 
     def _build_query(self):
         query = self._query()
         if len(self._filters_by) > 0:
-            query = query.filter_by(**self._filters_by)
+            query = self._build_filters_by(query)
         if len(self._filters) > 0:
             for function in self._filters:
                 query = query.filter(function(self._table))

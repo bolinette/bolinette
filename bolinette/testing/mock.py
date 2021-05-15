@@ -4,7 +4,7 @@ import string
 from types import SimpleNamespace
 from typing import Dict, Any
 
-from bolinette import blnt, types
+from bolinette import blnt, types, core
 
 
 class Mocked:
@@ -88,10 +88,10 @@ class Mock:
         self._id = m_id
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
-        model = self.context.model(model_name)
+        model: core.Model = self.context.model(model_name)
         columns = model.__props__.get_columns()
         for _, column in columns:
-            if column.primary_key:
+            if column.auto_increment:
                 continue
             col_type = column.type
             if col_type == types.db.String:
