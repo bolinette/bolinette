@@ -2,10 +2,11 @@ import asyncio
 import inspect
 import sys
 from argparse import ArgumentParser
-from typing import Dict
+from typing import Dict, List
 
 import bolinette
 from bolinette import Console
+from bolinette.exceptions import InitError
 from bolinette.blnt.commands import Command, Argument
 from bolinette.utils.functions import async_invoke, invoke
 
@@ -19,28 +20,68 @@ class Parser:
             'option': self._create_option,
             'flag': self._create_flag
         }
+        self._console = Console()
+        self._sub_commands = {}
 
     def run(self):
+        tree = self._parse_commands()
         parser = ArgumentParser(description='Bolinette Web Framework')
         sub_parsers = parser.add_subparsers()
-        for _, command in self.commands.items():
-            sub_parser = sub_parsers.add_parser(command.name, help=command.summary)
-            for arg in command.args:
-                self._factories[arg.arg_type](arg, sub_parser)
-            sub_parser.set_defaults(__blnt__=command.name)
+        self._build_parsers(tree, sub_parsers, [])
         parsed = vars(parser.parse_args())
-        if '__blnt__' not in parsed:
-            Console().error('Use the -h option to see CLI usage')
+        if '__blnt_cmd__' in parsed:
+            cmd = parsed.pop('__blnt_cmd__')
+            self._run_command(cmd, parsed)
+        elif '__blnt_path__' in parsed:
+            self._console.error(self._sub_commands[parsed['__blnt_path__']].format_help())
             sys.exit(1)
-        cmd = parsed.pop('__blnt__')
+        else:
+            self._console.error(parser.format_help())
+            sys.exit(1)
+
+    def _run_command(self, cmd: str, parsed: dict):
         func = self.commands[cmd].func
         parsed['blnt'] = self.blnt
         parsed['context'] = self.blnt.context
+        self.blnt.init_bolinette()
         if inspect.iscoroutinefunction(func):
             loop = asyncio.get_event_loop()
             loop.run_until_complete(async_invoke(func, **parsed))
         else:
             invoke(func, **parsed)
+
+    def _parse_commands(self):
+        command_tree = {}
+        for _, command in self.commands.items():
+            cur_node = command_tree
+            path = command.path.split(' ')
+            for elem in path[:-1]:
+                if elem not in cur_node:
+                    cur_node[elem] = {}
+                cur_node = cur_node[elem]
+            elem = path[-1]
+            if elem in cur_node:
+                raise InitError(f'Conflict with "{command.name}" command')
+            cur_node[elem] = command
+        return command_tree
+
+    def _build_parsers(self, command_tree: dict, sub_parsers, path: List[str]):
+        for name, elem in command_tree.items():
+            if isinstance(elem, Command):
+                sub_parser = sub_parsers.add_parser(name, help=elem.summary)
+                for arg in elem.args:
+                    self._factories[arg.arg_type](arg, sub_parser)
+                sub_parser.set_defaults(__blnt_cmd__=elem.name)
+            else:
+                sub_parser = sub_parsers.add_parser(name, help=self._build_help(elem, path + [name]))
+                sub_parser.set_defaults(__blnt_path__=name)
+                self._sub_commands[name] = sub_parser
+                self._build_parsers(elem, sub_parser.add_subparsers(), path + [name])
+    
+    @staticmethod
+    def _build_help(command_tree: dict, path: List[str]):
+        cmds = [f'"{" ".join(path + [x])}"' for x in command_tree]
+        return 'Sub-commands: ' + ', '.join(cmds)
 
     @staticmethod
     def _create_parser_arg(arg: Argument, *, optional: bool = False, use_flag: bool = False,

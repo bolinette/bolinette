@@ -16,9 +16,9 @@ def client(loop):
         bolinette_app = Bolinette(profile='test', overrides={
             'secret_key': ''.join(random.choices(string.ascii_letters + string.digits, k=32))
         })
-        bolinette_app.init()
+        bolinette_app.init_bolinette()
 
     async def create_client():
         return TestClient(bolinette_app, loop)
-    bolinette_app.init_extensions(force=True)
+    bolinette_app.init_extensions()
     return loop.run_until_complete(create_client())

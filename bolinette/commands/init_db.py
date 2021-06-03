@@ -2,7 +2,7 @@ from bolinette import blnt
 from bolinette.decorators import command
 
 
-@command('init_db', 'Initialize the database')
+@command('init db', 'Initialize the database')
 @command.argument('flag', 'seeders', flag='s', summary='Run the seeders after database creation')
 async def init_db(context: 'blnt.BolinetteContext', seeders: bool):
     context.logger.info('==== Initializing database ====')

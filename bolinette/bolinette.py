@@ -15,8 +15,7 @@ class Bolinette:
     def __init__(self, *, extensions: List[BolinetteExtension] = None,
                  profile: str = None, overrides: Dict[str, Any] = None):
         self._start_time = datetime.utcnow()
-        self._init = False
-        self._init_ext = False
+        self._initialized = False
         self.app = None
         try:
             self.context = blnt.BolinetteContext(paths.dirname(__file__), extensions=extensions,
@@ -43,15 +42,12 @@ class Bolinette:
         if index > 0:
             self.console.debug('')
 
-    def init(self, *, force=False):
-        if self._init and not force:
-            return
+    def init_bolinette(self):
         self._run_init_functions()
-        self._init = True
+        self.init_extensions()
+        self._initialized = True
 
-    def init_extensions(self, *, force=False):
-        if self._init_ext and not force:
-            return
+    def init_extensions(self):
         self.app = None
         if self.context.has_extension(Extensions.WEB):
             if self.context.env['build_docs']:
@@ -60,7 +56,6 @@ class Bolinette:
             self._init_web()
         if self.context.has_extension(Extensions.SOCKETS):
             self._init_sockets()
-        self._init_ext = True
 
     def _init_web(self):
         if self.app is None:
@@ -75,11 +70,11 @@ class Bolinette:
         self.context.init_sockets(self.app)
 
     def start_server(self, *, host: str = None, port: int = None):
+        if not self._initialized:
+            self.init_bolinette()
         if not self.context.has_extension((Extensions.WEB, Extensions.SOCKETS)):
             self.context.logger.error(f'The web or sockets extensions must be activated to start the aiohttp server!')
             sys.exit(1)
-        self.init()
-        self.init_extensions()
         self.console.debug(f'Startup took {int((datetime.utcnow() - self._start_time).microseconds / 1000)}ms')
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
         aio_web.run_app(self.app,
@@ -95,7 +90,5 @@ class Bolinette:
         return self
 
     def exec_cmd_args(self):
-        self.init()
-        self.init_extensions()
         parser = Parser(self, blnt.cache.commands)
         parser.run()

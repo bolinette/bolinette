@@ -164,7 +164,7 @@ class _CommandDecorator:
                 cmd = self._create_command(arg)
             else:
                 raise ValueError('@command must only decorate function or async functions')
-            cmd.name = name
+            cmd.path = name
             cmd.summary = summary
             blnt.cache.commands[cmd.name] = cmd
             return cmd
