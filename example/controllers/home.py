@@ -14,6 +14,11 @@ class HomeController(web.Controller):
     @get('/hello')
     @get('/hello/{name}')
     async def hello(self, match):
+        """
+        Says hello to you
+
+        -response 200 returns: Hello with your name
+        """
         if 'name' in match:
             name = match['name']
         else:

@@ -50,9 +50,6 @@ class Bolinette:
     def init_extensions(self):
         self.app = None
         if self.context.has_extension(Extensions.WEB):
-            if self.context.env['build_docs']:
-                self.context.docs.build()
-            self.context.docs.setup()
             self._init_web()
         if self.context.has_extension(Extensions.SOCKETS):
             self._init_sockets()
@@ -62,6 +59,9 @@ class Bolinette:
             self.app = aio_web.Application()
             self.app['blnt'] = self.context
         self.context.init_web(self.app)
+        if self.context.env['build_docs']:
+            self.context.docs.build()
+        self.context.docs.setup()
 
     def _init_sockets(self):
         if self.app is None:

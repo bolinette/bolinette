@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Dict, Iterator, Literal, Optional
+from typing import List, Union, Tuple, Dict, Iterator, Literal
 
 from bolinette import core, blnt
 from bolinette.blnt.database.engines import DatabaseEngine
@@ -44,6 +44,7 @@ class ModelProps(blnt.Properties):
         self.model = model
         self.database = database
         self.mixins: Dict[str, core.Mixin] = {}
+        self.primary: Union['core.models.Column', List['core.models.Column'], None] = None
         self.model_id: Union['core.models.Column', List['core.models.Column'], None] = None
 
     def get_columns(self) -> Iterator[Tuple[str, 'core.models.Column']]:

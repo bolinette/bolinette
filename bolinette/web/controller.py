@@ -1,3 +1,4 @@
+import re
 from typing import Callable, List, Dict, Any, Generator, Optional, Tuple, Union
 
 from aiohttp.web_request import Request
@@ -178,6 +179,9 @@ class Returns:
 
 
 class ControllerDefaults:
+    PARAM_NAME_DOT_REGEX = re.compile(r'\.')
+    PARAM_NAME_CHAR_REGEX = re.compile(r'[^a-zA-Z0-9_]')
+
     def __init__(self, controller: Controller):
         self.controller = controller
         self.service: core.Service = controller.service
@@ -196,10 +200,13 @@ class ControllerDefaults:
         return key
 
     def _get_url(self, keys: List[str], *, prefix='') -> str:
-        return f'{prefix}/' + '/'.join([f'{{key_{i}}}' for i in range(len(keys))])
+        return f'{prefix}/' + '/'.join([f'{{{self._translate_param_name(k)}}}' for k in keys])
 
     def _get_match_params(self, keys: List[str], match: Dict[str, Any]) -> Dict[str, Any]:
-        return dict((keys[i], match.get(f'key_{i}')) for i in range(len(keys)))
+        return dict((keys[i], match.get(self._translate_param_name(keys[i]))) for i in range(len(keys)))
+
+    def _translate_param_name(self, param: str):
+        return self.PARAM_NAME_CHAR_REGEX.sub('', self.PARAM_NAME_DOT_REGEX.sub('_', param))
 
     def get_all(self, returns='default', *, prefix='',
                 middlewares: List[str] = None, docstring: str = None):
@@ -233,6 +240,7 @@ class ControllerDefaults:
         Gets one record from {model_name} collection, identified by {key} field
 
         -response 200 returns: The {model_name} entity
+        -response 404: The {model_name} identified by "{key}" was not found
         """
         return ControllerRoute(self.controller, route, url, web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns),

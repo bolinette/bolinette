@@ -39,14 +39,20 @@ async def init_model_classes(context: blnt.BolinetteContext):
     for _, model in models.items():
         # Process auto generated primary keys
         primary = [c for _, c in model.__props__.get_columns() if c.primary_key]
-        if len(primary) == 1 and primary[0].auto_increment is None:
-            primary[0].auto_increment = True
+        if not primary:
+            model.__props__.primary = None
+        elif len(primary) == 1:
+            if primary[0].auto_increment is None:
+                primary[0].auto_increment = True
+            model.__props__.primary = primary[0]
+        else:
+            model.__props__.primary = primary
         for column in primary:
             column.nullable = False
         # Find model id
         model_id = [c for _, c in model.__props__.get_columns() if c.model_id]
         if not model_id:
-            model.__props__.model_id = None
+            model.__props__.model_id = model.__props__.primary
         elif len(model_id) == 1:
             model.__props__.model_id = model_id[0]
         else:

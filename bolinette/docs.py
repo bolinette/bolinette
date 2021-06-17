@@ -36,7 +36,7 @@ class Documentation:
                 'description': self.context.manifest.get('desc', 'My web app built with the Bolinette framework'),
                 'version': self.context.manifest.get('version', '0.0.1')
             },
-            'servers': [{'url': 'http://localhost:5000'}],
+            'servers': [{'url': f'http://localhost:{self.context.env.get("port", 5000)}'}],
             'paths': self._build_routes(),
             'components': {
                 'schemas': self._build_schemas()
@@ -129,7 +129,8 @@ class Documentation:
             if len(response) > 0:
                 docs['responses'][code] = response
 
-    def _build_ref(self, route: web.ControllerRoute, schema_type: Literal['response', 'payload']):
+    @staticmethod
+    def _build_ref(route: web.ControllerRoute, schema_type: Literal['response', 'payload']):
         returns = route.returns
         if returns:
             ref = {'$ref': f'#/components/schemas/{schema_type}.{returns.model}.{returns.key}'}
@@ -155,17 +156,26 @@ class Documentation:
             'payloads': self.context.mapper.payloads,
             'response': self.context.mapper.responses
         }
+        include_defs = {'payloads': False, 'response': True}
+        include_fks = {'payloads': True, 'response': False}
         for def_type, collection in collections.items():
+            inc_defs = include_defs[def_type]
+            inc_fks = include_fks[def_type]
             for model, key, definition in collection:
                 properties = {}
                 for field in definition.fields:
                     if isinstance(field, mapping.Field):
                         properties[field.name] = self._type_map[field.type]
                     elif isinstance(field, mapping.Definition):
-                        properties[field.name] = {
-                            '$ref': f'#/components/schemas/{def_type}.{field.model_name}.{field.model_key}'
-                        }
-                    elif isinstance(field, mapping.List):
+                        if inc_defs:
+                            properties[field.name] = {
+                                '$ref': f'#/components/schemas/{def_type}.{field.model_name}.{field.model_key}'
+                            }
+                        if inc_fks and isinstance(field, mapping.Reference):
+                            properties[field.foreign_key] = {
+                                'type': 'int'
+                            }
+                    elif isinstance(field, mapping.List) and inc_defs:
                         elem = field.element
                         if isinstance(elem, mapping.Definition):
                             properties[field.name] = {
