@@ -1,4 +1,4 @@
-import sqlalchemy
+import sqlalchemy as _sqlalchemy
 
 
 class DataType:
@@ -13,10 +13,10 @@ class DataType:
         return self.name
 
 
-String = DataType('String', sqlalchemy.String)
-Integer = DataType('Integer', sqlalchemy.Integer)
-Float = DataType('Float', sqlalchemy.Float)
-Boolean = DataType('Boolean', sqlalchemy.Boolean)
-Date = DataType('Date', sqlalchemy.DateTime)
-Email = DataType('Email', sqlalchemy.String)
-Password = DataType('Password', sqlalchemy.String)
+String = DataType('String', _sqlalchemy.String)
+Integer = DataType('Integer', _sqlalchemy.Integer)
+Float = DataType('Float', _sqlalchemy.Float)
+Boolean = DataType('Boolean', _sqlalchemy.Boolean)
+Date = DataType('Date', _sqlalchemy.DateTime)
+Email = DataType('Email', _sqlalchemy.String)
+Password = DataType('Password', _sqlalchemy.String)

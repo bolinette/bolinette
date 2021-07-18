@@ -15,7 +15,7 @@ You can find the complete documentation [here](https://docs.aiohttp.org/en/stabl
 Internal Bolinette settings can be customized with variables like `PORT`, `HOST` and `SECRET_KEY`.
 You can also use your own variables.
 
-Variables are available from `context.env` with the brackets operator.
+Variables are available from `context.env` with the bracket operator.
 
 ### Example
 
@@ -31,10 +31,10 @@ from bolinette.decorators import service
 
 @service('book')
 class BookService(core.Service):
-    def create(self, values):
+    def create(self, values, **kwargs):
         if self.context.env['override_book_price']:
             values['price'] = self.context.env['default_book_price']
-        super().create(values)
+        super().create(values, **kwargs)
 ```
 
 ## Custom registration
@@ -71,7 +71,7 @@ class BookService(core.Service):
     def __init__(self, context):
         super().__init__(context)
 
-    async def create(self, values):
+    async def create(self, values, **kwargs):
         self.context['state'].count_calls()
-        await super().create(values)
+        await super().create(values, **kwargs)
 ```

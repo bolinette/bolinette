@@ -31,7 +31,7 @@ from bolinette import Bolinette
 blnt = Bolinette()
 
 if __name__ == '__main__':
-    blnt.run_command()
+    blnt.exec_cmd_args()
 ```
 
 Then use one of the internal commands.
@@ -55,6 +55,6 @@ blnt.start_server()
 ## What's next?
 
 To add some custom logic to your application, the next steps are:
-- Create a [model](models.md), to store data in the [database](database.md)
-- Create a [service](services.md), to add your custom logic
-- Create a [controller](controllers.md), the entrypoint of your new service
+- Create a [model](models.md), to store data and map it with the ORM.
+- Create a [service](services.md), to add your custom logic.
+- Create a [controller](controllers.md), the entrypoint of your new service.

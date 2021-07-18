@@ -36,27 +36,26 @@ async def init_model_classes(context: blnt.BolinetteContext):
             model.__props__.mixins[mixin_name] = mixin
         models[model_name] = model
 
-    for _, model in models.items():
+    for model_name, model in models.items():
         # Process auto generated primary keys
         primary = [c for _, c in model.__props__.get_columns() if c.primary_key]
         if not primary:
             model.__props__.primary = None
-        elif len(primary) == 1:
-            if primary[0].auto_increment is None:
-                primary[0].auto_increment = True
-            model.__props__.primary = primary[0]
         else:
+            if len(primary) == 1 and primary[0].auto_increment is None:
+                primary[0].auto_increment = True
             model.__props__.primary = primary
         for column in primary:
             column.nullable = False
-        # Find model id
-        model_id = [c for _, c in model.__props__.get_columns() if c.model_id]
-        if not model_id:
-            model.__props__.model_id = model.__props__.primary
-        elif len(model_id) == 1:
-            model.__props__.model_id = model_id[0]
+        # Find entity key
+        entity_key = [c for _, c in model.__props__.get_columns() if c.entity_key]
+        if not entity_key:
+            model.__props__.entity_key = model.__props__.primary
         else:
-            model.__props__.model_id = model_id
+            model.__props__.entity_key = entity_key
+        if model.__props__.entity_key is None:
+            raise InitError(f'No entity key defined for "{model_name}" model. '
+                            'Mark one column or more as entity_key=True.')
 
     # Process relationships
     for model_name, model in models.items():
@@ -119,7 +118,7 @@ async def init_relational_models(context: blnt.BolinetteContext):
                 ref = sqlalchemy.ForeignKey(attribute.reference.target_path)
             orm_cols[model_name][att_name] = sqlalchemy.Column(
                 att_name, attribute.type.sqlalchemy_type, ref,
-                default=attribute.default, index=attribute.model_id,
+                default=attribute.default, index=attribute.entity_key,
                 primary_key=attribute.primary_key, nullable=attribute.nullable,
                 unique=attribute.unique, autoincrement=attribute.auto_increment)
         orm_tables[model_name] = sqlalchemy.Table(model_name,
@@ -158,7 +157,9 @@ async def init_databases(context: blnt.BolinetteContext):
 @init_func(extension=Extensions.MODELS)
 async def init_repositories(context: blnt.BolinetteContext):
     for model_name, model in context.models:
-        context.add_repo(model_name, core.Repository(model_name, model, context))
+        repo = core.Repository(model_name, model, context)
+        model.__repo__ = repo
+        context.add_repo(model_name, repo)
 
 
 @init_func(extension=Extensions.MODELS)

@@ -7,7 +7,7 @@ from bolinette.decorators import model
 @model('book', mixins=['historized'])
 class Book(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    uid = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
+    uid = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     pages = types.defs.Column(types.db.Integer, nullable=False)
     price = types.defs.Column(types.db.Float, nullable=False)

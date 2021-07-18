@@ -1,13 +1,27 @@
+from collections.abc import Iterator as _Iterator
+
+
 class APIError(Exception):
-    def __init__(self, message, *, name="APIError"):
-        super().__init__(name)
-        self.message = message
+    def __init__(self, message: str, params: list[str] = None):
+        super().__init__(type(self).__name__)
+        self._message = message
+        self._params = params or []
 
     def __str__(self):
-        return self.message
+        return ':'.join([self._message] + self._params)
 
     def __repr__(self):
-        return f'<APIError {self.message}>'
+        return f'<APIError {str(self)}>'
+
+    def __getitem__(self, index: int):
+        return self._params[index]
+
+    def __setitem__(self, index: int, value: str):
+        self._params = self._params[:index - 1] + [value] + self._params[index+1:]
+
+    @property
+    def message(self):
+        return self._message
 
 
 class APIErrors(Exception):
@@ -20,63 +34,67 @@ class APIErrors(Exception):
     def __bool__(self):
         return len(self.errors) > 0
 
+    def __iter__(self) -> _Iterator[APIError]:
+        return iter(self.errors)
+
+    def __str__(self):
+        return str(self.errors)
+
     def __repr__(self):
         return f'<APIErrors [{",".join([repr(err) for err in self.errors])}]>'
 
 
 class InternalError(APIError):
-    def __init__(self, message, *, name='InternalError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class NotFoundError(APIError):
-    def __init__(self, message, *, name='NotFoundError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class ConflictError(APIError):
-    def __init__(self, message, *, name='ConflictError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class BadRequestError(APIError):
-    def __init__(self, message, *, name='BadRequestError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class UnprocessableEntityError(APIError):
-    def __init__(self, message, *, name='UnprocessableEntityError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class ForbiddenError(APIError):
-    def __init__(self, message, *, name='ForbiddenError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class UnauthorizedError(APIError):
-    def __init__(self, message, *, name='UnauthorizedError'):
-        super().__init__(message, name=name)
+    pass
 
 
 class EntityNotFoundError(NotFoundError):
-    def __init__(self, model, key, value):
-        super().__init__(f'entity.not_found:{model}:{key}:{value}', name='EntityNotFoundError')
+    def __init__(self, model: str, key: str, value: str):
+        super().__init__(f'entity.not_found', [model, key, value])
 
 
 class ParamMissingError(UnprocessableEntityError):
-    def __init__(self, key):
-        super().__init__(f'param.required:{key}', name='ParamMissingError')
+    def __init__(self, key: str):
+        super().__init__(f'param.required', [key])
 
 
 class ParamNonNullableError(UnprocessableEntityError):
-    def __init__(self, key):
-        super().__init__(f'param.non_nullable:{key}', name='ParamMissingError')
+    def __init__(self, key: str):
+        super().__init__(f'param.non_nullable', [key])
+
+
+class BadParamFormatError(UnprocessableEntityError):
+    def __init__(self, key: str, p_type: str):
+        super().__init__(f'param.bad_format', [key, p_type])
 
 
 class ParamConflictError(ConflictError):
     def __init__(self, key, value):
-        super().__init__(f'param.conflict:{key}:{value}', name='ParamConflictError')
+        super().__init__(f'param.conflict', [key, value])
 
 
 class InitError(Exception):

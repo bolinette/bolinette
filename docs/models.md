@@ -16,7 +16,7 @@ from bolinette.decorators import model
 @model('book')
 class Book(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    uid = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
+    uid = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     pages = types.defs.Column(types.db.Integer, nullable=False)
     price = types.defs.Column(types.db.Float)
@@ -53,7 +53,37 @@ The `nullable` option indicates if the value can be `NULL` (`None` in Python); d
 The `primary_key` option generates an index.
 If the column is an `Integer`, it generates an auto-incremented identifier.
 
-## Model ID
+## Entity key
+
+Exposing auto-incremented integer primary keys might be a security issue.
+It is recommended not to include id columns in any response or payload object so that clients never see those ids.
+You can mark a column as `entity_key=True`.
+That column becomes the identifying key, used in automatic routing and foreign links.
+
+An entity key must be a column marked as `unique=True`.
+If no column is marked as `entity_key=True`, the primary key is used.
+
+Let's make some http requests where our models don't use entity keys and expose auto ids.
+
+```text
+POST https://my.api.com/api/book
+> {"name": "The Lord of the Rings", "author": {"id": "125"}}
+< {"id": 3874, "name": "The Lord of the Rings", "author": {"id": "125", "name": "J.R.R. Tolkien"}}
+
+GET https://my.api.com/api/book/3874
+< {"id": 3874, "name": "The Lord of the Rings", "author": {"id": "125", "name": "J.R.R. Tolkien"}}
+```
+
+Now the same requests, but the two models define a `uid` entity_key.
+
+```text
+POST https://my.api.com/api/book
+> {"name": "The Lord of the Rings", "author": {"uid": "21652e60"}}
+< {"id": "e59f3a8b", "name": "The Lord of the Rings", "author": {"uid": "21652e60", "name": "J.R.R. Tolkien"}}
+
+GET https://my.api.com/api/book/e59f3a8b
+< {"id": "e59f3a8b", "name": "The Lord of the Rings", "author": {"uid": "21652e60", "name": "J.R.R. Tolkien"}}
+```
 
 ## Relationships
 
@@ -82,11 +112,11 @@ from bolinette.decorators import model
 
 @model('parent')
 class Parent(core.Model):
-    id = types.defs.Column(types.db.Integer, primary_key=True, model_id=True)
+    id = types.defs.Column(types.db.Integer, primary_key=True, entity_key=True)
 
 @model('child')
 class Child(core.Model):
-    id = types.defs.Column(types.db.Integer, primary_key=True, model_id=True)
+    id = types.defs.Column(types.db.Integer, primary_key=True, entity_key=True)
     parent_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('parent', 'id'))
     parent = types.defs.Relationship('parent', foreign_key=parent_id, lazy=False,
                                      backref=types.defs.Backref('children', lazy=True))
@@ -101,7 +131,7 @@ from bolinette.decorators import model
 
 @model('element')
 class Element(core.Model):
-    id = types.defs.Column(types.db.Integer, primary_key=True, model_id=True)
+    id = types.defs.Column(types.db.Integer, primary_key=True, entity_key=True)
     parent_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('element', 'id'))
     parent = types.defs.Relationship('element', remote_side=id, lazy=True,
                                      backref=types.defs.Backref('children', lazy=False))
@@ -110,7 +140,7 @@ class Element(core.Model):
 ### Many to many
 
 Many-to-many relationships require a pivot table.
-That table is declared as `join_table=True` is the decorator and does not require a model id.
+That table is declared as `join_table=True` is the decorator and does not require an entity key.
 Then use the `secondary` parameter in the `Relationship` to specify the pivot table's name.
 
 ```python
@@ -119,11 +149,11 @@ from bolinette.decorators import model
 
 @model('book')
 class Book(core.Model):
-    id = types.defs.Column(types.db.Integer, primary_key=True, model_id=True)
+    id = types.defs.Column(types.db.Integer, primary_key=True, entity_key=True)
 
 @model('author')
 class Author(core.Model):
-    id = types.defs.Column(types.db.Integer, primary_key=True, model_id=True)
+    id = types.defs.Column(types.db.Integer, primary_key=True, entity_key=True)
     books = types.defs.Relationship('book', secondary='books_authors', lazy='subquery',
                                     backref=types.defs.Backref('authors', lazy=True))
 
@@ -208,7 +238,7 @@ from bolinette.decorators import model
 @model('book')
 class Book(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    uid = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
+    uid = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     pages = types.defs.Column(types.db.Integer, nullable=False)
     price = types.defs.Column(types.db.Float)

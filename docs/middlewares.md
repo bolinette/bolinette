@@ -98,7 +98,7 @@ from bolinette.exceptions import InternalError
 @model('trace')
 class Trace(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    name = types.defs.Column(types.db.String, unique=True, model_id=True)
+    name = types.defs.Column(types.db.String, unique=True, entity_key=True)
     visits = types.defs.Column(types.db.Integer, nullable=False)
     last_visit = types.defs.Column(types.db.Date, nullable=False)
     user_id = types.defs.Column(types.db.Integer, nullable=False, reference=types.defs.Reference('user', 'id'))

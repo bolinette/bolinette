@@ -2,7 +2,7 @@ import datetime
 import random
 import string
 from types import SimpleNamespace
-from typing import Dict, Any
+from typing import Any
 
 from bolinette import blnt, types, core
 
@@ -28,7 +28,7 @@ class Mocked:
         return repr(self._fields)
 
     @staticmethod
-    async def insert_entity(context: 'blnt.BolinetteContext', name: str, params: Dict[str, Any]):
+    async def insert_entity(context: 'blnt.BolinetteContext', name: str, params: dict[str, Any]):
         mocked = Mocked(name, context)
         for key, value in params.items():
             mocked[key] = value
@@ -36,10 +36,18 @@ class Mocked:
 
     @property
     def _to_object(self):
-        obj = SimpleNamespace()
-        for key, value in self._fields.items():
-            setattr(obj, key, value)
-        return obj
+        def __to_object(values: dict[str, Any]):
+            obj = SimpleNamespace()
+            for key, value in values.items():
+                if isinstance(value, dict):
+                    value = __to_object(value)
+                setattr(obj, key, value)
+            return obj
+        return __to_object(self._fields)
+
+    @property
+    def fields(self):
+        return dict(self._fields)
 
     async def insert(self):
         return await self.context.repo(self.name).create(self._fields)
@@ -48,16 +56,14 @@ class Mocked:
         definition = self.context.mapper.response(self.name, key)
         return self.context.mapper.marshall(
             definition,
-            self._to_object if self.database.relational else self._fields,
-            use_foreign_key=True
+            self._to_object if self.database.relational else self._fields
         )
 
     def to_payload(self, key='default') -> dict:
         definition = self.context.mapper.payload(self.name, key)
         return self.context.mapper.marshall(
             definition,
-            self._to_object if self.database.relational else self._fields,
-            use_foreign_key=True
+            self._to_object if self.database.relational else self._fields
         )
 
 

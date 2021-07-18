@@ -25,7 +25,7 @@ class FileService(core.Service):
     async def delete_file(self, key):
         paths.rm(self.context.instance_path('uploads', key))
 
-    async def delete(self, entity):
+    async def delete(self, entity, **kwargs):
         ent = await super().delete(entity)
         await self.delete_file(entity.key)
         return ent

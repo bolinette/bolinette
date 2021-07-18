@@ -5,7 +5,7 @@ from bolinette.decorators import model
 @model('role')
 class Role(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    name = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
+    name = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
 
     def payloads(self):
         yield [

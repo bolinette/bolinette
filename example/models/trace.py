@@ -4,7 +4,7 @@ from bolinette.decorators import model
 
 @model('trace')
 class Trace(core.Model):
-    id = types.defs.Column(types.db.Integer, primary_key=True, model_id=True)
+    id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     visits = types.defs.Column(types.db.Integer, nullable=False)
     last_visit = types.defs.Column(types.db.Date, nullable=False)

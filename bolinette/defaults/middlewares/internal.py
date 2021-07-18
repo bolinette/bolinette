@@ -26,9 +26,8 @@ class PayloadMiddleware(web.InternalMiddleware):
         except Exception:
             raise BadRequestError('global.payload.unserializable')
         if self.options['model'] is not None and self.options['key'] is not None:
-            payload = self.context.validator.validate_payload(self.options['model'], self.options['key'],
-                                                              payload, self.options['patch'])
-            await self.context.validator.link_foreign_entities(self.options['model'], self.options['key'], payload)
+            payload = await self.context.validator.validate_payload(self.options['model'], self.options['key'],
+                                                                    payload, self.options['patch'])
         params['payload'] = payload
         return await next_func(request, params)
 

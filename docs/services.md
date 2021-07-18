@@ -61,15 +61,15 @@ from bolinette.exceptions import APIError
 
 class TooExpensiveError(APIError):
   def __init__(self, message):
-    super().__init__(message, name="TooExpensiveError")
+    super().__init__(message)
 
 @service('product')
 class ProductService(core.Service):
-    async def create(self, values: Dict[str, Any]):
+    async def create(self, values: Dict[str, Any], **kwargs):
         if values['price'] * values['quantity'] >= 100:
             raise TooExpensiveError('Whoa, that\'s way too expensive!')
         values['status'] = 'OK'
-        return await super().create(values)
+        return await super().create(values, **kwargs)
 ```
 
 ## Pagination

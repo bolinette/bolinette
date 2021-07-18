@@ -13,7 +13,7 @@ import example.models
 async def big_set_up(mock: Mock):
     await mock(1, 'person').insert()
     for i in range(100):
-        await utils.book.set_author(mock(i, 'book'), 1).insert()
+        await utils.book.insert_book(mock(i, 'book'), 1)
 
 
 def equal_books(b1: dict, b2: dict, author: dict = None):
@@ -44,7 +44,7 @@ async def test_get_books_paginated(client):
 @bolitest(before=utils.book.set_up)
 async def test_get_book(client):
     author1 = client.mock(1, 'person')
-    book1 = utils.book.set_author(client.mock(1, 'book'), 1)
+    book1 = utils.book.create_book(client.mock, 1, 1)
 
     rv = await client.get(f'/book/{book1["uid"]}')
     assert rv['code'] == 200
@@ -54,7 +54,7 @@ async def test_get_book(client):
 @bolitest(before=utils.book.set_up)
 async def test_get_book2(client):
     author2 = client.mock(2, 'person')
-    book3 = utils.book.set_author(client.mock(3, 'book'), 2)
+    book3 = utils.book.create_book(client.mock, 3, 2)
 
     rv = await client.get(f'/book/{book3["uid"]}')
     assert rv['code'] == 200
@@ -70,7 +70,7 @@ async def test_get_book_not_found(client):
 @bolitest(before=utils.book.set_up)
 async def test_create_book(client):
     author1 = client.mock(1, 'person')
-    book4 = utils.book.set_author(client.mock(4, 'book'), 1)
+    book4 = utils.book.create_book(client.mock, 4, 1)
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -92,26 +92,27 @@ async def test_create_book_bad_request(client):
     assert rv['code'] == 422
     assert 'param.required:name' in rv['messages']
     assert 'param.required:pages' in rv['messages']
-    assert 'param.required:author_id' in rv['messages']
+    assert 'param.required:author' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)
 async def test_create_book_author_not_found(client):
-    book4 = utils.book.set_author(client.mock(4, 'book'), 3)
+    author3 = client.mock(3, 'person')
+    book4 = utils.book.create_book(client.mock, 4, 3)
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
 
     rv = await client.post('/book', book4.to_payload())
     assert rv['code'] == 404
-    assert 'entity.not_found:person:id:3' in rv['messages']
+    assert f'entity.not_found:person:uid:{author3["uid"]}' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)
 async def test_historized_entities(client):
     user1 = client.mock(1, 'user')
     user2 = client.mock(2, 'user')
-    book4 = utils.book.set_author(client.mock(4, 'book'), 1)
+    book4 = utils.book.create_book(client.mock, 4, 1)
 
     await client.post('/user/login', user1.to_payload('login'))
     t_before_create = datetime.utcnow()
@@ -135,7 +136,7 @@ async def test_historized_entities(client):
 @bolitest(before=utils.book.set_up)
 async def test_update_book(client):
     author2 = client.mock(2, 'person')
-    book1 = utils.book.set_author(client.mock(1, 'book'), 2)
+    book1 = utils.book.create_book(client.mock, 1, 2)
     user2 = client.mock(2, 'user')
 
     await client.post('/user/login', user2.to_payload('login'))
@@ -155,7 +156,7 @@ async def test_update_book_bad_request(client):
     rv = await client.put('/book/1', {'name': 'new book name'})
     assert rv['code'] == 422
     assert 'param.required:pages' in rv['messages']
-    assert 'param.required:author_id' in rv['messages']
+    assert 'param.required:author' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)
@@ -171,7 +172,7 @@ async def test_update_book_not_found(client):
 @bolitest(before=utils.book.set_up)
 async def test_patch_book(client):
     author1 = client.mock(1, 'person')
-    book1 = utils.book.set_author(client.mock(1, 'book'), 1)
+    book1 = utils.book.create_book(client.mock, 1, 1)
     user1 = client.mock(1, 'user')
 
     await client.post('/user/login', user1.to_payload('login'))
@@ -197,12 +198,13 @@ async def test_patch_book_bad_request(client):
 @bolitest(before=utils.book.set_up)
 async def test_update_book_author_not_found(client):
     user1 = client.mock(1, 'user')
+    book1 = client.mock(1, 'book')
 
     await client.post('/user/login', user1.to_payload('login'))
 
-    rv = await client.patch('/book/1', {'author_id': 3})
+    rv = await client.patch(f'/book/{book1["uid"]}', {'author': {'uid': 'unknown'}})
     assert rv['code'] == 404
-    assert 'entity.not_found:person:id:3' in rv['messages']
+    assert 'entity.not_found:person:uid:unknown' in rv['messages']
 
 
 @bolitest(before=utils.book.set_up)

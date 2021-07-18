@@ -32,25 +32,28 @@ class Historized(core.Mixin):
 
     @mixin.service_method
     async def create(self, values, current_user):
-        if current_user:
-            now = datetime.utcnow()
-            values['created_on'] = now
-            values['created_by_id'] = current_user.id
-            values['updated_on'] = now
-            values['updated_by_id'] = current_user.id
+        if not current_user:
+            return
+        now = datetime.utcnow()
+        values['created_on'] = now
+        values['created_by_id'] = current_user.id
+        values['updated_on'] = now
+        values['updated_by_id'] = current_user.id
 
     @mixin.service_method
     async def update(self, entity, values, current_user):
-        if current_user:
-            now = datetime.utcnow()
-            values['created_on'] = entity.created_on
-            values['created_by_id'] = entity.created_by_id
-            values['updated_on'] = now
-            values['updated_by_id'] = current_user.id
+        if not current_user:
+            return
+        now = datetime.utcnow()
+        values['created_on'] = entity.created_on
+        values['created_by_id'] = entity.created_by_id
+        values['updated_on'] = now
+        values['updated_by_id'] = current_user.id
 
     @mixin.service_method
     async def patch(self, values, current_user):
-        if current_user:
-            now = datetime.utcnow()
-            values['updated_on'] = now
-            values['updated_by_id'] = current_user.id
+        if not current_user:
+            return
+        now = datetime.utcnow()
+        values['updated_on'] = now
+        values['updated_by_id'] = current_user.id

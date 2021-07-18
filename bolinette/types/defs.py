@@ -16,10 +16,10 @@ class Column:
                 auto: Optional[bool] = None,
                 nullable: bool = True,
                 unique: bool = False,
-                model_id: bool = False,
+                entity_key: bool = False,
                 default: Optional[Any] = None) -> InitProxy['core.models.Column']:
         return InitProxy(core.models.Column, data_type=data_type, reference=reference, primary_key=primary_key,
-                         auto=auto, nullable=nullable, unique=unique, model_id=model_id, default=default)
+                         auto=auto, nullable=nullable, unique=unique, entity_key=entity_key, default=default)
 
 
 class Backref:

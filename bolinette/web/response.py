@@ -104,9 +104,9 @@ class Response:
     def from_exception(self, exception: Union[exceptions.APIError, exceptions.APIErrors]):
         messages = []
         if isinstance(exception, exceptions.APIError):
-            messages = [exception.message]
+            messages = [str(exception)]
         elif isinstance(exception, exceptions.APIErrors):
-            messages = [error.message for error in exception.errors]
+            messages = [str(error) for error in exception.errors]
             exception = exception.errors[0]
         for except_cls in self._exceptions:
             if isinstance(exception, except_cls):

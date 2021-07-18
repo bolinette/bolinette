@@ -65,3 +65,7 @@ def setattr_(entity, key, value):
         entity[key] = value
     else:
         setattr(entity, key, value)
+
+
+def is_db_entity(entity) -> bool:
+    return hasattr(entity, '_sa_instance_state')

@@ -11,7 +11,7 @@ class UsersRoles(core.Model):
 @model('user')
 class User(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    username = types.defs.Column(types.db.String, unique=True, nullable=False, model_id=True)
+    username = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
     password = types.defs.Column(types.db.Password, nullable=False)
     email = types.defs.Column(types.db.Email, unique=blnt.init['user_email_required'],
                               nullable=(not blnt.init['user_email_required']))

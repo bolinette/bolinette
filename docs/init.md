@@ -26,7 +26,7 @@ class BookService(core.Service):
     def __init__(self, context):
         super().__init__(context)
 
-    async def create(self, values):
+    async def create(self, values, **kwargs):
         self.context['calls'] += 1
-        await super().create(values)
+        await super().create(values, **kwargs)
 ```

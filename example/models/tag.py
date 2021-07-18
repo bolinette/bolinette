@@ -5,7 +5,7 @@ from bolinette.decorators import model
 @model('tag')
 class Tag(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
-    name = types.defs.Column(types.db.String, nullable=False, unique=True, model_id=True)
+    name = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
 
     parent_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('tag', 'id'))
     parent = types.defs.Relationship('tag', remote_side=id, lazy=True,

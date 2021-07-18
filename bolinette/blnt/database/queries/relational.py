@@ -63,7 +63,7 @@ class RelationalQuery(BaseQuery):
             elif len(path) == 2:
                 query = query.filter(getattr(self._table, path[0]).has(**{path[1]: value}))
             else:
-                raise InternalError(f'internal.query.wrong_model_id_path:{key}')
+                raise InternalError(f'internal.query.wrong_entity_key_path:{key}')
         return query
 
     def _build_query(self):

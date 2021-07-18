@@ -44,7 +44,7 @@ class Reference:
 class Column:
     def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType',
                  reference: Optional[Reference], primary_key: bool, auto: Optional[bool],
-                 nullable: bool, unique: bool, model_id: bool, default: Optional[Any]):
+                 nullable: bool, unique: bool, entity_key: bool, default: Optional[Any]):
         self.name = name
         self.type = data_type
         self.model = model
@@ -53,7 +53,7 @@ class Column:
         self.primary_key = primary_key
         self.nullable = nullable
         self.unique = unique
-        self.model_id = model_id
+        self.entity_key = entity_key
         self.default = default
 
     @property

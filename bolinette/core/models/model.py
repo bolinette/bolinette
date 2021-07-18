@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Dict, Iterator, Literal
+from typing import List, Union, Tuple, Dict, Iterator, Literal, Optional
 
 from bolinette import core, blnt
 from bolinette.blnt.database.engines import DatabaseEngine
@@ -13,6 +13,7 @@ class Model:
 
     def __init__(self, database: 'DatabaseEngine'):
         self.__props__ = ModelProps(self, database)
+        self.__repo__: Optional[core.Repository] = None
 
     def payloads(self) -> MappingListPyTyping:
         pass
@@ -44,8 +45,8 @@ class ModelProps(blnt.Properties):
         self.model = model
         self.database = database
         self.mixins: Dict[str, core.Mixin] = {}
-        self.primary: Union['core.models.Column', List['core.models.Column'], None] = None
-        self.model_id: Union['core.models.Column', List['core.models.Column'], None] = None
+        self.primary: Optional[List['core.models.Column']] = None
+        self.entity_key: Optional[List['core.models.Column']] = None
 
     def get_columns(self) -> Iterator[Tuple[str, 'core.models.Column']]:
         return self._get_attributes_of_type(self.parent, core.models.Column)

@@ -188,13 +188,11 @@ class ControllerDefaults:
 
     def _get_url_keys(self, key: Optional[Union[str, List[str]]], *, route: str) -> List[str]:
         if key is None:
-            model_id = self.service.repo.model.__props__.model_id
-            if model_id is None:
+            entity_key = self.service.repo.model.__props__.entity_key
+            if entity_key is None:
                 raise InitError(f'Default route "{route}" for controller "{self.service.repo.model.__blnt__.name}" '
-                                f'must define a key or set model_id=True in one or more columns in the model')
-            if not isinstance(model_id, list):
-                model_id = [model_id]
-            key = [m.name for m in model_id]
+                                f'must define a key or set entity_key=True in one or more columns in the model')
+            key = [m.name for m in entity_key]
         if not isinstance(key, list):
             key = [key]
         return key

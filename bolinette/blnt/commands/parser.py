@@ -80,8 +80,8 @@ class Parser:
     
     @staticmethod
     def _build_help(command_tree: dict, path: List[str]):
-        cmds = [f'"{" ".join(path + [x])}"' for x in command_tree]
-        return 'Sub-commands: ' + ', '.join(cmds)
+        commands = [f'"{" ".join(path + [x])}"' for x in command_tree]
+        return 'Sub-commands: ' + ', '.join(commands)
 
     @staticmethod
     def _create_parser_arg(arg: Argument, *, optional: bool = False, use_flag: bool = False,

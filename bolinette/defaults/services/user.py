@@ -24,15 +24,15 @@ class UserService(core.Service):
     async def get_by_email(self, email, *, safe=False):
         return await self.get_first_by('email', email, safe=safe)
 
-    async def create(self, values: dict):
+    async def create(self, values: dict, **kwargs):
         await self._check_params(values)
         return await super().create(values)
 
-    async def update(self, entity, values: dict):
+    async def update(self, entity, values: dict, **kwargs):
         await self._check_params(values)
         return await super().update(entity, values)
 
-    async def patch(self, entity, values: dict):
+    async def patch(self, entity, values: dict, **kwargs):
         await self._check_params(values)
         return await super().patch(entity, values)
 

@@ -26,7 +26,8 @@ class Transaction:
                     traceback.print_tb(exc_tb)
                 if self.propagate_error and self.raise_internal:
                     if self.context.env['debug']:
-                        raise InternalError([str(exc_val)] + traceback.format_list(traceback.extract_tb(exc_tb)))
+                        raise InternalError(''.join([str(exc_val)]
+                                                    + traceback.format_list(traceback.extract_tb(exc_tb))))
                     raise InternalError('internal.error')
                 elif self.propagate_error:
                     raise exc_val
@@ -35,4 +36,4 @@ class Transaction:
                 await self.context.db.close_transaction()
             except SQLAlchemyError as err:
                 await self.context.db.rollback_transaction()
-                raise InternalError([f'global.internal_error:{err}'])
+                raise InternalError(f'global.internal_error:{err}')
