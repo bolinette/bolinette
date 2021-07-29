@@ -1,5 +1,6 @@
 from functools import wraps
-from typing import Callable, Awaitable, Any
+from collections.abc import Callable, Awaitable
+from typing import Any
 
 from bolinette.testing import TestClient
 from bolinette.utils.functions import async_invoke

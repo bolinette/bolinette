@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Type
+from typing import Literal
 
 from bolinette import core, blnt, mapping, types
 from bolinette.exceptions import InternalError
@@ -8,8 +8,8 @@ from bolinette.utils.functions import getattr_, hasattr_, invoke
 class Mapper:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._payloads: Dict[str, Dict[str, mapping.Definition]] = {}
-        self._responses: Dict[str, Dict[str, mapping.Definition]] = {}
+        self._payloads: dict[str, dict[str, mapping.Definition]] = {}
+        self._responses: dict[str, dict[str, mapping.Definition]] = {}
 
     @staticmethod
     def _get_def(collection, model_name, key) -> 'mapping.Definition':
@@ -39,7 +39,7 @@ class Mapper:
             for key in self._responses[model_name]:
                 yield model_name, key, self._responses[model_name][key]
 
-    def _extract_defs(self, model: 'core.Model', model_cls: Type['core.Model'],
+    def _extract_defs(self, model: 'core.Model', model_cls: type['core.Model'],
                       collection: Literal['payloads', 'responses'],
                       merge_defs: Literal['ignore', 'append', 'overwrite']):
         defs = {}

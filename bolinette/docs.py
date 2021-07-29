@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional, Dict, Literal
+from typing import Any, Optional, Literal
 
 import yaml
 from aiohttp_swagger import setup_swagger
@@ -50,7 +50,7 @@ class Documentation:
             self._build_route(path, method, route, routes)
         return routes
 
-    def _build_route(self, path: str, method: web.HttpMethod, route: web.ControllerRoute, routes: Dict[str, Any]):
+    def _build_route(self, path: str, method: web.HttpMethod, route: web.ControllerRoute, routes: dict[str, Any]):
         if route.controller is not None:
             if not path:
                 path = '/'
@@ -86,7 +86,7 @@ class Documentation:
             doc_index += 1
         return docs
 
-    def _parse_doc_line(self, part: str, docs: Dict[str, Any], index: int, route: web.ControllerRoute):
+    def _parse_doc_line(self, part: str, docs: dict[str, Any], index: int, route: web.ControllerRoute):
         if index == 0:
             docs['summary'] = part
             return
@@ -108,7 +108,7 @@ class Documentation:
             docs['description'] += '\n\n'
         docs['description'] += part
 
-    def _parse_responses(self, text: str, docs: Dict[str, Any], route: web.ControllerRoute):
+    def _parse_responses(self, text: str, docs: dict[str, Any], route: web.ControllerRoute):
         if (match := self._response_regex.match(text)) is not None:
             code = match.group(1)
             res_type = match.group(2)

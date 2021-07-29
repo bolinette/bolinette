@@ -1,11 +1,11 @@
-from typing import Union, Literal, Optional, Any, Dict
+from typing import Union, Literal, Optional, Any
 
 from bolinette import types, core
 from bolinette.exceptions import InitError
 
 
 class Reference:
-    def __init__(self, model: 'core.Model', column: 'core.models.Column', models: Dict[str, 'core.Model'],
+    def __init__(self, model: 'core.Model', column: 'core.models.Column', models: dict[str, 'core.Model'],
                  model_name: str, column_name: str):
         self.model = model
         self.column = column
@@ -87,7 +87,7 @@ class Backref:
 
 
 class Relationship:
-    def __init__(self, name: str, model: 'core.Model', models: Dict[str, 'core.Model'],
+    def __init__(self, name: str, model: 'core.Model', models: dict[str, 'core.Model'],
                  model_name: str, backref: Optional[Backref], foreign_key: Optional[Column],
                  remote_side: Optional[Column], lazy: Union[bool, Literal['subquery']], secondary: Optional[str]):
         self.name = name

@@ -1,6 +1,6 @@
 import inspect as _inspect
-import typing as _typing
-from typing import Callable, List
+from collections.abc import Callable, Awaitable
+from typing import Literal, Union
 
 from bolinette import blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
@@ -8,12 +8,12 @@ from bolinette.utils import InitProxy as _InitProxy
 
 
 def model(model_name: str, *,
-          mixins: List[str] = None,
+          mixins: list[str] = None,
           database: str = 'default',
-          model_type: _typing.Literal['relational', 'collection'] = 'relational',
-          definitions: _typing.Literal['ignore', 'append', 'overwrite'] = 'ignore',
+          model_type: Literal['relational', 'collection'] = 'relational',
+          definitions: Literal['ignore', 'append', 'overwrite'] = 'ignore',
           join_table: bool = False):
-    def decorator(model_cls: _typing.Type['core.Model']):
+    def decorator(model_cls: type['core.Model']):
         model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational',
                                                 join_table, mixins or [], definitions)
         blnt.cache.models[model_name] = model_cls
@@ -27,7 +27,7 @@ def model_property(function):
 
 class _MixinDecorator:
     def __call__(self, mixin_name: str):
-        def decorator(mixin_cls: _typing.Type['core.Mixin']):
+        def decorator(mixin_cls: type['core.Mixin']):
             blnt.cache.mixins[mixin_name] = mixin_cls
             return mixin_cls
         return decorator
@@ -41,7 +41,7 @@ mixin = _MixinDecorator()
 
 
 def init_func(*, extension: BolinetteExtension = None):
-    def decorator(func: _typing.Callable[['blnt.BolinetteContext'], _typing.Awaitable[None]]):
+    def decorator(func: Callable[['blnt.BolinetteContext'], Awaitable[None]]):
         blnt.cache.init_funcs.append(blnt.InitFunc(func, extension))
         return func
     return decorator
@@ -53,7 +53,7 @@ def seeder(func):
 
 
 def service(service_name: str, *, model_name: str = None):
-    def decorator(service_cls: _typing.Type[_typing.Union['core.Service', 'core.SimpleService']]):
+    def decorator(service_cls: type[Union['core.Service', 'core.SimpleService']]):
         service_cls.__blnt__ = core.ServiceMetadata(service_name, model_name or service_name)
         blnt.cache.services[service_name] = service_cls
         return service_cls
@@ -62,7 +62,7 @@ def service(service_name: str, *, model_name: str = None):
 
 def controller(controller_name: str, path: str = None, *,
                namespace: str = '/api', use_service: bool = True,
-               service_name: str = None, middlewares: _typing.Union[str, _typing.List[str]] = None):
+               service_name: str = None, middlewares: Union[str, list[str]] = None):
     if path is None:
         path = f'/{controller_name}'
     if service_name is None:
@@ -72,7 +72,7 @@ def controller(controller_name: str, path: str = None, *,
     if isinstance(middlewares, str):
         middlewares = [middlewares]
 
-    def decorator(controller_cls: _typing.Type['web.Controller']):
+    def decorator(controller_cls: type['web.Controller']):
         controller_cls.__blnt__ = web.ControllerMetadata(
             controller_name, path, use_service, service_name, namespace, middlewares)
         blnt.cache.controllers[controller_name] = controller_cls
@@ -81,13 +81,13 @@ def controller(controller_name: str, path: str = None, *,
 
 
 def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-          middlewares: _typing.Union[str, _typing.List[str]] = None):
+          middlewares: Union[str, list[str]] = None):
     if middlewares is None:
         middlewares = []
     if isinstance(middlewares, str):
         middlewares = [middlewares]
 
-    def decorator(route_function: _typing.Callable):
+    def decorator(route_function: Callable):
         if not isinstance(route_function, _InitProxy) and not _inspect.iscoroutinefunction(route_function):
             raise ValueError(f'Route "{route_function.__name__}" must be an async function')
         if expects is not None and not isinstance(expects, web.Expects):
@@ -105,32 +105,32 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
 
 
 def get(path: str, *, returns: 'web.Returns' = None,
-        middlewares: _typing.Union[str, _typing.List[str]] = None):
+        middlewares: Union[str, list[str]] = None):
     return route(path, method=web.HttpMethod.GET, expects=None, returns=returns, middlewares=middlewares)
 
 
 def post(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-         middlewares: _typing.Union[str, _typing.List[str]] = None):
+         middlewares: Union[str, list[str]] = None):
     return route(path, method=web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def put(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-        middlewares: _typing.Union[str, _typing.List[str]] = None):
+        middlewares: Union[str, list[str]] = None):
     return route(path, method=web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def patch(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-          middlewares: _typing.Union[str, _typing.List[str]] = None):
+          middlewares: Union[str, list[str]] = None):
     return route(path, method=web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def delete(path: str, *, returns: 'web.Returns' = None,
-           middlewares: _typing.Union[str, _typing.List[str]] = None):
+           middlewares: Union[str, list[str]] = None):
     return route(path, method=web.HttpMethod.DELETE, expects=None, returns=returns, middlewares=middlewares)
 
 
 def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loadable: bool = True):
-    def decorator(middleware_cls: _typing.Type['web.Middleware']):
+    def decorator(middleware_cls: type['web.Middleware']):
         middleware_cls.__blnt__ = web.MiddlewareMetadata(name, priority, auto_load, loadable)
         blnt.cache.middlewares[name] = middleware_cls
         return middleware_cls
@@ -138,7 +138,7 @@ def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loada
 
 
 def topic(topic_name: str):
-    def decorator(topic_cls: _typing.Type['web.Topic']):
+    def decorator(topic_cls: type['web.Topic']):
         topic_cls.__blnt__ = web.TopicMetadata(topic_name)
         blnt.cache.topics[topic_name] = topic_cls
         return topic_cls
@@ -146,7 +146,7 @@ def topic(topic_name: str):
 
 
 def channel(rule: str):
-    def decorator(channel_function: _typing.Callable):
+    def decorator(channel_function: Callable):
         return web.TopicChannel(channel_function, rule)
     return decorator
 
@@ -170,9 +170,9 @@ class _CommandDecorator:
             return cmd
         return decorator
 
-    def argument(self, arg_type: _typing.Literal['argument', 'option', 'flag', 'count'],
+    def argument(self, arg_type: Literal['argument', 'option', 'flag', 'count'],
                  name: str, *, flag: str = None, summary: str = None,
-                 value_type: _typing.Type = None, default=None, choices: list = None):
+                 value_type: type = None, default=None, choices: list = None):
         def decorator(arg):
             if isinstance(arg, _Command):
                 cmd = arg

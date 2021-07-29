@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 
 from aiohttp import web as aio_web
 
@@ -12,8 +12,8 @@ from bolinette.utils import paths
 
 
 class Bolinette:
-    def __init__(self, *, extensions: List[BolinetteExtension] = None,
-                 profile: str = None, overrides: Dict[str, Any] = None):
+    def __init__(self, *, extensions: list[BolinetteExtension] = None,
+                 profile: str = None, overrides: dict[str, Any] = None):
         self._start_time = datetime.utcnow()
         self._initialized = False
         self.app = None

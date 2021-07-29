@@ -1,6 +1,6 @@
 import asyncio
 from json import JSONDecodeError
-from typing import Dict, List, Union
+from typing import Union
 
 import aiohttp
 from aiohttp import web as aio_web
@@ -14,10 +14,10 @@ from bolinette.utils.functions import async_invoke
 class BolinetteSockets:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._topics: Dict[str, 'web.Topic'] = {}
-        self._channels: Dict[str, List['web.TopicChannel']] = {}
-        self._socket_sessions: Dict[str, aio_web.WebSocketResponse] = {}
-        self._anon_socket_sessions: List[aio_web.WebSocketResponse] = []
+        self._topics: dict[str, 'web.Topic'] = {}
+        self._channels: dict[str, list['web.TopicChannel']] = {}
+        self._socket_sessions: dict[str, aio_web.WebSocketResponse] = {}
+        self._anon_socket_sessions: list[aio_web.WebSocketResponse] = []
 
     def add_topic(self, name: str, topic: 'web.Topic'):
         self._topics[name] = topic
@@ -30,10 +30,10 @@ class BolinetteSockets:
             self._channels[topic] = []
         self._channels[topic].append(channel)
 
-    def channels(self, topic: str) -> List['web.TopicChannel']:
+    def channels(self, topic: str) -> list['web.TopicChannel']:
         return self._channels.get(topic) or []
     
-    async def send_message(self, topic: str, channels: Union[str, List[str]], message):
+    async def send_message(self, topic: str, channels: Union[str, list[str]], message):
         socket_topic = self.topic(topic)
         if socket_topic is None:
             return
@@ -112,7 +112,8 @@ class SocketHandler:
             context.sockets.delete_anon_socket_session(socket)
         return socket
 
-    async def _subscribe(self, topic: web.Topic, socket: aio_web.WebSocketResponse, payload, current_user):
+    @staticmethod
+    async def _subscribe(topic: web.Topic, socket: aio_web.WebSocketResponse, payload, current_user):
         if await async_invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
             await topic.receive_subscription(payload['channel'], socket)
 

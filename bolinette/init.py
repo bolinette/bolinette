@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
@@ -77,7 +75,7 @@ async def init_model_classes(context: blnt.BolinetteContext):
             if isinstance(col.reference, InitProxy) and col.reference.of_type(core.models.Reference):
                 col.reference = col.reference.instantiate(model=model, column=col, models=models)
         # Process back references
-        added_back_refs: Dict[core.Model, List[core.models.ColumnList]] = {}
+        added_back_refs: dict[core.Model, list[core.models.ColumnList]] = {}
         for rel_name, rel in model.__props__.get_relationships():
             # Instantiate back references
             if isinstance(rel.backref, InitProxy) and rel.backref.of_type(core.models.Backref):

@@ -1,4 +1,4 @@
-from typing import Dict, Callable, Iterator, Tuple
+from collections.abc import Iterator, Callable
 
 from bolinette import core, blnt, types
 
@@ -16,10 +16,10 @@ class Mixin:
     def __getitem__(self, key):
         return self._methods[key]
 
-    def columns(self) -> Dict[str, 'core.models.Column']:
+    def columns(self) -> dict[str, 'core.models.Column']:
         pass
 
-    def relationships(self, model) -> Dict[str, 'types.defs.Relationship']:
+    def relationships(self, model) -> dict[str, 'types.defs.Relationship']:
         pass
 
     def payload(self, model):
@@ -30,7 +30,7 @@ class Mixin:
 
 
 class MixinProps(blnt.Properties):
-    def get_service_methods(self) -> Iterator[Tuple[str, 'MixinServiceMethod']]:
+    def get_service_methods(self) -> Iterator[tuple[str, 'MixinServiceMethod']]:
         return self._get_cls_attributes_of_type(type(self.parent), MixinServiceMethod)
 
 

@@ -1,5 +1,6 @@
 import re
-from typing import Callable, List, Dict, Any, Generator, Optional, Tuple, Union
+from collections.abc import Generator, Callable
+from typing import Any, Optional, Union
 
 from aiohttp.web_request import Request
 
@@ -22,7 +23,7 @@ class Controller:
     def service(self) -> 'core.Service':
         return self.context.service(self.__blnt__.service_name)
 
-    def default_routes(self) -> List['web.ControllerRoute']:
+    def default_routes(self) -> list['web.ControllerRoute']:
         return []
 
     def __repr__(self):
@@ -31,7 +32,7 @@ class Controller:
 
 class ControllerMetadata:
     def __init__(self, name: str, path: str, use_service: bool, service_name: str,
-                 namespace: str, middlewares: List[str]):
+                 namespace: str, middlewares: list[str]):
         self.name = name
         self.path = path
         self.use_service = use_service
@@ -44,14 +45,14 @@ class ControllerProps(blnt.Properties):
     def __init__(self, controller):
         super().__init__(controller)
 
-    def get_routes(self) -> Generator[Tuple[str, 'ControllerRoute'], Any, None]:
+    def get_routes(self) -> Generator[tuple[str, 'ControllerRoute'], Any, None]:
         return self._get_attributes_of_type(self.parent, ControllerRoute)
 
 
 class ControllerRoute:
     def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
                  docstring: Optional[str], expects: 'Expects' = None, returns: 'Returns' = None,
-                 inner_route: 'ControllerRoute' = None, middlewares: List[str] = None):
+                 inner_route: 'ControllerRoute' = None, middlewares: list[str] = None):
         self.controller = controller
         self.func = func
         self.path = path
@@ -61,7 +62,7 @@ class ControllerRoute:
         self.returns = returns
         self.inner_route = inner_route
         self._mdw_defs = middlewares or []
-        self.middlewares: List['web.Middleware'] = []
+        self.middlewares: list['web.Middleware'] = []
 
     def __repr__(self):
         return f'<Route {self.method.name} "{self.full_path}" {self._mdw_defs}>'
@@ -77,7 +78,7 @@ class ControllerRoute:
         if self.inner_route is not None:
             self.inner_route.setup()
 
-    def _init_middlewares(self, context: 'blnt.BolinetteContext', from_controller: List[str], system: List[str]):
+    def _init_middlewares(self, context: 'blnt.BolinetteContext', from_controller: list[str], system: list[str]):
         for mdw in system:
             self._parse_middleware_options(mdw, context, True)
         for mdw in from_controller:
@@ -142,18 +143,18 @@ class ControllerRoute:
                 middleware.options[opt_name] = option.default
         self.middlewares.append(middleware)
 
-    async def call_middleware_chain(self, request: Request, params: Dict[str, Any]):
+    async def call_middleware_chain(self, request: Request, params: dict[str, Any]):
         handles = ([MiddlewareHandle(name=m.__blnt__.name, func=m.handle) for m in self.middlewares]
                    + [MiddlewareHandle('__ctrl_call', self._final_middleware_call)])
         return await self._call_middleware(handles, 0, request, params)
 
-    async def _call_middleware(self, handles: List['MiddlewareHandle'], index: int, request: Request,
-                               params: Dict[str, Any]):
+    async def _call_middleware(self, handles: list['MiddlewareHandle'], index: int, request: Request,
+                               params: dict[str, Any]):
         async def _next(_request, _params):
             return await self._call_middleware(handles, index + 1, _request, _params)
         return await handles[index].func(request, params, _next)
 
-    async def _final_middleware_call(self, _1, params: Dict[str, Any], _2):
+    async def _final_middleware_call(self, _1, params: dict[str, Any], _2):
         return await functions.async_invoke(self.func, self.controller, **params)
 
 
@@ -186,7 +187,7 @@ class ControllerDefaults:
         self.controller = controller
         self.service: core.Service = controller.service
 
-    def _get_url_keys(self, key: Optional[Union[str, List[str]]], *, route: str) -> List[str]:
+    def _get_url_keys(self, key: Optional[Union[str, list[str]]], *, route: str) -> list[str]:
         if key is None:
             entity_key = self.service.repo.model.__props__.entity_key
             if entity_key is None:
@@ -197,17 +198,17 @@ class ControllerDefaults:
             key = [key]
         return key
 
-    def _get_url(self, keys: List[str], *, prefix='') -> str:
+    def _get_url(self, keys: list[str], *, prefix='') -> str:
         return f'{prefix}/' + '/'.join([f'{{{self._translate_param_name(k)}}}' for k in keys])
 
-    def _get_match_params(self, keys: List[str], match: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_match_params(self, keys: list[str], match: dict[str, Any]) -> dict[str, Any]:
         return dict((keys[i], match.get(self._translate_param_name(keys[i]))) for i in range(len(keys)))
 
     def _translate_param_name(self, param: str):
         return self.PARAM_NAME_CHAR_REGEX.sub('', self.PARAM_NAME_DOT_REGEX.sub('_', param))
 
     def get_all(self, returns='default', *, prefix='',
-                middlewares: List[str] = None, docstring: str = None):
+                middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
 
         async def route(controller: web.Controller, **kwargs):
@@ -223,8 +224,8 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
-    def get_one(self, returns='default', *, key: Union[str, List[str], None] = None,
-                prefix='', middlewares: List[str] = None, docstring: str = None):
+    def get_one(self, returns='default', *, key: Union[str, list[str], None] = None,
+                prefix='', middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
         url_keys = self._get_url_keys(key, route='get_one')
         url = self._get_url(url_keys, prefix=prefix)
@@ -245,7 +246,7 @@ class ControllerDefaults:
                                middlewares=middlewares)
 
     def create(self, returns='default', expects='default', *, prefix='',
-               middlewares: List[str] = None, docstring: str = None):
+               middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
 
         async def route(controller: web.Controller, payload, **kwargs):
@@ -263,7 +264,7 @@ class ControllerDefaults:
                                middlewares=middlewares)
 
     def update(self, returns='default', expects='default', *, key: str = None, prefix='',
-               middlewares: List[str] = None, docstring: str = None):
+               middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
         url_keys = self._get_url_keys(key, route='update')
         url = self._get_url(url_keys, prefix=prefix)
@@ -285,7 +286,7 @@ class ControllerDefaults:
                                middlewares=middlewares)
 
     def patch(self, returns='default', expects='default', *, key: str = None, prefix='',
-              middlewares: List[str] = None, docstring: str = None):
+              middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
         url_keys = self._get_url_keys(key, route='patch')
         url = self._get_url(url_keys, prefix=prefix)
@@ -307,7 +308,7 @@ class ControllerDefaults:
                                middlewares=middlewares)
 
     def delete(self, returns='default', *, key: str = None, prefix='',
-               middlewares: List[str] = None, docstring: str = None):
+               middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
         url_keys = self._get_url_keys(key, route='delete')
         url = self._get_url(url_keys, prefix=prefix)

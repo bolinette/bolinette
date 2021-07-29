@@ -2,7 +2,6 @@ import asyncio
 import inspect
 import sys
 from argparse import ArgumentParser
-from typing import Dict, List
 
 import bolinette
 from bolinette import Console
@@ -12,7 +11,7 @@ from bolinette.utils.functions import async_invoke, invoke
 
 
 class Parser:
-    def __init__(self, blnt: 'bolinette.Bolinette', commands: Dict[str, Command]):
+    def __init__(self, blnt: 'bolinette.Bolinette', commands: dict[str, Command]):
         self.blnt = blnt
         self.commands = commands
         self._factories = {
@@ -65,7 +64,7 @@ class Parser:
             cur_node[elem] = command
         return command_tree
 
-    def _build_parsers(self, command_tree: dict, sub_parsers, path: List[str]):
+    def _build_parsers(self, command_tree: dict, sub_parsers, path: list[str]):
         for name, elem in command_tree.items():
             if isinstance(elem, Command):
                 sub_parser = sub_parsers.add_parser(name, help=elem.summary)
@@ -79,7 +78,7 @@ class Parser:
                 self._build_parsers(elem, sub_parser.add_subparsers(), path + [name])
     
     @staticmethod
-    def _build_help(command_tree: dict, path: List[str]):
+    def _build_help(command_tree: dict, path: list[str]):
         commands = [f'"{" ".join(path + [x])}"' for x in command_tree]
         return 'Sub-commands: ' + ', '.join(commands)
 

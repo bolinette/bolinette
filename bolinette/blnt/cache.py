@@ -1,4 +1,5 @@
-from typing import List, Callable, Dict, Type, Awaitable
+from collections.abc import Callable, Awaitable
+from typing import Type
 
 from bolinette import blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command
@@ -6,14 +7,14 @@ from bolinette.blnt.commands import Command
 
 class BolinetteCache:
     def __init__(self):
-        self.models: Dict[str, Type['core.Model']] = {}
-        self.mixins: Dict[str, Type['core.Mixin']] = {}
-        self.services: Dict[str, Type['core.Service']] = {}
-        self.controllers: Dict[str, Type['web.Controller']] = {}
-        self.middlewares: Dict[str, Type['web.Middleware']] = {}
-        self.topics: Dict[str, Type['web.Topic']] = {}
-        self.init_funcs: List[InitFunc] = []
-        self.commands: Dict[str, Command] = {}
+        self.models: dict[str, Type['core.Model']] = {}
+        self.mixins: dict[str, Type['core.Mixin']] = {}
+        self.services: dict[str, Type['core.Service']] = {}
+        self.controllers: dict[str, Type['web.Controller']] = {}
+        self.middlewares: dict[str, Type['web.Middleware']] = {}
+        self.topics: dict[str, Type['web.Topic']] = {}
+        self.init_funcs: list[InitFunc] = []
+        self.commands: dict[str, Command] = {}
         self.seeders = []
 
 

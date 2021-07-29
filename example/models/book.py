@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from bolinette import types, core, mapping
 from bolinette.decorators import model
@@ -28,7 +28,7 @@ class Book(core.Model):
 
     def responses(self):
         base = self.get_mixin('historized').response(self)
-        default: List[Any] = [
+        default: list[Any] = [
             mapping.Column(self.uid),
             mapping.Column(self.name),
             mapping.Column(self.pages),

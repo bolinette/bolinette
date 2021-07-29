@@ -1,8 +1,8 @@
-from typing import Any, List
+from typing import Any
 
 
 class Pagination:
-    def __init__(self, items: List[Any], page: int, per_page: int, total: int):
+    def __init__(self, items: list[Any], page: int, per_page: int, total: int):
         self.items = items
         self.page = page
         self.per_page = per_page

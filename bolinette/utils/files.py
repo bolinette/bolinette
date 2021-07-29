@@ -1,5 +1,5 @@
 from os import PathLike
-from typing import Dict, Any
+from typing import Any
 
 import jinja2
 import yaml
@@ -32,7 +32,7 @@ def read_requirements(path):
         return []
 
 
-def read_manifest(path, *, params: Dict[str, Any] = None):
+def read_manifest(path, *, params: dict[str, Any] = None):
     try:
         with open(paths.join(path, 'manifest.blnt.yaml')) as f:
             raw = f.read()
@@ -43,7 +43,7 @@ def read_manifest(path, *, params: Dict[str, Any] = None):
         return None
 
 
-def render_template(workdir: PathLike, path: PathLike, params: Dict[str, Any]):
+def render_template(workdir: PathLike, path: PathLike, params: dict[str, Any]):
     jinja_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(searchpath=workdir),
         keep_trailing_newline=True,
@@ -53,7 +53,7 @@ def render_template(workdir: PathLike, path: PathLike, params: Dict[str, Any]):
     return jinja_env.get_template(path).render(**params)
 
 
-def render_string(string: str, params: Dict[str, Any]):
+def render_string(string: str, params: dict[str, Any]):
     jinja_env = jinja2.Environment(
         loader=jinja2.BaseLoader,
         keep_trailing_newline=True,

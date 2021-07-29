@@ -54,7 +54,7 @@ Be sure to call the base method or the [underlying repository method](./reposito
 complete the process.
 
 ```python
-from typing import Dict, Any
+from typing import Any
 from bolinette import core
 from bolinette.decorators import service
 from bolinette.exceptions import APIError
@@ -65,7 +65,7 @@ class TooExpensiveError(APIError):
 
 @service('product')
 class ProductService(core.Service):
-    async def create(self, values: Dict[str, Any], **kwargs):
+    async def create(self, values: dict[str, Any], **kwargs):
         if values['price'] * values['quantity'] >= 100:
             raise TooExpensiveError('Whoa, that\'s way too expensive!')
         values['status'] = 'OK'

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple, List, Union
+from typing import Any, Union
 
 from aiohttp import web as aio_web
 
@@ -10,15 +10,15 @@ from bolinette.docs import Documentation
 
 
 class BolinetteContext:
-    def __init__(self, origin: str, *, extensions: List[BolinetteExtension] = None,
-                 profile: str = None, overrides: Dict[str, Any] = None):
+    def __init__(self, origin: str, *, extensions: list[BolinetteExtension] = None,
+                 profile: str = None, overrides: dict[str, Any] = None):
         self._ctx = {}
         self._extensions = []
-        self._tables: Dict[str, Any] = {}
-        self._models: Dict[str, 'core.Model'] = {}
-        self._repos: Dict[str, 'core.Repository'] = {}
-        self._services: Dict[str, 'core.Service'] = {}
-        self._controllers: Dict[str, 'web.Controller'] = {}
+        self._tables: dict[str, Any] = {}
+        self._models: dict[str, 'core.Model'] = {}
+        self._repos: dict[str, 'core.Repository'] = {}
+        self._services: dict[str, 'core.Service'] = {}
+        self._controllers: dict[str, 'web.Controller'] = {}
 
         for ext in extensions or []:
             self.use_extension(ext)
@@ -64,7 +64,7 @@ class BolinetteContext:
                 self.use_extension(sub_ext)
             self._extensions.append(ext)
 
-    def has_extension(self, ext: Union[Tuple[BolinetteExtension, ...], BolinetteExtension]):
+    def has_extension(self, ext: Union[tuple[BolinetteExtension, ...], BolinetteExtension]):
         if Extensions.ALL in self._extensions:
             return True
         if isinstance(ext, BolinetteExtension):

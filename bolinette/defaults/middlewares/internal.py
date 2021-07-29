@@ -1,4 +1,5 @@
-from typing import Dict, Any, Callable, Awaitable
+from collections.abc import Callable, Awaitable
+from typing import Any
 
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
@@ -90,8 +91,8 @@ class ResponseMiddleware(web.InternalMiddleware):
 
 @middleware('blnt_headers', priority=10, auto_load=True, loadable=False)
 class HeadersMiddleware(web.InternalMiddleware):
-    async def handle(self, request: Request, params: Dict[str, Any],
-                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+    async def handle(self, request: Request, params: dict[str, Any],
+                     next_func: Callable[[Request, dict[str, Any]], Awaitable[Response]]):
         params['headers'] = {}
         for key in request.headers:
             params['headers'][key] = request.headers[key]
@@ -100,8 +101,8 @@ class HeadersMiddleware(web.InternalMiddleware):
 
 @middleware('blnt_query_pagination', priority=30, auto_load=True, loadable=False)
 class PaginationMiddleware(web.InternalMiddleware):
-    async def handle(self, request: Request, params: Dict[str, Any],
-                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+    async def handle(self, request: Request, params: dict[str, Any],
+                     next_func: Callable[[Request, dict[str, Any]], Awaitable[Response]]):
         if 'page' in request.query or 'per_page' in request.query:
             try:
                 page = int(request.query.get('page', "0"))
@@ -114,8 +115,8 @@ class PaginationMiddleware(web.InternalMiddleware):
 
 @middleware('blnt_query_order_by', priority=30, auto_load=True, loadable=False)
 class OrderByMiddleware(web.InternalMiddleware):
-    async def handle(self, request: Request, params: Dict[str, Any],
-                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+    async def handle(self, request: Request, params: dict[str, Any],
+                     next_func: Callable[[Request, dict[str, Any]], Awaitable[Response]]):
         if 'order_by' in request.query:
             order_by = []
             columns = request.query['order_by'].split(',')

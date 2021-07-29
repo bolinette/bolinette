@@ -1,8 +1,5 @@
-from typing import List
-
-
 class BolinetteExtension:
-    def __init__(self, name: str, dependencies: List['BolinetteExtension'] = None):
+    def __init__(self, name: str, dependencies: list['BolinetteExtension'] = None):
         self.name = name
         self.dependencies = dependencies or []
 

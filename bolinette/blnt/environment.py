@@ -1,7 +1,7 @@
 import os
 import random
 import string
-from typing import Dict, Any
+from typing import Any
 
 import yaml
 
@@ -12,7 +12,7 @@ from bolinette.utils import paths
 
 class Settings:
     def __init__(self):
-        self._settings: Dict[str, Any] = {}
+        self._settings: dict[str, Any] = {}
 
     def __getitem__(self, key: str):
         return self._settings.get(key.lower(), None)
@@ -30,7 +30,7 @@ class Settings:
         item = self[key]
         return item if item is not None else default
 
-    def get_all(self, *, startswith: str = None) -> Dict[str, Any]:
+    def get_all(self, *, startswith: str = None) -> dict[str, Any]:
         if startswith is not None:
             return dict(((k, v) for k, v in self._settings.items() if k.startswith(startswith)))
         return dict(self._settings)
@@ -39,12 +39,12 @@ class Settings:
     def _cwd_path(*path):
         return paths.join(paths.cwd(), *path)
 
-    def _reset(self, settings: Dict[str, Any]):
+    def _reset(self, settings: dict[str, Any]):
         self._settings = {}
         for key, value in settings.items():
             self._settings[key.lower()] = value
 
-    def _flatten_value(self, keys: Dict[str, str], prefix: str, value):
+    def _flatten_value(self, keys: dict[str, str], prefix: str, value):
         if isinstance(value, dict):
             self._flatten_dict(value, keys=keys, prefix=prefix)
         elif isinstance(value, list):
@@ -53,7 +53,7 @@ class Settings:
         else:
             keys[prefix.lower()] = value
 
-    def _flatten_dict(self, d: dict, *, keys: Dict[str, str] = None, prefix: str = None) -> Dict[str, str]:
+    def _flatten_dict(self, d: dict, *, keys: dict[str, str] = None, prefix: str = None) -> dict[str, str]:
         keys = keys or {}
         prefix = prefix + '.' if prefix else ''
         for key, value in d.items():

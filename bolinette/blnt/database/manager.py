@@ -1,5 +1,4 @@
 import traceback
-from typing import Dict
 
 from bolinette import blnt, Console
 from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase, DatabaseEngine
@@ -16,7 +15,7 @@ class DatabaseManager:
 
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self.engines: Dict[str, DatabaseEngine] = {}
+        self.engines: dict[str, DatabaseEngine] = {}
         self._init_databases()
 
     def _init_databases(self):

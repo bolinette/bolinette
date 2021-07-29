@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Callable, Awaitable
+from collections.abc import Callable, Awaitable
+from typing import Any
 
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
@@ -16,11 +17,11 @@ class Middleware:
         self.options = {}
         self.params = MiddlewareParams()
 
-    def define_options(self) -> Dict[str, 'MiddlewareParam']:
+    def define_options(self) -> dict[str, 'MiddlewareParam']:
         return {}
 
-    async def handle(self, request: Request, params: Dict[str, Any],
-                     next_func: Callable[[Request, Dict[str, Any]], Awaitable[Response]]):
+    async def handle(self, request: Request, params: dict[str, Any],
+                     next_func: Callable[[Request, dict[str, Any]], Awaitable[Response]]):
         return await next_func(request, params)
 
     def __repr__(self):

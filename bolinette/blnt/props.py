@@ -1,5 +1,6 @@
 import itertools
-from typing import Optional, Type, Iterator, Tuple
+from collections.abc import Iterator
+from typing import Optional
 
 from bolinette import utils
 
@@ -9,7 +10,7 @@ class Properties:
         self.parent = parent
 
     @staticmethod
-    def _get_cls_attributes_of_type(obj: Type, attr_type):
+    def _get_cls_attributes_of_type(obj: type, attr_type):
         parent_attrs = (Properties._get_cls_attributes_of_type(parent, attr_type) for parent in obj.__bases__)
         return itertools.chain(
             *parent_attrs,
@@ -22,7 +23,7 @@ class Properties:
                 for name, attribute in vars(obj).items()
                 if isinstance(attribute, attr_type))
 
-    def get_proxies(self, of_type: Optional[Type] = None) -> Iterator[Tuple[str, 'utils.InitProxy']]:
+    def get_proxies(self, of_type: Optional[type] = None) -> Iterator[tuple[str, 'utils.InitProxy']]:
         proxies = self._get_cls_attributes_of_type(type(self.parent), utils.InitProxy)
         if of_type is not None:
             return filter(lambda p: p[1].of_type(of_type), proxies)

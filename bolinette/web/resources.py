@@ -1,5 +1,4 @@
 import traceback
-from typing import Dict
 
 import aiohttp_cors
 from aiohttp import web as aio_web
@@ -14,8 +13,8 @@ from bolinette.utils.serializing import serialize
 class BolinetteResources:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._routes: Dict[str, Dict[web.HttpMethod, web.ControllerRoute]] = {}
-        self._aiohttp_resources: Dict[str, 'BolinetteResource'] = {}
+        self._routes: dict[str, dict[web.HttpMethod, web.ControllerRoute]] = {}
+        self._aiohttp_resources: dict[str, 'BolinetteResource'] = {}
         self.cors = None
 
     @property
@@ -66,7 +65,7 @@ class BolinetteResources:
 class BolinetteResource:
     def __init__(self, resource: Resource):
         self.resource = resource
-        self.routes: Dict[web.HttpMethod, ResourceRoute] = {}
+        self.routes: dict[web.HttpMethod, ResourceRoute] = {}
 
 
 class RouteHandler:

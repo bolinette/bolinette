@@ -1,11 +1,12 @@
-from typing import List, Union, Tuple, Dict, Iterator, Literal, Optional
+from collections import Iterator
+from typing import Union, Literal, Optional
 
 from bolinette import core, blnt
 from bolinette.blnt.database.engines import DatabaseEngine
 
-MappingPyTyping = List[Union['types.mapping.Column', 'types.mapping.Field',
+MappingPyTyping = list[Union['types.mapping.Column', 'types.mapping.Field',
                              'types.mapping.List', 'types.mapping.Definition']]
-MappingListPyTyping = Union[MappingPyTyping, Tuple[str, MappingPyTyping]]
+MappingListPyTyping = Union[MappingPyTyping, tuple[str, MappingPyTyping]]
 
 
 class Model:
@@ -29,7 +30,7 @@ class Model:
 
 
 class ModelMetadata:
-    def __init__(self, name: str, database: str, relational: bool, join: bool, mixins: List[str],
+    def __init__(self, name: str, database: str, relational: bool, join: bool, mixins: list[str],
                  merge_defs: Literal['ignore', 'append', 'overwrite']):
         self.name = name
         self.database = database
@@ -44,20 +45,20 @@ class ModelProps(blnt.Properties):
         super().__init__(model)
         self.model = model
         self.database = database
-        self.mixins: Dict[str, core.Mixin] = {}
-        self.primary: Optional[List['core.models.Column']] = None
-        self.entity_key: Optional[List['core.models.Column']] = None
+        self.mixins: dict[str, core.Mixin] = {}
+        self.primary: Optional[list['core.models.Column']] = None
+        self.entity_key: Optional[list['core.models.Column']] = None
 
-    def get_columns(self) -> Iterator[Tuple[str, 'core.models.Column']]:
+    def get_columns(self) -> Iterator[tuple[str, 'core.models.Column']]:
         return self._get_attributes_of_type(self.parent, core.models.Column)
 
-    def get_relationships(self) -> Iterator[Tuple[str, 'core.models.Relationship']]:
+    def get_relationships(self) -> Iterator[tuple[str, 'core.models.Relationship']]:
         return self._get_attributes_of_type(self.parent, core.models.Relationship)
 
-    def get_properties(self) -> Iterator[Tuple[str, 'ModelProperty']]:
+    def get_properties(self) -> Iterator[tuple[str, 'ModelProperty']]:
         return self._get_cls_attributes_of_type(type(self.parent), ModelProperty)
 
-    def get_back_refs(self) -> Iterator[Tuple[str, 'core.models.ColumnList']]:
+    def get_back_refs(self) -> Iterator[tuple[str, 'core.models.ColumnList']]:
         return self._get_attributes_of_type(self.parent, core.models.ColumnList)
 
 

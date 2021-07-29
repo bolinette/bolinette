@@ -1,5 +1,6 @@
 import re
-from typing import Dict, List, Generator, Tuple, Any
+from collections.abc import Generator
+from typing import Any
 
 from aiohttp import web as aio_web
 
@@ -13,7 +14,7 @@ class Topic:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
         self.__props__ = TopicProps(self)
-        self._subscriptions: Dict[str, List[aio_web.WebSocketResponse]] = {}
+        self._subscriptions: dict[str, list[aio_web.WebSocketResponse]] = {}
 
     async def receive_subscription(self, channel: str, resp: aio_web.WebSocketResponse):
         if channel not in self._subscriptions:
@@ -23,14 +24,14 @@ class Topic:
     async def validate_subscription(self, *args, **kwargs) -> bool:
         return True
 
-    def _remove_closed_connections(self, channel: str) -> List[aio_web.WebSocketResponse]:
+    def _remove_closed_connections(self, channel: str) -> list[aio_web.WebSocketResponse]:
         subs = self._subscriptions.get(channel)
         if subs is None:
             return []
         self._subscriptions[channel] = list(filter(lambda c: not c.closed, subs))
         return self._subscriptions[channel]
 
-    def subscriptions(self, channel: str) -> List[aio_web.WebSocketResponse]:
+    def subscriptions(self, channel: str) -> list[aio_web.WebSocketResponse]:
         return self._remove_closed_connections(channel)
 
     @staticmethod
@@ -54,7 +55,7 @@ class TopicProps(Properties):
     def __init__(self, topic: Topic):
         super().__init__(topic)
 
-    def get_channels(self) -> Generator[Tuple[str, 'TopicChannel'], Any, None]:
+    def get_channels(self) -> Generator[tuple[str, 'TopicChannel'], Any, None]:
         return self._get_cls_attributes_of_type(type(self.parent), TopicChannel)
 
 

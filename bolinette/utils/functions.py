@@ -1,5 +1,6 @@
 import inspect
-from typing import Callable, Awaitable, Any
+from collections.abc import Callable, Awaitable
+from typing import Any
 
 from bolinette.exceptions import InternalError
 

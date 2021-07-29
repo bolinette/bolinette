@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABC
-from typing import Any, Dict, List, Tuple, Optional, Callable
+from collections.abc import Callable
+from typing import Any, Optional
 
 from bolinette import blnt, core
 
@@ -28,9 +29,9 @@ class BaseQueryBuilder(ABC):
 
 class BaseQuery(ABC):
     def __init__(self):
-        self._filters_by: Dict[str, Any] = {}
-        self._filters: List[Callable[[Any], Any]] = []
-        self._order_by: List[Tuple[str, bool]] = []
+        self._filters_by: dict[str, Any] = {}
+        self._filters: list[Callable[[Any], Any]] = []
+        self._order_by: list[tuple[str, bool]] = []
         self._offset = 0
         self._limit: Optional[int] = None
 
