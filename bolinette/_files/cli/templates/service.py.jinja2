@@ -1,0 +1,8 @@
+from bolinette import core, blnt
+from bolinette.decorators import service
+
+
+@service('{{ name }}')
+class {{ class }}Service(core.Service):
+    def __init__(self, context: 'blnt.BolinetteContext'):
+        super().__init__(context)

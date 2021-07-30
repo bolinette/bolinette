@@ -21,8 +21,8 @@ class BookController(web.Controller):
 
     @get('/pages+650', returns=web.Returns('book', as_list=True), middlewares=['!auth'])
     async def get_books_over_650_pages(self):
-        return self.response.ok('OK', await self.book_service.get_books_over_650_pages())
+        return self.response.ok(data=await self.book_service.get_books_over_650_pages())
 
     @get('/pages-700', returns=web.Returns('book', as_list=True), middlewares=['!auth'])
     async def get_books_under_700_pages(self):
-        return self.response.ok('OK', await self.book_service.get_books_under_700_pages())
+        return self.response.ok(data=await self.book_service.get_books_under_700_pages())

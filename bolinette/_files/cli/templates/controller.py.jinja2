@@ -1,0 +1,24 @@
+from bolinette import web
+from bolinette.decorators import controller, get
+from {{ module }}.services import {{ class }}Service
+
+
+@controller('{{ name }}', '/{{ name }}', middlewares=['auth'])
+class {{ class }}Controller(web.Controller):
+    @property
+    def {{ name }}_service(self) -> {{ class }}Service:
+        return self.context.service('{{ name }}')
+    
+    def default_routes(self):
+        return [
+            self.defaults.get_all(),
+            self.defaults.get_one(),
+            self.defaults.create(),
+            self.defaults.update(),
+            self.defaults.patch(),
+            self.defaults.delete()
+        ]
+
+    @get('/all', returns=web.Returns('{{ name }}', as_list=True))
+    async def get_all(self):
+        return self.response.ok(data=await self.{{ name }}_service.get_all())
