@@ -39,10 +39,12 @@ class Parser:
             sys.exit(1)
 
     def _run_command(self, cmd: str, parsed: dict):
-        func = self.commands[cmd].func
+        command = self.commands[cmd]
+        func = command.func
         parsed['blnt'] = self.blnt
         parsed['context'] = self.blnt.context
-        self.blnt.init_bolinette()
+        if command.run_init:
+            self.blnt.init_bolinette()
         if inspect.iscoroutinefunction(func):
             loop = asyncio.get_event_loop()
             loop.run_until_complete(async_invoke(func, **parsed))

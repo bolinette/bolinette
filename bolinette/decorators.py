@@ -156,16 +156,17 @@ class _CommandDecorator:
     def _create_command(func):
         return _Command(func.__name__, func)
 
-    def __call__(self, name: str, summary: str):
+    def __call__(self, name: str, summary: str, *, run_init=False):
         def decorator(arg):
             if isinstance(arg, _Command):
                 cmd = arg
             elif _inspect.isfunction(arg):
                 cmd = self._create_command(arg)
             else:
-                raise ValueError('@command must only decorate function or async functions')
+                raise ValueError('@command must only decorate functions or async functions')
             cmd.path = name
             cmd.summary = summary
+            cmd.run_init = run_init
             blnt.cache.commands[cmd.name] = cmd
             return cmd
         return decorator

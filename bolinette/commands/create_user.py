@@ -7,7 +7,7 @@ from bolinette.decorators import command
 from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors
 
 
-@command('create user', 'Add a user to the database')
+@command('create user', 'Add a user to the database', run_init=True)
 @command.argument('argument', 'username', summary='The new user\'s username')
 @command.argument('argument', 'email', summary='The new user\'s email')
 @command.argument('option', 'roles', flag='r', summary='The user\'s roles, comma separated')

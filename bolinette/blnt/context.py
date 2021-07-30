@@ -76,6 +76,15 @@ class BolinetteContext:
     def add_model(self, name, model: 'core.Model'):
         self._models[name] = model
 
+    def internal_path(self, *path):
+        return paths.join(self.origin, *path)
+
+    def internal_files_path(self, *path):
+        return paths.join(self.origin, '_files', *path)
+
+    def root_path(self, *path):
+        return paths.join(self.cwd, *path)
+
     def instance_path(self, *path):
         return self.root_path('instance', *path)
 
@@ -87,15 +96,6 @@ class BolinetteContext:
 
     def templates_path(self, *path):
         return self.root_path('templates', *path)
-
-    def root_path(self, *path):
-        return paths.join(self.cwd, *path)
-
-    def internal_path(self, *path):
-        return paths.join(self.origin, *path)
-
-    def internal_files_path(self, *path):
-        return paths.join(self.origin, '_files', *path)
 
     @property
     def models(self):
