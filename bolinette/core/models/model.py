@@ -1,7 +1,7 @@
-from collections import Iterator
+from collections.abc import Iterator
 from typing import Union, Literal, Optional
 
-from bolinette import core, blnt
+from bolinette import core, blnt, types
 from bolinette.blnt.database.engines import DatabaseEngine
 
 MappingPyTyping = list[Union['types.mapping.Column', 'types.mapping.Field',

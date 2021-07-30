@@ -2,7 +2,7 @@ from functools import wraps
 from collections.abc import Callable, Awaitable
 from typing import Any
 
-from bolinette.testing import TestClient
+from bolinette.testing import BolitestClient
 from bolinette.utils.functions import async_invoke
 
 
@@ -10,7 +10,7 @@ def bolitest(*, before: Callable[[Any], Awaitable[None]] = None,
              after: Callable[[Any], Awaitable[None]] = None):
     def wrapper(func):
         @wraps(func)
-        async def inner(client: TestClient):
+        async def inner(client: BolitestClient):
             try:
                 async with client:
                     await client.context.db.close_transaction()

@@ -4,7 +4,7 @@ import string
 import pytest
 
 from bolinette import Bolinette
-from bolinette.testing import TestClient
+from bolinette.testing import BolitestClient
 
 bolinette_app = None
 
@@ -19,6 +19,6 @@ def client(loop):
         bolinette_app.init_bolinette()
 
     async def create_client():
-        return TestClient(bolinette_app, loop)
+        return BolitestClient(bolinette_app, loop)
     bolinette_app.init_extensions()
     return loop.run_until_complete(create_client())

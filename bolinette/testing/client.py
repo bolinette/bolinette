@@ -8,7 +8,7 @@ from bolinette.testing import Mock
 from bolinette.utils.serializing import serialize
 
 
-class TestClient:
+class BolitestClient:
     def __init__(self, blnt_app: 'bolinette.Bolinette', loop: AbstractEventLoop):
         server = test_utils.TestServer(blnt_app.app, loop=loop)
         self.client = test_utils.TestClient(server, loop=loop)

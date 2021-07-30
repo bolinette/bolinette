@@ -1,4 +1,4 @@
-from bolinette.testing import bolitest, TestClient
+from bolinette.testing import bolitest, BolitestClient
 # noinspection PyUnresolvedReferences
 from bolinette.testing.fixture import client
 from tests import utils
@@ -7,7 +7,7 @@ import example.models
 
 
 @bolitest(before=utils.book.set_up)
-async def test_get_person(client: TestClient):
+async def test_get_person(client: BolitestClient):
     person1 = client.mock(1, 'person')
 
     rv = await client.get(f'/person/{person1["uid"]}')
@@ -20,7 +20,7 @@ async def test_get_person(client: TestClient):
 
 
 @bolitest(before=utils.book.set_up)
-async def test_get_person_books(client: TestClient):
+async def test_get_person_books(client: BolitestClient):
     person1 = client.mock(1, 'person')
     book1 = client.mock(1, 'book')
     book2 = client.mock(2, 'book')

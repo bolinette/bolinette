@@ -2,7 +2,7 @@ from typing import Optional
 
 # noinspection PyUnresolvedReferences
 from bolinette.testing.fixture import client
-from bolinette.testing import Mock, bolitest, Mocked, TestClient
+from bolinette.testing import Mock, bolitest, Mocked, BolitestClient
 
 
 def assert_tags_equal(t1s, t2s):
@@ -53,7 +53,7 @@ async def labels_setup(mock: Mock):
 
 
 @bolitest(before=tags_setup)
-async def test_get_tags(client: TestClient):
+async def test_get_tags(client: BolitestClient):
     rv = await client.get('/tag')
     assert rv['code'] == 200
     assert len(rv['data']) == 6
@@ -63,7 +63,7 @@ async def test_get_tags(client: TestClient):
 
 
 @bolitest(before=tags_setup)
-async def test_get_tag(client: TestClient):
+async def test_get_tag(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
     tag4 = client.mock(4, 'tag')
     tag6 = client.mock(6, 'tag')
@@ -76,7 +76,7 @@ async def test_get_tag(client: TestClient):
 
 
 @bolitest()
-async def test_create_tag(client: TestClient):
+async def test_create_tag(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
 
     rv = await client.post('/tag', tag1.to_payload())
@@ -84,7 +84,7 @@ async def test_create_tag(client: TestClient):
 
 
 @bolitest()
-async def test_create_tags(client: TestClient):
+async def test_create_tags(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
     tag11 = client.mock(11, 'tag')
     tag12 = client.mock(12, 'tag')
@@ -109,7 +109,7 @@ async def test_create_tags(client: TestClient):
 
 
 @bolitest(before=labels_setup)
-async def test_get_tag_labels(client: TestClient):
+async def test_get_tag_labels(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
 
     rv = await client.get(f'/tag/{tag1["name"]}')
@@ -119,7 +119,7 @@ async def test_get_tag_labels(client: TestClient):
 
 
 @bolitest(before=labels_setup)
-async def test_get_label(client: TestClient):
+async def test_get_label(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
     label1 = client.mock(1, 'label')
 
@@ -130,7 +130,7 @@ async def test_get_label(client: TestClient):
 
 
 @bolitest(before=labels_setup)
-async def test_get_label_not_found(client: TestClient):
+async def test_get_label_not_found(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
 
     rv = await client.get(f'/label/{tag1["name"]}/3')
