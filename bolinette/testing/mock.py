@@ -72,19 +72,24 @@ class Mock:
         self._id = None
         self.context = context
 
-    def _random_lower(self, rng, length):
+    @staticmethod
+    def _random_lower(rng, length):
         return ''.join(rng.choices(string.ascii_lowercase, k=length))
 
-    def _random_symbols(self, rng, length):
+    @staticmethod
+    def _random_symbols(rng, length):
         return ''.join(rng.choices(string.punctuation, k=length))
 
-    def _random_int(self, rng, a, b):
+    @staticmethod
+    def _random_int(rng, a, b):
         return rng.randint(a, b)
 
-    def _random_decimal(self, rng, a, b):
+    @staticmethod
+    def _random_decimal(rng, a, b):
         return rng.uniform(a, b)
 
-    def _random_date(self, rng, start_date, end_date):
+    @staticmethod
+    def _random_date(rng, start_date, end_date):
         time_between_dates = end_date - start_date
         days_between_dates = time_between_dates.days
         random_number_of_days = rng.randrange(days_between_dates)

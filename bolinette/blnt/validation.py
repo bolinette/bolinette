@@ -43,7 +43,8 @@ class Validator:
             raise api_errors
         return valid
 
-    def _validate_field(self, field: 'mapping.MappingObject', name: str, values: dict[str, Any]):
+    @staticmethod
+    def _validate_field(field: 'mapping.MappingObject', name: str, values: dict[str, Any]):
         if field.required and name not in values:
             raise exceptions.ParamMissingError(name)
         value = values.get(name, field.default)

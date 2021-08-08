@@ -97,7 +97,8 @@ class Repository:
             raise api_errors
         return values
 
-    async def _validate_linked_model(self, relationship: 'core.models.Relationship', values: dict[str, Any],
+    @staticmethod
+    async def _validate_linked_model(relationship: 'core.models.Relationship', values: dict[str, Any],
                                      repo_args: dict[str, Any], ignore_keys: list[str]):
         if relationship.foreign_key is None:
             return

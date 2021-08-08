@@ -1,4 +1,6 @@
-from bolinette import core, bcrypt
+import bcrypt
+
+from bolinette import core
 from bolinette.decorators import service
 from bolinette.defaults.services import FileService
 from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
@@ -8,13 +10,14 @@ from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
 class UserService(core.Service):
     @staticmethod
     def encrypt_password(password):
-        return bcrypt.hash_password(password)
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     @staticmethod
     def check_password(user, password):
-        return bcrypt.check_password(user.password, password)
+        return bcrypt.checkpw(password.encode(), user.password.encode())
 
-    async def _check_params(self, values: dict):
+    @staticmethod
+    async def _check_params(values: dict):
         if values.get('password'):
             values['password'] = UserService.encrypt_password(values['password'])
 
@@ -36,10 +39,12 @@ class UserService(core.Service):
         await self._check_params(values)
         return await super().patch(entity, values)
 
-    async def has_role(self, user, role_name):
+    @staticmethod
+    async def has_role(user, role_name):
         return any(filter(lambda r: r.name == role_name, user.roles))
 
-    async def add_role(self, user, role):
+    @staticmethod
+    async def add_role(user, role):
         if role.name == 'root':
             raise ForbiddenError('role.root.forbidden')
         if role in user.roles:

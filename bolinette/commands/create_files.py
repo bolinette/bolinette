@@ -9,7 +9,6 @@ from bolinette.decorators import command
 def _create_file(console: Console, *,
                  source_dir: str, source_template: str, dest_dir: str, dest_file: str,
                  params: dict[str, Any]):
-    
     if not paths.exists(dest_dir):
         console.error(f'Folder {dest_dir} not found.\n'
                       'Make sure you have set the module in the manifest or you are '
@@ -30,8 +29,8 @@ def _update_init(path: str, module: str, folder: str, name: str, class_name: str
 
 def _create_model(context: 'blnt.BolinetteContext', console: Console, name: str):
     module = context.manifest['module']
-    dest_dir=context.root_path(module, 'models')
-    class_name = name[0].upper() + name [1:]
+    dest_dir = context.root_path(module, 'models')
+    class_name = name[0].upper() + name[1:]
     _create_file(console,
                  source_dir=context.internal_files_path('cli', 'templates'),
                  source_template='model.py.jinja2',
@@ -43,8 +42,8 @@ def _create_model(context: 'blnt.BolinetteContext', console: Console, name: str)
 
 def _create_service(context: 'blnt.BolinetteContext', console: Console, name: str):
     module = context.manifest['module']
-    dest_dir=context.root_path(module, 'services')
-    class_name = name[0].upper() + name [1:]
+    dest_dir = context.root_path(module, 'services')
+    class_name = name[0].upper() + name[1:]
     _create_file(console,
                  source_dir=context.internal_files_path('cli', 'templates'),
                  source_template='service.py.jinja2',
@@ -56,8 +55,8 @@ def _create_service(context: 'blnt.BolinetteContext', console: Console, name: st
 
 def _create_controller(context: 'blnt.BolinetteContext', console: Console, name: str):
     module = context.manifest['module']
-    dest_dir=context.root_path(module, 'controllers')
-    class_name = name[0].upper() + name [1:]
+    dest_dir = context.root_path(module, 'controllers')
+    class_name = name[0].upper() + name[1:]
     _create_file(console,
                  source_dir=context.internal_files_path('cli', 'templates'),
                  source_template='controller.py.jinja2',

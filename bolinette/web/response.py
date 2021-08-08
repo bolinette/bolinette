@@ -1,4 +1,3 @@
-from os import PathLike
 from typing import Union
 
 from aiohttp.web_response import Response as AioResponse
@@ -84,7 +83,7 @@ class Response:
     def internal_server_error(self, *, messages: Union[str, list[str]] = None, data=None):
         return self._build_message(500, 'INTERNAL SERVER ERROR', messages, data)
 
-    def render_template(self, name: PathLike, params: dict = None, workdir: PathLike = None, *, status=200):
+    def render_template(self, name: str, params: dict = None, workdir: str = None, *, status=200):
         if workdir is None:
             workdir = self.context.templates_path()
         if params is None:

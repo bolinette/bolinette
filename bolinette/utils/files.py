@@ -1,4 +1,3 @@
-from os import PathLike
 from typing import Any
 
 import jinja2
@@ -43,7 +42,7 @@ def read_manifest(path, *, params: dict[str, Any] = None):
         return None
 
 
-def render_template(workdir: PathLike, path: PathLike, params: dict[str, Any]):
+def render_template(workdir: str, path: str, params: dict[str, Any]):
     jinja_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(searchpath=workdir),
         keep_trailing_newline=True,
