@@ -1,4 +1,5 @@
 import example.models
+import example.mixins
 import example.seeders
 import example.middlewares
 import example.controllers

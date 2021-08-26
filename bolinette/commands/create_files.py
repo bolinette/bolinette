@@ -66,6 +66,32 @@ def _create_controller(context: 'blnt.BolinetteContext', console: Console, name:
     _update_init(dest_dir, module, 'controllers', name, f'{class_name}Controller')
 
 
+def _create_middleware(context: 'blnt.BolinetteContext', console: Console, name: str):
+    module = context.manifest['module']
+    dest_dir = context.root_path(module, 'middlewares')
+    class_name = name[0].upper() + name[1:]
+    _create_file(console,
+                 source_dir=context.internal_files_path('cli', 'templates'),
+                 source_template='middleware.py.jinja2',
+                 dest_dir=dest_dir,
+                 dest_file=f'{name}.py',
+                 params={'name': name, 'class': class_name})
+    _update_init(dest_dir, module, 'middlewares', name, f'{class_name}Middleware')
+
+
+def _create_mixin(context: 'blnt.BolinetteContext', console: Console, name: str):
+    module = context.manifest['module']
+    dest_dir = context.root_path(module, 'mixins')
+    class_name = name[0].upper() + name[1:]
+    _create_file(console,
+                 source_dir=context.internal_files_path('cli', 'templates'),
+                 source_template='mixin.py.jinja2',
+                 dest_dir=dest_dir,
+                 dest_file=f'{name}.py',
+                 params={'name': name, 'class': class_name})
+    _update_init(dest_dir, module, 'mixins', name, f'{class_name}')
+
+
 @command('new model', 'Create a new model file')
 @command.argument('argument', 'name', summary='The new model\'s name')
 @command.argument('flag', 'service', flag='s', summary='Create an associated service')
@@ -94,3 +120,17 @@ async def create_service(context: 'blnt.BolinetteContext', name: str, controller
 async def create_controller(context: 'blnt.BolinetteContext', name: str):
     console = Console()
     _create_controller(context, console, name)
+
+
+@command('new middleware', 'Create a new middleware file')
+@command.argument('argument', 'name', summary='The new middleware\'s name')
+async def create_middleware(context: 'blnt.BolinetteContext', name: str):
+    console = Console()
+    _create_middleware(context, console, name)
+
+
+@command('new mixin', 'Create a new mixin file')
+@command.argument('argument', 'name', summary='The new mixin\'s name')
+async def create_mixin(context: 'blnt.BolinetteContext', name: str):
+    console = Console()
+    _create_mixin(context, console, name)

@@ -1,0 +1,11 @@
+from bolinette import web
+from bolinette.decorators import middleware
+
+
+@middleware('{{ name }}')
+class {{ class }}Middleware(web.Middleware):
+    def define_options(self):
+        return {}
+
+    async def handle(self, request, params, next_func):
+        return await next_func(request, params)

@@ -1,0 +1,30 @@
+from bolinette import core
+from bolinette.decorators import mixin
+
+
+@mixin('{{ name }}')
+class {{ class }}(core.Mixin):
+    def columns(self):
+        return {}
+
+    def relationships(self, model):
+        return {}
+
+    def response(self, model):
+        return []
+
+    @mixin.service_method
+    async def create(self, values, **kwargs):
+        pass
+
+    @mixin.service_method
+    async def update(self, entity, values, **kwargs):
+        pass
+
+    @mixin.service_method
+    async def patch(self, values, **kwargs):
+        pass
+
+    @mixin.service_method
+    async def delete(self, values, **kwargs):
+        pass
