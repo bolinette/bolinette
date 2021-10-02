@@ -34,5 +34,8 @@ setup(
     ],
     setup_requires=[
         'wheel'
-    ]
+    ],
+    entry_points = {
+        'console_scripts': ['blnt=blnt:main'],
+    }
 )
