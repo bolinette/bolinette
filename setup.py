@@ -36,6 +36,6 @@ setup(
         'wheel'
     ],
     entry_points = {
-        'console_scripts': ['blnt=blnt:main'],
+        'console_scripts': ['blnt=bolinette.__main__:main'],
     }
 )

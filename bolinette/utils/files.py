@@ -36,7 +36,8 @@ def read_manifest(path, *, params: dict[str, Any] = None):
         with open(paths.join(path, 'manifest.blnt.yaml')) as f:
             raw = f.read()
             if params is not None:
-                raw = render_string(raw, params)
+                for param in params:
+                    raw = raw.replace(f'__{param}__', params[param])
             return yaml.safe_load(raw)
     except FileNotFoundError:
         return None

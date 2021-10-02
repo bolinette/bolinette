@@ -92,3 +92,8 @@ class Bolinette:
     def exec_cmd_args(self):
         parser = Parser(self, blnt.cache.commands)
         parser.run()
+
+
+def main_func(func):
+    setattr(func, '__blnt__', '__blnt_main__')
+    return func

@@ -112,7 +112,7 @@ class Environment(Settings):
         self.context = context
         profile = profile or init.profile or 'development'
         self._reset(self._merge_env_stack([
-            self._default_env,
+            self._load_default_env(),
             self._load_from_file(f'env.{profile}.yaml'),
             self._load_from_file(f'env.local.{profile}.yaml'),
             self._load_from_os(),
@@ -121,8 +121,7 @@ class Environment(Settings):
         ]))
         self._check_secret_key()
 
-    @property
-    def _default_env(self):
+    def _load_default_env(self):
         try:
             with open(self.context.internal_files_path('env', 'default.yaml'), 'r') as f:
                 d = yaml.safe_load(f)
