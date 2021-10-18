@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional, Literal
+from typing import Any, Literal
 
 import yaml
 from aiohttp_swagger import setup_swagger

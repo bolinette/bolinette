@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from bolinette.blnt.database.engines import DatabaseEngine
+from bolinette.exceptions import InternalError
 
 
 class RelationalDatabase(DatabaseEngine):
@@ -12,6 +13,7 @@ class RelationalDatabase(DatabaseEngine):
         self._base = declarative_base()
         self._Session = sessionmaker(bind=self._engine)
         self._session = self._Session()
+        self._tables = {}
 
     @property
     def base(self):
@@ -20,6 +22,14 @@ class RelationalDatabase(DatabaseEngine):
     @property
     def session(self):
         return self._session
+
+    def add_table(self, key: str, table):
+        self._tables[key] = table
+
+    def table(self, key: str):
+        if key not in self._tables:
+            raise InternalError(f'No table named {key} in database engine')
+        return self._tables[key]
 
     async def open_transaction(self):
         pass

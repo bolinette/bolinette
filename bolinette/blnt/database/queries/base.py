@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from bolinette import blnt, core
 

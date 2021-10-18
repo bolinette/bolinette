@@ -5,6 +5,7 @@ from typing import Any
 from aiohttp.web_request import Request
 
 from bolinette import blnt, core, web
+from bolinette.decorators import injected
 from bolinette.exceptions import InitError
 from bolinette.utils import functions
 
@@ -19,9 +20,9 @@ class Controller:
         if self.__blnt__.use_service:
             self.defaults = ControllerDefaults(self)
 
-    @property
-    def service(self) -> 'core.Service':
-        return self.context.service(self.__blnt__.service_name)
+    @injected
+    def service(self, inject: 'blnt.BolinetteInjection') -> 'core.Service':
+        return inject.services.require(self.__blnt__.service_name)
 
     def default_routes(self) -> list['web.ControllerRoute']:
         return []
@@ -184,8 +185,12 @@ class ControllerDefaults:
     PARAM_NAME_CHAR_REGEX = re.compile(r'[^a-zA-Z0-9_]')
 
     def __init__(self, controller: Controller):
+        self.context = controller.context
         self.controller = controller
-        self.service: core.Service = controller.service
+
+    @injected
+    def service(self, inject: 'blnt.BolinetteInjection') -> 'core.Service':
+        return inject.services.require(self.controller.__blnt__.service_name)
 
     def _get_url_keys(self, key: str | list[str] | None, *, route: str) -> list[str]:
         if key is None:

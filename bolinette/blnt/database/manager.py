@@ -45,6 +45,11 @@ class DatabaseManager:
             return self.engines['default']
         raise InternalError('internal.db.no_default_engine')
 
+    def get_engine(self, name: str) -> DatabaseEngine:
+        if name not in self.engines:
+            raise AttributeError(f'No {name} database engine is defined')
+        return self.engines[name]
+
     def __getitem__(self, key):
         if key in self.engines:
             return self.engines[key]

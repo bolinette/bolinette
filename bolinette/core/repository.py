@@ -8,11 +8,15 @@ from bolinette.utils.functions import setattr_, getattr_, async_invoke
 
 
 class Repository:
-    def __init__(self, name: str, model: 'core.Model', context: 'blnt.BolinetteContext'):
-        self.name = name
-        self.model = model
+    def __init__(self, context: 'blnt.BolinetteContext', name: str, model: 'core.Model'):
+        self._name = name
+        self._model = model
         self.context = context
         self._query_builder = self._get_query_builder(model, context)
+
+    @property
+    def model(self):
+        return self._model
 
     @staticmethod
     def _get_query_builder(model: 'core.Model', context: 'blnt.BolinetteContext'):
@@ -22,7 +26,7 @@ class Repository:
         return CollectionQueryBuilder(model, context)
 
     def __repr__(self):
-        return f'<Repository {self.name}>'
+        return f'<Repository {self._name}>'
 
     def query(self):
         return self._query_builder.query()
@@ -78,9 +82,9 @@ class Repository:
     async def _validate_model(self, values: dict[str, Any], repo_args: dict[str, Any]):
         api_errors = APIErrors()
         ignore_keys: list[str] = []
-        for _, relationship in self.model.__props__.get_relationships():
+        for _, relationship in self._model.__props__.get_relationships():
             await self._validate_linked_model(relationship, values, repo_args, ignore_keys)
-        for _, column in self.model.__props__.get_columns():
+        for _, column in self._model.__props__.get_columns():
             key = column.name
             if column.auto_increment or key in ignore_keys:
                 continue
@@ -114,7 +118,7 @@ class Repository:
 
     async def _map_model(self, entity, values: dict[str, Any], patch=False):
         api_errors = APIErrors()
-        for _, column in self.model.__props__.get_columns():
+        for _, column in self._model.__props__.get_columns():
             key = column.name
             if column.primary_key or (key not in values and patch):
                 continue
@@ -132,6 +136,6 @@ class Repository:
             raise api_errors
 
     async def _call_mixin_methods(self, method_name: str, *args, **kwargs):
-        for _, mixin in self.model.__props__.mixins.items():
+        for _, mixin in self._model.__props__.mixins.items():
             if method_name in mixin:
                 await async_invoke(mixin[method_name].func, *args, **kwargs)

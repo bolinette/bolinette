@@ -11,7 +11,7 @@ class RelationalQueryBuilder(BaseQueryBuilder):
     def __init__(self, model: 'core.Model', context: 'blnt.BolinetteContext'):
         super().__init__(model, context)
         self._database: RelationalDatabase = context.db[model.__blnt__.database]
-        self._table = self.context.table(model.__blnt__.name)
+        self._table = self._database.table(model.__blnt__.name)
 
     def query(self) -> 'BaseQuery':
         return RelationalQuery(self._database, self._table)

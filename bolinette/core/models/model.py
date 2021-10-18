@@ -9,9 +9,10 @@ MappingListPyTyping = MappingPyTyping | tuple[str, MappingPyTyping]
 
 
 class Model:
-    __blnt__: 'ModelMetadata' = None
+    __blnt__: 'ModelMetadata' = None  # type: ignore
 
-    def __init__(self, database: 'DatabaseEngine'):
+    def __init__(self, context: blnt.BolinetteContext):
+        database = context.db.get_engine(self.__blnt__.database)
         self.__props__ = ModelProps(self, database)
         self.__repo__: core.Repository | None = None
 

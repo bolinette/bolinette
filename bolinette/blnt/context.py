@@ -2,8 +2,7 @@ from typing import Any
 
 from aiohttp import web as aio_web
 
-from bolinette import blnt, core, web, mapping, BolinetteExtension, Extensions
-from bolinette.exceptions import InternalError
+from bolinette import blnt, web, mapping, BolinetteExtension, Extensions
 from bolinette.blnt.database import DatabaseManager
 from bolinette.utils import paths, files
 from bolinette.docs import Documentation
@@ -14,11 +13,6 @@ class BolinetteContext:
                  profile: str = None, overrides: dict[str, Any] = None):
         self._ctx = {}
         self._extensions = []
-        self._tables: dict[str, Any] = {}
-        self._models: dict[str, 'core.Model'] = {}
-        self._repos: dict[str, 'core.Repository'] = {}
-        self._services: dict[str, 'core.Service'] = {}
-        self._controllers: dict[str, 'web.Controller'] = {}
 
         for ext in extensions or []:
             self.use_extension(ext)
@@ -27,6 +21,7 @@ class BolinetteContext:
         self.cwd = paths.cwd()
         self.origin = origin
         self.env = blnt.Environment(self, profile=profile, overrides=overrides)
+        self.inject = blnt.BolinetteInjection(self)
         self.manifest = files.read_manifest(
             self.root_path(), params={'version': self.env.get('version', '0.0.0')}) or {}
         self.logger = blnt.Logger(self)
@@ -52,9 +47,6 @@ class BolinetteContext:
     def __setitem__(self, key, value):
         self._ctx[key] = value
 
-    def model(self, name) -> Any:
-        return self._models[name]
-
     def clear_extensions(self):
         self._extensions = []
 
@@ -72,9 +64,6 @@ class BolinetteContext:
         if isinstance(ext, tuple):
             return len(ext) > 0 and any(self.has_extension(b) for b in ext)
         raise ValueError('BolinetteContext.has_extensions only accepts BolinetteExtensions instances')
-
-    def add_model(self, name, model: 'core.Model'):
-        self._models[name] = model
 
     def internal_path(self, *path):
         return paths.join(self.origin, *path)
@@ -96,49 +85,3 @@ class BolinetteContext:
 
     def templates_path(self, *path):
         return self.root_path('templates', *path)
-
-    @property
-    def models(self):
-        return ((name, self._models[name]) for name in self._models)
-
-    def table(self, name) -> Any:
-        return self._tables[name]
-
-    def add_table(self, name, table):
-        self._tables[name] = table
-
-    @property
-    def tables(self):
-        return ((name, self._tables[name]) for name in self._tables)
-
-    def repo(self, name: str) -> Any:
-        return self._repos[name]
-
-    def add_repo(self, name, repo: 'core.Repository'):
-        self._repos[name] = repo
-
-    @property
-    def repos(self):
-        return ((name, self._repos[name]) for name in self._repos)
-
-    def service(self, name) -> Any:
-        if name not in self._services:
-            raise InternalError(f'global.service.not_found:{name}')
-        return self._services[name]
-
-    def add_service(self, name, service: 'core.Service'):
-        self._services[name] = service
-
-    @property
-    def services(self):
-        return ((name, self._services[name]) for name in self._services)
-
-    def controller(self, name) -> Any:
-        return self._controllers[name]
-
-    def add_controller(self, name, controller: 'web.Controller'):
-        self._controllers[name] = controller
-
-    @property
-    def controllers(self):
-        return ((name, self._controllers[name]) for name in self._controllers)

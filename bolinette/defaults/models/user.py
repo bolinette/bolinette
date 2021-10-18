@@ -20,7 +20,7 @@ class User(core.Model):
                                     backref=types.defs.Backref('users', lazy=True))
 
     picture_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('file', 'id'))
-    profile_picture = types.defs.Relationship('file', foreign_key=picture_id, lazy=False)
+    profile_picture = types.defs.Relationship('file', foreign_key="picture_id", lazy=False)
 
     timezone = types.defs.Column(types.db.String)
 

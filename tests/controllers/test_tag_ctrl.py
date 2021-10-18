@@ -67,6 +67,7 @@ async def test_get_tag(client: BolitestClient):
     tag1 = client.mock(1, 'tag')
     tag4 = client.mock(4, 'tag')
     tag6 = client.mock(6, 'tag')
+    tag6['children'] = []
     tag4['children'] = [tag6]
     tag1['children'] = [tag4]
 
@@ -103,7 +104,9 @@ async def test_create_tags(client: BolitestClient):
     assert rv['code'] == 201
 
     rv = await client.get(f'/tag/{tag1["name"]}')
+    tag121['children'] = []
     tag12['children'] = [tag121]
+    tag11['children'] = []
     tag1['children'] = [tag11, tag12]
     assert_tags_equal(rv['data'], tag1)
 

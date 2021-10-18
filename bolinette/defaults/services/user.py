@@ -1,13 +1,17 @@
 import bcrypt
 
-from bolinette import core
-from bolinette.decorators import service
+from bolinette import core, blnt
+from bolinette.decorators import service, injected
 from bolinette.defaults.services import FileService
 from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
 
 
 @service('user')
 class UserService(core.Service):
+    @injected
+    def file_server(self, inject: 'blnt.BolinetteInjection') -> FileService:
+        return inject.services.require('file')
+
     @staticmethod
     def encrypt_password(password):
         return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -63,9 +67,8 @@ class UserService(core.Service):
         user.roles.remove(role)
 
     async def save_profile_picture(self, user, request_file):
-        file_service: FileService = self.context.service('file')
         old_picture = user.profile_picture
-        user.profile_picture = await file_service.save_file(request_file)
+        user.profile_picture = await self.file_service.save_file(request_file)
         if old_picture:
-            await file_service.delete(old_picture)
+            await self.file_service.delete(old_picture)
         return user

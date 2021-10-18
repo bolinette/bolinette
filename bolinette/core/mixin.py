@@ -1,6 +1,6 @@
 from collections.abc import Iterator, Callable
 
-from bolinette import core, blnt, types
+from bolinette import blnt, types
 
 
 class Mixin:
@@ -16,10 +16,10 @@ class Mixin:
     def __getitem__(self, key):
         return self._methods[key]
 
-    def columns(self) -> dict[str, 'core.models.Column']:
+    def columns(self) -> dict[str, 'blnt.InstantiableAttribute']:
         pass
 
-    def relationships(self, model) -> dict[str, 'types.defs.Relationship']:
+    def relationships(self) -> dict[str, 'types.defs.Relationship']:
         pass
 
     def payload(self, model):

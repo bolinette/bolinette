@@ -45,6 +45,8 @@ class BolinetteResources:
         return cors
 
     def init_web(self, app: aio_web.Application):
+        for ctrl_name in self.context.inject.controllers.registered():
+            self.context.inject.controllers.require(ctrl_name, immediate=True)
         self._aiohttp_resources = {}
         self.cors = aiohttp_cors.setup(app, defaults=self._setup_cors())
         for path, methods in self._routes.items():

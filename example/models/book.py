@@ -14,7 +14,7 @@ class Book(core.Model):
     publication_date = types.defs.Column(types.db.Date, nullable=False)
 
     author_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('person', 'id'), nullable=False)
-    author = types.defs.Relationship('person', foreign_key=author_id, backref=types.defs.Backref('books'), lazy=False)
+    author = types.defs.Relationship('person', foreign_key="author_id", backref=types.defs.Backref('books'), lazy=False)
 
     def payloads(self):
         yield [

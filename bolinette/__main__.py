@@ -1,4 +1,3 @@
-from bolinette.bolinette import main_func
 import importlib
 
 from bolinette import blnt, Bolinette
@@ -23,8 +22,8 @@ def get_blnt_instance():
 
 
 def main():
-    blnt = get_blnt_instance()
-    blnt.exec_cmd_args()
+    _blnt = get_blnt_instance()
+    _blnt.exec_cmd_args()
 
 
 if __name__ == '__main__':
