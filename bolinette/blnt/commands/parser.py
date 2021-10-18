@@ -46,8 +46,7 @@ class Parser:
         if command.run_init:
             self.blnt.init_bolinette()
         if inspect.iscoroutinefunction(func):
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(async_invoke(func, **parsed))
+            asyncio.run(async_invoke(func, **parsed))
         else:
             invoke(func, **parsed)
 

@@ -1,5 +1,5 @@
 import re
-from collections.abc import Generator
+from collections.abc import Iterator
 from typing import Any
 
 from aiohttp import web as aio_web
@@ -55,7 +55,7 @@ class TopicProps(Properties):
     def __init__(self, topic: Topic):
         super().__init__(topic)
 
-    def get_channels(self) -> Generator[tuple[str, 'TopicChannel'], Any, None]:
+    def get_channels(self) -> Iterator[tuple[str, 'TopicChannel']]:
         return self._get_cls_attributes_of_type(type(self.parent), TopicChannel)
 
 

@@ -4,7 +4,10 @@ from typing import Literal
 
 from bolinette import blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
-from bolinette.utils import InitProxy as _InitProxy
+
+
+def injected(func):
+    return blnt.InjectionProxy(func)
 
 
 def model(model_name: str, *,
@@ -88,19 +91,21 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
         middlewares = [middlewares]
 
     def decorator(route_function: Callable):
-        if not isinstance(route_function, _InitProxy) and not _inspect.iscoroutinefunction(route_function):
+        if (not isinstance(route_function, blnt.InstantiableAttribute)
+                and not _inspect.iscoroutinefunction(route_function)):
             raise ValueError(f'Route "{route_function.__name__}" must be an async function')
         if expects is not None and not isinstance(expects, web.Expects):
             raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Expects')
         if returns is not None and not isinstance(returns, web.Returns):
             raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Returns')
         inner_route = None
-        if isinstance(route_function, _InitProxy):
+        if isinstance(route_function, blnt.InstantiableAttribute):
             inner_route = route_function
         docstring = route_function.__doc__
-        return _InitProxy(web.ControllerRoute, func=route_function, path=path, method=method,
-                          docstring=docstring, expects=expects, returns=returns, inner_route=inner_route,
-                          middlewares=middlewares)
+        return blnt.InstantiableAttribute(web.ControllerRoute, dict(
+            func=route_function, path=path, method=method, docstring=docstring, expects=expects,
+            returns=returns, inner_route=inner_route, middlewares=middlewares
+        ))
     return decorator
 
 
@@ -184,7 +189,7 @@ class _CommandDecorator:
             if arg_type not in ['argument', 'option', 'flag', 'count']:
                 raise ValueError(f'Command {cmd.name}: {arg_type} is not a valid argument type')
             cmd.args = [_Argument(arg_type, name, flag=flag, summary=summary, value_type=value_type,
-                                         default=default, choices=choices)] + cmd.args
+                                  default=default, choices=choices)] + cmd.args
             return cmd
         return decorator
 

@@ -1,8 +1,10 @@
 import itertools
 from collections.abc import Iterator
-from typing import Optional
+from typing import TypeVar
 
-from bolinette import utils
+from bolinette import blnt
+
+_T = TypeVar('_T')
 
 
 class Properties:
@@ -10,7 +12,7 @@ class Properties:
         self.parent = parent
 
     @staticmethod
-    def _get_cls_attributes_of_type(obj: type, attr_type):
+    def _get_cls_attributes_of_type(obj: type, attr_type: type[_T]) -> Iterator[tuple[str, _T]]:
         parent_attrs = (Properties._get_cls_attributes_of_type(parent, attr_type) for parent in obj.__bases__)
         return itertools.chain(
             *parent_attrs,
@@ -22,9 +24,7 @@ class Properties:
         return ((name, attribute)
                 for name, attribute in vars(obj).items()
                 if isinstance(attribute, attr_type))
-
-    def get_proxies(self, of_type: type | None = None) -> Iterator[tuple[str, 'utils.InitProxy']]:
-        proxies = self._get_cls_attributes_of_type(type(self.parent), utils.InitProxy)
-        if of_type is not None:
-            return filter(lambda p: p[1].of_type(of_type), proxies)
-        return proxies
+    
+    def get_instantiable(self, of_type: type[_T]) -> Iterator[tuple[str, 'blnt.InstantiableAttribute[_T]']]:
+        attrs = self._get_cls_attributes_of_type(type(self.parent), blnt.InstantiableAttribute)
+        return ((name, attr) for name, attr in attrs if attr.type == of_type)

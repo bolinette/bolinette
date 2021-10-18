@@ -8,7 +8,7 @@ class Label(core.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
 
-    tag = types.defs.Relationship('tag', foreign_key=tag_id, lazy=True,
+    tag = types.defs.Relationship('tag', foreign_key="tag_id", lazy=True,
                                   backref=types.defs.Backref('labels', lazy=False))
 
     def responses(self):

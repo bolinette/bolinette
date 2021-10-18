@@ -10,7 +10,7 @@ from example.services import BookService, PersonService, LibraryService, TagServ
 
 @seeder
 async def role_seeder(context: blnt.BolinetteContext):
-    role_service: RoleService = context.service('role')
+    role_service: RoleService = context.inject.services.require('role', immediate=True)
     async with blnt.Transaction(context):
         await role_service.create({'name': 'root'})
         await role_service.create({'name': 'admin'})
@@ -22,8 +22,8 @@ async def dev_user_seeder(context: blnt.BolinetteContext):
     first_names = ['Bob', 'Jack', 'Bill', 'Joe']
     last_names = ['Smith', 'Johnson', 'Jones', 'Miller']
     if context.env['profile'] == 'development':
-        role_service: RoleService = context.service('role')
-        user_service: UserService = context.service('user')
+        role_service: RoleService = context.inject.services.require('role', immediate=True)
+        user_service: UserService = context.inject.services.require('user', immediate=True)
         async with blnt.Transaction(context):
             root = await role_service.get_by_name('root')
             admin = await role_service.get_by_name('admin')
@@ -57,9 +57,9 @@ async def dev_user_seeder(context: blnt.BolinetteContext):
 @seeder
 async def book_seeder(context: blnt.BolinetteContext):
     if context.env['profile'] == 'development':
-        user_service: UserService = context.service('user')
-        person_service: PersonService = context.service('person')
-        book_service: BookService = context.service('book')
+        user_service: UserService = context.inject.services.require('user', immediate=True)
+        person_service: PersonService = context.inject.services.require('person', immediate=True)
+        book_service: BookService = context.inject.services.require('book', immediate=True)
         async with blnt.Transaction(context):
             user = await user_service.get_by_username('root')
             p1 = await person_service.create(
@@ -78,7 +78,7 @@ async def book_seeder(context: blnt.BolinetteContext):
 @seeder
 async def library_seeder(context: blnt.BolinetteContext):
     if context.env['profile'] == 'development':
-        library_service: LibraryService = context.service('library')
+        library_service: LibraryService = context.inject.services.require('library', immediate=True)
         async with blnt.Transaction(context):
             await library_service.create({
                 'key': 'dwntwn_bks', 'name': 'Downtown books'
@@ -94,8 +94,8 @@ async def library_seeder(context: blnt.BolinetteContext):
 @seeder
 async def tag_seeder(context: blnt.BolinetteContext):
     if context.env['profile'] == 'development':
-        tag_service: TagService = context.service('tag')
-        label_service: LabelService = context.service('label')
+        tag_service: TagService = context.inject.services.require('tag', immediate=True)
+        label_service: LabelService = context.inject.services.require('label', immediate=True)
         async with blnt.Transaction(context):
             t1 = await tag_service.create({'name': 't1'})
             t2 = await tag_service.create({'name': 't2'})

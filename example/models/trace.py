@@ -9,5 +9,5 @@ class Trace(core.Model):
     visits = types.defs.Column(types.db.Integer, nullable=False)
     last_visit = types.defs.Column(types.db.Date, nullable=False)
     user_id = types.defs.Column(types.db.Integer, nullable=False, reference=types.defs.Reference('user', 'id'))
-    user = types.defs.Relationship('user', foreign_key=user_id, lazy=False,
+    user = types.defs.Relationship('user', foreign_key="user_id", lazy=False,
                                    backref=types.defs.Backref('traces', lazy=True))

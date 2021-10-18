@@ -8,7 +8,7 @@ class Tag(core.Model):
     name = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
 
     parent_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('tag', 'id'))
-    parent = types.defs.Relationship('tag', remote_side=id, lazy=True,
+    parent = types.defs.Relationship('tag', remote_side='id', lazy=True,
                                      backref=types.defs.Backref('children', lazy=False))
 
     def payloads(self):

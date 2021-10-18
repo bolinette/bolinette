@@ -25,6 +25,12 @@ class BolitestClient:
     def __await__(self):
         return self.__aenter__().__await__()
 
+    def try_parse(self, response):
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            return response
+
     def payload(self, **payload):
         if 'csrf_access_token' in self.cookies:
             payload['headers'] = {}
@@ -44,7 +50,7 @@ class BolitestClient:
                                      headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
         text = await res.text()
-        return json.loads(text)
+        return self.try_parse(text)
 
     async def put(self, path: str, data: dict = None, *, prefix='/api') -> dict:
         if data is None:
@@ -53,7 +59,7 @@ class BolitestClient:
                                     headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
         text = await res.text()
-        return json.loads(text)
+        return self.try_parse(text)
 
     async def patch(self, path: str, data: dict = None, *, prefix='/api') -> dict:
         if data is None:
@@ -62,14 +68,14 @@ class BolitestClient:
                                       headers={'Content-Type': 'application/json'})
         self.parse_cookies(res.headers)
         text = await res.text()
-        return json.loads(text)
+        return self.try_parse(text)
 
     async def get(self, path: str, *, prefix='/api') -> dict:
         res = await self.client.get(f'{prefix}{path}')
         text = await res.text()
-        return json.loads(text)
+        return self.try_parse(text)
 
     async def delete(self, path: str, *, prefix='/api') -> dict:
         res = await self.client.delete(f'{prefix}{path}')
         text = await res.text()
-        return json.loads(text)
+        return self.try_parse(text)

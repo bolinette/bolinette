@@ -16,10 +16,10 @@ class Historized(core.Mixin):
                 types.db.Integer, reference=types.defs.Reference('user', 'id'), nullable=False)
         }
 
-    def relationships(self, model):
+    def relationships(self):
         return {
-            'created_by': types.defs.Relationship('user', foreign_key=model.created_by_id, lazy=False),
-            'updated_by': types.defs.Relationship('user', foreign_key=model.updated_by_id, lazy=False)
+            'created_by': types.defs.Relationship('user', foreign_key="created_by_id", lazy=False),
+            'updated_by': types.defs.Relationship('user', foreign_key="updated_by_id", lazy=False)
         }
 
     def response(self, model):

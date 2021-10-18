@@ -1,16 +1,30 @@
 from typing import Any
 
-from bolinette import blnt, core
+from bolinette import blnt
 from bolinette.blnt.objects import PaginationParams, OrderByParams
+from bolinette.decorators import injected
 from bolinette.exceptions import EntityNotFoundError
 
 
-class Service:
+class SimpleService:
     __blnt__: 'ServiceMetadata' = None
 
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self.repo: core.Repository = context.repo(self.__blnt__.model_name)
+
+    def __repr__(self):
+        return f'<Service {self.__blnt__.name}>'
+
+
+class Service(SimpleService):
+    __blnt__: 'ServiceMetadata' = None
+
+    def __init__(self, context: 'blnt.BolinetteContext'):
+        super().__init__(context)
+
+    @injected
+    def repo(self, inject: 'blnt.BolinetteInjection'):
+        return inject.repositories.require(self.__blnt__.model_name)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
@@ -52,16 +66,6 @@ class Service:
 
     async def delete(self, entity, **kwargs):
         return await self.repo.delete(entity, **kwargs)
-
-
-class SimpleService:
-    __blnt__: 'ServiceMetadata' = None
-
-    def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
-
-    def __repr__(self):
-        return f'<Service {self.__blnt__.name}>'
 
 
 class ServiceMetadata:

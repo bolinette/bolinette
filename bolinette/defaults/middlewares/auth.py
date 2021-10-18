@@ -1,10 +1,14 @@
-from bolinette import web
-from bolinette.decorators import middleware
+from bolinette import web, blnt
+from bolinette.decorators import middleware, injected
 from bolinette.exceptions import ForbiddenError, UnauthorizedError
 
 
 @middleware('auth', priority=20)
 class AuthMiddleware(web.InternalMiddleware):
+    @injected
+    def user_service(self, inject: 'blnt.BolinetteInjection'):
+        return inject.services.require('user')
+
     def define_options(self):
         return {
             'optional': self.params.bool(),
@@ -17,7 +21,7 @@ class AuthMiddleware(web.InternalMiddleware):
                                            fresh=self.options['fresh'])
         current_user = None
         if identity is not None:
-            current_user = await self.context.service('user').get_by_username(identity)
+            current_user = await self.user_service.get_by_username(identity)
         if len(self.options['roles']) > 0:
             if current_user is None:
                 raise UnauthorizedError('user.unauthorized')
