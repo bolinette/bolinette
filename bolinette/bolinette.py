@@ -16,7 +16,7 @@ class Bolinette:
                  profile: str = None, overrides: dict[str, Any] = None):
         self._start_time = datetime.utcnow()
         self._initialized = False
-        self.app = None
+        self.app: aio_web.Application | None = None
         try:
             self.context = blnt.BolinetteContext(paths.dirname(__file__), extensions=extensions,
                                                  profile=profile, overrides=overrides)
@@ -27,20 +27,10 @@ class Bolinette:
         self.console = Console(debug=self.context.env.debug)
 
     def _run_init_functions(self):
-        index = 0
         for func in blnt.cache.init_funcs:
             if not self.context.has_extension(func.extension):
                 continue
-            loop = asyncio.get_event_loop()
-            if index == 0:
-                self.console.debug('Running Bolinette init functions: ', end='')
-            else:
-                self.console.debug(', ', end='')
-            self.console.debug(str(func), end='')
-            loop.run_until_complete(func(self.context))
-            index += 1
-        if index > 0:
-            self.console.debug('')
+            asyncio.run(func(self.context))
 
     def init_bolinette(self):
         self._run_init_functions()

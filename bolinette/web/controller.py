@@ -1,6 +1,6 @@
 import re
 from collections.abc import Generator, Callable
-from typing import Any, Optional, Union
+from typing import Any
 
 from aiohttp.web_request import Request
 
@@ -51,7 +51,7 @@ class ControllerProps(blnt.Properties):
 
 class ControllerRoute:
     def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
-                 docstring: Optional[str], expects: 'Expects' = None, returns: 'Returns' = None,
+                 docstring: str | None, expects: 'Expects' = None, returns: 'Returns' = None,
                  inner_route: 'ControllerRoute' = None, middlewares: list[str] = None):
         self.controller = controller
         self.func = func
@@ -187,7 +187,7 @@ class ControllerDefaults:
         self.controller = controller
         self.service: core.Service = controller.service
 
-    def _get_url_keys(self, key: Optional[Union[str, list[str]]], *, route: str) -> list[str]:
+    def _get_url_keys(self, key: str | list[str] | None, *, route: str) -> list[str]:
         if key is None:
             entity_key = self.service.repo.model.__props__.entity_key
             if entity_key is None:
@@ -224,7 +224,7 @@ class ControllerDefaults:
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
-    def get_one(self, returns='default', *, key: Union[str, list[str], None] = None,
+    def get_one(self, returns='default', *, key: str | list[str] | None = None,
                 prefix='', middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
         url_keys = self._get_url_keys(key, route='get_one')

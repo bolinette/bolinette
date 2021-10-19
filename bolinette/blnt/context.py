@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 from aiohttp import web as aio_web
 
@@ -64,7 +64,7 @@ class BolinetteContext:
                 self.use_extension(sub_ext)
             self._extensions.append(ext)
 
-    def has_extension(self, ext: Union[tuple[BolinetteExtension, ...], BolinetteExtension]):
+    def has_extension(self, ext: tuple[BolinetteExtension, ...] | BolinetteExtension):
         if Extensions.ALL in self._extensions:
             return True
         if isinstance(ext, BolinetteExtension):

@@ -1,6 +1,6 @@
 import inspect as _inspect
 from collections.abc import Callable, Awaitable
-from typing import Literal, Union
+from typing import Literal
 
 from bolinette import blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
@@ -53,16 +53,16 @@ def seeder(func):
 
 
 def service(service_name: str, *, model_name: str = None):
-    def decorator(service_cls: type[Union['core.Service', 'core.SimpleService']]):
+    def decorator(service_cls: type[core.Service | core.SimpleService]):
         service_cls.__blnt__ = core.ServiceMetadata(service_name, model_name or service_name)
         blnt.cache.services[service_name] = service_cls
         return service_cls
     return decorator
 
 
-def controller(controller_name: str, path: str = None, *,
+def controller(controller_name: str, path: str | None = None, *,
                namespace: str = '/api', use_service: bool = True,
-               service_name: str = None, middlewares: Union[str, list[str]] = None):
+               service_name: str = None, middlewares: str | list[str] | None = None):
     if path is None:
         path = f'/{controller_name}'
     if service_name is None:
@@ -81,7 +81,7 @@ def controller(controller_name: str, path: str = None, *,
 
 
 def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-          middlewares: Union[str, list[str]] = None):
+          middlewares: str | list[str] | None = None):
     if middlewares is None:
         middlewares = []
     if isinstance(middlewares, str):
@@ -105,27 +105,27 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
 
 
 def get(path: str, *, returns: 'web.Returns' = None,
-        middlewares: Union[str, list[str]] = None):
+        middlewares: str | list[str] | None = None):
     return route(path, method=web.HttpMethod.GET, expects=None, returns=returns, middlewares=middlewares)
 
 
 def post(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-         middlewares: Union[str, list[str]] = None):
+         middlewares: str | list[str] | None = None):
     return route(path, method=web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def put(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-        middlewares: Union[str, list[str]] = None):
+        middlewares: str | list[str] | None = None):
     return route(path, method=web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def patch(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-          middlewares: Union[str, list[str]] = None):
+          middlewares: str | list[str] | None = None):
     return route(path, method=web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def delete(path: str, *, returns: 'web.Returns' = None,
-           middlewares: Union[str, list[str]] = None):
+           middlewares: str | list[str] | None = None):
     return route(path, method=web.HttpMethod.DELETE, expects=None, returns=returns, middlewares=middlewares)
 
 

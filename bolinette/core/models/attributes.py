@@ -1,4 +1,4 @@
-from typing import Union, Literal, Optional, Any
+from typing import Literal, Any
 
 from bolinette import types, core
 from bolinette.exceptions import InitError
@@ -43,8 +43,8 @@ class Reference:
 
 class Column:
     def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType',
-                 reference: Optional[Reference], primary_key: bool, auto: Optional[bool],
-                 nullable: bool, unique: bool, entity_key: bool, default: Optional[Any]):
+                 reference: Reference | None, primary_key: bool, auto: bool | None,
+                 nullable: bool, unique: bool, entity_key: bool, default: Any | None):
         self.name = name
         self.type = data_type
         self.model = model
@@ -88,8 +88,8 @@ class Backref:
 
 class Relationship:
     def __init__(self, name: str, model: 'core.Model', models: dict[str, 'core.Model'],
-                 model_name: str, backref: Optional[Backref], foreign_key: Optional[Column],
-                 remote_side: Optional[Column], lazy: Union[bool, Literal['subquery']], secondary: Optional[str]):
+                 model_name: str, backref: Backref | None, foreign_key: Column | None,
+                 remote_side: Column | None, lazy: bool | Literal['subquery'], secondary: str | None):
         self.name = name
         self.model = model
         if model_name not in models:

@@ -1,5 +1,3 @@
-from typing import Union
-
 from aiohttp.web_response import Response as AioResponse
 from jinja2 import TemplateNotFound
 
@@ -53,34 +51,34 @@ class Response:
             body['data'] = data
         return APIResponse(body, code)
 
-    def ok(self, *, messages: Union[str, list[str]] = None, data=None):
+    def ok(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(200, 'OK', messages, data)
 
-    def created(self, *, messages: Union[str, list[str]] = None, data=None):
+    def created(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(201, 'CREATED', messages, data)
 
-    def bad_request(self, *, messages: Union[str, list[str]] = None, data=None):
+    def bad_request(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(400, 'BAD REQUEST', messages, data)
 
-    def unauthorized(self, *, messages: Union[str, list[str]] = None, data=None):
+    def unauthorized(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(401, 'UNAUTHORIZED', messages, data)
 
-    def forbidden(self, *, messages: Union[str, list[str]] = None, data=None):
+    def forbidden(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(403, 'FORBIDDEN', messages, data)
 
-    def not_found(self, *, messages: Union[str, list[str]] = None, data=None):
+    def not_found(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(404, 'NOT FOUND', messages, data)
 
-    def method_not_allowed(self, *, messages: Union[str, list[str]] = None, data=None):
+    def method_not_allowed(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(405, 'METHOD NOT ALLOWED', messages, data)
 
-    def conflict(self, *, messages: Union[str, list[str]] = None, data=None):
+    def conflict(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(409, 'CONFLICT', messages, data)
 
-    def unprocessable_entity(self, *, messages: Union[str, list[str]] = None, data=None):
+    def unprocessable_entity(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(422, 'UNPROCESSABLE ENTITY', messages, data)
 
-    def internal_server_error(self, *, messages: Union[str, list[str]] = None, data=None):
+    def internal_server_error(self, *, messages: str | list[str] | None = None, data=None):
         return self._build_message(500, 'INTERNAL SERVER ERROR', messages, data)
 
     def render_template(self, name: str, params: dict = None, workdir: str = None, *, status=200):
@@ -100,7 +98,7 @@ class Response:
             status = 404
         return AioResponse(body=content, status=status, content_type='text/html')
 
-    def from_exception(self, exception: Union[exceptions.APIError, exceptions.APIErrors]):
+    def from_exception(self, exception: exceptions.APIError | exceptions.APIErrors):
         messages = []
         if isinstance(exception, exceptions.APIError):
             messages = [str(exception)]

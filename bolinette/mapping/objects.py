@@ -62,7 +62,7 @@ class Definition(MappingObject):
     def __len__(self):
         return len(self.fields)
 
-    def __getitem__(self, key: Union[int, str]):
+    def __getitem__(self, key: int | str):
         if isinstance(key, int):
             return self.fields[key]
         if isinstance(key, str):

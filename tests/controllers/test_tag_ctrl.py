@@ -24,12 +24,12 @@ def assert_tags_equal(t1s, t2s):
             assert_tags_equal(c1, c2)
 
 
-def set_tag_attrs(tag: Mocked, parent_id: Optional[int]) -> Mocked:
+def set_tag_attrs(tag: Mocked, parent_id: int | None) -> Mocked:
     tag['parent_id'] = parent_id
     return tag
 
 
-def set_label_attrs(label: Mocked, label_id: int, tag_id: Optional[int]) -> Mocked:
+def set_label_attrs(label: Mocked, label_id: int, tag_id: int | None) -> Mocked:
     label['id'] = label_id
     label['tag_id'] = tag_id
     return label

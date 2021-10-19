@@ -1,6 +1,5 @@
 import asyncio
 from json import JSONDecodeError
-from typing import Union
 
 import aiohttp
 from aiohttp import web as aio_web
@@ -33,7 +32,7 @@ class BolinetteSockets:
     def channels(self, topic: str) -> list['web.TopicChannel']:
         return self._channels.get(topic) or []
     
-    async def send_message(self, topic: str, channels: Union[str, list[str]], message):
+    async def send_message(self, topic: str, channels: str | list[str], message):
         socket_topic = self.topic(topic)
         if socket_topic is None:
             return

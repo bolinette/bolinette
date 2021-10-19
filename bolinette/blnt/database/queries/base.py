@@ -33,7 +33,7 @@ class BaseQuery(ABC):
         self._filters: list[Callable[[Any], Any]] = []
         self._order_by: list[tuple[str, bool]] = []
         self._offset = 0
-        self._limit: Optional[int] = None
+        self._limit: int | None = None
 
     def _base_clone(self, query: 'BaseQuery'):
         query._filters_by = dict(self._filters_by)

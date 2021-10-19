@@ -1,12 +1,11 @@
 from collections.abc import Iterator
-from typing import Union, Literal, Optional
+from typing import Literal
 
-from bolinette import core, blnt
+from bolinette import core, blnt, mapping
 from bolinette.blnt.database.engines import DatabaseEngine
 
-MappingPyTyping = list[Union['types.mapping.Column', 'types.mapping.Field',
-                             'types.mapping.List', 'types.mapping.Definition']]
-MappingListPyTyping = Union[MappingPyTyping, tuple[str, MappingPyTyping]]
+MappingPyTyping = list[mapping.Column | mapping.Field | mapping.List | mapping.Definition]
+MappingListPyTyping = MappingPyTyping | tuple[str, MappingPyTyping]
 
 
 class Model:
@@ -14,7 +13,7 @@ class Model:
 
     def __init__(self, database: 'DatabaseEngine'):
         self.__props__ = ModelProps(self, database)
-        self.__repo__: Optional[core.Repository] = None
+        self.__repo__: core.Repository | None = None
 
     def payloads(self) -> MappingListPyTyping:
         pass
@@ -46,8 +45,8 @@ class ModelProps(blnt.Properties):
         self.model = model
         self.database = database
         self.mixins: dict[str, core.Mixin] = {}
-        self.primary: Optional[list['core.models.Column']] = None
-        self.entity_key: Optional[list['core.models.Column']] = None
+        self.primary: list['core.models.Column'] | None = None
+        self.entity_key: list['core.models.Column'] | None = None
 
     def get_columns(self) -> Iterator[tuple[str, 'core.models.Column']]:
         return self._get_attributes_of_type(self.parent, core.models.Column)

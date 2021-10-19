@@ -1,4 +1,4 @@
-from typing import Optional, Any, Literal, Union
+from typing import Any, Literal
 
 from bolinette import types, core
 from bolinette.utils import InitProxy
@@ -11,13 +11,13 @@ class Reference:
 
 class Column:
     def __new__(cls, data_type: 'types.db.DataType', *,
-                reference: Optional['core.models.Reference'] = None,
+                reference: core.models.Reference | None = None,
                 primary_key: bool = False,
-                auto: Optional[bool] = None,
+                auto: bool | None = None,
                 nullable: bool = True,
                 unique: bool = False,
                 entity_key: bool = False,
-                default: Optional[Any] = None) -> InitProxy['core.models.Column']:
+                default: Any | None = None) -> InitProxy['core.models.Column']:
         return InitProxy(core.models.Column, data_type=data_type, reference=reference, primary_key=primary_key,
                          auto=auto, nullable=nullable, unique=unique, entity_key=entity_key, default=default)
 
@@ -31,7 +31,7 @@ class Relationship:
     def __new__(cls, model_name: str, *,
                 backref: 'core.models.Backref' = None,
                 foreign_key: 'core.models.Column' = None,
-                lazy: Union[bool, Literal['subquery']] = False,
+                lazy: bool | Literal['subquery'] = False,
                 secondary: str = None,
                 remote_side: 'core.models.Column' = None) -> InitProxy['core.models.Relationship']:
         return InitProxy(core.models.Relationship, model_name=model_name, backref=backref, foreign_key=foreign_key,

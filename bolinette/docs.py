@@ -75,7 +75,7 @@ class Documentation:
         if route.inner_route is not None:
             self._build_route(path, method, route.inner_route, routes)
 
-    def _parse_docs(self, docstring: Optional[str], route: web.ControllerRoute):
+    def _parse_docs(self, docstring: str | None, route: web.ControllerRoute):
         if not docstring:
             return {}
         docs = {}
