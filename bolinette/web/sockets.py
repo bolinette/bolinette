@@ -5,14 +5,14 @@ import aiohttp
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 
-from bolinette import blnt, web
+from bolinette import abc, blnt, web
 from bolinette.exceptions import APIError
 from bolinette.utils.functions import async_invoke
 
 
-class BolinetteSockets:
+class BolinetteSockets(abc.WithContext):
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
         self._topics: dict[str, 'web.Topic'] = {}
         self._channels: dict[str, list['web.TopicChannel']] = {}
         self._socket_sessions: dict[str, aio_web.WebSocketResponse] = {}
@@ -74,7 +74,7 @@ class SocketHandler:
 
     async def __call__(self, request: Request):
         context: blnt.BolinetteContext = request.app['blnt']
-        user_service = context.service('user')
+        user_service = context.inject.services.require('user', immediate=True)
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
 

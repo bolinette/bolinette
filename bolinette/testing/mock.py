@@ -4,12 +4,12 @@ import string
 from types import SimpleNamespace
 from typing import Any
 
-from bolinette import blnt, types, core
+from bolinette import abc, blnt, types, core
 
 
-class Mocked:
+class Mocked(abc.WithContext):
     def __init__(self, name, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
         self.name = name
         self.model = self.context.inject.models.require(self.name, immediate=True)
         self.database = self.context.db[self.model.__blnt__.database]
@@ -67,10 +67,9 @@ class Mocked:
         )
 
 
-class Mock:
+class Mock(abc.WithContext):
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self._id = None
-        self.context = context
+        super().__init__(context)
 
     @staticmethod
     def _random_lower(rng, length):
@@ -96,7 +95,6 @@ class Mock:
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
-        self._id = m_id
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
         model: core.Model = self.context.inject.models.require(model_name, immediate=True)

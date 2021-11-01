@@ -2,12 +2,12 @@ from abc import abstractmethod, ABC
 from collections.abc import Callable
 from typing import Any
 
-from bolinette import blnt, core
+from bolinette import abc, blnt, core
 
 
-class BaseQueryBuilder(ABC):
+class BaseQueryBuilder(abc.WithContext, ABC):
     def __init__(self, model: 'core.Model', context: 'blnt.BolinetteContext'):
-        self.context = context
+        abc.WithContext.__init__(self, context)
         self._model = model
 
     @abstractmethod

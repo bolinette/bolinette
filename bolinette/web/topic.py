@@ -1,18 +1,17 @@
 import re
 from collections.abc import Iterator
-from typing import Any
 
 from aiohttp import web as aio_web
 
-from bolinette import blnt
+from bolinette import abc, blnt
 from bolinette.blnt import Properties
 
 
-class Topic:
+class Topic(abc.WithContext):
     __blnt__: 'TopicMetadata' = None
 
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
         self.__props__ = TopicProps(self)
         self._subscriptions: dict[str, list[aio_web.WebSocketResponse]] = {}
 

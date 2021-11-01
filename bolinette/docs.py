@@ -4,14 +4,14 @@ from typing import Any, Literal
 import yaml
 from aiohttp_swagger import setup_swagger
 
-from bolinette import blnt, web, types, mapping
+from bolinette import abc, blnt, web, types, mapping
 from bolinette.decorators import get
 from bolinette.utils import paths, files
 
 
-class Documentation:
+class Documentation(abc.WithContext):
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
         self.swagger_path = self.context.instance_path('swagger.yaml')
         self._path_param_regex = re.compile(r'{([^}]*)}')
         self._response_regex = re.compile(r'^-response ([\d]{3})(?: ([^:]*))?(?:: ?(.*))?$')

@@ -5,15 +5,15 @@ from typing import Any
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 
-from bolinette import blnt
+from bolinette import abc, blnt
 
 
-class Middleware:
+class Middleware(abc.WithContext):
     __blnt__: 'MiddlewareMetadata' = None
 
     def __init__(self, context: 'blnt.BolinetteContext'):
+        super().__init__(context)
         self.system_priority = 1
-        self.context = context
         self.options = {}
         self.params = MiddlewareParams()
 

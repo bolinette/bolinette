@@ -1,11 +1,11 @@
 import traceback
 
-from bolinette import blnt, Console
+from bolinette import abc, blnt, Console
 from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase, DatabaseEngine
 from bolinette.exceptions import InternalError, InitError, APIError, APIErrors
 
 
-class DatabaseManager:
+class DatabaseManager(abc.WithContext):
     _DBMS = {
         'sqlite://': RelationalDatabase,
         'postgresql://': RelationalDatabase,
@@ -14,7 +14,7 @@ class DatabaseManager:
     }
 
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
         self.engines: dict[str, DatabaseEngine] = {}
         self._init_databases()
 

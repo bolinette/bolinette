@@ -2,14 +2,14 @@ from typing import Any
 
 from dateutil import parser as date_parser
 
-from bolinette import blnt, types, exceptions, mapping, core
+from bolinette import abc, blnt, core, types, exceptions, mapping
 from bolinette.exceptions import APIErrors, APIError
 from bolinette.utils.functions import is_db_entity
 
 
-class Validator:
+class Validator(abc.WithContext):
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
 
     async def validate_payload(self, model: str, key: str, values, patch=False, attr_prefix: str = None):
         if attr_prefix is None:

@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Generic, TypeVar, Any
 
-from bolinette import blnt
+from bolinette import abc, blnt
 from bolinette.exceptions import InternalError
 
 _T1 = TypeVar('_T1')
@@ -30,20 +30,15 @@ class InstantiableAttribute(Generic[_T1]):
         return self._type(**(self._dict | kwargs))
 
 
-class _WithContext:
-    def __init__(self, _: 'blnt.BolinetteContext', **kwargs) -> None:
-        pass
+_T = TypeVar('_T', bound=abc.WithContext)
 
 
-_T = TypeVar('_T', bound=_WithContext)
-
-
-class BolinetteInjection(Generic[_T]):
+class BolinetteInjection(abc.WithContext, Generic[_T]):
     """
     Hold collections of instance injection
     """
     def __init__(self, context: 'blnt.BolinetteContext') -> None:
-        self.context = context
+        super().__init__(context)
         self._collections: dict[str, InjectionCollection[_T]] = {}
 
     def __getattr__(self, name: str) -> 'InjectionCollection[_T]':
@@ -58,12 +53,12 @@ class BolinetteInjection(Generic[_T]):
         return self._collections[name]
 
 
-class InjectionCollection(Generic[_T]):
+class InjectionCollection(abc.WithContext, Generic[_T]):
     """
     Holds a collection of instances to inject at runtime
     """
     def __init__(self, context: 'blnt.BolinetteContext', name: str, _type: type[_T]) -> None:
-        self.context = context
+        super().__init__(context)
         self._name = name
         self._type = _type
         self._types: dict[str, type[_T]] = {}
@@ -130,7 +125,7 @@ class InjectingObject(Generic[_T]):
         self._function = function
         self._params = params or {}
 
-    def instantiate(self, context: 'blnt.BolinetteContext') -> _T:
+    def instantiate(self, context: abc.Context) -> _T:
         """
         Gets the type from the collection and instantiates it
         """
@@ -145,12 +140,14 @@ class InjectionProxy(Generic[_T]):
     """
     Is called for the first time and replaced by the object inside the caller instance
     """
-    def __init__(self, func: Callable[[Any, 'blnt.BolinetteContext'], _T]) -> None:
+    def __init__(self, func: Callable[[Any, abc.Injection], _T]) -> None:
         self._func = func
         self._name = func.__name__
 
     def __get__(self, instance, _) -> _T:
-        context = instance.context
+        if not isinstance(instance, abc.WithContext):
+            raise InternalError(f'Injection error: {type(instance)} class must extend bolinette.abc.WithContext')
+        context = instance.__blnt_ctx__
         inject = context.inject
         obj = self._func(instance, inject)
         if isinstance(obj, InjectingObject):

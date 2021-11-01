@@ -4,18 +4,18 @@ from typing import Any
 
 from aiohttp.web_request import Request
 
-from bolinette import blnt, core, web
+from bolinette import abc, blnt, core, web
 from bolinette.decorators import injected
 from bolinette.exceptions import InitError
 from bolinette.utils import functions
 
 
-class Controller:
+class Controller(abc.WithContext):
     __blnt__: 'ControllerMetadata' = None
 
     def __init__(self, context: 'blnt.BolinetteContext'):
+        super().__init__(context)
         self.__props__ = ControllerProps(self)
-        self.context = context
         self.response = web.Response(context)
         if self.__blnt__.use_service:
             self.defaults = ControllerDefaults(self)
@@ -180,12 +180,12 @@ class Returns:
         self.skip_none = skip_none
 
 
-class ControllerDefaults:
+class ControllerDefaults(abc.WithContext):
     PARAM_NAME_DOT_REGEX = re.compile(r'\.')
     PARAM_NAME_CHAR_REGEX = re.compile(r'[^a-zA-Z0-9_]')
 
     def __init__(self, controller: Controller):
-        self.context = controller.context
+        super().__init__(controller.context)
         self.controller = controller
 
     @injected
