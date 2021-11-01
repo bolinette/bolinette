@@ -1,3 +1,5 @@
+from aiohttp.web_request import Request
+
 from bolinette import web, blnt
 from bolinette.decorators import middleware, injected
 from bolinette.exceptions import ForbiddenError, UnauthorizedError
@@ -13,11 +15,19 @@ class AuthMiddleware(web.InternalMiddleware):
         return {
             'optional': self.params.bool(),
             'fresh': self.params.bool(),
+            'refresh': self.params.bool(),
             'roles': self.params.list(self.params.string())
         }
 
+    def _get_token(self, request: Request, headers: dict[str, str]) -> str | None:
+        location = self.context.env['credentials']
+        if location == 'headers':
+            return headers.get('BLNT-REFRESH-TOKEN' if self.options['refresh'] else 'BLNT-ACCESS-TOKEN', None)
+        return request.cookies.get('refresh_token' if self.options['refresh'] else 'access_token', None)
+
     async def handle(self, request, params, next_func):
-        identity = self.context.jwt.verify(request, optional=self.options['optional'],
+        token = self._get_token(request, params.get('headers', {}))
+        identity = self.context.jwt.verify(token, optional=self.options['optional'],
                                            fresh=self.options['fresh'])
         current_user = None
         if identity is not None:

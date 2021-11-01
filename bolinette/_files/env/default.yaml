@@ -7,6 +7,6 @@ json_logging: false
 host: 127.0.0.1
 port: 5000
 build_docs: false
-access_token_validity: 1
-refresh_token_validity: 30
+access_token_validity: 86400  # 1 day
+refresh_token_validity: 2592000  # 30 days
 credentials: cookies

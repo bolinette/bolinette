@@ -9,8 +9,8 @@ from bolinette.exceptions import UnauthorizedError
 class JWT:
     def __init__(self, context: 'blnt.BolinetteContext'):
         self.context = context
-        self._access_token_expires = timedelta(days=context.env['access_token_validity'])
-        self._refresh_token_expires = timedelta(days=context.env['refresh_token_validity'])
+        self._access_token_expires = timedelta(seconds=context.env['access_token_validity'])
+        self._refresh_token_expires = timedelta(seconds=context.env['refresh_token_validity'])
 
     def access_token_expires(self, date):
         return date + self._access_token_expires
@@ -43,11 +43,11 @@ class JWT:
         }
         return self.encode(payload)
 
-    def verify(self, request, *, optional=False, fresh=False):
+    def verify(self, token: str | None, *, optional=False, fresh=False):
         now = datetime.utcnow()
-        if 'access_token' in request.cookies:
+        if token:
             try:
-                payload = self.decode(request.cookies['access_token'])
+                payload = self.decode(token)
             except py_jwt.PyJWTError:
                 if optional:
                     return None

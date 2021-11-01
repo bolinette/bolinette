@@ -80,8 +80,11 @@ class ResponseMiddleware(web.InternalMiddleware):
         web_response = aio_web.Response(text=serialized, status=resp.code, content_type=mime)
         for cookie in resp.cookies:
             if not cookie.delete:
+                expires = None
+                if cookie.expires:
+                    expires = cookie.expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
                 web_response.set_cookie(cookie.name, cookie.value,
-                                        expires=cookie.expires.strftime('%a, %d %b %Y %H:%M:%S GMT'),
+                                        expires=expires,
                                         path=cookie.path, httponly=cookie.http_only)
             else:
                 web_response.del_cookie(cookie.name, path=cookie.path)

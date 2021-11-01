@@ -25,16 +25,20 @@ class UserController(web.Controller):
         ]
 
     def _create_tokens(self, resp, user, *, set_access, set_refresh, fresh):
+        cookies = self.context.env['credentials'] == 'cookies'
         now = datetime.utcnow()
+        access_token = None
+        refresh_token = None
         if set_access:
             access_token = self.context.jwt.create_access_token(now, user.username, fresh=fresh)
-            resp.cookies.append(web.Cookie('access_token', access_token, http_only=True,
-                                           expires=self.context.jwt.access_token_expires(now), path='/'))
+            if cookies:
+                resp.cookies.append(web.Cookie('access_token', access_token, http_only=True, path='/'))
         if set_refresh:
             refresh_token = self.context.jwt.create_refresh_token(now, user.username)
-            resp.cookies.append(web.Cookie('refresh_token', refresh_token, http_only=True,
-                                           expires=self.context.jwt.refresh_token_expires(now),
-                                           path='/api/user/refresh'))
+            if cookies:
+                resp.cookies.append(web.Cookie('refresh_token', refresh_token,
+                                               http_only=True, path='/api/user/token/refresh'))
+        return access_token, refresh_token
 
     @get('/info', returns=web.Returns('user', 'private'), middlewares=['auth'])
     async def info(self, current_user):
@@ -54,7 +58,11 @@ class UserController(web.Controller):
         if user is not None:
             if self.user_service.check_password(user, password):
                 resp = self.response.ok(messages='user.login.success', data=user)
-                self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
+                a_token, r_token = self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
+                if a_token:
+                    resp.content['access_token'] = a_token
+                if r_token:
+                    resp.content['refresh_token'] = r_token
                 return resp
         return self.response.unauthorized(messages='user.login.wrong_credentials')
 
@@ -65,16 +73,18 @@ class UserController(web.Controller):
         """
         resp = self.response.ok(messages='user.logout.success')
         resp.cookies.append(web.Cookie('access_token', None, delete=True, path='/'))
-        resp.cookies.append(web.Cookie('refresh_token', None, delete=True, path='/api/user/refresh'))
+        resp.cookies.append(web.Cookie('refresh_token', None, delete=True, path='/api/user/token/refresh'))
         return resp
 
-    @post('/token/refresh', middlewares=['auth'])
+    @post('/token/refresh', middlewares=['auth|refresh'])
     async def refresh(self, current_user):
         """
         Creates a new fresh JWT
         """
         resp = self.response.ok(messages='user.token.refreshed')
-        self._create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
+        a_token, _ = self._create_tokens(resp, current_user, set_access=True, set_refresh=False, fresh=False)
+        if a_token:
+            resp.content['access_token'] = a_token
         return resp
 
     @post('/register', expects=web.Expects('user', 'register'), returns=web.Returns('user', 'private'))
@@ -92,7 +102,11 @@ class UserController(web.Controller):
             raise ForbiddenError('global.register.admin_only')
         user = await self.user_service.create(payload)
         resp = self.response.created(messages='user.registered', data=user)
-        self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
+        a_token, r_token = self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
+        if a_token:
+            resp.content['access_token'] = a_token
+        if r_token:
+            resp.content['refresh_token'] = r_token
         return resp
 
     @post('/register/admin', expects=web.Expects('user', 'admin_register'),
@@ -117,7 +131,11 @@ class UserController(web.Controller):
         """
         user = await self.user_service.patch(current_user, payload)
         resp = self.response.ok(messages='user.updated', data=user)
-        self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
+        a_token, r_token = self._create_tokens(resp, user, set_access=True, set_refresh=True, fresh=True)
+        if a_token:
+            resp.content['access_token'] = a_token
+        if r_token:
+            resp.content['refresh_token'] = r_token
         return resp
 
     @post('/{username}/roles', expects=web.Expects('role'), returns=web.Returns('user', 'private'),
