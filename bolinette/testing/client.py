@@ -4,15 +4,16 @@ from asyncio.events import AbstractEventLoop
 from aiohttp import test_utils
 
 import bolinette
+from bolinette import abc
 from bolinette.testing import Mock
 from bolinette.utils.serializing import serialize
 
 
-class BolitestClient:
+class BolitestClient(abc.WithContext):
     def __init__(self, blnt_app: 'bolinette.Bolinette', loop: AbstractEventLoop):
+        super().__init__(blnt_app.context)
         server = test_utils.TestServer(blnt_app.app, loop=loop)
         self.client = test_utils.TestClient(server, loop=loop)
-        self.context = blnt_app.context
         self.mock = Mock(blnt_app.context)
         self.cookies = {}
 

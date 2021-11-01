@@ -5,14 +5,14 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
-from bolinette import console, blnt, web
+from bolinette import abc, console, blnt, web
 from bolinette.exceptions import APIError, APIErrors, InternalError
 from bolinette.utils.serializing import serialize
 
 
-class BolinetteResources:
+class BolinetteResources(abc.WithContext):
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
         self._routes: dict[str, dict[web.HttpMethod, web.ControllerRoute]] = {}
         self._aiohttp_resources: dict[str, 'BolinetteResource'] = {}
         self.cors = None

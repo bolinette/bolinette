@@ -2,15 +2,16 @@ from typing import Any
 
 from aiohttp import web as aio_web
 
-from bolinette import blnt, web, mapping, BolinetteExtension, Extensions
+from bolinette import abc, blnt, web, mapping, BolinetteExtension, Extensions
 from bolinette.blnt.database import DatabaseManager
 from bolinette.utils import paths, files
 from bolinette.docs import Documentation
 
 
-class BolinetteContext:
+class BolinetteContext(abc.Context):
     def __init__(self, origin: str, *, extensions: list[BolinetteExtension] = None,
                  profile: str = None, overrides: dict[str, Any] = None):
+        super().__init__(origin)
         self._ctx = {}
         self._extensions = []
 
@@ -19,14 +20,13 @@ class BolinetteContext:
 
         self.app = None
         self.cwd = paths.cwd()
-        self.origin = origin
         self.env = blnt.Environment(self, profile=profile, overrides=overrides)
         self.inject = blnt.BolinetteInjection(self)
         self.manifest = files.read_manifest(
             self.root_path(), params={'version': self.env.get('version', '0.0.0')}) or {}
         self.logger = blnt.Logger(self)
         self.db = DatabaseManager(self)
-        self.mapper = mapping.Mapper(self)
+        self.mapper = mapping.Mapper()
         self.validator = blnt.Validator(self)
         self.jwt = blnt.JWT(self)
         self.resources = web.BolinetteResources(self)
@@ -66,10 +66,10 @@ class BolinetteContext:
         raise ValueError('BolinetteContext.has_extensions only accepts BolinetteExtensions instances')
 
     def internal_path(self, *path):
-        return paths.join(self.origin, *path)
+        return paths.join(self._origin, *path)
 
     def internal_files_path(self, *path):
-        return paths.join(self.origin, '_files', *path)
+        return paths.join(self._origin, '_files', *path)
 
     def root_path(self, *path):
         return paths.join(self.cwd, *path)

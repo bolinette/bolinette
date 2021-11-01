@@ -6,8 +6,7 @@ from bolinette.utils.functions import getattr_, hasattr_, invoke
 
 
 class Mapper:
-    def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+    def __init__(self):
         self._payloads: dict[str, dict[str, mapping.Definition]] = {}
         self._responses: dict[str, dict[str, mapping.Definition]] = {}
 

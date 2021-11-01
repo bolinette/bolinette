@@ -1,17 +1,17 @@
 from typing import Any
 
-from bolinette import blnt, core
+from bolinette import abc, blnt, core
 from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
 from bolinette.blnt.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
 from bolinette.utils.functions import setattr_, getattr_, async_invoke
 
 
-class Repository:
+class Repository(abc.WithContext):
     def __init__(self, context: 'blnt.BolinetteContext', name: str, model: 'core.Model'):
+        super().__init__(context)
         self._name = name
         self._model = model
-        self.context = context
         self._query_builder = self._get_query_builder(model, context)
 
     @property

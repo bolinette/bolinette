@@ -1,16 +1,16 @@
 from typing import Any
 
-from bolinette import blnt
+from bolinette import abc, blnt
 from bolinette.blnt.objects import PaginationParams, OrderByParams
 from bolinette.decorators import injected
 from bolinette.exceptions import EntityNotFoundError
 
 
-class SimpleService:
+class SimpleService(abc.WithContext):
     __blnt__: 'ServiceMetadata' = None
 
     def __init__(self, context: 'blnt.BolinetteContext'):
-        self.context = context
+        super().__init__(context)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
