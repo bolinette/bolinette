@@ -1,9 +1,9 @@
 from typing import Literal, Any, Optional
 
-from bolinette import types, core
+from bolinette import abc, types, core
 
 
-class Reference:
+class Reference(abc.inject.Instantiable):
     def __init__(self, model: 'core.Model', column: 'core.models.Column',
                  target_model: 'core.Model', target_column: 'core.models.Column'):
         self._model = model
@@ -35,7 +35,7 @@ class Reference:
         return f'<Reference {self.model_name}.{self.column_name} -> {self.target_path}>'
 
 
-class Column:
+class Column(abc.inject.Instantiable):
     def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType',
                  reference: Reference | None, primary_key: bool, auto: bool | None,
                  nullable: bool, unique: bool, entity_key: bool, default: Any | None):
@@ -136,7 +136,7 @@ class Backref:
         return f'<Backref <- {self._key}' + (' (lazy)' if self._lazy else '') + '>'
 
 
-class Relationship:
+class Relationship(abc.inject.Instantiable):
     def __init__(self, name: str, model: 'core.Model', target_model: 'core.Model', backref: Backref | None,
                  foreign_key: Column | None, remote_side: Column | None, lazy: bool | Literal['subquery'],
                  secondary: Optional['core.Model']):

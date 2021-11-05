@@ -12,8 +12,8 @@ from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIErr
 @command.argument('option', 'roles', flag='r', summary='The user\'s roles, comma separated')
 async def create_user(_blnt: 'bolinette.Bolinette', username: str, email: str, roles: str = None):
     console = Console()
-    user_service = _blnt.context.service('user')
-    role_service = _blnt.context.service('role')
+    user_service = _blnt.context.inject.services.require('user', immediate=True)
+    role_service = _blnt.context.inject.services.require('role', immediate=True)
     while True:
         password = getpass.getpass('Choose password: ')
         password2 = getpass.getpass('Confirm password: ')

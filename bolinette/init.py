@@ -111,7 +111,7 @@ async def init_relational_models(context: blnt.BolinetteContext):
         if model.__props__.database.relational:
             models[model_name] = model
     orm_tables = {}
-    orm_cols = {}
+    orm_cols: dict[str, dict[str, sqlalchemy.Column]] = {}
     for model_name, model in models.items():
         orm_cols[model_name] = {}
         for att_name, attribute in model.__props__.get_columns():

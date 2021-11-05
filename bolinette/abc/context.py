@@ -4,13 +4,13 @@ from bolinette import abc
 
 
 class Context(ABC):
-    def __init__(self, origin: str):
+    def __init__(self, origin: str, *, inject: 'abc.inject.Injection'):
         self._origin = origin
-        self.inject: abc.Injection = None  # type: ignore
+        self.inject: abc.inject.Injection = inject
 
 
 class WithContext(ABC):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, **kwargs):
         self.__blnt_ctx__ = context
 
     @property

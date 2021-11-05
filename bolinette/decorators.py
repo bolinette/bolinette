@@ -17,15 +17,15 @@ def model(model_name: str, *,
           definitions: Literal['ignore', 'append', 'overwrite'] = 'ignore',
           join_table: bool = False):
     def decorator(model_cls: type['core.Model']):
-        model_cls.__blnt__ = core.ModelMetadata(model_name, database, model_type == 'relational',
-                                                join_table, mixins or [], definitions)
+        model_cls.__blnt__ = core.models.ModelMetadata(model_name, database, model_type == 'relational',
+                                                       join_table, mixins or [], definitions)
         blnt.cache.models[model_name] = model_cls
         return model_cls
     return decorator
 
 
 def model_property(function):
-    return core.ModelProperty(function.__name__, function)
+    return core.models.ModelProperty(function.__name__, function)
 
 
 class _MixinDecorator:
@@ -66,20 +66,18 @@ def service(service_name: str, *, model_name: str = None):
 def controller(controller_name: str, path: str | None = None, *,
                namespace: str = '/api', use_service: bool = True,
                service_name: str = None, middlewares: str | list[str] | None = None):
-    if path is None:
-        path = f'/{controller_name}'
-    if service_name is None:
-        service_name = controller_name
-    if middlewares is None:
-        middlewares = []
-    if isinstance(middlewares, str):
-        middlewares = [middlewares]
+    _path = path if path is not None else f'/{controller_name}'
+    _service_name = service_name if service_name is not None else controller_name
+    _middlewares = (middlewares if isinstance(middlewares, list)
+                    else [middlewares] if isinstance(middlewares, str)
+                    else [])
 
     def decorator(controller_cls: type['web.Controller']):
         controller_cls.__blnt__ = web.ControllerMetadata(
-            controller_name, path, use_service, service_name, namespace, middlewares)
+            controller_name, _path, use_service, _service_name, namespace, _middlewares)
         blnt.cache.controllers[controller_name] = controller_cls
         return controller_cls
+
     return decorator
 
 

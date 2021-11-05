@@ -11,17 +11,18 @@ from bolinette.docs import Documentation
 class BolinetteContext(abc.Context):
     def __init__(self, origin: str, *, extensions: list[BolinetteExtension] = None,
                  profile: str = None, overrides: dict[str, Any] = None):
-        super().__init__(origin)
-        self._ctx = {}
-        self._extensions = []
+        super().__init__(origin,
+            inject=blnt.BolinetteInjection(self)
+        )
+        self._ctx: dict[str, Any] = {}
+        self._extensions: list[BolinetteExtension] = []
 
         for ext in extensions or []:
             self.use_extension(ext)
 
-        self.app = None
+        self.app: aio_web.Application | None = None
         self.cwd = paths.cwd()
         self.env = blnt.Environment(self, profile=profile, overrides=overrides)
-        self.inject = blnt.BolinetteInjection(self)
         self.manifest = files.read_manifest(
             self.root_path(), params={'version': self.env.get('version', '0.0.0')}) or {}
         self.logger = blnt.Logger(self)

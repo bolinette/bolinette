@@ -50,7 +50,7 @@ class ControllerProps(blnt.Properties):
         return self._get_attributes_of_type(self.parent, ControllerRoute)
 
 
-class ControllerRoute:
+class ControllerRoute(abc.inject.Instantiable):
     def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
                  docstring: str | None, expects: 'Expects' = None, returns: 'Returns' = None,
                  inner_route: 'ControllerRoute' = None, middlewares: list[str] = None):
