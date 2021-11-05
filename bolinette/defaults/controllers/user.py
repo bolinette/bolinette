@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import blnt, web
+from bolinette import abc, blnt, web
 from bolinette.decorators import controller, get, post, patch, delete, injected
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import ForbiddenError
@@ -11,12 +11,12 @@ from bolinette.exceptions import ForbiddenError
 @controller('user', '/user')
 class UserController(web.Controller):
     @injected
-    def user_service(self, inject: 'blnt.BolinetteInjection') -> UserService:
-        return inject.services.require('user')
+    def user_service(self, inject: abc.inject.Injection):
+        return inject.require(UserService)
 
     @injected
-    def role_service(self, inject: 'blnt.BolinetteInjection') -> RoleService:
-        return inject.services.require('role')
+    def role_service(self, inject: abc.inject.Injection):
+        return inject.require(RoleService)
 
     def default_routes(self):
         return [

@@ -77,7 +77,7 @@ class Parser:
                 sub_parser.set_defaults(__blnt_path__=name)
                 self._sub_commands[name] = sub_parser
                 self._build_parsers(elem, sub_parser.add_subparsers(), path + [name])
-    
+
     @staticmethod
     def _build_help(command_tree: dict, path: list[str]):
         commands = [f'"{" ".join(path + [x])}"' for x in command_tree]

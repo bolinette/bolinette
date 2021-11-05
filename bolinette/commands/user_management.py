@@ -4,6 +4,7 @@ import bolinette
 from bolinette import Console, blnt
 from bolinette.decorators import command
 from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors
+from bolinette.defaults.services import UserService, RoleService
 
 
 @command('user new', 'Add a user to the database', run_init=True)
@@ -12,8 +13,8 @@ from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIErr
 @command.argument('option', 'roles', flag='r', summary='The user\'s roles, comma separated')
 async def create_user(_blnt: 'bolinette.Bolinette', username: str, email: str, roles: str = None):
     console = Console()
-    user_service = _blnt.context.inject.services.require('user', immediate=True)
-    role_service = _blnt.context.inject.services.require('role', immediate=True)
+    user_service = _blnt.context.inject.require(UserService, immediate=True)
+    role_service = _blnt.context.inject.require(RoleService, immediate=True)
     while True:
         password = getpass.getpass('Choose password: ')
         password2 = getpass.getpass('Confirm password: ')
@@ -51,7 +52,7 @@ async def create_user(_blnt: 'bolinette.Bolinette', username: str, email: str, r
 @command.argument('flag', 'roles', flag='r', summary='Prints user roles')
 async def list_users(context: 'blnt.BolinetteContext', roles: bool):
     console = Console()
-    user_service = context.inject.services.require('user', immediate=True)
+    user_service = context.inject.require(UserService, immediate=True)
     for user in await user_service.get_all():
         roles_str = ''
         str_sep = ''
@@ -65,7 +66,7 @@ async def list_users(context: 'blnt.BolinetteContext', roles: bool):
 @command.argument('flag', 'users', flag='u', summary='Prints users assigned to each role')
 async def list_roles(context: 'blnt.BolinetteContext', users: bool):
     console = Console()
-    role_service = context.inject.services.require('role', immediate=True)
+    role_service = context.inject.require(RoleService, immediate=True)
     for role in await role_service.get_all():
         users_str = ''
         str_sep = ''
@@ -81,8 +82,8 @@ async def list_roles(context: 'blnt.BolinetteContext', users: bool):
 @command.argument('flag', 'create', flag='c', summary='Create the role if it does not exist')
 async def add_role(context: 'blnt.BolinetteContext', user: str, role: str, create: bool):
     console = Console()
-    user_service = context.inject.services.require('user', immediate=True)
-    role_service = context.inject.services.require('role', immediate=True)
+    user_service = context.inject.require(UserService, immediate=True)
+    role_service = context.inject.require(RoleService, immediate=True)
     async with blnt.Transaction(context, print_error=False, propagate_error=False):
         try:
             user_ent = await user_service.get_by_username(user)
@@ -110,8 +111,8 @@ async def add_role(context: 'blnt.BolinetteContext', user: str, role: str, creat
 @command.argument('flag', 'prune', flag='p', summary='Deletes the role if none is assigned to it')
 async def revoke_role(context: 'blnt.BolinetteContext', user: str, role: str, prune: bool):
     console = Console()
-    user_service = context.inject.services.require('user', immediate=True)
-    role_service = context.inject.services.require('role', immediate=True)
+    user_service = context.inject.require(UserService, immediate=True)
+    role_service = context.inject.require(RoleService, immediate=True)
     async with blnt.Transaction(context, print_error=False, propagate_error=False):
         try:
             user_ent = await user_service.get_by_username(user)

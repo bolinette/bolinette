@@ -57,8 +57,8 @@ class Validator(abc.WithContext):
 
     async def _validate_linked_entity(self, field: 'mapping.Reference', name: str,
                                       values: dict[str, Any], attr_prefix: str):
-        model: core.Model = self.context.inject.models.require(field.model_name, immediate=True)
-        repo: core.Repository = self.context.inject.repositories.require(field.model_name, immediate=True)
+        model: core.Model = self.context.inject.require('model', field.model_name, immediate=True)
+        repo = model.__props__.repo
         if name not in values:
             if field.required:
                 raise exceptions.ParamMissingError(name)

@@ -8,7 +8,7 @@ class {{ class }}Controller(web.Controller):
     @property
     def {{ name }}_service(self) -> {{ class }}Service:
         return self.context.service('{{ name }}')
-    
+
     def default_routes(self):
         return [
             self.defaults.get_all(),

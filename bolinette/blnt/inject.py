@@ -1,7 +1,9 @@
+import collections
 from collections.abc import Callable
 from typing import Generic, Any
 
 from bolinette import abc, blnt
+from bolinette.abc.inject.injection import T_Inject
 from bolinette.exceptions import InternalError
 
 
@@ -14,11 +16,6 @@ class InstantiableAttribute(Generic[abc.inject.T_Instantiable]):
     def type(self):
         return self._type
 
-    def __getattr__(self, name: str) -> Any:
-        if name not in self._dict:
-            raise AttributeError(f'Instantiable attribute {self._type} has no {name} member')
-        return self._dict[name]
-
     def pop(self, name: str) -> Any:
         if name not in self._dict:
             raise AttributeError(f'Instantiable attribute {self._type} has no {name} member')
@@ -28,80 +25,90 @@ class InstantiableAttribute(Generic[abc.inject.T_Instantiable]):
         return self._type(**(self._dict | kwargs))
 
 
+class RegisteredType(Generic[abc.inject.T_Inject]):
+    def __init__(self, _type: type[abc.inject.T_Inject], collection: str, name: str,
+                 func: Callable[[abc.inject.T_Inject], None] | None = None,
+                 params: dict[str, Any] = None) -> None:
+        self.type = _type
+        self.collection = collection
+        self.name = name
+        self.instance: abc.inject.T_Inject | None = None
+        self.func = func
+        self.params = params
+
+
 class BolinetteInjection(abc.inject.Injection):
     def __init__(self, context: abc.Context) -> None:
         super().__init__(context)
         self._collections: dict[str, abc.inject.Collection[Any]] = {}
+        self._by_type: dict[type, RegisteredType[Any]] = {}
+        self._by_collection: dict[str, dict[str, RegisteredType[Any]]] = {}
 
-    def __getattr__(self, name: str) -> abc.inject.Collection[Any]:
-        if name not in self._collections:
-            raise AttributeError(f'Injection error: no {name} collection registered')
-        return self._collections[name]
+    def register(self, _type: type[abc.inject.T_Inject], collection: str, name: str, *,
+                 func: Callable[[abc.inject.T_Inject], None] | None = None,
+                 params: dict[str, Any] = None) -> None:
+        registered = RegisteredType(_type, collection, name, func, params)
+        self._by_type[_type] = registered
+        if collection not in self._by_collection:
+            self._by_collection[collection] = {}
+        self._by_collection[collection][name] = registered
 
-    def __add_collection__(self, name: str, _type: type[Any]):
-        self._collections[name] = InjectionCollection(self.context, name, _type)
+    def _require_by_type(self, _type: type[abc.inject.T_Inject]) -> RegisteredType[abc.inject.T_Inject]:
+        if _type not in self._by_type:
+            raise InternalError(f'Injection error: No {_type} type found in injection registry')
+        return self._by_type[_type]
 
-    def __get_collection__(self, name: str):
-        return self._collections[name]
+    def _require_by_names(self, collection: str, name: str) -> RegisteredType[Any]:
+        if collection in self._by_collection and name in self._by_collection[collection]:
+            return self._by_collection[collection][name]
+        raise InternalError(f'Injection error: No {collection}.{name} type found in injection registry')
 
+    def require(self, *args, **kwargs) -> Any:
+        def _get_wrapper():
+            match args:
+                case [_type]:
+                    return self._require_by_type(_type)
+                case [_collection, _name]:
+                    return self._require_by_names(_collection, _name)
+            raise AssertionError(f'Argument mismatch')
 
-class InjectionCollection(abc.inject.Collection, Generic[abc.inject.T_Inject]):
-    def __init__(self, context: 'blnt.BolinetteContext', name: str, _type: type[abc.inject.T_Inject]) -> None:
-        super().__init__(context)
-        self._name = name
-        self._type = _type
-        self._types: dict[str, type[abc.inject.T_Inject]] = {}
-        self._instances: dict[str, abc.inject.T_Inject] = {}
-        self._functions: dict[str, Callable[[abc.inject.T_Inject], None]] = {}
-        self._params: dict[str, dict[str, Any]] = {}
-
-    def __add_instance__(self, name: str, instance: abc.inject.T_Inject) -> None:
-        if name not in self._types:
-            raise InternalError(f'Injection error: {name} is not a registered type in {self._type} collection')
-        if not isinstance(instance, self._types[name]):
-            raise InternalError(f'Injection error: object is not of {self._types[name]} type')
-        self._instances[name] = instance
-
-    def __add_type__(self, name: str, _type: type[abc.inject.T_Inject], *,
-                     func: Callable[[abc.inject.T_Inject], None] | None = None,
-                     params: dict[str, Any] = None) -> None:
-        if not isinstance(_type, type) or not issubclass(_type, self._type):
-            raise InternalError(f'Injection error: {_type} is not a subclass of {self._type}')
-        self._types[name] = _type
-        if func is not None:
-            self._functions[name] = func
-        if params is not None:
-            self._params[name] = params
-
-    def require(self, name: str, *, immediate: bool = False) -> abc.inject.T_Inject:
-        if name not in self._types:
-            raise InternalError(f'Injection error: No {name} type found in {self._type} collection')
-        if name not in self._instances:
-            obj = InjectingObject(self._types[name], name, self,
-                                  self._functions.get(name, None), self._params.get(name, None))
-            if immediate:
+        wrapper = _get_wrapper()
+        if wrapper.instance is None:
+            obj = InjectingObject(wrapper.type, wrapper, wrapper.func, wrapper.params)
+            if kwargs.get('immediate', False):
                 return obj.instantiate(self.context)
-            return obj  # type: ignore
-        return self._instances[name]
+            return obj
+        return wrapper.instance
 
-    def registered(self):
-        return (name for name in self._types)
+    def registered(self, *args, **kwargs):
+        if (of_type := kwargs.get('of_type', None)) is not None:
+            if not isinstance(of_type, type):
+                raise ValueError(f'of_type argument must be a type class')
+            for _type in self._by_type:
+                if issubclass(_type, of_type):
+                    yield _type
+        elif kwargs.get('get_strings', False):
+            for collection in self._by_collection:
+                for name in self._by_collection[collection]:
+                    yield collection, name
+        else:
+            for _type in self._by_type:
+                yield _type
 
 
 class InjectingObject(Generic[abc.inject.T_Inject]):
-    def __init__(self, _type: type[abc.inject.T_Inject], name: str,
-                 collection: InjectionCollection[abc.inject.T_Inject],
+    def __init__(self, _type: type[abc.inject.T_Inject],
+                 wrapper: RegisteredType,
                  function: Callable[[abc.inject.T_Inject], None] | None,
                  params: dict[str, Any] = None) -> None:
         self._type = _type
-        self._name = name
-        self._collection = collection
+        self._wrapper = wrapper
         self._function = function
         self._params = params or {}
 
     def instantiate(self, context: abc.Context) -> abc.inject.T_Inject:
         instance = self._type(context, **self._params)
-        self._collection.__add_instance__(self._name, instance)
+        self._wrapper.instance = instance
         if self._function is not None:
             self._function(instance)
         return instance

@@ -1,6 +1,6 @@
 from aiohttp import web as aio_web
 
-from bolinette import web, blnt
+from bolinette import abc, web
 from bolinette.decorators import controller, get, injected
 from bolinette.defaults.services import FileService
 
@@ -8,8 +8,8 @@ from bolinette.defaults.services import FileService
 @controller('file', '/file', middlewares=['auth'])
 class FileController(web.Controller):
     @injected
-    def file_service(self, inject: 'blnt.BolinetteInjection') -> FileService:
-        return inject.services.require('file')
+    def file_service(self, inject: abc.inject.Injection):
+        return inject.require(FileService)
 
     def default_routes(self):
         return [

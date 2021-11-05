@@ -24,7 +24,7 @@ class Properties:
         return ((name, attribute)
                 for name, attribute in vars(obj).items()
                 if isinstance(attribute, attr_type))
-    
+
     def get_instantiable(self, of_type: type[_T]) -> Iterator[tuple[str, 'blnt.InstantiableAttribute[_T]']]:
         attrs = self._get_cls_attributes_of_type(type(self.parent), blnt.InstantiableAttribute)
         return ((name, attr) for name, attr in attrs if attr.type == of_type)

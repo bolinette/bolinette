@@ -38,7 +38,7 @@ Parameters order has no importance, the arguments are identified by name.
 - `headers` is a dictionary containing the request's headers
 - `payload` contains the body of the request.
   It is either the parsed JSON body or a dict from a `multipart/form-data` body.Run server
-  
+
 ## Responses
 
 Responses definitions are declared [inside the model](./models.md#responses).
@@ -125,7 +125,7 @@ class HomeController(web.Controller):
     async def get_version(self, match):
         message = f'Hello {match["name"]}!'
         if 'age' in match:
-            message += f' You are {match["age"]}!'  
+            message += f' You are {match["age"]}!'
         return self.response.ok(data=message)
 ```
 

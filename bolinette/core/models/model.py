@@ -14,7 +14,6 @@ class Model:
     def __init__(self, context: blnt.BolinetteContext):
         database = context.db.get_engine(self.__blnt__.database)
         self.__props__ = ModelProps(self, database)
-        self.__repo__: core.Repository | None = None
 
     def payloads(self) -> MappingListPyTyping:
         pass
@@ -45,6 +44,7 @@ class ModelProps(blnt.Properties):
         super().__init__(model)
         self.model = model
         self.database = database
+        self.repo: core.Repository | None = None
         self.mixins: dict[str, core.Mixin] = {}
         self.primary: list['core.models.Column'] | None = None
         self.entity_key: list['core.models.Column'] | None = None

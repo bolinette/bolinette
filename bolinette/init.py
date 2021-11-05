@@ -1,9 +1,15 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import blnt, core, web, Extensions
+from bolinette import abc, blnt, core, web, Extensions
 from bolinette.decorators import init_func
 from bolinette.exceptions import InitError
+
+
+class TestObj(abc.WithContext):
+    def __init__(self, context, value: int) -> None:
+        super().__init__(context)
+        self.value = value
 
 
 @init_func(extension=Extensions.MODELS)
@@ -14,7 +20,7 @@ async def init_model_classes(context: blnt.BolinetteContext):
 
         def _init_relationship(_name: str, _attr: blnt.InstantiableAttribute[core.models.Relationship]):
             _target_name = _attr.pop('model_name')
-            _target_model = context.inject.models.require(_target_name, immediate=True)
+            _target_model = context.inject.require('model', _target_name, immediate=True)
             _fk_name = _attr.pop('foreign_key')
             _foreign_key = None
             if _fk_name is not None:
@@ -24,7 +30,7 @@ async def init_model_classes(context: blnt.BolinetteContext):
             _secondary_name = _attr.pop('secondary')
             _secondary = None
             if _secondary_name is not None:
-                _secondary = context.inject.models.require(_secondary_name, immediate=True)
+                _secondary = context.inject.require('model', _secondary_name, immediate=True)
             if _remote_name is not None:
                 _remote_side = getattr(model, _remote_name)
             return _attr.instantiate(name=_name, model=model, target_model=_target_model, secondary=_secondary,
@@ -32,7 +38,7 @@ async def init_model_classes(context: blnt.BolinetteContext):
 
         def _init_reference(_col: core.models.Column, _attr: blnt.InstantiableAttribute[core.models.Reference]):
             _target_name = _attr.pop('model_name')
-            _target_model = context.inject.models.require(_target_name, immediate=True)
+            _target_model = context.inject.require('model', _target_name, immediate=True)
             _target_col_name = _attr.pop('column_name')
             _target_column = getattr(_target_model, _target_col_name, None)
             if _target_column is None:
@@ -49,7 +55,6 @@ async def init_model_classes(context: blnt.BolinetteContext):
 
         # Instantiate columns
         for col_name, attr_col in model.__props__.get_instantiable(core.models.Column):
-            _init_column(col_name, attr_col)
             setattr(model, col_name, _init_column(col_name, attr_col))
         # Add mixin columns
         for _, mixin in model.__props__.mixins.items():
@@ -98,18 +103,17 @@ async def init_model_classes(context: blnt.BolinetteContext):
                 added_back_refs[rel.target_model].append(
                     core.models.ColumnList(rel.backref.key, rel.target_model, model))
 
-    context.inject.__add_collection__('models', core.Model)
     for model_name, model_cls in blnt.cache.models.items():
-        context.inject.models.__add_type__(model_name, model_cls, func=_init_model)
+        context.inject.register(model_cls, 'model', model_name, func=_init_model)
 
 
 @init_func(extension=Extensions.MODELS)
 async def init_relational_models(context: blnt.BolinetteContext):
     models = {}
-    for model_name in context.inject.models.registered():
-        model = context.inject.models.require(model_name, immediate=True)
+    for model_cls in context.inject.registered(of_type=core.Model):
+        model = context.inject.require(model_cls, immediate=True)
         if model.__props__.database.relational:
-            models[model_name] = model
+            models[model.__blnt__.name] = model
     orm_tables = {}
     orm_cols: dict[str, dict[str, sqlalchemy.Column]] = {}
     for model_name, model in models.items():
@@ -158,28 +162,22 @@ async def init_databases(context: blnt.BolinetteContext):
 
 @init_func(extension=Extensions.MODELS)
 async def init_repositories(context: blnt.BolinetteContext):
-    def _init_repo(repo: core.Repository):
-        repo.model.__repo__ = repo
-
-    context.inject.__add_collection__('repositories', core.Repository)
-    for model_name in context.inject.models.registered():
-        model = context.inject.models.require(model_name, immediate=True)
-        context.inject.repositories.__add_type__(
-            model_name, core.Repository, params={'model': model, 'name': model_name}, func=_init_repo)
+    for model_cls in context.inject.registered(of_type=core.Model):
+        model: core.Model = context.inject.require(model_cls, immediate=True)
+        model.__props__.repo = core.Repository(context, model)
 
 
 @init_func(extension=Extensions.MODELS)
 async def init_mappings(context: blnt.BolinetteContext):
-    for model_name in context.inject.models.registered():
-        model = context.inject.models.require(model_name, immediate=True)
-        context.mapper.register(model_name, model)
+    for model_cls in context.inject.registered(of_type=core.Model):
+        model = context.inject.require(model_cls, immediate=True)
+        context.mapper.register(model)
 
 
 @init_func(extension=Extensions.MODELS)
 async def init_services(context: blnt.BolinetteContext):
-    context.inject.__add_collection__('services', core.SimpleService)
     for service_name, service_cls in blnt.cache.services.items():
-        context.inject.services.__add_type__(service_name, service_cls)
+        context.inject.register(service_cls, 'service', service_name)
 
 
 @init_func(extension=Extensions.WEB)
@@ -201,9 +199,8 @@ async def init_controllers(context: blnt.BolinetteContext):
             route.controller = controller
             route.setup()
 
-    context.inject.__add_collection__('controllers', web.Controller)
     for controller_name, controller_cls in blnt.cache.controllers.items():
-        context.inject.controllers.__add_type__(controller_name, controller_cls, func=_init_ctrl)
+        context.inject.register(controller_cls, 'controller', controller_name, func=_init_ctrl)
 
 
 # @init_func(extension=Extensions.SOCKETS)

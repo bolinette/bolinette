@@ -11,7 +11,7 @@ class Mocked(abc.WithContext):
     def __init__(self, name, context: 'blnt.BolinetteContext'):
         super().__init__(context)
         self.name = name
-        self.model = self.context.inject.models.require(self.name, immediate=True)
+        self.model = self.context.inject.require('model', self.name, immediate=True)
         self.database = self.context.db[self.model.__blnt__.database]
         self._fields = {}
 
@@ -50,7 +50,8 @@ class Mocked(abc.WithContext):
         return dict(self._fields)
 
     async def insert(self):
-        return await self.context.inject.repositories.require(self.name, immediate=True).create(self._fields)
+        return (await self.context.inject.require('model', self.name, immediate=True)
+                      .__props__.repo.create(self._fields))
 
     def to_response(self, key='default') -> dict:
         definition = self.context.mapper.response(self.name, key)
@@ -97,7 +98,7 @@ class Mock(abc.WithContext):
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
-        model: core.Model = self.context.inject.models.require(model_name, immediate=True)
+        model: core.Model = self.context.inject.require('model', model_name, immediate=True)
         columns = model.__props__.get_columns()
         for _, column in columns:
             if column.auto_increment:

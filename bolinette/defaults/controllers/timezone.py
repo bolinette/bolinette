@@ -1,4 +1,4 @@
-from bolinette import web, blnt
+from bolinette import abc, web
 from bolinette.decorators import controller, get, injected
 from bolinette.defaults.services import TimezoneService
 
@@ -6,8 +6,8 @@ from bolinette.defaults.services import TimezoneService
 @controller('tz', '/tz')
 class TimezoneController(web.Controller):
     @injected
-    def tz_service(self, inject: 'blnt.BolinetteInjection') -> TimezoneService:
-        return inject.services.require('tz')
+    def tz_service(self, inject: abc.inject.Injection):
+        return inject.require(TimezoneService)
 
     @get('')
     async def all_timezones(self):

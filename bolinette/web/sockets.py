@@ -31,7 +31,7 @@ class BolinetteSockets(abc.WithContext):
 
     def channels(self, topic: str) -> list['web.TopicChannel']:
         return self._channels.get(topic) or []
-    
+
     async def send_message(self, topic: str, channels: str | list[str], message):
         socket_topic = self.topic(topic)
         if socket_topic is None:
@@ -74,7 +74,7 @@ class SocketHandler:
 
     async def __call__(self, request: Request):
         context: blnt.BolinetteContext = request.app['blnt']
-        user_service = context.inject.services.require('user', immediate=True)
+        user_service = context.inject.require('service', 'user', immediate=True)
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
 

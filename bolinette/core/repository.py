@@ -8,9 +8,8 @@ from bolinette.utils.functions import setattr_, getattr_, async_invoke
 
 
 class Repository(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext', name: str, model: 'core.Model'):
+    def __init__(self, context: 'blnt.BolinetteContext', model: 'core.Model'):
         super().__init__(context)
-        self._name = name
         self._model = model
         self._query_builder = self._get_query_builder(model, context)
 
@@ -26,7 +25,7 @@ class Repository(abc.WithContext):
         return CollectionQueryBuilder(model, context)
 
     def __repr__(self):
-        return f'<Repository {self._name}>'
+        return f'<Repository {self._model.__blnt__.name}>'
 
     def query(self):
         return self._query_builder.query()

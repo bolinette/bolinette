@@ -21,8 +21,8 @@ class Controller(abc.WithContext):
             self.defaults = ControllerDefaults(self)
 
     @injected
-    def service(self, inject: 'blnt.BolinetteInjection') -> 'core.Service':
-        return inject.services.require(self.__blnt__.service_name)
+    def service(self, inject: abc.inject.Injection) -> 'core.Service':
+        return inject.require('service', self.__blnt__.service_name)
 
     def default_routes(self) -> list['web.ControllerRoute']:
         return []
@@ -189,12 +189,12 @@ class ControllerDefaults(abc.WithContext):
         self.controller = controller
 
     @injected
-    def service(self, inject: 'blnt.BolinetteInjection') -> 'core.Service':
-        return inject.services.require(self.controller.__blnt__.service_name)
+    def service(self, inject: abc.inject.Injection):
+        return inject.require('service', self.controller.__blnt__.service_name)
 
     def _get_url_keys(self, key: str | list[str] | None, *, route: str) -> list[str]:
         if key is None:
-            entity_key = self.service.repo.model.__props__.entity_key
+            entity_key = self.service.model.__props__.entity_key
             if entity_key is None:
                 raise InitError(f'Default route "{route}" for controller "{self.service.repo.model.__blnt__.name}" '
                                 f'must define a key or set entity_key=True in one or more columns in the model')

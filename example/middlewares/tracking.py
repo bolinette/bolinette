@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from bolinette import web, blnt
+from bolinette import abc, web
 from bolinette.decorators import middleware, injected
 from bolinette.exceptions import InternalError
 from example.services import TraceService
@@ -14,8 +14,8 @@ class TrackingMiddleware(web.Middleware):
         }
 
     @injected
-    def trace_service(self, inject: 'blnt.BolinetteInjection') -> TraceService:
-        return inject.services.require('trace')
+    def trace_service(self, inject: abc.inject.Injection):
+        return inject.require(TraceService)
 
     async def handle(self, request, params, next_func):
         if 'current_user' not in params:

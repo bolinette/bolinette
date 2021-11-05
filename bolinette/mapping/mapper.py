@@ -69,11 +69,11 @@ class Mapper:
                 defs[model_key] = payload
         return defs
 
-    def register(self, model_name: str, model: 'core.Model'):
+    def register(self, model: 'core.Model'):
         def create_defs(collection, attr_name: Literal['payloads', 'responses']):
             defs = self._extract_defs(model, type(model), attr_name, model.__blnt__.merge_defs)
             for model_key, payload in defs.items():
-                definition = mapping.Definition(model_name, model_key)
+                definition = mapping.Definition(model.__blnt__.name, model_key)
                 for field in payload:
                     definition.fields.append(field)
                 if definition.model_name not in collection:

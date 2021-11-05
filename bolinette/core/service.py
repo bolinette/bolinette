@@ -21,10 +21,14 @@ class Service(SimpleService):
 
     def __init__(self, context: 'blnt.BolinetteContext'):
         super().__init__(context)
-
+    
     @injected
-    def repo(self, inject: 'blnt.BolinetteInjection'):
-        return inject.repositories.require(self.__blnt__.model_name)
+    def model(self, inject: abc.inject.Injection):
+        return inject.require('model', self.__blnt__.model_name)
+    
+    @property
+    def repo(self):
+        return self.model.__props__.repo
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'

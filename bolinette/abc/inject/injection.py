@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Any
+from collections.abc import Callable, Iterable
+from typing import Generic, TypeVar, Any, overload
 
 from bolinette import abc
 
@@ -23,9 +24,24 @@ class Injection(abc.WithContext, ABC):
         super().__init__(context)
 
     @abstractmethod
-    def __add_collection__(self, name: str, _type: type[Any]):
-        pass
+    def register(self, _type: type[T_Inject], collection: str, name: str, *,
+                 func: Callable[[T_Inject], None] | None = None,
+                 params: dict[str, Any] = None) -> None: ...
+
+    @overload
+    def require(self, _type: type[T_Inject], *, immediate: bool = False) -> T_Inject: ...
+    @overload
+    def require(self, collection: str, name: str, *, immediate: bool = False) -> Any: ...
 
     @abstractmethod
-    def __get_collection__(self, name: str) -> Collection[Any]:
-        pass
+    def require(self, *args, **kwargs) -> Any: ...
+
+    @overload
+    def registered(self) -> Iterable[type]: ...
+    @overload
+    def registered(self, *, of_type: type[T_Inject]) -> Iterable[type[T_Inject]]: ...
+    @overload
+    def registered(self, *, get_strings: bool = True) -> Iterable[tuple[str, str]]: ...
+
+    @abstractmethod
+    def registered(self, *args, **kwargs): ...

@@ -46,7 +46,7 @@ All base methods are asynchronous, don't forget to await them, or create an asyn
 - `async patch(entity, values)` modifies the entity, but skips missing columns in the `values` dictionary.
 - `async delete(entity)` removes an entity from the database and returns it.
   `entity` has to be a database entity that comes from a get method.
-  
+
 ## Overriding methods
 
 It is possible to override a default method to customize its behavior, like adding more validation.
