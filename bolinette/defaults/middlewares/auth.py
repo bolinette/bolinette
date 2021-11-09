@@ -1,16 +1,16 @@
 from aiohttp.web_request import Request
 
 from bolinette import abc, web
-from bolinette.decorators import middleware, injected
+from bolinette.decorators import middleware
 from bolinette.exceptions import ForbiddenError, UnauthorizedError
 from bolinette.defaults.services import UserService
 
 
 @middleware('auth', priority=20)
 class AuthMiddleware(web.InternalMiddleware):
-    @injected
-    def user_service(self, inject: abc.inject.Injection):
-        return inject.require(UserService)
+    def __init__(self, context: abc.Context, user_service: UserService):
+        super().__init__(context)
+        self.user_service = user_service
 
     def define_options(self):
         return {

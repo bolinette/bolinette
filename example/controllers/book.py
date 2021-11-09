@@ -1,13 +1,13 @@
 from bolinette import abc, web
-from bolinette.decorators import controller, get, injected
+from bolinette.decorators import controller, get
 from example.services import BookService
 
 
 @controller('book', '/book', middlewares=['auth'])
 class BookController(web.Controller):
-    @injected
-    def book_service(self, inject: abc.inject.Injection):
-        return inject.require(BookService)
+    def __init__(self, context: abc.Context, book_service: BookService):
+        super().__init__(context)
+        self.book_service = book_service
 
     def default_routes(self):
         return [

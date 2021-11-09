@@ -1,13 +1,13 @@
 from bolinette import abc, web
-from bolinette.decorators import controller, get, injected
+from bolinette.decorators import controller, get
 from bolinette.defaults.services import TimezoneService
 
 
 @controller('tz', '/tz')
 class TimezoneController(web.Controller):
-    @injected
-    def tz_service(self, inject: abc.inject.Injection):
-        return inject.require(TimezoneService)
+    def __init__(self, context: abc.Context, tz_service: TimezoneService):
+        super().__init__(context)
+        self.tz_service = tz_service
 
     @get('')
     async def all_timezones(self):

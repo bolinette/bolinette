@@ -1,13 +1,13 @@
 import inspect as _inspect
 from collections.abc import Callable, Awaitable
-from typing import Literal
+from typing import Literal, Any
 
-from bolinette import blnt, core, web, BolinetteExtension
+from bolinette import abc, blnt, core, web, BolinetteExtension
 from bolinette.blnt.commands import Command as _Command, Argument as _Argument
 
 
-def injected(func):
-    return blnt.InjectionProxy(func)
+def injected(func: Callable[[Any, abc.inject.Injection], abc.inject.T_Inject], name: str = None):
+    return blnt.InjectionProxy(func, name or func.__name__)
 
 
 def model(model_name: str, *,

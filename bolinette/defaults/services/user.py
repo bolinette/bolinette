@@ -1,16 +1,16 @@
 import bcrypt
 
 from bolinette import abc, core
-from bolinette.decorators import service, injected
+from bolinette.decorators import service
 from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
 from bolinette.defaults.services import FileService
 
 
 @service('user')
 class UserService(core.Service):
-    @injected
-    def file_server(self, inject: abc.inject.Injection):
-        return inject.require(FileService)
+    def __init__(self, context: abc.Context, file_service: FileService):
+        super().__init__(context)
+        self.file_service = file_service
 
     @staticmethod
     def encrypt_password(password):

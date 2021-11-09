@@ -5,6 +5,7 @@ from typing import Any
 from aiohttp.web_request import Request
 
 from bolinette import abc, blnt, core, web
+from bolinette.blnt.inject import instantiate_type
 from bolinette.decorators import injected
 from bolinette.exceptions import InitError
 from bolinette.utils import functions
@@ -13,7 +14,7 @@ from bolinette.utils import functions
 class Controller(abc.WithContext):
     __blnt__: 'ControllerMetadata' = None
 
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: abc.Context):
         super().__init__(context)
         self.__props__ = ControllerProps(self)
         self.response = web.Response(context)
@@ -123,7 +124,7 @@ class ControllerRoute(abc.inject.Instantiable):
             middleware = find[0]
             middleware.options = {}
         else:
-            middleware = blnt.cache.middlewares[name](context)
+            middleware = instantiate_type(context, blnt.cache.middlewares[name])
 
         if not middleware.__blnt__.loadable and not system:
             raise InitError(f'[{type(self.controller).__name__}] Middleware '

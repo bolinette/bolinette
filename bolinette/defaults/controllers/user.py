@@ -3,20 +3,17 @@ import string
 from datetime import datetime
 
 from bolinette import abc, blnt, web
-from bolinette.decorators import controller, get, post, patch, delete, injected
+from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import ForbiddenError
 
 
 @controller('user', '/user')
 class UserController(web.Controller):
-    @injected
-    def user_service(self, inject: abc.inject.Injection):
-        return inject.require(UserService)
-
-    @injected
-    def role_service(self, inject: abc.inject.Injection):
-        return inject.require(RoleService)
+    def __init__(self, context: abc.Context, user_service: UserService, role_service: 'RoleService'):
+        super().__init__(context)
+        self.user_service = user_service
+        self.role_service = role_service
 
     def default_routes(self):
         return [
