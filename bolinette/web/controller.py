@@ -51,6 +51,11 @@ class ControllerProps(blnt.Properties):
         return self._get_attributes_of_type(self.parent, ControllerRoute)
 
 
+class _MiddlewareHandle:
+    def __init__(self, func: Callable):
+        self.func = func
+
+
 class ControllerRoute(abc.inject.Instantiable):
     def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
                  docstring: str | None, expects: 'Expects' = None, returns: 'Returns' = None,
@@ -146,11 +151,11 @@ class ControllerRoute(abc.inject.Instantiable):
         self.middlewares.append(middleware)
 
     async def call_middleware_chain(self, request: Request, params: dict[str, Any]):
-        handles = ([MiddlewareHandle(name=m.__blnt__.name, func=m.handle) for m in self.middlewares]
-                   + [MiddlewareHandle('__ctrl_call', self._final_middleware_call)])
+        handles = ([_MiddlewareHandle(m.handle) for m in self.middlewares]
+                   + [_MiddlewareHandle(self._final_middleware_call)])
         return await self._call_middleware(handles, 0, request, params)
 
-    async def _call_middleware(self, handles: list['MiddlewareHandle'], index: int, request: Request,
+    async def _call_middleware(self, handles: list[_MiddlewareHandle], index: int, request: Request,
                                params: dict[str, Any]):
         async def _next(_request, _params):
             return await self._call_middleware(handles, index + 1, _request, _params)
@@ -158,12 +163,6 @@ class ControllerRoute(abc.inject.Instantiable):
 
     async def _final_middleware_call(self, _1, params: dict[str, Any], _2):
         return await functions.async_invoke(self.func, self.controller, **params)
-
-
-class MiddlewareHandle:
-    def __init__(self, name: str, func: Callable):
-        self.name = name
-        self.func = func
 
 
 class Expects:

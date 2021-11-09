@@ -9,35 +9,45 @@ from bolinette.exceptions import InternalError
 def _resolve_dependencies(context: abc.Context, _type: type[abc.inject.T_Inject]):
     args = {}
     errors = []
-    params = inspect.signature(_type).parameters
-    for p_name, param in params.items():
-        if p_name == 'context':
-            args['context'] = context
-            continue
-        hint = param.annotation
-        if hint == inspect._empty:
-            errors.append(f'Injection error: {p_name} param in {_type}.__init__ requires an annotation')
-        elif isinstance(hint, type) or isinstance(hint, str):
-            try:
-                if not hasattr(_type, p_name):
-                    def _call_require(_hint):
-                        return lambda _, inject: inject.require(_hint)
-                    setattr(_type, p_name, InjectionProxy(_call_require(hint), p_name))
-                args[p_name] = _ProxyHook(p_name)
-            except InternalError as ex:
-                errors.append(ex.message)
+    if not hasattr(_type, '__blnt_inject__'):
+        params = inspect.signature(_type).parameters
+        injected = {}
+        for p_name, param in params.items():
+            if p_name == 'context':
+                injected[p_name] = '__blnt_ctx__'
+                continue
+            hint = param.annotation
+            if hint == inspect._empty:
+                errors.append(f'Injection error: {p_name} param in {_type}.__init__ requires an annotation')
+            elif isinstance(hint, type) or isinstance(hint, str):
+                injected[p_name] = hint
+        setattr(_type, '__blnt_inject__', injected)
+    injected: dict = getattr(_type, '__blnt_inject__')
+    for p_name, hook in injected.items():
+        if hook == '__blnt_ctx__':
+            args[p_name] = context
+        else:
+            args[p_name] = _ProxyHook(p_name)
     if len(errors) > 0:
         raise InternalError(f'Injection errors raised while instantiating {_type}:\n  ' + '\n  '.join(errors))
     return args
 
-def _unlink_hooks(instance: Any):
-    for name in [n for n, v in vars(instance).items() if isinstance(v, _ProxyHook)]:
+
+def _hook_proxies(instance: Any):
+    def _call_require(_hint):
+        return lambda _, inject: inject.require(_hint)
+    _type = type(instance)
+    injected = getattr(_type, '__blnt_inject__')
+    for name, hook in [(n, v) for n, v in vars(instance).items() if isinstance(v, _ProxyHook)]:
         delattr(instance, name)
+        if not hasattr(_type, name):
+            setattr(_type, name, InjectionProxy(_call_require(injected[hook.name]), name))
+
 
 def instantiate_type(context: abc.Context, _type: type[abc.inject.T_Inject]) -> abc.inject.T_Inject:
     args = _resolve_dependencies(context, _type)
     instance = _type(**args)
-    _unlink_hooks(instance)
+    _hook_proxies(instance)
     return instance
 
 
@@ -177,7 +187,7 @@ class InjectionProxy(Generic[abc.inject.T_Inject]):
             obj = obj.instantiate()
         setattr(instance, self._name, obj)
         return obj
-    
+
     def __repr__(self) -> str:
         return f'<InjectionProxy {self._name}>'
 
@@ -185,5 +195,15 @@ class InjectionProxy(Generic[abc.inject.T_Inject]):
 class _ProxyHook:
     def __init__(self, name: str) -> None:
         self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
     def __repr__(self) -> str:
         return f'<ProxyHook {self._name}>'
+
+    def __getattr__(self, _):
+        raise InternalError('Injected instance has not been resolved yet.\n'
+                            '  Do not access injected instances inside __init__().\n'
+                            '  Use init function to process any startup logic.')
