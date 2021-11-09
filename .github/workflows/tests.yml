@@ -12,12 +12,20 @@ jobs:
   tests:
     services:
       mongo:
-        image: mongo:4.4
+        image: mongo:latest
         env:
           MONGO_INITDB_ROOT_USERNAME: mongo
           MONGO_INITDB_ROOT_PASSWORD: mongo
         ports:
           - 27017:27017
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
     runs-on: ubuntu-latest
     strategy:
       matrix:

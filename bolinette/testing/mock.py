@@ -96,6 +96,25 @@ class Mock(abc.WithContext):
         return start_date + datetime.timedelta(days=random_number_of_days)
 
     def __call__(self, m_id, model_name, *, post_mock_fn=None):
+        def _get_random_value(_col_type):
+            match _col_type:
+                case types.db.String:
+                    return Mock._random_lower(rng, 15)
+                case types.db.Email:
+                    return f'{Mock._random_lower(rng, 10)}@{Mock._random_lower(rng, 5)}.com'
+                case types.db.Password:
+                    return (Mock._random_lower(rng, 10) + str(Mock._random_int(rng, 1, 100))
+                            + Mock._random_symbols(rng, 1))
+                case types.db.Integer:
+                    return Mock._random_int(rng, 1, 100)
+                case types.db.Float:
+                    return Mock._random_int(rng, 1, 100)
+                case types.db.Date:
+                    return Mock._random_date(rng, datetime.datetime(1900, 1, 1),
+                                             datetime.datetime(2000, 1, 1))
+                case _:
+                    return None
+
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
         model: core.Model = self.context.inject.require('model', model_name, immediate=True)
@@ -103,21 +122,11 @@ class Mock(abc.WithContext):
         for _, column in columns:
             if column.auto_increment:
                 continue
-            col_type = column.type
-            if col_type == types.db.String:
-                mocked[column.name] = self._random_lower(rng, 15)
-            if col_type == types.db.Email:
-                mocked[column.name] = f'{self._random_lower(rng, 10)}@{self._random_lower(rng, 5)}.com'
-            if col_type == types.db.Password:
-                mocked[column.name] = (self._random_lower(rng, 10) + str(self._random_int(rng, 1, 100))
-                                       + self._random_symbols(rng, 1))
-            if col_type == types.db.Integer:
-                mocked[column.name] = self._random_int(rng, 1, 100)
-            if col_type == types.db.Float:
-                mocked[column.name] = self._random_int(rng, 1, 100)
-            if col_type == types.db.Date:
-                mocked[column.name] = self._random_date(rng, datetime.datetime(1900, 1, 1),
-                                                        datetime.datetime(2000, 1, 1))
+            if column.reference is not None:
+                mocked[column.name] = None
+            else:
+                mocked[column.name] = _get_random_value(column.type)
+
         back_refs = model.__props__.get_back_refs()
         for att_name, _ in back_refs:
             mocked[att_name] = []

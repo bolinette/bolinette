@@ -1,19 +1,18 @@
 from datetime import datetime
 
 from dateutil import parser as date_parser
-
 from bolinette.testing import bolitest, Mock
-# noinspection PyUnresolvedReferences
 from bolinette.testing.fixture import client
+
 from tests import utils
-# noinspection PyUnresolvedReferences
 import example.models
 
 
 async def big_set_up(mock: Mock):
-    await mock(1, 'person').insert()
+    await utils.user.salt_password(mock(1, 'user')).insert()
+    await utils.book.insert_person(mock(1, 'person'), 1)
     for i in range(100):
-        await utils.book.insert_book(mock(i, 'book'), 1)
+        await utils.book.insert_book(mock(i, 'book'), 1, 1)
 
 
 def equal_books(b1: dict, b2: dict, author: dict = None):
