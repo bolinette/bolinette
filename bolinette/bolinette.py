@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from aiohttp import web as aio_web
 
@@ -13,7 +13,8 @@ from bolinette.utils import paths
 
 class Bolinette:
     def __init__(self, *, extensions: list[BolinetteExtension] = None,
-                 profile: str = None, overrides: dict[str, Any] = None):
+                 profile: str = None, overrides: dict[str, Any] = None, **kwargs):
+        self._anonymous = kwargs.get('_anonymous', False)
         self._start_time = datetime.utcnow()
         self._initialized = False
         self.app: aio_web.Application | None = None
@@ -27,6 +28,7 @@ class Bolinette:
         self.console = Console(debug=self.context.env.debug)
 
     def _run_init_functions(self):
+        self.console.debug(f'Initializing Bolinette and running {len(blnt.cache.init_funcs)} init functions')
         for func in blnt.cache.init_funcs:
             if not self.context.has_extension(func.extension):
                 continue
@@ -45,6 +47,7 @@ class Bolinette:
             self._init_sockets()
 
     def _init_web(self):
+        self.console.debug('Initializing web extension')
         if self.app is None:
             self.app = aio_web.Application()
             self.app['blnt'] = self.context
@@ -54,6 +57,7 @@ class Bolinette:
         self.context.docs.setup()
 
     def _init_sockets(self):
+        self.console.debug('Initializing socket extension')
         if self.app is None:
             self.app = aio_web.Application()
             self.app['blnt'] = self.context
@@ -71,7 +75,7 @@ class Bolinette:
                         host=host or self.context.env['host'],
                         port=port or self.context.env['port'],
                         access_log=self.context.logger)
-        self.context.logger.info(f"Bolinette stopped gracefully")
+        self.context.logger.info('Bolinette stopped gracefully')
 
     def use(self, *extensions) -> 'Bolinette':
         self.context.clear_extensions()
@@ -80,10 +84,10 @@ class Bolinette:
         return self
 
     def exec_cmd_args(self):
-        parser = Parser(self, blnt.cache.commands)
+        parser = Parser(self, blnt.cache.commands, self._anonymous)
         parser.run()
 
 
-def main_func(func):
+def main_func(func: Callable[[], Bolinette]):
     setattr(func, '__blnt__', '__blnt_main__')
     return func

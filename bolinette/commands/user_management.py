@@ -1,9 +1,9 @@
+import sys
 import getpass
 
-import bolinette
-from bolinette import Console, blnt
+from bolinette import Console, blnt, abc
 from bolinette.decorators import command
-from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors
+from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors, ParamNonNullableError
 from bolinette.defaults.services import UserService, RoleService
 
 
@@ -11,17 +11,17 @@ from bolinette.defaults.services import UserService, RoleService
 @command.argument('argument', 'username', summary='The new user\'s username')
 @command.argument('argument', 'email', summary='The new user\'s email')
 @command.argument('option', 'roles', flag='r', summary='The user\'s roles, comma separated')
-async def create_user(_blnt: 'bolinette.Bolinette', username: str, email: str, roles: str = None):
+async def create_user(context: 'abc.Context', username: str, email: str, roles: str = None):
     console = Console()
-    user_service = _blnt.context.inject.require(UserService, immediate=True)
-    role_service = _blnt.context.inject.require(RoleService, immediate=True)
+    user_service = context.inject.require(UserService, immediate=True)
+    role_service = context.inject.require(RoleService, immediate=True)
     while True:
         password = getpass.getpass('Choose password: ')
         password2 = getpass.getpass('Confirm password: ')
         if password == password2:
             break
         console.error('Passwords don\'t match')
-    async with blnt.Transaction(_blnt.context, print_error=False, propagate_error=False):
+    async with blnt.Transaction(context, print_error=False, propagate_error=False):
         user_roles = []
         if roles is not None:
             for role_name in [r.strip() for r in roles.split(',')]:
@@ -45,7 +45,11 @@ async def create_user(_blnt: 'bolinette.Bolinette', username: str, email: str, r
                 errors = ex.errors
             for err in [err for err in errors if isinstance(err, ParamConflictError)]:
                 console.error(f'Conflict: {err.message.split(":")[1]} already exists')
-            exit(1)
+            for err in [err for err in errors if isinstance(err, ParamNonNullableError)]:
+                console.error(f'Error: {err[0]} must not be null, have you overriden the default user model?')
+            console.error(f'User {username} was not created')
+            sys.exit(1)
+        console.print(f'User {username} has been successfully created!')
 
 
 @command('user list', 'Lists all usernames in database', run_init=True)

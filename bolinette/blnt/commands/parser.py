@@ -11,9 +11,10 @@ from bolinette.utils.functions import async_invoke, invoke
 
 
 class Parser:
-    def __init__(self, blnt: 'bolinette.Bolinette', commands: dict[str, Command]):
+    def __init__(self, blnt: 'bolinette.Bolinette', commands: dict[str, Command], anonymous: bool):
         self.blnt = blnt
         self.commands = commands
+        self._anonymous = anonymous
         self._factories = {
             'argument': self._create_argument,
             'option': self._create_option,
@@ -40,13 +41,20 @@ class Parser:
 
     def _run_command(self, cmd: str, parsed: dict):
         command = self.commands[cmd]
+        if self._anonymous and not command.allow_anonymous:
+            self.blnt.context.logger.error(
+                'No Bolinette app found! Please do the following:\n'
+                '  - Use the CLI at top level of your Bolinette web app\n'
+                '  - Make sure manifest.blnt.yaml has the correct module attribute\n'
+                '  - Make sure to expose a @main_func decorated function that returns a Bolinette instance '
+                'in the top package __init__.py file'
+            )
+            sys.exit(1)
         func = command.func
-        parsed['blnt'] = self.blnt
-        parsed['context'] = self.blnt.context
         if command.run_init:
             self.blnt.init_bolinette()
         if inspect.iscoroutinefunction(func):
-            asyncio.run(async_invoke(func, **parsed))
+            asyncio.run(async_invoke(func, self.blnt.context, **parsed))
         else:
             invoke(func, **parsed)
 

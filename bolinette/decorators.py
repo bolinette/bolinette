@@ -159,7 +159,8 @@ class _CommandDecorator:
     def _create_command(func):
         return _Command(func.__name__, func)
 
-    def __call__(self, name: str, summary: str, *, run_init=False):
+    def __call__(self, name: str, summary: str, *,
+                 run_init: bool = False, allow_anonymous: bool = False):
         def decorator(arg):
             if isinstance(arg, _Command):
                 cmd = arg
@@ -167,9 +168,7 @@ class _CommandDecorator:
                 cmd = self._create_command(arg)
             else:
                 raise ValueError('@command must only decorate functions or async functions')
-            cmd.path = name
-            cmd.summary = summary
-            cmd.run_init = run_init
+            cmd.init_params(name, summary, run_init, allow_anonymous)
             blnt.cache.commands[cmd.name] = cmd
             return cmd
         return decorator
@@ -186,8 +185,8 @@ class _CommandDecorator:
                 raise ValueError('@command.argument must only decorate function or async functions')
             if arg_type not in ['argument', 'option', 'flag', 'count']:
                 raise ValueError(f'Command {cmd.name}: {arg_type} is not a valid argument type')
-            cmd.args = [_Argument(arg_type, name, flag=flag, summary=summary, value_type=value_type,
-                                  default=default, choices=choices)] + cmd.args
+            cmd.init_args(_Argument(arg_type, name, flag=flag, summary=summary, value_type=value_type,
+                                  default=default, choices=choices), *cmd.args)
             return cmd
         return decorator
 
