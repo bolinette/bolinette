@@ -54,7 +54,7 @@ async def create_user(context: 'abc.Context', username: str, email: str, roles: 
 
 @command('user list', 'Lists all usernames in database', run_init=True)
 @command.argument('flag', 'roles', flag='r', summary='Prints user roles')
-async def list_users(context: 'blnt.BolinetteContext', roles: bool):
+async def list_users(context: abc.Context, roles: bool):
     console = Console()
     user_service = context.inject.require(UserService, immediate=True)
     for user in await user_service.get_all():
@@ -68,7 +68,7 @@ async def list_users(context: 'blnt.BolinetteContext', roles: bool):
 
 @command('role list', 'Lists all usernames in database', run_init=True)
 @command.argument('flag', 'users', flag='u', summary='Prints users assigned to each role')
-async def list_roles(context: 'blnt.BolinetteContext', users: bool):
+async def list_roles(context: abc.Context, users: bool):
     console = Console()
     role_service = context.inject.require(RoleService, immediate=True)
     for role in await role_service.get_all():
@@ -84,7 +84,7 @@ async def list_roles(context: 'blnt.BolinetteContext', users: bool):
 @command.argument('argument', 'user', summary='The user\'s username')
 @command.argument('argument', 'role', summary='The role\'s name')
 @command.argument('flag', 'create', flag='c', summary='Create the role if it does not exist')
-async def add_role(context: 'blnt.BolinetteContext', user: str, role: str, create: bool):
+async def add_role(context: abc.Context, user: str, role: str, create: bool):
     console = Console()
     user_service = context.inject.require(UserService, immediate=True)
     role_service = context.inject.require(RoleService, immediate=True)
@@ -113,7 +113,7 @@ async def add_role(context: 'blnt.BolinetteContext', user: str, role: str, creat
 @command.argument('argument', 'user', summary='The user\'s username')
 @command.argument('argument', 'role', summary='The role\'s name')
 @command.argument('flag', 'prune', flag='p', summary='Deletes the role if none is assigned to it')
-async def revoke_role(context: 'blnt.BolinetteContext', user: str, role: str, prune: bool):
+async def revoke_role(context: abc.Context, user: str, role: str, prune: bool):
     console = Console()
     user_service = context.inject.require(UserService, immediate=True)
     role_service = context.inject.require(RoleService, immediate=True)

@@ -56,7 +56,7 @@ class Parser:
         if inspect.iscoroutinefunction(func):
             asyncio.run(async_invoke(func, self.blnt.context, **parsed))
         else:
-            invoke(func, **parsed)
+            invoke(func, self.blnt.context, **parsed)
 
     def _parse_commands(self):
         command_tree = {}

@@ -43,6 +43,8 @@ class BolinetteContext(abc.Context):
         self.sockets.init_socket_handler()
 
     def __getitem__(self, key):
+        if key not in self._ctx:
+            raise KeyError(f'No {key} element registered in context')
         return self._ctx[key]
 
     def __setitem__(self, key, value):

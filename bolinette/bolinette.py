@@ -21,6 +21,7 @@ class Bolinette:
         try:
             self.context = blnt.BolinetteContext(paths.dirname(__file__), extensions=extensions,
                                                  profile=profile, overrides=overrides)
+            self.context['__blnt__'] = self
             self.context.use_extension(Extensions.ALL)
         except InitError as init_error:
             Console().error(f'Error raised during Bolinette init phase\n{str(init_error)}')
