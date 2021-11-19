@@ -49,11 +49,12 @@ class BolinetteResources(abc.WithContext):
             self.context.inject.require(ctrl_cls, immediate=True)
         self._aiohttp_resources = {}
         self.cors = aiohttp_cors.setup(app, defaults=self._setup_cors())
+        aiohttp_app: aio_web.Application = self.context['aiohttp']
         for path, methods in self._routes.items():
             for method, route in methods.items():
                 if path not in self._aiohttp_resources:
                     self._aiohttp_resources[path] = BolinetteResource(
-                        self.cors.add(self.context.app.router.add_resource(path)))
+                        self.cors.add(aiohttp_app.router.add_resource(path)))
                 handler = RouteHandler(route)
                 self._aiohttp_resources[path].routes[method] = self.cors.add(
                     self._aiohttp_resources[path].resource.add_route(method.http_verb, handler.__call__))

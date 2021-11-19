@@ -1,4 +1,3 @@
-import asyncio
 import sys
 from datetime import datetime
 from typing import Any, Callable
@@ -16,8 +15,6 @@ class Bolinette:
                  profile: str = None, overrides: dict[str, Any] = None, **kwargs):
         self._anonymous = kwargs.get('_anonymous', False)
         self._start_time = datetime.utcnow()
-        self._initialized = False
-        self.app: aio_web.Application | None = None
         try:
             self.context = blnt.BolinetteContext(paths.dirname(__file__), extensions=extensions,
                                                  profile=profile, overrides=overrides)
@@ -28,51 +25,25 @@ class Bolinette:
             exit(1)
         self.console = Console(debug=self.context.env.debug)
 
-    def _run_init_functions(self):
-        self.console.debug(f'Initializing Bolinette and running {len(blnt.cache.init_funcs)} init functions')
+    async def startup(self, *, for_tests_only: bool = False):
+        self.console.debug(f'Initializing Bolinette with extensions: {"".join(map(str, self.context.extensions))}, '
+                           f'and running {len(blnt.cache.init_funcs)} init functions')
         for func in blnt.cache.init_funcs:
-            if not self.context.has_extension(func.extension):
+            if not self.context.has_extension(func.extension) or (for_tests_only and not func.rerun_for_tests):
                 continue
-            asyncio.run(func(self.context))
-
-    def init_bolinette(self):
-        self._run_init_functions()
-        self.init_extensions()
-        self._initialized = True
-
-    def init_extensions(self):
-        self.app = None
-        if self.context.has_extension(Extensions.WEB):
-            self._init_web()
-        if self.context.has_extension(Extensions.SOCKETS):
-            self._init_sockets()
-
-    def _init_web(self):
-        self.console.debug('Initializing web extension')
-        if self.app is None:
-            self.app = aio_web.Application()
-            self.app['blnt'] = self.context
-        self.context.init_web(self.app)
-        if self.context.env['build_docs']:
-            self.context.docs.build()
-        self.context.docs.setup()
-
-    def _init_sockets(self):
-        self.console.debug('Initializing socket extension')
-        if self.app is None:
-            self.app = aio_web.Application()
-            self.app['blnt'] = self.context
-        self.context.init_sockets(self.app)
+            await func(self.context)
 
     def start_server(self, *, host: str = None, port: int = None):
-        if not self._initialized:
-            self.init_bolinette()
         if not self.context.has_extension((Extensions.WEB, Extensions.SOCKETS)):
-            self.context.logger.error(f'The web or sockets extensions must be activated to start the aiohttp server!')
+            self.console.error('The web or sockets extensions must be activated to start the aiohttp server!')
+            sys.exit(1)
+        if 'aiohttp' not in self.context:
+            self.console.error('The aiohttp server was not initialized. '
+                               'Make sure to call the bolinette.startup() coroutine before start_server().')
             sys.exit(1)
         self.console.debug(f'Startup took {int((datetime.utcnow() - self._start_time).microseconds / 1000)}ms')
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
-        aio_web.run_app(self.app,
+        aio_web.run_app(self.context['aiohttp'],
                         host=host or self.context.env['host'],
                         port=port or self.context.env['port'],
                         access_log=self.context.logger)

@@ -1,3 +1,4 @@
+from aiohttp import web as aio_web
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
@@ -13,7 +14,7 @@ class TestObj(abc.WithContext):
 
 
 @init_func(extension=Extensions.MODELS)
-async def init_model_classes(context: blnt.BolinetteContext):
+async def init_model_classes(context: abc.Context):
     def _init_model(model: core.Model):
         def _init_column(_name: str, _attr: blnt.InstantiableAttribute[core.models.Column]):
             return _attr.instantiate(name=_name, model=model)
@@ -108,7 +109,7 @@ async def init_model_classes(context: blnt.BolinetteContext):
 
 
 @init_func(extension=Extensions.MODELS)
-async def init_relational_models(context: blnt.BolinetteContext):
+async def init_relational_models(context: abc.Context):
     models = {}
     for model_cls in context.inject.registered(of_type=core.Model):
         model = context.inject.require(model_cls, immediate=True)
@@ -156,32 +157,32 @@ async def init_relational_models(context: blnt.BolinetteContext):
 
 
 @init_func(extension=Extensions.MODELS)
-async def init_databases(context: blnt.BolinetteContext):
+async def init_databases(context: abc.Context):
     await context.db.create_all()
 
 
 @init_func(extension=Extensions.MODELS)
-async def init_repositories(context: blnt.BolinetteContext):
+async def init_repositories(context: abc.Context):
     for model_cls in context.inject.registered(of_type=core.Model):
         model: core.Model = context.inject.require(model_cls, immediate=True)
         model.__props__.repo = core.Repository(context, model)
 
 
 @init_func(extension=Extensions.MODELS)
-async def init_mappings(context: blnt.BolinetteContext):
+async def init_mappings(context: abc.Context):
     for model_cls in context.inject.registered(of_type=core.Model):
         model = context.inject.require(model_cls, immediate=True)
         context.mapper.register(model)
 
 
 @init_func(extension=Extensions.MODELS)
-async def init_services(context: blnt.BolinetteContext):
+async def init_services(context: abc.Context):
     for service_name, service_cls in blnt.cache.services.items():
         context.inject.register(service_cls, 'service', service_name)
 
 
 @init_func(extension=Extensions.WEB)
-async def init_controllers(context: blnt.BolinetteContext):
+async def init_controllers(context: abc.Context):
     def _init_ctrl(controller: web.Controller):
         def _init_route(_attr: blnt.InstantiableAttribute[web.ControllerRoute]):
             _route = _attr.instantiate(controller=controller)
@@ -203,10 +204,33 @@ async def init_controllers(context: blnt.BolinetteContext):
         context.inject.register(controller_cls, 'controller', controller_name, func=_init_ctrl)
 
 
+@init_func(extension=Extensions.WEB, rerun_for_tests=True)
+async def init_aiohttp_web(context: abc.Context):
+    if 'aiohttp' not in context:
+        app = aio_web.Application()
+        context['aiohttp'] = app
+        app['blnt'] = context
+    app = context['aiohttp']
+    context.resources.init_web(app)
+    if context.env['build_docs']:
+        context.docs.build()
+    context.docs.setup()
+
+
 # @init_func(extension=Extensions.SOCKETS)
-# async def init_topics(context: blnt.BolinetteContext):
+# async def init_topics(context: abc.Context):
 #     for topic_name, topic_cls in blnt.cache.topics.items():
 #         topic = topic_cls(context)
 #         context.sockets.add_topic(topic_name, topic)
 #         for _, channel in topic.__props__.get_channels():
 #             context.sockets.add_channel(topic_name, channel)
+
+
+# @init_func(extension=Extensions.SOCKETS, rerun_for_tests=True)
+# async def init_aiohttp_sockets(context: abc.Context):
+#     if 'aiohttp' not in context:
+#         app = aio_web.Application()
+#         context['aiohttp'] = app
+#         app['blnt'] = context
+#     app = context['aiohttp']
+#     context.sockets.init_socket_handler()

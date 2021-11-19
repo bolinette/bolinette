@@ -1,6 +1,5 @@
 from typing import Any
-
-from aiohttp import web as aio_web
+from collections.abc import Iterable
 
 from bolinette import abc, blnt, web, mapping, BolinetteExtension, Extensions
 from bolinette.blnt.database import DatabaseManager
@@ -14,13 +13,11 @@ class BolinetteContext(abc.Context):
         super().__init__(origin,
             inject=blnt.BolinetteInjection(self)
         )
-        self._ctx: dict[str, Any] = {}
         self._extensions: list[BolinetteExtension] = []
 
         for ext in extensions or []:
             self.use_extension(ext)
 
-        self.app: aio_web.Application | None = None
         self.cwd = paths.cwd()
         self.env = blnt.Environment(self, profile=profile, overrides=overrides)
         self.manifest = files.read_manifest(
@@ -34,21 +31,9 @@ class BolinetteContext(abc.Context):
         self.docs = Documentation(self)
         self.sockets = web.BolinetteSockets(self)
 
-    def init_web(self, app: aio_web.Application):
-        self.app = app
-        self.resources.init_web(app)
-
-    def init_sockets(self, app: aio_web.Application):
-        self.app = app
-        self.sockets.init_socket_handler()
-
-    def __getitem__(self, key):
-        if key not in self._ctx:
-            raise KeyError(f'No {key} element registered in context')
-        return self._ctx[key]
-
-    def __setitem__(self, key, value):
-        self._ctx[key] = value
+    @property
+    def extensions(self) -> Iterable[BolinetteExtension]:
+        return (e for e in self._extensions)
 
     def clear_extensions(self):
         self._extensions = []

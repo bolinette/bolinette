@@ -22,13 +22,18 @@ cache = BolinetteCache()
 
 class InitFunc:
     def __init__(self, func: Callable[['blnt.BolinetteContext'], Awaitable[None]],
-                 ext: BolinetteExtension | None):
+                 ext: BolinetteExtension | None, rerun_for_tests: bool):
         self._func = func
         self._ext = ext
+        self._rerun_for_tests = rerun_for_tests
 
     @property
     def extension(self):
         return self._ext
+
+    @property
+    def rerun_for_tests(self):
+        return self._rerun_for_tests
 
     def __call__(self, context: 'blnt.BolinetteContext'):
         return self._func(context)

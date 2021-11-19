@@ -11,7 +11,7 @@ class BolinetteExtension:
                 or isinstance(other, str) and self.name == other)
 
     def __repr__(self):
-        return f'<Extensions {self.name}>'
+        return f'<Extension: {self.name}>'
 
 
 class Extensions:

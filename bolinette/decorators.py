@@ -43,9 +43,9 @@ class _MixinDecorator:
 mixin = _MixinDecorator()
 
 
-def init_func(*, extension: BolinetteExtension = None):
+def init_func(*, extension: BolinetteExtension = None, rerun_for_tests: bool = False):
     def decorator(func: Callable[['blnt.BolinetteContext'], Awaitable[None]]):
-        blnt.cache.init_funcs.append(blnt.InitFunc(func, extension))
+        blnt.cache.init_funcs.append(blnt.InitFunc(func, extension, rerun_for_tests))
         return func
     return decorator
 
