@@ -128,7 +128,7 @@ class BolinetteInjection(abc.inject.Injection):
                     return self._require_by_name(_name)
                 case [_collection, _name] if isinstance(_collection, str) and isinstance(_name, str):
                     return self._require_by_collection(_collection, _name)
-            raise AssertionError(f'Argument mismatch')
+            raise AssertionError('Argument mismatch')
 
         wrapper = _get_wrapper()
         if wrapper.instance is None:
@@ -141,7 +141,7 @@ class BolinetteInjection(abc.inject.Injection):
     def registered(self, *args, **kwargs):
         if (of_type := kwargs.get('of_type', None)) is not None:
             if not isinstance(of_type, type):
-                raise ValueError(f'of_type argument must be a type class')
+                raise ValueError('of_type argument must be a type class')
             for _type in self._by_type:
                 if issubclass(_type, of_type):
                     yield _type

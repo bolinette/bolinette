@@ -186,7 +186,7 @@ class _CommandDecorator:
             if arg_type not in ['argument', 'option', 'flag', 'count']:
                 raise ValueError(f'Command {cmd.name}: {arg_type} is not a valid argument type')
             cmd.init_args(_Argument(arg_type, name, flag=flag, summary=summary, value_type=value_type,
-                                  default=default, choices=choices), *cmd.args)
+                                    default=default, choices=choices), *cmd.args)
             return cmd
         return decorator
 

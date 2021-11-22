@@ -167,4 +167,4 @@ class UserController(web.Controller):
         """
         picture = payload['file']
         user = await self.user_service.save_profile_picture(current_user, picture)
-        return self.response.ok(messages=f'user.picture.uploaded', data=user)
+        return self.response.ok(messages='user.picture.uploaded', data=user)

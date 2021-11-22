@@ -50,8 +50,8 @@ class Mocked(abc.WithContext):
         return dict(self._fields)
 
     async def insert(self):
-        return (await self.context.inject.require('model', self.name, immediate=True)
-                      .__props__.repo.create(self._fields))
+        return (await self.context.inject
+                .require('model', self.name, immediate=True).__props__.repo.create(self._fields))
 
     def to_response(self, key='default') -> dict:
         definition = self.context.mapper.response(self.name, key)

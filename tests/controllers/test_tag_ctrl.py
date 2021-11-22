@@ -1,6 +1,3 @@
-from typing import Optional
-
-# noinspection PyUnresolvedReferences
 from bolinette.testing.fixture import client
 from bolinette.testing import Mock, bolitest, Mocked, BolitestClient
 

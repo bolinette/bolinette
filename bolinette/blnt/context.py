@@ -10,7 +10,8 @@ from bolinette.docs import Documentation
 class BolinetteContext(abc.Context):
     def __init__(self, origin: str, *, extensions: list[BolinetteExtension] = None,
                  profile: str = None, overrides: dict[str, Any] = None):
-        super().__init__(origin,
+        super().__init__(
+            origin,
             inject=blnt.BolinetteInjection(self)
         )
         self._extensions: list[BolinetteExtension] = []

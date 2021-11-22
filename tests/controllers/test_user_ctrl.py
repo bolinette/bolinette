@@ -199,7 +199,7 @@ async def test_add_role_not_admin(client):
 
     rv = await client.post(f'/user/{user2["username"]}/roles', role1.to_payload())
     assert rv['code'] == 403
-    assert f'user.forbidden:admin' in rv['messages']
+    assert 'user.forbidden:admin' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
@@ -223,7 +223,7 @@ async def test_remove_role_not_found(client):
 
     rv = await client.delete(f'/user/{user1["username"]}/roles/unknown_role')
     assert rv['code'] == 404
-    assert f'entity.not_found:role:name:unknown_role' in rv['messages']
+    assert 'entity.not_found:role:name:unknown_role' in rv['messages']
 
 
 @bolitest(before=admin_set_up)
@@ -246,7 +246,7 @@ async def test_no_self_demotion(client):
 
     rv = await client.delete(f'/user/{user1["username"]}/roles/admin')
     assert rv['code'] == 403
-    assert f'role.admin.no_self_demotion' in rv['messages']
+    assert 'role.admin.no_self_demotion' in rv['messages']
 
 
 @bolitest(before=root_set_up)

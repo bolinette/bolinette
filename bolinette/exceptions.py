@@ -74,27 +74,27 @@ class UnauthorizedError(APIError):
 
 class EntityNotFoundError(NotFoundError):
     def __init__(self, model: str, key: str, value: str):
-        super().__init__(f'entity.not_found', [model, key, value])
+        super().__init__('entity.not_found', [model, key, value])
 
 
 class ParamMissingError(UnprocessableEntityError):
     def __init__(self, key: str):
-        super().__init__(f'param.required', [key])
+        super().__init__('param.required', [key])
 
 
 class ParamNonNullableError(UnprocessableEntityError):
     def __init__(self, key: str):
-        super().__init__(f'param.non_nullable', [key])
+        super().__init__('param.non_nullable', [key])
 
 
 class BadParamFormatError(UnprocessableEntityError):
     def __init__(self, key: str, p_type: str):
-        super().__init__(f'param.bad_format', [key, p_type])
+        super().__init__('param.bad_format', [key, p_type])
 
 
 class ParamConflictError(ConflictError):
     def __init__(self, key, value):
-        super().__init__(f'param.conflict', [key, value])
+        super().__init__('param.conflict', [key, value])
 
 
 class InitError(Exception):

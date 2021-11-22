@@ -1,6 +1,6 @@
 from typing import Literal
 
-from bolinette import core, blnt, mapping, types
+from bolinette import core, mapping, types
 from bolinette.exceptions import InternalError
 from bolinette.utils.functions import getattr_, hasattr_, invoke
 

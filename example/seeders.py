@@ -30,7 +30,7 @@ async def dev_user_seeder(context: blnt.BolinetteContext):
             root_usr = await user_service.create({
                 'username': 'root',
                 'password': 'root',
-                'email': f'root@localhost',
+                'email': 'root@localhost',
                 'first_name': rng.choice(first_names),
                 'last_name': rng.choice(last_names),
             })

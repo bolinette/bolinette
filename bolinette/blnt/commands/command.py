@@ -13,7 +13,7 @@ class Command:
         self.run_init: bool = False
         self.allow_anonymous: bool = False
 
-    def init_params(self, path: str,summary: str,run_init: bool, allow_anonymous: bool):
+    def init_params(self, path: str, summary: str, run_init: bool, allow_anonymous: bool):
         self.path = path
         self.summary = summary
         self.run_init = run_init

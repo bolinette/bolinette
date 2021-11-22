@@ -1,7 +1,5 @@
 from bolinette.testing import Mock, bolitest
-# noinspection PyUnresolvedReferences
 from bolinette.testing.fixture import client
-# noinspection PyUnresolvedReferences
 import example.models
 
 
