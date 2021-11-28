@@ -3,7 +3,7 @@ from jinja2 import TemplateNotFound
 
 from bolinette.utils import files, paths
 
-from bolinette import abc, blnt, exceptions
+from bolinette import abc, exceptions
 
 
 class Cookie:
@@ -24,7 +24,7 @@ class APIResponse:
 
 
 class Response(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: abc.Context):
         super().__init__(context)
         self._exceptions = {
             exceptions.UnauthorizedError: self.unauthorized,

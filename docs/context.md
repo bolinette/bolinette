@@ -6,7 +6,7 @@ For example, you can call a service from a controller or another service with `s
 
 ## Aiohttp application
 
-The underlying aiohttp application is available through `context.app`.
+The underlying aiohttp application is available through `context['aiohttp']`.
 You can find the complete documentation [here](https://docs.aiohttp.org/en/stable/web.html).
 
 ## Environment

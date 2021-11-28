@@ -4,8 +4,9 @@ from bolinette import abc, types, core
 
 
 class Reference(abc.inject.Instantiable):
-    def __init__(self, model: 'core.Model', column: 'core.models.Column',
-                 target_model: 'core.Model', target_column: 'core.models.Column'):
+    def __init__(self, model: 'core.Model', column: 'core.models.Column', target_model: 'core.Model',
+                 target_column: 'core.models.Column', **kwargs):
+        super().__init__(**kwargs)
         self._model = model
         self._column = column
         self._target_model = target_model
@@ -36,9 +37,10 @@ class Reference(abc.inject.Instantiable):
 
 
 class Column(abc.inject.Instantiable):
-    def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType',
-                 reference: Reference | None, primary_key: bool, auto: bool | None,
-                 nullable: bool, unique: bool, entity_key: bool, default: Any | None):
+    def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType', reference: Reference | None,
+                 primary_key: bool, auto: bool | None, nullable: bool, unique: bool, entity_key: bool,
+                 default: Any | None, **kwargs):
+        super().__init__(**kwargs)
         self._name = name
         self._type = data_type
         self._model = model
@@ -139,7 +141,8 @@ class Backref:
 class Relationship(abc.inject.Instantiable):
     def __init__(self, name: str, model: 'core.Model', target_model: 'core.Model', backref: Backref | None,
                  foreign_key: Column | None, remote_side: Column | None, lazy: bool | Literal['subquery'],
-                 secondary: Optional['core.Model']):
+                 secondary: Optional['core.Model'], **kwargs):
+        super().__init__(**kwargs)
         self._name = name
         self._model = model
         self._target_model = target_model

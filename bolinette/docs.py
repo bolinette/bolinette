@@ -193,7 +193,7 @@ class Documentation(abc.WithContext):
 
     def setup(self):
         if paths.exists(self.swagger_path):
-            setup_swagger(self.context.app, swagger_url='/api', ui_version=3, swagger_from_file=self.swagger_path)
+            setup_swagger(self.context['aiohttp'], swagger_url='/api', ui_version=3, swagger_from_file=self.swagger_path)
         else:
             no_docs_ctrl = NoDocsController(self.context)
             no_docs_route: web.ControllerRoute = no_docs_ctrl.get_no_docs.instantiate(controller=no_docs_ctrl)

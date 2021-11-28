@@ -17,7 +17,7 @@ def _resolve_dependencies(context: abc.Context, _type: type[abc.inject.T_Inject]
                 injected[p_name] = '__blnt_ctx__'
                 continue
             hint = param.annotation
-            if hint == inspect._empty:
+            if hint == inspect.Signature.empty:
                 errors.append(f'Injection error: {p_name} param in {_type}.__init__ requires an annotation')
             elif isinstance(hint, type) or isinstance(hint, str):
                 injected[p_name] = hint
@@ -42,6 +42,7 @@ def _hook_proxies(instance: Any):
         delattr(instance, name)
         if not hasattr(_type, name):
             setattr(_type, name, InjectionProxy(_call_require(injected[hook.name]), name))
+
 
 
 def instantiate_type(context: abc.Context, _type: type[abc.inject.T_Inject]) -> abc.inject.T_Inject:
@@ -175,7 +176,7 @@ class InjectionProxy(Generic[abc.inject.T_Inject]):
         self._func = func
         self._name = name
 
-    def __get__(self, instance, _) -> abc.inject.T_Inject:
+    def __get__(self, instance, _) -> abc.inject.T_Inject | None:
         if instance is None:
             return None
         if not isinstance(instance, abc.WithContext):

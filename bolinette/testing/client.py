@@ -25,7 +25,8 @@ class BolitestClient(abc.WithContext):
     def __await__(self):
         return self.__aenter__().__await__()
 
-    def try_parse(self, response):
+    @staticmethod
+    def try_parse(response):
         try:
             return json.loads(response)
         except json.JSONDecodeError:

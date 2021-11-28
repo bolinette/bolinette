@@ -55,7 +55,7 @@ def render_template(workdir: str, path: str, params: dict[str, Any]):
 
 def render_string(string: str, params: dict[str, Any]):
     jinja_env = jinja2.Environment(
-        loader=jinja2.BaseLoader,
+        loader=jinja2.BaseLoader(),
         keep_trailing_newline=True,
         trim_blocks=True,
         lstrip_blocks=True

@@ -59,7 +59,8 @@ class _MiddlewareHandle:
 class ControllerRoute(abc.inject.Instantiable):
     def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
                  docstring: str | None, expects: 'Expects' = None, returns: 'Returns' = None,
-                 inner_route: 'ControllerRoute' = None, middlewares: list[str] = None):
+                 inner_route: 'ControllerRoute' = None, middlewares: list[str] = None, **kwargs):
+        super().__init__(**kwargs)
         self.controller = controller
         self.func = func
         self.path = path

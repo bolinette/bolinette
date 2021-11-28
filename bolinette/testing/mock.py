@@ -43,6 +43,7 @@ class Mocked(abc.WithContext):
                     value = __to_object(value)
                 setattr(obj, key, value)
             return obj
+
         return __to_object(self._fields)
 
     @property
