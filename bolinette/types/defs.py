@@ -30,7 +30,7 @@ class Backref(blnt.InstantiableAttribute['core.models.Backref']):
 
 class Relationship(blnt.InstantiableAttribute['core.models.Relationship']):
     def __init__(self, model_name: str, *,
-                 backref: 'core.models.Backref' = None,
+                 backref: Backref = None,
                  foreign_key: str | None = None,
                  lazy: bool | Literal['subquery'] = False,
                  secondary: str = None,

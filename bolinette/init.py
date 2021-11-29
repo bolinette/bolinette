@@ -4,7 +4,9 @@ from sqlalchemy import orm as sqlalchemy_orm
 
 from bolinette import abc, blnt, core, web, Extensions
 from bolinette.decorators import init_func
-from bolinette.exceptions import InitError
+from bolinette.blnt.database.engines import RelationalDatabase
+from bolinette.exceptions import InitError, InternalError
+from bolinette.docs import Documentation
 
 
 class TestObj(abc.WithContext):
@@ -112,48 +114,53 @@ async def init_model_classes(context: abc.Context):
 async def init_relational_models(context: abc.Context):
     models = {}
     for model_cls in context.inject.registered(of_type=core.Model):
-        model = context.inject.require(model_cls, immediate=True)
+        model: core.Model = context.inject.require(model_cls, immediate=True)
         if model.__props__.database.relational:
             models[model.__blnt__.name] = model
     orm_tables = {}
     orm_cols: dict[str, dict[str, sqlalchemy.Column]] = {}
     for model_name, model in models.items():
         orm_cols[model_name] = {}
-        for att_name, attribute in model.__props__.get_columns():
+        for col_name, col in model.__props__.get_columns():
             ref = None
-            if attribute.reference:
-                ref = sqlalchemy.ForeignKey(attribute.reference.target_path)
-            orm_cols[model_name][att_name] = sqlalchemy.Column(
-                att_name, attribute.type.sqlalchemy_type, ref,
-                default=attribute.default, index=attribute.entity_key,
-                primary_key=attribute.primary_key, nullable=attribute.nullable,
-                unique=attribute.unique, autoincrement=attribute.auto_increment)
+            if col.reference:
+                ref = sqlalchemy.ForeignKey(col.reference.target_path)
+            orm_cols[model_name][col_name] = sqlalchemy.Column(
+                col_name, col.type.sqlalchemy_type, ref,
+                default=col.default, index=col.entity_key,
+                primary_key=col.primary_key, nullable=col.nullable,
+                unique=col.unique, autoincrement=col.auto_increment)
+        if not isinstance(model.__props__.database, RelationalDatabase):
+            raise InternalError(f'model.not_relational:{model.__blnt__.name}')
         orm_tables[model_name] = sqlalchemy.Table(model_name,
                                                   model.__props__.database.base.metadata,
                                                   *(orm_cols[model_name].values()))
 
     for model_name, model in models.items():
         orm_defs = {}
-        for att_name, attribute in model.__props__.get_relationships():
+        for rel_name, rel in model.__props__.get_relationships():
             kwargs = {}
-            attribute.name = att_name
-            if attribute.backref:
-                kwargs['backref'] = sqlalchemy_orm.backref(attribute.backref.key, lazy=attribute.backref.lazy)
-            if attribute.foreign_key:
-                kwargs['foreign_keys'] = orm_cols[model_name][attribute.foreign_key.name]
-            if attribute.remote_side:
-                kwargs['remote_side'] = orm_cols[model_name][attribute.remote_side.name]
-            if attribute.secondary:
-                kwargs['secondary'] = orm_tables[attribute.secondary.__blnt__.name]
-            orm_defs[att_name] = sqlalchemy_orm.relationship(attribute.target_model_name, lazy=attribute.lazy, **kwargs)
+            rel.name = rel_name
+            if rel.backref:
+                kwargs['backref'] = sqlalchemy_orm.backref(rel.backref.key, lazy=rel.backref.lazy)
+            if rel.foreign_key:
+                kwargs['foreign_keys'] = orm_cols[model_name][rel.foreign_key.name]
+            if rel.remote_side:
+                kwargs['remote_side'] = orm_cols[model_name][rel.remote_side.name]
+            if rel.secondary:
+                kwargs['secondary'] = orm_tables[rel.secondary.__blnt__.name]
+            orm_defs[rel_name] = sqlalchemy_orm.relationship(rel.target_model_name, lazy=rel.lazy, **kwargs)
 
         orm_defs['__table__'] = orm_tables[model_name]
+        if not isinstance(model.__props__.database, RelationalDatabase):
+            raise InternalError(f'model.not_relational:{model.__blnt__.name}')
         orm_model = type(model_name, (model.__props__.database.base,), orm_defs)
 
         for att_name, attribute in model.__props__.get_properties():
             setattr(orm_model, att_name, property(attribute.function))
 
-        model.__props__.database.add_table(model_name, orm_model)
+        if isinstance(model.__props__.database, RelationalDatabase):
+            model.__props__.database.add_table(model_name, orm_model)
 
 
 @init_func(extension=Extensions.MODELS)
@@ -171,7 +178,7 @@ async def init_repositories(context: abc.Context):
 @init_func(extension=Extensions.MODELS)
 async def init_mappings(context: abc.Context):
     for model_cls in context.inject.registered(of_type=core.Model):
-        model = context.inject.require(model_cls, immediate=True)
+        model: core.Model = context.inject.require(model_cls, immediate=True)
         context.mapper.register(model)
 
 
@@ -204,6 +211,11 @@ async def init_controllers(context: abc.Context):
         context.inject.register(controller_cls, 'controller', controller_name, func=_init_ctrl)
 
 
+@init_func(extension=Extensions.WEB)
+async def init_swagger_docs(context: abc.Context):
+    context['blnt_docs'] = Documentation(context)
+
+
 @init_func(extension=Extensions.WEB, rerun_for_tests=True)
 async def init_aiohttp_web(context: abc.Context):
     if 'aiohttp' not in context:
@@ -212,9 +224,9 @@ async def init_aiohttp_web(context: abc.Context):
         app['blnt'] = context
     app = context['aiohttp']
     context.resources.init_web(app)
-    if context.env['build_docs']:
-        context.docs.build()
-    context.docs.setup()
+    if context.env['build_docs'] and 'blnt_docs' in context:
+        context['blnt_docs'].build()
+    context['blnt_docs'].setup()
 
 
 # @init_func(extension=Extensions.SOCKETS)

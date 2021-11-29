@@ -7,11 +7,11 @@ from bolinette.exceptions import InternalError
 
 
 def _resolve_dependencies(context: abc.Context, _type: type[abc.inject.T_Inject]):
-    args = {}
+    args: dict[str, abc.Context | _ProxyHook] = {}
     errors = []
+    injected: dict[str, str | type] = {}
     if not hasattr(_type, '__blnt_inject__'):
         params = inspect.signature(_type).parameters
-        injected = {}
         for p_name, param in params.items():
             if p_name == 'context':
                 injected[p_name] = '__blnt_ctx__'
@@ -22,7 +22,7 @@ def _resolve_dependencies(context: abc.Context, _type: type[abc.inject.T_Inject]
             elif isinstance(hint, type) or isinstance(hint, str):
                 injected[p_name] = hint
         setattr(_type, '__blnt_inject__', injected)
-    injected: dict = getattr(_type, '__blnt_inject__')
+    injected = getattr(_type, '__blnt_inject__')
     for p_name, hook in injected.items():
         if hook == '__blnt_ctx__':
             args[p_name] = context

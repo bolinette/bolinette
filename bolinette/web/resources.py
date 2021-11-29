@@ -1,4 +1,5 @@
 import traceback
+from typing import Any
 
 import aiohttp_cors
 from aiohttp import web as aio_web
@@ -10,12 +11,12 @@ from bolinette.exceptions import APIError, APIErrors, InternalError
 from bolinette.utils.serializing import serialize
 
 
-class BolinetteResources(abc.WithContext):
+class BolinetteResources(abc.WithContext, abc.web.Resources):
     def __init__(self, context: 'blnt.BolinetteContext'):
         super().__init__(context)
-        self._routes: dict[str, dict[web.HttpMethod, web.ControllerRoute]] = {}
+        self._routes: dict[str, dict[abc.web.HttpMethod, abc.web.Route]] = {}
         self._aiohttp_resources: dict[str, 'BolinetteResource'] = {}
-        self.cors = None
+        self.cors: aiohttp_cors.CorsConfig | None = None
 
     @property
     def routes(self):
@@ -59,7 +60,7 @@ class BolinetteResources(abc.WithContext):
                 self._aiohttp_resources[path].routes[method] = self.cors.add(
                     self._aiohttp_resources[path].resource.add_route(method.http_verb, handler.__call__))
 
-    def add_route(self, path: str, route: 'web.ControllerRoute'):
+    def add_route(self, path: str, route: abc.web.Route):
         if path not in self._routes:
             self._routes[path] = {}
         self._routes[path][route.method] = route
@@ -68,17 +69,17 @@ class BolinetteResources(abc.WithContext):
 class BolinetteResource:
     def __init__(self, resource: Resource):
         self.resource = resource
-        self.routes: dict[web.HttpMethod, ResourceRoute] = {}
+        self.routes: dict[abc.web.HttpMethod, ResourceRoute] = {}
 
 
 class RouteHandler:
-    def __init__(self, route: 'web.ControllerRoute'):
+    def __init__(self, route: abc.web.Route):
         self.controller = route.controller
         self.route = route
 
     async def __call__(self, request: Request):
         context: blnt.BolinetteContext = request.app['blnt']
-        params = {
+        params: dict[str, Any] = {
             'match': {},
             'query': {},
             'request': request

@@ -11,8 +11,8 @@ from bolinette.exceptions import InitError
 from bolinette.utils import functions
 
 
-class Controller(abc.WithContext):
-    __blnt__: 'ControllerMetadata' = None
+class Controller(abc.WithContext, abc.web.Controller):
+    __blnt__: 'ControllerMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):
         super().__init__(context)
@@ -56,15 +56,14 @@ class _MiddlewareHandle:
         self.func = func
 
 
-class ControllerRoute(abc.inject.Instantiable):
-    def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: web.HttpMethod,
+class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
+    def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: abc.web.HttpMethod,
                  docstring: str | None, expects: 'Expects' = None, returns: 'Returns' = None,
                  inner_route: 'ControllerRoute' = None, middlewares: list[str] = None, **kwargs):
-        super().__init__(**kwargs)
-        self.controller = controller
+        abc.inject.Instantiable.__init__(self, **kwargs)
+        abc.web.Route.__init__(self, controller, method)
         self.func = func
         self.path = path
-        self.method = method
         self.docstring = docstring
         self.expects = expects
         self.returns = returns
@@ -136,7 +135,7 @@ class ControllerRoute(abc.inject.Instantiable):
             raise InitError(f'[{type(self.controller).__name__}] Middleware '
                             f'"{mdw}" cannot be loaded in a controller')
 
-        parsed_args = {}
+        parsed_args: dict[str, Any] = {}
         for arg in args:
             arg_n, *arg_v = arg.split('=', maxsplit=1)
             parsed_args[arg_n] = arg_v[0] if len(arg_v) else True
@@ -226,7 +225,7 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The list of {model_name} entities
         """
-        return ControllerRoute(self.controller, route, f'{prefix}', web.HttpMethod.GET, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}', abc.web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns, as_list=True),
                                middlewares=middlewares)
 
@@ -247,7 +246,7 @@ class ControllerDefaults(abc.WithContext):
         -response 200 returns: The {model_name} entity
         -response 404: The {model_name} identified by "{key}" was not found
         """
-        return ControllerRoute(self.controller, route, url, web.HttpMethod.GET, docstring,
+        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.GET, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
 
@@ -264,7 +263,7 @@ class ControllerDefaults(abc.WithContext):
 
         -response 201 returns: The created {model_name} entity
         """
-        return ControllerRoute(self.controller, route, f'{prefix}', web.HttpMethod.POST, docstring,
+        return ControllerRoute(self.controller, route, f'{prefix}', abc.web.HttpMethod.POST, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
@@ -286,7 +285,7 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(self.controller, route, url, web.HttpMethod.PUT, docstring,
+        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.PUT, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
@@ -308,7 +307,7 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(self.controller, route, url, web.HttpMethod.PATCH, docstring,
+        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.PATCH, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects, patch=True),
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)
@@ -330,6 +329,6 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The deleted {model_name} entity
         """
-        return ControllerRoute(self.controller, route, url, web.HttpMethod.DELETE, docstring,
+        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.DELETE, docstring,
                                returns=Returns(model_name, returns),
                                middlewares=middlewares)

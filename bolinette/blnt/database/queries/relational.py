@@ -1,16 +1,19 @@
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import blnt, core
+from bolinette import abc, core
 from bolinette.blnt.database.engines import RelationalDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
 from bolinette.exceptions import InternalError
 
 
 class RelationalQueryBuilder(BaseQueryBuilder):
-    def __init__(self, model: 'core.Model', context: 'blnt.BolinetteContext'):
+    def __init__(self, model: 'core.Model', context: abc.Context):
         super().__init__(model, context)
-        self._database: RelationalDatabase = context.db[model.__blnt__.database]
+        if isinstance(database := context.db[model.__blnt__.database], RelationalDatabase):
+            self._database: RelationalDatabase = database
+        else:
+            raise TypeError(f'Database engine for "{model.__blnt__.name}" model has to be relation based')
         self._table = self._database.table(model.__blnt__.name)
 
     def query(self) -> 'BaseQuery':

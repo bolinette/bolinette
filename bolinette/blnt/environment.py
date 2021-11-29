@@ -2,6 +2,7 @@ import os
 import random
 import string
 from typing import Any
+from abc import ABC
 
 import yaml
 
@@ -10,7 +11,7 @@ from bolinette.exceptions import InitError
 from bolinette.utils import paths
 
 
-class Settings:
+class Settings(abc.Environment, ABC):
     def __init__(self):
         self._settings: dict[str, Any] = {}
 

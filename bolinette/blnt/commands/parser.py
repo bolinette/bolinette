@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import sys
 from argparse import ArgumentParser
+from typing import Any
 
 import bolinette
 from bolinette import Console
@@ -21,7 +22,7 @@ class Parser:
             'flag': self._create_flag
         }
         self._console = Console()
-        self._sub_commands = {}
+        self._sub_commands: dict[str, Any] = {}
 
     def run(self):
         tree = self._parse_commands()
@@ -94,8 +95,8 @@ class Parser:
     @staticmethod
     def _create_parser_arg(arg: Argument, *, optional: bool = False, use_flag: bool = False,
                            action: str = None):
-        args = []
-        kwargs = {}
+        args: list[Any] = []
+        kwargs: dict[str, Any] = {}
         if optional:
             args.append(f'--{arg.name}')
         else:

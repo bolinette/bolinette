@@ -1,15 +1,15 @@
+from typing import Any
 from collections.abc import Callable
-
 from bolinette.blnt.commands import Argument
 
 
 class Command:
-    def __init__(self, name: str, func: Callable, ):
+    def __init__(self, name: str, func: Callable):
         self.name = name
         self.func = func
         self.path: str | None = None
         self.summary: str | None = None
-        self.args = []
+        self.args: list[Any] = []
         self.run_init: bool = False
         self.allow_anonymous: bool = False
 

@@ -2,7 +2,7 @@ import itertools
 from collections.abc import Iterator
 from typing import TypeVar
 
-from bolinette import blnt
+from bolinette import blnt, abc
 
 _T = TypeVar('_T')
 
@@ -25,6 +25,6 @@ class Properties:
                 for name, attribute in vars(obj).items()
                 if isinstance(attribute, attr_type))
 
-    def get_instantiable(self, of_type: type[_T]) -> Iterator[tuple[str, 'blnt.InstantiableAttribute[_T]']]:
+    def get_instantiable(self, of_type: type[abc.inject.T_Instantiable]) -> Iterator[tuple[str, 'blnt.InstantiableAttribute[abc.inject.T_Instantiable]']]:
         attrs = self._get_cls_attributes_of_type(type(self.parent), blnt.InstantiableAttribute)
         return ((name, attr) for name, attr in attrs if attr.type == of_type)

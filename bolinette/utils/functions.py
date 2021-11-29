@@ -1,6 +1,5 @@
 import inspect
-from collections.abc import Callable, Awaitable
-from typing import Any
+from typing import Callable
 
 from bolinette.exceptions import InternalError
 
@@ -35,14 +34,14 @@ def _parse_params(function, *args, **kwargs):
     return out_args, out_kwargs
 
 
-async def async_invoke(function: Callable[[Any], Awaitable[Any]], *args, **kwargs):
+async def async_invoke(function: Callable, *args, **kwargs):
     if inspect.iscoroutinefunction(function):
         args, kwargs = _parse_params(function, *args, **kwargs)
         return await function(*args, **kwargs)
     raise InternalError(f'internal.not_async_function:{function.__name__}')
 
 
-def invoke(function: Callable[[Any], Any], *args, **kwargs):
+def invoke(function: Callable, *args, **kwargs):
     if inspect.isfunction(function):
         args, kwargs = _parse_params(function, *args, **kwargs)
         return function(*args, **kwargs)

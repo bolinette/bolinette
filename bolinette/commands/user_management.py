@@ -11,10 +11,10 @@ from bolinette.defaults.services import UserService, RoleService
 @command.argument('argument', 'username', summary='The new user\'s username')
 @command.argument('argument', 'email', summary='The new user\'s email')
 @command.argument('option', 'roles', flag='r', summary='The user\'s roles, comma separated')
-async def create_user(context: 'abc.Context', username: str, email: str, roles: str = None):
+async def create_user(context: abc.Context, username: str, email: str, roles: str = None):
     console = Console()
-    user_service = context.inject.require(UserService, immediate=True)
-    role_service = context.inject.require(RoleService, immediate=True)
+    user_service: UserService = context.inject.require(UserService, immediate=True)
+    role_service: RoleService = context.inject.require(RoleService, immediate=True)
     while True:
         password = getpass.getpass('Choose password: ')
         password2 = getpass.getpass('Confirm password: ')
@@ -43,10 +43,10 @@ async def create_user(context: 'abc.Context', username: str, email: str, roles: 
                 errors = [ex]
             else:
                 errors = ex.errors
-            for err in [err for err in errors if isinstance(err, ParamConflictError)]:
-                console.error(f'Conflict: {err.message.split(":")[1]} already exists')
-            for err in [err for err in errors if isinstance(err, ParamNonNullableError)]:
-                console.error(f'Error: {err[0]} must not be null, have you overriden the default user model?')
+            for conflict_err in [err for err in errors if isinstance(err, ParamConflictError)]:
+                console.error(f'Conflict: {conflict_err.message.split(":")[1]} already exists')
+            for null_err in [err for err in errors if isinstance(err, ParamNonNullableError)]:
+                console.error(f'Error: {null_err[0]} must not be null, have you overriden the default user model?')
             console.error(f'User {username} was not created')
             sys.exit(1)
         console.print(f'User {username} has been successfully created!')
@@ -56,7 +56,7 @@ async def create_user(context: 'abc.Context', username: str, email: str, roles: 
 @command.argument('flag', 'roles', flag='r', summary='Prints user roles')
 async def list_users(context: abc.Context, roles: bool):
     console = Console()
-    user_service = context.inject.require(UserService, immediate=True)
+    user_service: UserService = context.inject.require(UserService, immediate=True)
     for user in await user_service.get_all():
         roles_str = ''
         str_sep = ''
@@ -70,7 +70,7 @@ async def list_users(context: abc.Context, roles: bool):
 @command.argument('flag', 'users', flag='u', summary='Prints users assigned to each role')
 async def list_roles(context: abc.Context, users: bool):
     console = Console()
-    role_service = context.inject.require(RoleService, immediate=True)
+    role_service: RoleService = context.inject.require(RoleService, immediate=True)
     for role in await role_service.get_all():
         users_str = ''
         str_sep = ''
@@ -86,8 +86,8 @@ async def list_roles(context: abc.Context, users: bool):
 @command.argument('flag', 'create', flag='c', summary='Create the role if it does not exist')
 async def add_role(context: abc.Context, user: str, role: str, create: bool):
     console = Console()
-    user_service = context.inject.require(UserService, immediate=True)
-    role_service = context.inject.require(RoleService, immediate=True)
+    user_service: UserService = context.inject.require(UserService, immediate=True)
+    role_service: RoleService = context.inject.require(RoleService, immediate=True)
     async with blnt.Transaction(context, print_error=False, propagate_error=False):
         try:
             user_ent = await user_service.get_by_username(user)
@@ -115,8 +115,8 @@ async def add_role(context: abc.Context, user: str, role: str, create: bool):
 @command.argument('flag', 'prune', flag='p', summary='Deletes the role if none is assigned to it')
 async def revoke_role(context: abc.Context, user: str, role: str, prune: bool):
     console = Console()
-    user_service = context.inject.require(UserService, immediate=True)
-    role_service = context.inject.require(RoleService, immediate=True)
+    user_service: UserService = context.inject.require(UserService, immediate=True)
+    role_service: RoleService = context.inject.require(RoleService, immediate=True)
     async with blnt.Transaction(context, print_error=False, propagate_error=False):
         try:
             user_ent = await user_service.get_by_username(user)

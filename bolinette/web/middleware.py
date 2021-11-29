@@ -9,12 +9,12 @@ from bolinette import abc
 
 
 class Middleware(abc.WithContext):
-    __blnt__: 'MiddlewareMetadata' = None
+    __blnt__: 'MiddlewareMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):
         super().__init__(context)
         self.system_priority = 1
-        self.options = {}
+        self.options: dict[str, MiddlewareParam] = {}
         self.params = MiddlewareParams()
 
     def define_options(self) -> dict[str, 'MiddlewareParam']:

@@ -2,11 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from bolinette.blnt.database.engines import DatabaseEngine
+from bolinette import abc
 from bolinette.exceptions import InternalError
 
 
-class RelationalDatabase(DatabaseEngine):
+class RelationalDatabase(abc.db.Engine):
     def __init__(self, uri):
         super().__init__(relational=True)
         self._engine = create_engine(uri, echo=False)

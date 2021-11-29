@@ -6,8 +6,7 @@ from bolinette import abc
 
 
 class Instantiable(ABC):
-    def __init__(self, **kwargs) -> None:
-        pass
+    def __init__(self, **kwargs) -> None: ...
 
 
 T_Instantiable = TypeVar('T_Instantiable', bound=Instantiable)
@@ -24,12 +23,12 @@ class Injection(abc.WithContext, ABC):
         super().__init__(context)
 
     @abstractmethod
-    def register(self, _type: type[T_Inject], collection: str, name: str, *,
+    def register(self, _type: type[abc.WithContext], collection: str, name: str, *,
                  func: Callable[[T_Inject], None] | None = None,
                  params: dict[str, Any] = None) -> None: ...
 
     @overload
-    def require(self, _type: type[T_Inject], *, immediate: bool = False) -> T_Inject: ...
+    def require(self, _type: type[abc.WithContext], *, immediate: bool = False) -> T_Inject: ...
     @overload
     def require(self, collection: str, name: str, *, immediate: bool = False) -> Any: ...
 
@@ -39,9 +38,9 @@ class Injection(abc.WithContext, ABC):
     @overload
     def registered(self) -> Iterable[type]: ...
     @overload
-    def registered(self, *, of_type: type[T_Inject]) -> Iterable[type[T_Inject]]: ...
+    def registered(self, *, of_type: type[abc.WithContext]) -> Iterable[type[abc.WithContext]]: ...
     @overload
-    def registered(self, *, get_strings: bool = True) -> Iterable[tuple[str, str]]: ...
+    def registered(self, *, get_strings: bool) -> Iterable[tuple[str, str]]: ...
 
     @abstractmethod
     def registered(self, *args, **kwargs): ...

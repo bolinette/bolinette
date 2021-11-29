@@ -1,12 +1,12 @@
 import traceback
 
 from bolinette import abc, blnt, Console
-from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase, DatabaseEngine
+from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase
 from bolinette.exceptions import InternalError, InitError, APIError, APIErrors
 
 
-class DatabaseManager(abc.WithContext):
-    _DBMS = {
+class DatabaseManager(abc.WithContext, abc.db.Manager):
+    _DBMS: dict[str, type[RelationalDatabase | CollectionDatabase]] = {
         'sqlite://': RelationalDatabase,
         'postgresql://': RelationalDatabase,
         'mongodb://': CollectionDatabase,
@@ -15,7 +15,7 @@ class DatabaseManager(abc.WithContext):
 
     def __init__(self, context: 'blnt.BolinetteContext'):
         super().__init__(context)
-        self.engines: dict[str, DatabaseEngine] = {}
+        self.engines: dict[str, abc.db.Engine] = {}
         self._init_databases()
 
     def _init_databases(self):
@@ -45,7 +45,7 @@ class DatabaseManager(abc.WithContext):
             return self.engines['default']
         raise InternalError('internal.db.no_default_engine')
 
-    def get_engine(self, name: str) -> DatabaseEngine:
+    def get_engine(self, name: str) -> abc.db.Engine:
         if name not in self.engines:
             raise AttributeError(f'No {name} database engine is defined')
         return self.engines[name]

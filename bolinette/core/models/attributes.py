@@ -118,7 +118,7 @@ class ColumnList:
         self._origin = origin
 
 
-class Backref:
+class Backref(abc.inject.Instantiable):
     def __init__(self, model: 'core.Model', relationship: 'core.models.Relationship',
                  key: str, lazy: bool):
         self._model = model

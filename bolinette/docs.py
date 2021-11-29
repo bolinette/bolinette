@@ -10,7 +10,7 @@ from bolinette.utils import paths, files
 
 
 class Documentation(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: abc.Context):
         super().__init__(context)
         self.swagger_path = self.context.instance_path('swagger.yaml')
         self._path_param_regex = re.compile(r'{([^}]*)}')
@@ -50,13 +50,13 @@ class Documentation(abc.WithContext):
             self._build_route(path, method, route, routes)
         return routes
 
-    def _build_route(self, path: str, method: web.HttpMethod, route: web.ControllerRoute, routes: dict[str, Any]):
+    def _build_route(self, path: str, method: abc.web.HttpMethod, route: web.ControllerRoute, routes: dict[str, Any]):
         if route.controller is not None:
             if not path:
                 path = '/'
             if path not in routes:
                 routes[path] = {}
-            docs = {
+            docs: dict[str, Any] = {
                 'tags': [f'{route.controller.__blnt__.name} controller']
             }
             parsed_docs = self._parse_docs(route.docstring, route)
@@ -78,7 +78,7 @@ class Documentation(abc.WithContext):
     def _parse_docs(self, docstring: str | None, route: web.ControllerRoute):
         if not docstring:
             return {}
-        docs = {}
+        docs: dict[str, Any] = {}
         parsed = [s.strip('\n ') for s in docstring.split('\n\n')]
         doc_index = 0
         for part in parsed:
@@ -115,7 +115,7 @@ class Documentation(abc.WithContext):
             text = match.group(3)
             if 'responses' not in docs:
                 docs['responses'] = {}
-            response = {}
+            response: dict[str, Any] = {}
             if text:
                 response['description'] = text
             if res_type:

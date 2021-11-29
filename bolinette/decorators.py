@@ -81,7 +81,7 @@ def controller(controller_name: str, path: str | None = None, *,
     return decorator
 
 
-def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
+def route(path: str, *, method: abc.web.HttpMethod, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
           middlewares: str | list[str] | None = None):
     if middlewares is None:
         middlewares = []
@@ -109,27 +109,27 @@ def route(path: str, *, method: web.HttpMethod, expects: 'web.Expects' = None, r
 
 def get(path: str, *, returns: 'web.Returns' = None,
         middlewares: str | list[str] | None = None):
-    return route(path, method=web.HttpMethod.GET, expects=None, returns=returns, middlewares=middlewares)
+    return route(path, method=abc.web.HttpMethod.GET, expects=None, returns=returns, middlewares=middlewares)
 
 
 def post(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
          middlewares: str | list[str] | None = None):
-    return route(path, method=web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
+    return route(path, method=abc.web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def put(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
         middlewares: str | list[str] | None = None):
-    return route(path, method=web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
+    return route(path, method=abc.web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def patch(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
           middlewares: str | list[str] | None = None):
-    return route(path, method=web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
+    return route(path, method=abc.web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
 
 
 def delete(path: str, *, returns: 'web.Returns' = None,
            middlewares: str | list[str] | None = None):
-    return route(path, method=web.HttpMethod.DELETE, expects=None, returns=returns, middlewares=middlewares)
+    return route(path, method=abc.web.HttpMethod.DELETE, expects=None, returns=returns, middlewares=middlewares)
 
 
 def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loadable: bool = True):

@@ -2,12 +2,12 @@ import traceback
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from bolinette import abc, blnt
+from bolinette import abc
 from bolinette.exceptions import APIError, APIErrors, InternalError
 
 
 class Transaction(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext', *,
+    def __init__(self, context: abc.Context, *,
                  print_error: bool = True, propagate_error: bool = True, raise_internal: bool = True):
         super().__init__(context)
         self.print_error = print_error

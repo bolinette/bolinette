@@ -2,12 +2,12 @@ import re
 
 from pymongo import MongoClient
 
-from bolinette.blnt.database.engines import DatabaseEngine
+from bolinette import abc
 
 _COLLECTION_REGEX = re.compile(r'^([^/]+://[^/]+/?)(.*)$')
 
 
-class CollectionDatabase(DatabaseEngine):
+class CollectionDatabase(abc.db.Engine):
     def __init__(self, uri):
         super().__init__(relational=False)
         db = 'bolinette'

@@ -1,24 +1,20 @@
-from collections.abc import Iterator
-from typing import Literal
+from collections.abc import Iterator, Iterable
+from typing import Literal, Any
 
-from bolinette import core, blnt, mapping
-from bolinette.blnt.database.engines import DatabaseEngine
-
-MappingPyTyping = list[mapping.Column | mapping.Field | mapping.List | mapping.Definition]
-MappingListPyTyping = MappingPyTyping | tuple[str, MappingPyTyping]
+from bolinette import abc, core, blnt, mapping
 
 
-class Model:
+class Model(abc.WithContext, abc.core.Model):
     __blnt__: 'ModelMetadata' = None  # type: ignore
 
-    def __init__(self, context: blnt.BolinetteContext):
-        database = context.db.get_engine(self.__blnt__.database)
-        self.__props__ = ModelProps(self, database)
+    def __init__(self, context: abc.Context):
+        super().__init__(context)
+        self.__props__ = ModelProps(self, context.db.get_engine(self.__blnt__.database))
 
-    def payloads(self) -> MappingListPyTyping:
+    def payloads(self) -> Iterable[tuple[str, list[mapping.MappingObject]] | list[mapping.MappingObject]]:
         pass
 
-    def responses(self) -> MappingListPyTyping:
+    def responses(self) -> Iterable[tuple[str, list[mapping.MappingObject]] | list[mapping.MappingObject]]:
         pass
 
     def get_mixin(self, name: str):
@@ -40,7 +36,7 @@ class ModelMetadata:
 
 
 class ModelProps(blnt.Properties):
-    def __init__(self, model: Model, database: 'DatabaseEngine'):
+    def __init__(self, model: Model, database: abc.db.Engine):
         super().__init__(model)
         self.model = model
         self.database = database

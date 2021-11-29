@@ -7,7 +7,7 @@ from bolinette.exceptions import EntityNotFoundError
 
 
 class SimpleService(abc.WithContext):
-    __blnt__: 'ServiceMetadata' = None
+    __blnt__: 'ServiceMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):
         super().__init__(context)
@@ -17,7 +17,7 @@ class SimpleService(abc.WithContext):
 
 
 class Service(SimpleService):
-    __blnt__: 'ServiceMetadata' = None
+    __blnt__: 'ServiceMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):
         super().__init__(context)

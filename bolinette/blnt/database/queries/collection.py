@@ -3,16 +3,19 @@ from pymongo import ASCENDING, DESCENDING
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 
-from bolinette import blnt, core
+from bolinette import abc, core
 from bolinette.blnt.database.engines import CollectionDatabase
 from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
 
 
 class CollectionQueryBuilder(BaseQueryBuilder):
-    def __init__(self, model: 'core.Model', context: 'blnt.BolinetteContext'):
+    def __init__(self, model: 'core.Model', context: abc.Context):
         super().__init__(model, context)
         self._name = model.__blnt__.name
-        self._database: 'CollectionDatabase' = context.db[model.__blnt__.database]
+        if isinstance(database := context.db[model.__blnt__.database], CollectionDatabase):
+            self._database: CollectionDatabase = database
+        else:
+            raise TypeError(f'Database engine for "{model.__blnt__.name}" model has to be collection based')
         self._collection = self._database.db[self._name]
 
     def query(self) -> 'BaseQuery':

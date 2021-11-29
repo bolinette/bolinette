@@ -1,11 +1,11 @@
 from typing import Literal
 
-from bolinette import core, mapping, types
+from bolinette import abc, core, mapping, types
 from bolinette.exceptions import InternalError
 from bolinette.utils.functions import getattr_, hasattr_, invoke
 
 
-class Mapper:
+class Mapper(abc.mapping.Mapper):
     def __init__(self):
         self._payloads: dict[str, dict[str, mapping.Definition]] = {}
         self._responses: dict[str, dict[str, mapping.Definition]] = {}

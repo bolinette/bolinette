@@ -3,7 +3,7 @@ from typing import Any
 from dateutil import parser as date_parser
 
 from bolinette import abc, blnt, core, types, exceptions, mapping
-from bolinette.exceptions import APIErrors, APIError
+from bolinette.exceptions import APIErrors, APIError, InternalError
 from bolinette.utils.functions import is_db_entity
 
 
@@ -59,6 +59,8 @@ class Validator(abc.WithContext):
                                       values: dict[str, Any], attr_prefix: str):
         model: core.Model = self.context.inject.require('model', field.model_name, immediate=True)
         repo = model.__props__.repo
+        if repo is None:
+            raise InternalError(f'internal.not_initialized.repo:{model.__blnt__.name}')
         if name not in values:
             if field.required:
                 raise exceptions.ParamMissingError(name)
@@ -68,6 +70,8 @@ class Validator(abc.WithContext):
         if not isinstance(obj, dict):
             raise exceptions.BadParamFormatError(name, 'dict')
         field_def = self.context.mapper.payload(field.model_name, field.model_key)
+        if model.__props__.entity_key is None:
+            raise InternalError('internal.not_initialized.entity_key')
         cols = [field_def[col.name] for col in model.__props__.entity_key]
         keys = dict((col.key, obj.get(col.name, None)) for col in cols)
         entity = await repo.query().filter_by(**keys).first()
