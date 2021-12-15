@@ -2,11 +2,11 @@ from abc import abstractmethod, ABC
 from collections.abc import Callable
 from typing import Any
 
-from bolinette import abc, core
+from bolinette import abc, data
 
 
 class BaseQueryBuilder(abc.WithContext, ABC):
-    def __init__(self, model: 'core.Model', context: abc.Context):
+    def __init__(self, model: 'data.Model', context: abc.Context):
         abc.WithContext.__init__(self, context)
         self._model = model
 

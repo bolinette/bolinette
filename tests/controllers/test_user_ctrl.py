@@ -1,4 +1,4 @@
-from bolinette import blnt
+from bolinette import core
 from bolinette.testing import bolitest, Mock, Mocked
 # noinspection PyUnresolvedReferences
 from bolinette.testing.fixture import client
@@ -13,7 +13,7 @@ async def set_up(mock: Mock):
     await utils.user.salt_password(mock(1, 'user')).insert()
 
 
-async def admin_set_up(context: blnt.BolinetteContext, mock: Mock):
+async def admin_set_up(context: core.BolinetteContext, mock: Mock):
     admin = await Mocked.insert_entity(context, 'role', {'name': 'admin'})
     user1 = await utils.user.salt_password(mock(1, 'user')).insert()
     user1.roles.append(admin)
@@ -21,7 +21,7 @@ async def admin_set_up(context: blnt.BolinetteContext, mock: Mock):
     await mock(1, 'role').insert()
 
 
-async def root_set_up(context: blnt.BolinetteContext, mock: Mock):
+async def root_set_up(context: core.BolinetteContext, mock: Mock):
     root = await Mocked.insert_entity(context, 'role', {'name': 'root'})
     admin = await Mocked.insert_entity(context, 'role', {'name': 'admin'})
     user1 = await utils.user.salt_password(mock(1, 'user')).insert()

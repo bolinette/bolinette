@@ -4,7 +4,7 @@ from typing import Any, Literal
 import yaml
 from aiohttp_swagger import setup_swagger
 
-from bolinette import abc, blnt, web, types, mapping
+from bolinette import abc, core, web, types, mapping
 from bolinette.decorators import get
 from bolinette.utils import paths, files
 
@@ -203,7 +203,7 @@ class Documentation(abc.WithContext):
 class NoDocsController(web.Controller):
     __blnt__ = web.ControllerMetadata('no_docs', '', False, '', '/api', [])
 
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
 
     @get('')

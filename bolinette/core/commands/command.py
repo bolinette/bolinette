@@ -1,6 +1,6 @@
 from typing import Any
 from collections.abc import Callable
-from bolinette.blnt.commands import Argument
+from bolinette.core.commands import Argument
 
 
 class Command:

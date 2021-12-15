@@ -2,7 +2,7 @@ import random
 import string
 from datetime import datetime
 
-from bolinette import abc, blnt, web
+from bolinette import abc, core, web
 from bolinette.decorators import controller, get, post, patch, delete
 from bolinette.defaults.services import UserService, RoleService
 from bolinette.exceptions import ForbiddenError
@@ -95,7 +95,7 @@ class UserController(web.Controller):
         -response 201 returns: The created user
         -response 403: If the route is disabled
         """
-        if blnt.init.get('ADMIN_REGISTER_ONLY', True):
+        if core.init.get('ADMIN_REGISTER_ONLY', True):
             raise ForbiddenError('global.register.admin_only')
         user = await self.user_service.create(payload)
         resp = self.response.created(messages='user.registered', data=user)

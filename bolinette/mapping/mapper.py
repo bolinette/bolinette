@@ -1,6 +1,6 @@
 from typing import Literal
 
-from bolinette import abc, core, mapping, types
+from bolinette import abc, data, mapping, types
 from bolinette.exceptions import InternalError
 from bolinette.utils.functions import getattr_, hasattr_, invoke
 
@@ -38,12 +38,12 @@ class Mapper(abc.mapping.Mapper):
             for key in self._responses[model_name]:
                 yield model_name, key, self._responses[model_name][key]
 
-    def _extract_defs(self, model: 'core.Model', model_cls: type['core.Model'],
+    def _extract_defs(self, model: 'data.Model', model_cls: type['data.Model'],
                       collection: Literal['payloads', 'responses'],
                       merge_defs: Literal['ignore', 'append', 'overwrite']):
         defs = {}
         for parent in model_cls.__bases__:
-            if issubclass(parent, core.Model) and parent != core.Model:
+            if issubclass(parent, data.Model) and parent != data.Model:
                 for _key, _def in self._extract_defs(model, parent, collection, merge_defs).items():
                     defs[_key] = _def
         def_func = getattr(model_cls, collection)
@@ -69,7 +69,7 @@ class Mapper(abc.mapping.Mapper):
                 defs[model_key] = payload
         return defs
 
-    def register(self, model: 'core.Model'):
+    def register(self, model: 'data.Model'):
         def create_defs(collection, attr_name: Literal['payloads', 'responses']):
             defs = self._extract_defs(model, type(model), attr_name, model.__blnt__.merge_defs)
             for model_key, payload in defs.items():

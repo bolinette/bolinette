@@ -3,13 +3,13 @@ from pymongo import ASCENDING, DESCENDING
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 
-from bolinette import abc, core
-from bolinette.blnt.database.engines import CollectionDatabase
-from bolinette.blnt.database.queries import BaseQueryBuilder, BaseQuery
+from bolinette import abc, data
+from bolinette.core.database.engines import CollectionDatabase
+from bolinette.core.database.queries import BaseQueryBuilder, BaseQuery
 
 
 class CollectionQueryBuilder(BaseQueryBuilder):
-    def __init__(self, model: 'core.Model', context: abc.Context):
+    def __init__(self, model: 'data.Model', context: abc.Context):
         super().__init__(model, context)
         self._name = model.__blnt__.name
         if isinstance(database := context.db[model.__blnt__.database], CollectionDatabase):

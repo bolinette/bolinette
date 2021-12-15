@@ -2,12 +2,12 @@ from datetime import datetime, timedelta
 
 import jwt as py_jwt
 
-from bolinette import abc, blnt
+from bolinette import abc, core
 from bolinette.exceptions import UnauthorizedError
 
 
 class JWT(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
         self._access_token_expires = timedelta(seconds=context.env['access_token_validity'])
         self._refresh_token_expires = timedelta(seconds=context.env['refresh_token_validity'])

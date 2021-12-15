@@ -1,11 +1,11 @@
 import typing as _typing
 
-from bolinette import types, core, mapping
+from bolinette import types, data, mapping
 from bolinette.decorators import model, model_property
 
 
 @model('person', mixins=['historized'])
-class Person(core.Model):
+class Person(data.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     uid = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
     first_name = types.defs.Column(types.db.String, nullable=False)

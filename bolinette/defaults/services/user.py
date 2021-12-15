@@ -1,13 +1,13 @@
 import bcrypt
 
-from bolinette import abc, core
+from bolinette import abc, data
 from bolinette.decorators import service
 from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
 from bolinette.defaults.services import FileService
 
 
 @service('user')
-class UserService(core.Service):
+class UserService(data.Service):
     def __init__(self, context: abc.Context, file_service: FileService):
         super().__init__(context)
         self.file_service = file_service

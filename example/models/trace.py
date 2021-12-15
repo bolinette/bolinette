@@ -1,9 +1,9 @@
-from bolinette import core, types
+from bolinette import data, types
 from bolinette.decorators import model
 
 
 @model('trace')
-class Trace(core.Model):
+class Trace(data.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
     visits = types.defs.Column(types.db.Integer, nullable=False)

@@ -1,9 +1,9 @@
-from bolinette import core
+from bolinette import data
 from bolinette.decorators import service
 
 
 @service('trace')
-class TraceService(core.Service):
+class TraceService(data.Service):
     async def inc_trace(self, page_name, user, timestamp):
         trace = await self.repo.query().filter_by(name=page_name, user_id=user.id).first()
         if trace is None:

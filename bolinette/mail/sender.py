@@ -1,4 +1,4 @@
-from bolinette import abc, blnt
+from bolinette import abc, core
 from bolinette.mail.providers import Mailgun
 
 _providers = {
@@ -7,7 +7,7 @@ _providers = {
 
 
 class Sender(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
         self.provider = None
 

@@ -1,7 +1,7 @@
 import traceback
 
-from bolinette import abc, blnt, Console
-from bolinette.blnt.database.engines import RelationalDatabase, CollectionDatabase
+from bolinette import abc, core, Console
+from bolinette.core.database.engines import RelationalDatabase, CollectionDatabase
 from bolinette.exceptions import InternalError, InitError, APIError, APIErrors
 
 
@@ -13,7 +13,7 @@ class DatabaseManager(abc.WithContext, abc.db.Manager):
         'mongodb+srv://': CollectionDatabase,
     }
 
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
         self.engines: dict[str, abc.db.Engine] = {}
         self._init_databases()
@@ -79,7 +79,7 @@ class DatabaseManager(abc.WithContext, abc.db.Manager):
             await engine.drop_all()
 
     async def run_seeders(self, log: bool = False, tab: int = 0):
-        for func in blnt.cache.seeders:
+        for func in core.cache.seeders:
             if log:
                 self.context.logger.info(f'{" " * tab}- Running {func.__name__}')
             try:

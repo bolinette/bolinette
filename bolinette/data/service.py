@@ -1,7 +1,7 @@
 from typing import Any
 
 from bolinette import abc
-from bolinette.blnt.objects import PaginationParams, OrderByParams
+from bolinette.core.objects import PaginationParams, OrderByParams
 from bolinette.decorators import injected
 from bolinette.exceptions import EntityNotFoundError
 

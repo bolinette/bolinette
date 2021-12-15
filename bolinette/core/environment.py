@@ -6,7 +6,7 @@ from abc import ABC
 
 import yaml
 
-from bolinette import abc, console, blnt
+from bolinette import abc, console, core
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
 
@@ -108,7 +108,7 @@ init = InitSettings()
 
 
 class Environment(Settings, abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext', *, profile=None, overrides=None):
+    def __init__(self, context: 'core.BolinetteContext', *, profile=None, overrides=None):
         Settings.__init__(self)
         abc.WithContext.__init__(self, context)
         profile = profile or init.profile or 'development'

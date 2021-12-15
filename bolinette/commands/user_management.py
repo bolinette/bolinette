@@ -1,7 +1,7 @@
 import sys
 import getpass
 
-from bolinette import Console, blnt, abc
+from bolinette import Console, core, abc
 from bolinette.decorators import command
 from bolinette.exceptions import ParamConflictError, EntityNotFoundError, APIError, APIErrors, ParamNonNullableError
 from bolinette.defaults.services import UserService, RoleService
@@ -21,7 +21,7 @@ async def create_user(context: abc.Context, username: str, email: str, roles: st
         if password == password2:
             break
         console.error('Passwords don\'t match')
-    async with blnt.Transaction(context, print_error=False, propagate_error=False):
+    async with core.Transaction(context, print_error=False, propagate_error=False):
         user_roles = []
         if roles is not None:
             for role_name in [r.strip() for r in roles.split(',')]:
@@ -88,7 +88,7 @@ async def add_role(context: abc.Context, user: str, role: str, create: bool):
     console = Console()
     user_service: UserService = context.inject.require(UserService, immediate=True)
     role_service: RoleService = context.inject.require(RoleService, immediate=True)
-    async with blnt.Transaction(context, print_error=False, propagate_error=False):
+    async with core.Transaction(context, print_error=False, propagate_error=False):
         try:
             user_ent = await user_service.get_by_username(user)
         except APIError:
@@ -117,7 +117,7 @@ async def revoke_role(context: abc.Context, user: str, role: str, prune: bool):
     console = Console()
     user_service: UserService = context.inject.require(UserService, immediate=True)
     role_service: RoleService = context.inject.require(RoleService, immediate=True)
-    async with blnt.Transaction(context, print_error=False, propagate_error=False):
+    async with core.Transaction(context, print_error=False, propagate_error=False):
         try:
             user_ent = await user_service.get_by_username(user)
         except APIError:

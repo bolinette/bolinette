@@ -1,11 +1,11 @@
 from typing import Literal, Any, Optional
 
-from bolinette import abc, types, core
+from bolinette import abc, types, data
 
 
 class Reference(abc.inject.Instantiable):
-    def __init__(self, model: 'core.Model', column: 'core.models.Column', target_model: 'core.Model',
-                 target_column: 'core.models.Column', **kwargs):
+    def __init__(self, model: 'data.Model', column: 'data.models.Column', target_model: 'data.Model',
+                 target_column: 'data.models.Column', **kwargs):
         super().__init__(**kwargs)
         self._model = model
         self._column = column
@@ -37,7 +37,7 @@ class Reference(abc.inject.Instantiable):
 
 
 class Column(abc.inject.Instantiable):
-    def __init__(self, name: str, model: 'core.Model', data_type: 'types.db.DataType', reference: Reference | None,
+    def __init__(self, name: str, model: 'data.Model', data_type: 'types.db.DataType', reference: Reference | None,
                  primary_key: bool, auto: bool | None, nullable: bool, unique: bool, entity_key: bool,
                  default: Any | None, **kwargs):
         super().__init__(**kwargs)
@@ -112,14 +112,14 @@ class Column(abc.inject.Instantiable):
 
 
 class ColumnList:
-    def __init__(self, name: str, model: 'core.Model', origin: 'core.Model'):
+    def __init__(self, name: str, model: 'data.Model', origin: 'data.Model'):
         self._name = name
         self._model = model
         self._origin = origin
 
 
 class Backref(abc.inject.Instantiable):
-    def __init__(self, model: 'core.Model', relationship: 'core.models.Relationship',
+    def __init__(self, model: 'data.Model', relationship: 'data.models.Relationship',
                  key: str, lazy: bool):
         self._model = model
         self._relationship = relationship
@@ -139,9 +139,9 @@ class Backref(abc.inject.Instantiable):
 
 
 class Relationship(abc.inject.Instantiable):
-    def __init__(self, name: str, model: 'core.Model', target_model: 'core.Model', backref: Backref | None,
+    def __init__(self, name: str, model: 'data.Model', target_model: 'data.Model', backref: Backref | None,
                  foreign_key: Column | None, remote_side: Column | None, lazy: bool | Literal['subquery'],
-                 secondary: Optional['core.Model'], **kwargs):
+                 secondary: Optional['data.Model'], **kwargs):
         super().__init__(**kwargs)
         self._name = name
         self._model = model

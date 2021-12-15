@@ -4,11 +4,11 @@ import string
 from types import SimpleNamespace
 from typing import Any
 
-from bolinette import abc, blnt, types, core
+from bolinette import abc, core, types, data
 
 
 class Mocked(abc.WithContext):
-    def __init__(self, name, context: 'blnt.BolinetteContext'):
+    def __init__(self, name, context: 'core.BolinetteContext'):
         super().__init__(context)
         self.name = name
         self.model = self.context.inject.require('model', self.name, immediate=True)
@@ -28,7 +28,7 @@ class Mocked(abc.WithContext):
         return repr(self._fields)
 
     @staticmethod
-    async def insert_entity(context: 'blnt.BolinetteContext', name: str, params: dict[str, Any]):
+    async def insert_entity(context: 'core.BolinetteContext', name: str, params: dict[str, Any]):
         mocked = Mocked(name, context)
         for key, value in params.items():
             mocked[key] = value
@@ -70,7 +70,7 @@ class Mocked(abc.WithContext):
 
 
 class Mock(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
 
     @staticmethod
@@ -118,7 +118,7 @@ class Mock(abc.WithContext):
 
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
-        model: core.Model = self.context.inject.require('model', model_name, immediate=True)
+        model: data.Model = self.context.inject.require('model', model_name, immediate=True)
         columns = model.__props__.get_columns()
         for _, column in columns:
             if column.auto_increment:

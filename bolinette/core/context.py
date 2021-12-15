@@ -1,8 +1,8 @@
 from typing import Any
 from collections.abc import Iterable
 
-from bolinette import abc, blnt, web, mapping, BolinetteExtension, Extensions
-from bolinette.blnt.database import DatabaseManager
+from bolinette import abc, core, web, mapping, BolinetteExtension, Extensions
+from bolinette.core.database import DatabaseManager
 from bolinette.utils import files
 
 
@@ -10,8 +10,8 @@ class BolinetteContext(abc.Context):
     def __init__(self, origin: str, *, extensions: list[BolinetteExtension] = None,
                  profile: str = None, overrides: dict[str, Any] = None):
         self._origin = origin
-        self.env = blnt.Environment(self, profile=profile, overrides=overrides)
-        self.inject = blnt.BolinetteInjection(self)
+        self.env = core.Environment(self, profile=profile, overrides=overrides)
+        self.inject = core.BolinetteInjection(self)
         self.db = DatabaseManager(self)
         self.mapper = mapping.Mapper()
         self.resources = web.BolinetteResources(self)
@@ -24,9 +24,9 @@ class BolinetteContext(abc.Context):
 
         self.manifest = files.read_manifest(
             self.root_path(), params={'version': self.env.get('version', '0.0.0')}) or {}
-        self.logger = blnt.Logger(self)
-        self.validator = blnt.Validator(self)
-        self.jwt = blnt.JWT(self)
+        self.logger = core.Logger(self)
+        self.validator = core.Validator(self)
+        self.jwt = core.JWT(self)
         self.sockets = web.BolinetteSockets(self)
 
     @property

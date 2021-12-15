@@ -3,12 +3,12 @@ import string
 
 from bolinette.utils import paths
 
-from bolinette import core
+from bolinette import data
 from bolinette.decorators import service
 
 
 @service('file')
-class FileService(core.Service):
+class FileService(data.Service):
     async def _generate_key(self):
         key = None
         while key is None or len(await self.get_by('key', key)):

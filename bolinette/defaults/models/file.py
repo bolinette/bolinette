@@ -1,9 +1,9 @@
-from bolinette import types, core, mapping
+from bolinette import types, data, mapping
 from bolinette.decorators import model
 
 
 @model('file')
-class File(core.Model):
+class File(data.Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     key = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)

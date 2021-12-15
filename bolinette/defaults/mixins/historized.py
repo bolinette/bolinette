@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from bolinette import types, core, mapping
+from bolinette import types, data, mapping
 from bolinette.decorators import mixin
 
 
 @mixin('historized')
-class Historized(core.Mixin):
+class Historized(data.Mixin):
     def columns(self):
         return {
             'created_on': types.defs.Column(types.db.Date, nullable=False),

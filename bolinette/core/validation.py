@@ -2,13 +2,13 @@ from typing import Any
 
 from dateutil import parser as date_parser
 
-from bolinette import abc, blnt, core, types, exceptions, mapping
+from bolinette import abc, core, data, types, exceptions, mapping
 from bolinette.exceptions import APIErrors, APIError, InternalError
 from bolinette.utils.functions import is_db_entity
 
 
 class Validator(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
 
     async def validate_payload(self, model: str, key: str, values, patch=False, attr_prefix: str = None):
@@ -57,7 +57,7 @@ class Validator(abc.WithContext):
 
     async def _validate_linked_entity(self, field: 'mapping.Reference', name: str,
                                       values: dict[str, Any], attr_prefix: str):
-        model: core.Model = self.context.inject.require('model', field.model_name, immediate=True)
+        model: data.Model = self.context.inject.require('model', field.model_name, immediate=True)
         repo = model.__props__.repo
         if repo is None:
             raise InternalError(f'internal.not_initialized.repo:{model.__blnt__.name}')

@@ -5,13 +5,13 @@ import aiohttp
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 
-from bolinette import abc, blnt, web
+from bolinette import abc, core, web
 from bolinette.exceptions import APIError
 from bolinette.utils.functions import async_invoke
 
 
 class BolinetteSockets(abc.WithContext):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
         self._topics: dict[str, 'web.Topic'] = {}
         self._channels: dict[str, list['web.TopicChannel']] = {}
@@ -73,7 +73,7 @@ class SocketHandler:
         pass
 
     async def __call__(self, request: Request):
-        context: blnt.BolinetteContext = request.app['blnt']
+        context: core.BolinetteContext = request.app['blnt']
         user_service = context.inject.require('service', 'user', immediate=True)
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
@@ -116,12 +116,12 @@ class SocketHandler:
         if await async_invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
             await topic.receive_subscription(payload['channel'], socket)
 
-    async def process_topic_message(self, context: 'blnt.BolinetteContext',
+    async def process_topic_message(self, context: 'core.BolinetteContext',
                                     socket: aio_web.WebSocketResponse, payload, current_user):
         action = payload['action']
         topic = context.sockets.topic(payload['topic'])
         if topic is not None:
-            async with blnt.Transaction(context):
+            async with core.Transaction(context):
                 if action == 'subscribe':
                     await self._subscribe(topic, socket, payload, current_user)
                 elif action == 'send':

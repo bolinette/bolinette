@@ -6,13 +6,13 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
-from bolinette import abc, console, blnt, web
+from bolinette import abc, console, core, web
 from bolinette.exceptions import APIError, APIErrors, InternalError
 from bolinette.utils.serializing import serialize
 
 
 class BolinetteResources(abc.WithContext, abc.web.Resources):
-    def __init__(self, context: 'blnt.BolinetteContext'):
+    def __init__(self, context: 'core.BolinetteContext'):
         super().__init__(context)
         self._routes: dict[str, dict[abc.web.HttpMethod, abc.web.Route]] = {}
         self._aiohttp_resources: dict[str, 'BolinetteResource'] = {}
@@ -78,7 +78,7 @@ class RouteHandler:
         self.route = route
 
     async def __call__(self, request: Request):
-        context: blnt.BolinetteContext = request.app['blnt']
+        context: core.BolinetteContext = request.app['blnt']
         params: dict[str, Any] = {
             'match': {},
             'query': {},

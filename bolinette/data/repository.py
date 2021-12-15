@@ -1,14 +1,14 @@
 from typing import Any
 
-from bolinette import abc, core
-from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
-from bolinette.blnt.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
+from bolinette import abc, data
+from bolinette.core.objects import Pagination, PaginationParams, OrderByParams
+from bolinette.core.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
 from bolinette.utils.functions import setattr_, getattr_, async_invoke
 
 
 class Repository(abc.WithContext):
-    def __init__(self, context: abc.Context, model: 'core.Model'):
+    def __init__(self, context: abc.Context, model: 'data.Model'):
         super().__init__(context)
         self._model = model
         self._query_builder = self._get_query_builder(model, context)
@@ -18,7 +18,7 @@ class Repository(abc.WithContext):
         return self._model
 
     @staticmethod
-    def _get_query_builder(model: 'core.Model', context: abc.Context):
+    def _get_query_builder(model: 'data.Model', context: abc.Context):
         db = context.db[model.__blnt__.database]
         if db.relational:
             return RelationalQueryBuilder(model, context)
@@ -101,7 +101,7 @@ class Repository(abc.WithContext):
         return values
 
     @staticmethod
-    async def _validate_linked_model(relationship: 'core.models.Relationship', values: dict[str, Any],
+    async def _validate_linked_model(relationship: 'data.models.Relationship', values: dict[str, Any],
                                      repo_args: dict[str, Any], ignore_keys: list[str]):
         if relationship.foreign_key is None:
             return

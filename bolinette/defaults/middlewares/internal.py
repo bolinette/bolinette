@@ -5,8 +5,8 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 
-from bolinette import web, blnt
-from bolinette.blnt.objects import Pagination, PaginationParams, OrderByParams
+from bolinette import web, core
+from bolinette.core.objects import Pagination, PaginationParams, OrderByParams
 from bolinette.decorators import middleware
 from bolinette.exceptions import BadRequestError
 from bolinette.utils.serializing import deserialize, serialize
@@ -44,7 +44,7 @@ class ResponseMiddleware(web.InternalMiddleware):
         }
 
     async def handle(self, request, params, next_func):
-        async with blnt.Transaction(self.context):
+        async with core.Transaction(self.context):
             resp = await next_func(request, params)
         if resp is None:
             return aio_web.Response(status=204)

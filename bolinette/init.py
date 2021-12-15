@@ -2,9 +2,9 @@ from aiohttp import web as aio_web
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import abc, blnt, core, web, Extensions
+from bolinette import abc, core, data, web, Extensions
 from bolinette.decorators import init_func
-from bolinette.blnt.database.engines import RelationalDatabase
+from bolinette.core.database.engines import RelationalDatabase
 from bolinette.exceptions import InitError, InternalError
 from bolinette.docs import Documentation
 
@@ -17,11 +17,11 @@ class TestObj(abc.WithContext):
 
 @init_func(extension=Extensions.MODELS)
 async def init_model_classes(context: abc.Context):
-    def _init_model(model: core.Model):
-        def _init_column(_name: str, _attr: blnt.InstantiableAttribute[core.models.Column]):
+    def _init_model(model: data.Model):
+        def _init_column(_name: str, _attr: core.InstantiableAttribute[data.models.Column]):
             return _attr.instantiate(name=_name, model=model)
 
-        def _init_relationship(_name: str, _attr: blnt.InstantiableAttribute[core.models.Relationship]):
+        def _init_relationship(_name: str, _attr: core.InstantiableAttribute[data.models.Relationship]):
             _target_name = _attr.pop('model_name')
             _target_model = context.inject.require('model', _target_name, immediate=True)
             _fk_name = _attr.pop('foreign_key')
@@ -39,7 +39,7 @@ async def init_model_classes(context: abc.Context):
             return _attr.instantiate(name=_name, model=model, target_model=_target_model, secondary=_secondary,
                                      foreign_key=_foreign_key, remote_side=_remote_side)
 
-        def _init_reference(_col: core.models.Column, _attr: blnt.InstantiableAttribute[core.models.Reference]):
+        def _init_reference(_col: data.models.Column, _attr: core.InstantiableAttribute[data.models.Reference]):
             _target_name = _attr.pop('model_name')
             _target_model = context.inject.require('model', _target_name, immediate=True)
             _target_col_name = _attr.pop('column_name')
@@ -52,12 +52,12 @@ async def init_model_classes(context: abc.Context):
 
         # Instantiate mixins
         for mixin_name in model.__blnt__.mixins:
-            if mixin_name not in blnt.cache.mixins:
+            if mixin_name not in core.cache.mixins:
                 raise InitError(f'Model "{model_name}": mixin "{mixin_name}" is not defined')
-            model.__props__.mixins[mixin_name] = blnt.cache.mixins[mixin_name]()
+            model.__props__.mixins[mixin_name] = core.cache.mixins[mixin_name]()
 
         # Instantiate columns
-        for col_name, attr_col in model.__props__.get_instantiable(core.models.Column):
+        for col_name, attr_col in model.__props__.get_instantiable(data.models.Column):
             setattr(model, col_name, _init_column(col_name, attr_col))
         # Add mixin columns
         for _, mixin in model.__props__.mixins.items():
@@ -85,7 +85,7 @@ async def init_model_classes(context: abc.Context):
                             'Mark one column or more as entity_key=True.')
 
         # Process relationships
-        for rel_name, attr_rel in model.__props__.get_instantiable(core.models.Relationship):
+        for rel_name, attr_rel in model.__props__.get_instantiable(data.models.Relationship):
             setattr(model, rel_name, _init_relationship(rel_name, attr_rel))
         # Add mixin relationships
         for _, mixin in model.__props__.mixins.items():
@@ -94,27 +94,27 @@ async def init_model_classes(context: abc.Context):
 
         # Instantiate references
         for col_name, col in model.__props__.get_columns():
-            if isinstance(col.reference, blnt.InstantiableAttribute):
+            if isinstance(col.reference, core.InstantiableAttribute):
                 col.reference = _init_reference(col, col.reference)
         # Instantiate back references
-        added_back_refs: dict[core.Model, list[core.models.ColumnList]] = {}
+        added_back_refs: dict[data.Model, list[data.models.ColumnList]] = {}
         for rel_name, rel in model.__props__.get_relationships():
-            if isinstance(rel.backref, blnt.InstantiableAttribute):
+            if isinstance(rel.backref, core.InstantiableAttribute):
                 rel.backref = rel.backref.instantiate(model=model, relationship=rel)
                 if rel.backref.key not in added_back_refs:
                     added_back_refs[rel.target_model] = []
                 added_back_refs[rel.target_model].append(
-                    core.models.ColumnList(rel.backref.key, rel.target_model, model))
+                    data.models.ColumnList(rel.backref.key, rel.target_model, model))
 
-    for model_name, model_cls in blnt.cache.models.items():
+    for model_name, model_cls in core.cache.models.items():
         context.inject.register(model_cls, 'model', model_name, func=_init_model)
 
 
 @init_func(extension=Extensions.MODELS)
 async def init_relational_models(context: abc.Context):
     models = {}
-    for model_cls in context.inject.registered(of_type=core.Model):
-        model: core.Model = context.inject.require(model_cls, immediate=True)
+    for model_cls in context.inject.registered(of_type=data.Model):
+        model: data.Model = context.inject.require(model_cls, immediate=True)
         if model.__props__.database.relational:
             models[model.__blnt__.name] = model
     orm_tables = {}
@@ -170,28 +170,28 @@ async def init_databases(context: abc.Context):
 
 @init_func(extension=Extensions.MODELS)
 async def init_repositories(context: abc.Context):
-    for model_cls in context.inject.registered(of_type=core.Model):
-        model: core.Model = context.inject.require(model_cls, immediate=True)
-        model.__props__.repo = core.Repository(context, model)
+    for model_cls in context.inject.registered(of_type=data.Model):
+        model: data.Model = context.inject.require(model_cls, immediate=True)
+        model.__props__.repo = data.Repository(context, model)
 
 
 @init_func(extension=Extensions.MODELS)
 async def init_mappings(context: abc.Context):
-    for model_cls in context.inject.registered(of_type=core.Model):
-        model: core.Model = context.inject.require(model_cls, immediate=True)
+    for model_cls in context.inject.registered(of_type=data.Model):
+        model: data.Model = context.inject.require(model_cls, immediate=True)
         context.mapper.register(model)
 
 
 @init_func(extension=Extensions.MODELS)
 async def init_services(context: abc.Context):
-    for service_name, service_cls in blnt.cache.services.items():
+    for service_name, service_cls in core.cache.services.items():
         context.inject.register(service_cls, 'service', service_name)
 
 
 @init_func(extension=Extensions.WEB)
 async def init_controllers(context: abc.Context):
     def _init_ctrl(controller: web.Controller):
-        def _init_route(_attr: blnt.InstantiableAttribute[web.ControllerRoute]):
+        def _init_route(_attr: core.InstantiableAttribute[web.ControllerRoute]):
             _route = _attr.instantiate(controller=controller)
             if _route.inner_route is not None:
                 _route.inner_route, _route.func = _init_route(_route.inner_route)  # type: ignore
@@ -207,7 +207,7 @@ async def init_controllers(context: abc.Context):
             route.controller = controller
             route.setup()
 
-    for controller_name, controller_cls in blnt.cache.controllers.items():
+    for controller_name, controller_cls in core.cache.controllers.items():
         context.inject.register(controller_cls, 'controller', controller_name, func=_init_ctrl)
 
 

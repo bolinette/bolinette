@@ -7,7 +7,7 @@ from typing import Any
 import bolinette
 from bolinette import Console
 from bolinette.exceptions import InitError
-from bolinette.blnt.commands import Command, Argument
+from bolinette.core.commands import Command, Argument
 from bolinette.utils.functions import async_invoke, invoke
 
 
