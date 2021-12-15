@@ -1,8 +1,10 @@
+import sys
+
 from aiohttp import web as aio_web
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
-from bolinette import abc, core, data, web, Extensions
+from bolinette import abc, core, data, web
 from bolinette.decorators import init_func
 from bolinette.core.database.engines import RelationalDatabase
 from bolinette.exceptions import InitError, InternalError
@@ -15,7 +17,7 @@ class TestObj(abc.WithContext):
         self.value = value
 
 
-@init_func(extension=Extensions.MODELS)
+@init_func()
 async def init_model_classes(context: abc.Context):
     def _init_model(model: data.Model):
         def _init_column(_name: str, _attr: core.InstantiableAttribute[data.models.Column]):
@@ -52,9 +54,7 @@ async def init_model_classes(context: abc.Context):
 
         # Instantiate mixins
         for mixin_name in model.__blnt__.mixins:
-            if mixin_name not in core.cache.mixins:
-                raise InitError(f'Model "{model_name}": mixin "{mixin_name}" is not defined')
-            model.__props__.mixins[mixin_name] = core.cache.mixins[mixin_name]()
+            model.__props__.mixins[mixin_name] = context.inject.collect_type('mixin', mixin_name)()
 
         # Instantiate columns
         for col_name, attr_col in model.__props__.get_instantiable(data.models.Column):
@@ -106,11 +106,11 @@ async def init_model_classes(context: abc.Context):
                 added_back_refs[rel.target_model].append(
                     data.models.ColumnList(rel.backref.key, rel.target_model, model))
 
-    for model_name, model_cls in core.cache.models.items():
-        context.inject.register(model_cls, 'model', model_name, func=_init_model)
+    for model_cls in context.inject.collect_types(data.Model):
+        context.inject.register(model_cls, 'model', model_cls.__blnt__.name, func=_init_model)
 
 
-@init_func(extension=Extensions.MODELS)
+@init_func()
 async def init_relational_models(context: abc.Context):
     models = {}
     for model_cls in context.inject.registered(of_type=data.Model):
@@ -163,32 +163,32 @@ async def init_relational_models(context: abc.Context):
             model.__props__.database.add_table(model_name, orm_model)
 
 
-@init_func(extension=Extensions.MODELS)
+@init_func()
 async def init_databases(context: abc.Context):
     await context.db.create_all()
 
 
-@init_func(extension=Extensions.MODELS)
+@init_func()
 async def init_repositories(context: abc.Context):
     for model_cls in context.inject.registered(of_type=data.Model):
         model: data.Model = context.inject.require(model_cls, immediate=True)
         model.__props__.repo = data.Repository(context, model)
 
 
-@init_func(extension=Extensions.MODELS)
+@init_func()
 async def init_mappings(context: abc.Context):
     for model_cls in context.inject.registered(of_type=data.Model):
         model: data.Model = context.inject.require(model_cls, immediate=True)
         context.mapper.register(model)
 
 
-@init_func(extension=Extensions.MODELS)
+@init_func()
 async def init_services(context: abc.Context):
-    for service_name, service_cls in core.cache.services.items():
-        context.inject.register(service_cls, 'service', service_name)
+    for service_cls in context.inject.collect_types(data.SimpleService):
+        context.inject.register(service_cls, 'service', service_cls.__blnt__.name)
 
 
-@init_func(extension=Extensions.WEB)
+@init_func()
 async def init_controllers(context: abc.Context):
     def _init_ctrl(controller: web.Controller):
         def _init_route(_attr: core.InstantiableAttribute[web.ControllerRoute]):
@@ -207,16 +207,16 @@ async def init_controllers(context: abc.Context):
             route.controller = controller
             route.setup()
 
-    for controller_name, controller_cls in core.cache.controllers.items():
-        context.inject.register(controller_cls, 'controller', controller_name, func=_init_ctrl)
+    for controller_cls in context.inject.collect_types(web.Controller):
+        context.inject.register(controller_cls, 'controller', controller_cls.__blnt__.name, func=_init_ctrl)
 
 
-@init_func(extension=Extensions.WEB)
+@init_func()
 async def init_swagger_docs(context: abc.Context):
     context['blnt_docs'] = Documentation(context)
 
 
-@init_func(extension=Extensions.WEB, rerun_for_tests=True)
+@init_func(rerun_for_tests=True)
 async def init_aiohttp_web(context: abc.Context):
     if 'aiohttp' not in context:
         app = aio_web.Application()

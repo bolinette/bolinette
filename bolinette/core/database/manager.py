@@ -1,6 +1,6 @@
 import traceback
 
-from bolinette import abc, core, Console
+from bolinette import abc, data, Console
 from bolinette.core.database.engines import RelationalDatabase, CollectionDatabase
 from bolinette.exceptions import InternalError, InitError, APIError, APIErrors
 
@@ -13,7 +13,7 @@ class DatabaseManager(abc.WithContext, abc.db.Manager):
         'mongodb+srv://': CollectionDatabase,
     }
 
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: abc.Context):
         super().__init__(context)
         self.engines: dict[str, abc.db.Engine] = {}
         self._init_databases()
@@ -79,18 +79,18 @@ class DatabaseManager(abc.WithContext, abc.db.Manager):
             await engine.drop_all()
 
     async def run_seeders(self, log: bool = False, tab: int = 0):
-        for func in core.cache.seeders:
-            if log:
-                self.context.logger.info(f'{" " * tab}- Running {func.__name__}')
-            try:
-                await func(self.context)
-            except (APIError, APIErrors) as e:
-                traceback.print_exc()
+        try:
+            for seeder in self.context.inject.get_global_instances(data.Seeder):
                 if log:
-                    self.context.logger.info(f'Seeder {func.__name__} raised errors')
-                console = Console()
-                if isinstance(e, APIError):
-                    console.error(e.message)
-                elif isinstance(e, APIErrors):
-                    for error in e.errors:
-                        console.error(error.message)
+                    self.context.logger.info(f'{" " * tab}- Running {seeder.name}')
+                await seeder.run(self.context)
+        except (APIError, APIErrors) as e:
+            traceback.print_exc()
+            if log:
+                self.context.logger.info(f'Seeder {seeder.name} raised errors')
+            console = Console()
+            if isinstance(e, APIError):
+                console.error(e.message)
+            elif isinstance(e, APIErrors):
+                for error in e.errors:
+                    console.error(error.message)

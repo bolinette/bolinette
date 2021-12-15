@@ -2,11 +2,11 @@ import inspect as _inspect
 from collections.abc import Callable, Awaitable
 from typing import Literal, Any
 
-from bolinette import abc, core, data, web, BolinetteExtension
+from bolinette import abc, core, data, web
 from bolinette.core.commands import Command as _Command, Argument as _Argument
 
 
-def injected(func: Callable[[Any, abc.inject.Injection], abc.inject.T_Inject], name: str = None):
+def injected(func: Callable[[Any, abc.inject.Injection], abc.inject.T_WContext], name: str = None):
     return core.InjectionProxy(func, name or func.__name__)
 
 
@@ -19,7 +19,7 @@ def model(model_name: str, *,
     def decorator(model_cls: type['data.Model']):
         model_cls.__blnt__ = data.models.ModelMetadata(model_name, database, model_type == 'relational',
                                                        join_table, mixins or [], definitions)
-        core.cache.models[model_name] = model_cls
+        core.cache.register(model_cls, 'model', model_name)
         return model_cls
     return decorator
 
@@ -31,7 +31,8 @@ def model_property(function):
 class _MixinDecorator:
     def __call__(self, mixin_name: str):
         def decorator(mixin_cls: type['data.Mixin']):
-            core.cache.mixins[mixin_name] = mixin_cls
+            mixin_cls.__blnt__ = data.MixinMetadata(mixin_name)
+            core.cache.register(mixin_cls, 'mixin', mixin_name)
             return mixin_cls
         return decorator
 
@@ -43,22 +44,24 @@ class _MixinDecorator:
 mixin = _MixinDecorator()
 
 
-def init_func(*, extension: BolinetteExtension = None, rerun_for_tests: bool = False):
+def init_func(*, rerun_for_tests: bool = False):
     def decorator(func: Callable[['core.BolinetteContext'], Awaitable[None]]):
-        core.cache.init_funcs.append(core.InitFunc(func, extension, rerun_for_tests))
+        init_func = core.InitFunction(func, rerun_for_tests)
+        core.cache.register_instance(init_func, 'init_func', init_func.name)
         return func
     return decorator
 
 
-def seeder(func):
-    core.cache.seeders.append(func)
+def seeder(func: Callable[[abc.Context], None]):
+    seeder = data.Seeder(func)
+    core.cache.register_instance(seeder, 'seeder', seeder.name)
     return func
 
 
 def service(service_name: str, *, model_name: str = None):
     def decorator(service_cls: type[data.Service | data.SimpleService]):
         service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
-        core.cache.services[service_name] = service_cls
+        core.cache.register(service_cls, 'service', service_name)
         return service_cls
     return decorator
 
@@ -75,7 +78,7 @@ def controller(controller_name: str, path: str | None = None, *,
     def decorator(controller_cls: type['web.Controller']):
         controller_cls.__blnt__ = web.ControllerMetadata(
             controller_name, _path, use_service, _service_name, namespace, _middlewares)
-        core.cache.controllers[controller_name] = controller_cls
+        core.cache.register(controller_cls, 'controller', controller_name)
         return controller_cls
 
     return decorator
@@ -135,7 +138,7 @@ def delete(path: str, *, returns: 'web.Returns' = None,
 def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loadable: bool = True):
     def decorator(middleware_cls: type['web.Middleware']):
         middleware_cls.__blnt__ = web.MiddlewareMetadata(name, priority, auto_load, loadable)
-        core.cache.middlewares[name] = middleware_cls
+        core.cache.register(middleware_cls, 'middleware', name)
         return middleware_cls
     return decorator
 
@@ -143,7 +146,7 @@ def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loada
 def topic(topic_name: str):
     def decorator(topic_cls: type['web.Topic']):
         topic_cls.__blnt__ = web.TopicMetadata(topic_name)
-        core.cache.topics[topic_name] = topic_cls
+        core.cache.register(topic_cls, 'topic', topic_name)
         return topic_cls
     return decorator
 
@@ -169,7 +172,7 @@ class _CommandDecorator:
             else:
                 raise ValueError('@command must only decorate functions or async functions')
             cmd.init_params(name, summary, run_init, allow_anonymous)
-            core.cache.commands[cmd.name] = cmd
+            core.cache.register_instance(cmd, 'command', cmd.name)
             return cmd
         return decorator
 

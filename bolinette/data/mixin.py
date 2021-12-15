@@ -1,9 +1,11 @@
 from collections.abc import Iterator, Callable
 
-from bolinette import core, types
+from bolinette import abc, core, types
 
 
-class Mixin:
+class Mixin(abc.inject.Injectable):
+    __blnt__: 'MixinMetadata' = None  # type: ignore
+
     def __init__(self):
         self.__props__ = MixinProps(self)
         self._methods = {}
@@ -27,6 +29,11 @@ class Mixin:
 
     def response(self, model):
         pass
+
+
+class MixinMetadata:
+    def __init__(self, name: str) -> None:
+        self.name = name
 
 
 class MixinProps(core.Properties):

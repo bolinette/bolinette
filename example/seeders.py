@@ -1,7 +1,7 @@
 import random
 from datetime import datetime
 
-from bolinette import core
+from bolinette import abc, core
 from bolinette.decorators import seeder
 from bolinette.defaults.services import RoleService, UserService
 
@@ -9,7 +9,7 @@ from example.services import BookService, PersonService, LibraryService, TagServ
 
 
 @seeder
-async def role_seeder(context: core.BolinetteContext):
+async def role_seeder(context: abc.Context):
     role_service: RoleService = context.inject.require(RoleService, immediate=True)
     async with core.Transaction(context):
         await role_service.create({'name': 'root'})
@@ -17,7 +17,7 @@ async def role_seeder(context: core.BolinetteContext):
 
 
 @seeder
-async def dev_user_seeder(context: core.BolinetteContext):
+async def dev_user_seeder(context: abc.Context):
     rng = random.Random()
     first_names = ['Bob', 'Jack', 'Bill', 'Joe']
     last_names = ['Smith', 'Johnson', 'Jones', 'Miller']
@@ -55,7 +55,7 @@ async def dev_user_seeder(context: core.BolinetteContext):
 
 
 @seeder
-async def book_seeder(context: core.BolinetteContext):
+async def book_seeder(context: abc.Context):
     if context.env['profile'] == 'development':
         user_service = context.inject.require(UserService, immediate=True)
         person_service = context.inject.require(PersonService, immediate=True)
@@ -76,7 +76,7 @@ async def book_seeder(context: core.BolinetteContext):
 
 
 @seeder
-async def library_seeder(context: core.BolinetteContext):
+async def library_seeder(context: abc.Context):
     if context.env['profile'] == 'development':
         library_service = context.inject.require(LibraryService, immediate=True)
         async with core.Transaction(context):
@@ -92,7 +92,7 @@ async def library_seeder(context: core.BolinetteContext):
 
 
 @seeder
-async def tag_seeder(context: core.BolinetteContext):
+async def tag_seeder(context: abc.Context):
     if context.env['profile'] == 'development':
         tag_service = context.inject.require(TagService, immediate=True)
         label_service = context.inject.require(LabelService, immediate=True)

@@ -1,42 +1,44 @@
-from collections.abc import Callable, Awaitable
+from collections.abc import Iterable
+from typing import Any
 
-from bolinette import core, data, web, BolinetteExtension
+from bolinette import abc
 from bolinette.core.commands import Command
+from bolinette.exceptions import InitError
 
 
 class BolinetteCache:
     def __init__(self):
-        self.models: dict[str, type[data.Model]] = {}
-        self.mixins: dict[str, type[data.Mixin]] = {}
-        self.services: dict[str, type[data.Service | data.SimpleService]] = {}
-        self.controllers: dict[str, type[web.Controller]] = {}
-        self.middlewares: dict[str, type[web.Middleware]] = {}
-        self.topics: dict[str, type[web.Topic]] = {}
-        self.init_funcs: list[InitFunc] = []
-        self.commands: dict[str, Command] = {}
-        self.seeders = []
+        self._all_types: set[type[abc.inject.Injectable]] = set()
+        self._types_by_name: dict[str, dict[str, type[abc.inject.Injectable]]] = {}
+        self._all_instances: list[Any] = []
+        self._instances_by_name: dict[str, dict[str, Any]] = {}
+
+    def register(self, _type: type, collection: str, name: str):
+        if not issubclass(_type, abc.inject.Injectable):
+            raise InitError(f'Type {_type} has to be an injectable class')
+        if collection not in self._types_by_name:
+            self._types_by_name[collection] = {}
+        if name in self._types_by_name[collection]:
+            self._all_types.remove(self._types_by_name[collection][name])
+        self._all_types.add(_type)
+        self._types_by_name[collection][name] = _type
+
+    def register_instance(self, instance: Any, collection: str, name: str):
+        if collection not in self._instances_by_name:
+            self._instances_by_name[collection] = {}
+        self._instances_by_name[collection][name] = instance
+        self._all_instances.append(instance)
+
+    def collect_by_type(self, _type: type[abc.inject.Injectable]) -> Iterable[type[abc.inject.Injectable]]:
+        return (t for t in self._all_types if issubclass(t, _type))
+
+    def collect_by_name(self, collection: str, name: str) -> type[abc.inject.Injectable]:
+        if collection not in self._types_by_name or name not in self._types_by_name[collection]:
+            raise InitError(f'{collection}.{name} does not exist in registered types')
+        return self._types_by_name[collection][name]
+
+    def get_instances(self, _type: type[abc.inject.T_Instance]) -> Iterable[abc.inject.T_Instance]:
+        return (i for i in self._all_instances if isinstance(i, _type))
 
 
 cache = BolinetteCache()
-
-
-class InitFunc:
-    def __init__(self, func: Callable[['core.BolinetteContext'], Awaitable[None]],
-                 ext: BolinetteExtension | None, rerun_for_tests: bool):
-        self._func = func
-        self._ext = ext
-        self._rerun_for_tests = rerun_for_tests
-
-    @property
-    def extension(self):
-        return self._ext
-
-    @property
-    def rerun_for_tests(self):
-        return self._rerun_for_tests
-
-    def __call__(self, context: 'core.BolinetteContext'):
-        return self._func(context)
-
-    def __str__(self):
-        return self._func.__name__

@@ -1,12 +1,12 @@
 import inspect
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Generic, Any
 
-from bolinette import abc
+from bolinette import abc, core
 from bolinette.exceptions import InternalError
 
 
-def _resolve_dependencies(context: abc.Context, _type: type[abc.inject.T_Inject]):
+def _resolve_dependencies(context: abc.Context, _type: type[abc.inject.T_WContext]):
     args: dict[str, abc.Context | _ProxyHook] = {}
     errors = []
     injected: dict[str, str | type] = {}
@@ -45,7 +45,7 @@ def _hook_proxies(instance: Any):
 
 
 
-def instantiate_type(context: abc.Context, _type: type[abc.inject.T_Inject]) -> abc.inject.T_Inject:
+def instantiate_type(context: abc.Context, _type: type[abc.inject.T_WContext]) -> abc.inject.T_WContext:
     args = _resolve_dependencies(context, _type)
     instance = _type(**args)
     _hook_proxies(instance)
@@ -70,14 +70,14 @@ class InstantiableAttribute(Generic[abc.inject.T_Instantiable]):
         return self._type(**(self._dict | kwargs))
 
 
-class RegisteredType(Generic[abc.inject.T_Inject]):
-    def __init__(self, _type: type[abc.inject.T_Inject], collection: str, name: str,
-                 func: Callable[[abc.inject.T_Inject], None] | None = None,
+class RegisteredType(Generic[abc.inject.T_WContext]):
+    def __init__(self, _type: type[abc.inject.T_WContext], collection: str, name: str,
+                 func: Callable[[abc.inject.T_WContext], None] | None = None,
                  params: dict[str, Any] = None) -> None:
         self.type = _type
         self.collection = collection
         self.name = name
-        self.instance: abc.inject.T_Inject | None = None
+        self.instance: abc.inject.T_WContext | None = None
         self.func = func
         self.params = params
 
@@ -85,13 +85,12 @@ class RegisteredType(Generic[abc.inject.T_Inject]):
 class BolinetteInjection(abc.inject.Injection):
     def __init__(self, context: abc.Context) -> None:
         super().__init__(context)
-        self._collections: dict[str, abc.inject.Collection[Any]] = {}
         self._by_type: dict[type, RegisteredType[Any]] = {}
         self._by_collection: dict[str, dict[str, RegisteredType[Any]]] = {}
         self._by_name: dict[str, RegisteredType[Any]] = {}
 
-    def register(self, _type: type[abc.inject.T_Inject], collection: str, name: str, *,
-                 func: Callable[[abc.inject.T_Inject], None] | None = None,
+    def register(self, _type: type[abc.inject.T_WContext], collection: str, name: str, *,
+                 func: Callable[[abc.inject.T_WContext], None] | None = None,
                  params: dict[str, Any] = None) -> None:
         registered = RegisteredType(_type, collection, name, func, params)
         self._by_type[_type] = registered
@@ -100,7 +99,7 @@ class BolinetteInjection(abc.inject.Injection):
         self._by_collection[collection][name] = registered
         self._by_name[f'{_type.__module__}.{_type.__name__}'] = registered
 
-    def _require_by_type(self, _type: type[abc.inject.T_Inject]) -> RegisteredType[abc.inject.T_Inject]:
+    def _require_by_type(self, _type: type[abc.inject.T_WContext]) -> RegisteredType[abc.inject.T_WContext]:
         if _type not in self._by_type:
             raise InternalError(f'Injection error: No {_type} type found in injection registry')
         return self._by_type[_type]
@@ -154,8 +153,17 @@ class BolinetteInjection(abc.inject.Injection):
             for _type in self._by_type:
                 yield _type
 
+    def collect_types(self, _type: type[abc.inject.T_Injectable]) -> Iterable[type[abc.inject.T_Injectable]]:
+        return core.cache.collect_by_type(_type)
 
-class InjectingObject(abc.WithContext, Generic[abc.inject.T_Inject]):
+    def collect_type(self, collection: str, name: str) -> type[abc.inject.Injectable]:
+        return core.cache.collect_by_name(collection, name)
+
+    def get_global_instances(self, _type: type[abc.inject.T_Instance]) -> Iterable[abc.inject.T_Instance]:
+        return core.cache.get_instances(_type)
+
+
+class InjectingObject(abc.WithContext, Generic[abc.inject.T_WContext]):
     def __init__(self, context: abc.Context, wrapper: RegisteredType) -> None:
         super().__init__(context)
         self._type = wrapper.type
@@ -163,7 +171,7 @@ class InjectingObject(abc.WithContext, Generic[abc.inject.T_Inject]):
         self._function = wrapper.func
         self._params = wrapper.params or {}
 
-    def instantiate(self) -> abc.inject.T_Inject:
+    def instantiate(self) -> abc.inject.T_WContext:
         instance = instantiate_type(self.context, self._type)
         self._wrapper.instance = instance
         if self._function is not None:
@@ -171,12 +179,12 @@ class InjectingObject(abc.WithContext, Generic[abc.inject.T_Inject]):
         return instance
 
 
-class InjectionProxy(Generic[abc.inject.T_Inject]):
-    def __init__(self, func: Callable[[Any, abc.inject.Injection], abc.inject.T_Inject], name: str) -> None:
+class InjectionProxy(Generic[abc.inject.T_WContext]):
+    def __init__(self, func: Callable[[Any, abc.inject.Injection], abc.inject.T_WContext], name: str) -> None:
         self._func = func
         self._name = name
 
-    def __get__(self, instance, _) -> abc.inject.T_Inject | None:
+    def __get__(self, instance, _) -> abc.inject.T_WContext | None:
         if instance is None:
             return None
         if not isinstance(instance, abc.WithContext):

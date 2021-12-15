@@ -8,7 +8,7 @@ from aiohttp.web_response import Response
 from bolinette import abc
 
 
-class Middleware(abc.WithContext):
+class Middleware(abc.WithContext, abc.inject.Injectable):
     __blnt__: 'MiddlewareMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):

@@ -4,39 +4,34 @@ from typing import Any, Callable
 
 from aiohttp import web as aio_web
 
-from bolinette import core, BolinetteExtension, Extensions, Console
-from bolinette.core.commands import Parser
+from bolinette import core, Console
+from bolinette.core.commands import Parser, Command
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
 
 
 class Bolinette:
-    def __init__(self, *, extensions: list[BolinetteExtension] = None,
-                 profile: str = None, overrides: dict[str, Any] = None, **kwargs):
+    def __init__(self, *, profile: str = None, overrides: dict[str, Any] = None, **kwargs):
         self._anonymous = kwargs.get('_anonymous', False)
         self._start_time = datetime.utcnow()
         try:
-            self.context = core.BolinetteContext(paths.dirname(__file__), extensions=extensions,
-                                                 profile=profile, overrides=overrides)
+            self.context = core.BolinetteContext(paths.dirname(__file__), profile=profile, overrides=overrides)
             self.context['__blnt__'] = self
-            self.context.use_extension(Extensions.ALL)
         except InitError as init_error:
             Console().error(f'Error raised during Bolinette init phase\n{str(init_error)}')
             exit(1)
         self.console = Console(debug=self.context.env.debug)
 
     async def startup(self, *, for_tests_only: bool = False):
-        self.console.debug(f'Initializing Bolinette with extensions: {"".join(map(str, self.context.extensions))}, '
-                           f'and running {len(core.cache.init_funcs)} init functions')
-        for func in core.cache.init_funcs:
-            if not self.context.has_extension(func.extension) or (for_tests_only and not func.rerun_for_tests):
+        init_funcs = list(self.context.inject.get_global_instances(core.InitFunction))
+        self.console.debug(f'Initializing Bolinette with extensions: TODO, '
+                           f'and running {len(init_funcs)} init functions')
+        for func in init_funcs:
+            if for_tests_only and not func.rerun_for_tests:
                 continue
             await func(self.context)
 
     def start_server(self, *, host: str = None, port: int = None):
-        if not self.context.has_extension((Extensions.WEB, Extensions.SOCKETS)):
-            self.console.error('The web or sockets extensions must be activated to start the aiohttp server!')
-            sys.exit(1)
         if 'aiohttp' not in self.context:
             self.console.error('The aiohttp server was not initialized. '
                                'Make sure to call the bolinette.startup() coroutine before start_server().')
@@ -49,14 +44,9 @@ class Bolinette:
                         access_log=self.context.logger)
         self.context.logger.info('Bolinette stopped gracefully')
 
-    def use(self, *extensions) -> 'Bolinette':
-        self.context.clear_extensions()
-        for ext in extensions:
-            self.context.use_extension(ext)
-        return self
-
     def exec_cmd_args(self):
-        parser = Parser(self, core.cache.commands, self._anonymous)
+        commands = dict((c.name, c) for c in core.cache.get_instances(Command))
+        parser = Parser(self, commands, self._anonymous)
         parser.run()
 
 

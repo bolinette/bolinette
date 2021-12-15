@@ -6,19 +6,17 @@ from bolinette.decorators import injected
 from bolinette.exceptions import EntityNotFoundError
 
 
-class SimpleService(abc.WithContext):
+class SimpleService(abc.inject.Injectable, abc.WithContext):
     __blnt__: 'ServiceMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):
-        super().__init__(context)
+        abc.WithContext.__init__(self, context)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
 
 
 class Service(SimpleService):
-    __blnt__: 'ServiceMetadata' = None  # type: ignore
-
     def __init__(self, context: abc.Context):
         super().__init__(context)
 

@@ -11,7 +11,7 @@ from bolinette.exceptions import InitError
 from bolinette.utils import functions
 
 
-class Controller(abc.WithContext, abc.web.Controller):
+class Controller(abc.web.Controller):
     __blnt__: 'ControllerMetadata' = None  # type: ignore
 
     def __init__(self, context: abc.Context):
@@ -80,7 +80,7 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
 
     def setup(self):
         self._init_middlewares(self.controller.context, self.controller.__blnt__.middlewares,
-                               self._init_sys_middleware())
+                               self._init_sys_middleware(self.controller.context))
         self.controller.context.resources.add_route(self.full_path, self)
         if self.inner_route is not None:
             self.inner_route.setup()
@@ -95,8 +95,8 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
         self.middlewares = sorted(sorted(self.middlewares, key=lambda m: m.__blnt__.priority),
                                   key=lambda m: m.system_priority)
 
-    def _init_sys_middleware(self):
-        sys_mdw = [m.__blnt__.name for m in core.cache.middlewares.values() if m.__blnt__.auto_load]
+    def _init_sys_middleware(self, context: 'core.BolinetteContext'):
+        sys_mdw = [m.__blnt__.name for m in context.inject.collect_types(web.Middleware) if m.__blnt__.auto_load]
         if self.expects is not None:
             model = self.expects.model
             key = self.expects.key if self.expects.key is not None else 'default'
@@ -119,7 +119,7 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
             sys_mdw.append('blnt_response')
         return sys_mdw
 
-    def _parse_middleware_options(self, mdw: str, context, system: bool = False):
+    def _parse_middleware_options(self, mdw: str, context: 'core.BolinetteContext', system: bool = False):
         name, *args = mdw.split('|')
         if name.startswith('!'):
             self.middlewares = list(filter(lambda m: m.__blnt__.name != name[1:], self.middlewares))
@@ -129,7 +129,7 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
             middleware = find[0]
             middleware.options = {}
         else:
-            middleware = instantiate_type(context, core.cache.middlewares[name])
+            middleware = instantiate_type(context, context.inject.collect_type('middleware', name))
 
         if not middleware.__blnt__.loadable and not system:
             raise InitError(f'[{type(self.controller).__name__}] Middleware '

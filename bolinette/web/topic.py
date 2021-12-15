@@ -7,7 +7,7 @@ from bolinette import abc, core
 from bolinette.core import Properties
 
 
-class Topic(abc.WithContext):
+class Topic(abc.WithContext, abc.inject.Injectable):
     __blnt__: 'TopicMetadata' = None
 
     def __init__(self, context: 'core.BolinetteContext'):

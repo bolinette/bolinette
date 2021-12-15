@@ -5,6 +5,8 @@ from typing import Any
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 
+from bolinette import abc
+
 
 @unique
 class HttpMethod(Enum):
@@ -19,7 +21,9 @@ class HttpMethod(Enum):
         return self.name
 
 
-class Controller(ABC): ...
+class Controller(abc.inject.Injectable, abc.WithContext, ABC):
+    def __init__(self, context: abc.Context) -> None:
+        abc.WithContext.__init__(self, context)
 
 
 class Route(ABC):
