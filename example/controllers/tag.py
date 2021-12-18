@@ -1,9 +1,8 @@
-from bolinette import web
-from bolinette.decorators import controller
+from bolinette.web import Controller, controller
 
 
 @controller('tag')
-class TagController(web.Controller):
+class TagController(Controller):
     def default_routes(self):
         return [
             self.defaults.get_one('complete', key='name'),

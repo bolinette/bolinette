@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 
 import jwt as py_jwt
 
-from bolinette import abc, core
+from bolinette import core
+from bolinette.core import abc
 from bolinette.exceptions import UnauthorizedError
 
 

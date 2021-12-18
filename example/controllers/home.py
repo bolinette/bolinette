@@ -1,18 +1,17 @@
-from bolinette import web
-from bolinette.decorators import controller, get
+from bolinette.web import Controller, controller, route
 
 
 @controller('home', '', namespace='', use_service=False)
-class HomeController(web.Controller):
-    @get('')
+class HomeController(Controller):
+    @route.get('')
     async def home_template(self):
         """
         Renders and returns the index.html jinja template
         """
         return self.response.render_template('index.html')
 
-    @get('/hello')
-    @get('/hello/{name}')
+    @route.get('/hello')
+    @route.get('/hello/{name}')
     async def hello(self, match):
         """
         Says hello to you

@@ -5,31 +5,33 @@ import aiohttp
 from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 
-from bolinette import abc, core, web
+from bolinette.core import abc, BolinetteContext
+from bolinette.data import Transaction
+from bolinette.web import Topic, TopicChannel
 from bolinette.exceptions import APIError
 from bolinette.utils.functions import async_invoke
 
 
 class BolinetteSockets(abc.WithContext):
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: BolinetteContext):
         super().__init__(context)
-        self._topics: dict[str, 'web.Topic'] = {}
-        self._channels: dict[str, list['web.TopicChannel']] = {}
+        self._topics: dict[str, Topic] = {}
+        self._channels: dict[str, list[TopicChannel]] = {}
         self._socket_sessions: dict[str, aio_web.WebSocketResponse] = {}
         self._anon_socket_sessions: list[aio_web.WebSocketResponse] = []
 
-    def add_topic(self, name: str, topic: 'web.Topic'):
+    def add_topic(self, name: str, topic: Topic):
         self._topics[name] = topic
 
-    def topic(self, name: str) -> 'web.Topic':
+    def topic(self, name: str) -> Topic:
         return self._topics.get(name)
 
-    def add_channel(self, topic: str, channel: 'web.TopicChannel'):
+    def add_channel(self, topic: str, channel: TopicChannel):
         if topic not in self._channels:
             self._channels[topic] = []
         self._channels[topic].append(channel)
 
-    def channels(self, topic: str) -> list['web.TopicChannel']:
+    def channels(self, topic: str) -> list[TopicChannel]:
         return self._channels.get(topic) or []
 
     async def send_message(self, topic: str, channels: str | list[str], message):
@@ -73,7 +75,7 @@ class SocketHandler:
         pass
 
     async def __call__(self, request: Request):
-        context: core.BolinetteContext = request.app['blnt']
+        context: BolinetteContext = request.app['blnt']
         user_service = context.inject.require('service', 'user', immediate=True)
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
@@ -112,16 +114,16 @@ class SocketHandler:
         return socket
 
     @staticmethod
-    async def _subscribe(topic: web.Topic, socket: aio_web.WebSocketResponse, payload, current_user):
+    async def _subscribe(topic: Topic, socket: aio_web.WebSocketResponse, payload, current_user):
         if await async_invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
             await topic.receive_subscription(payload['channel'], socket)
 
-    async def process_topic_message(self, context: 'core.BolinetteContext',
+    async def process_topic_message(self, context: BolinetteContext,
                                     socket: aio_web.WebSocketResponse, payload, current_user):
         action = payload['action']
         topic = context.sockets.topic(payload['topic'])
         if topic is not None:
-            async with core.Transaction(context):
+            async with Transaction(context):
                 if action == 'subscribe':
                     await self._subscribe(topic, socket, payload, current_user)
                 elif action == 'send':

@@ -1,21 +1,23 @@
 from collections.abc import Iterator, Iterable
-from typing import Literal, Any
+from typing import Literal
 
-from bolinette import abc, data, core, mapping
+from bolinette import data
+from bolinette.core import abc, BolinetteContext, Properties
+from bolinette.data import mapping, DataContext, WithDataContext
+from bolinette.data.database.engines import AbstractEngine
 
 
-class Model(abc.WithContext, abc.core.Model):
+class Model(abc.WithContext, WithDataContext):
     __blnt__: 'ModelMetadata' = None  # type: ignore
 
-    def __init__(self, context: abc.Context):
-        super().__init__(context)
-        self.__props__ = ModelProps(self, context.db.get_engine(self.__blnt__.database))
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext):
+        abc.WithContext.__init__(self, context)
+        WithDataContext.__init__(self, data_ctx)
+        self.__props__ = ModelProps(self, self.data_ctx.db.get_engine(self.__blnt__.database))
 
-    def payloads(self) -> Iterable[tuple[str, list[mapping.MappingObject]] | list[mapping.MappingObject]]:
-        pass
+    def payloads(self) -> Iterable[tuple[str, list[mapping.MappingObject]] | list[mapping.MappingObject]]: ...
 
-    def responses(self) -> Iterable[tuple[str, list[mapping.MappingObject]] | list[mapping.MappingObject]]:
-        pass
+    def responses(self) -> Iterable[tuple[str, list[mapping.MappingObject]] | list[mapping.MappingObject]]: ...
 
     def get_mixin(self, name: str):
         return self.__props__.mixins[name]
@@ -35,8 +37,8 @@ class ModelMetadata:
         self.merge_defs = merge_defs
 
 
-class ModelProps(core.Properties):
-    def __init__(self, model: Model, database: abc.db.Engine):
+class ModelProps(Properties):
+    def __init__(self, model: Model, database: AbstractEngine):
         super().__init__(model)
         self.model = model
         self.database = database

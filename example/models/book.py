@@ -1,11 +1,11 @@
 from typing import Any
 
-from bolinette import types, data, mapping
-from bolinette.decorators import model
+from bolinette import types
+from bolinette.data import Model, model, mapping
 
 
 @model('book', mixins=['historized'])
-class Book(data.Model):
+class Book(Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     uid = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)

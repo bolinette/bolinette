@@ -13,20 +13,20 @@ def bolitest(*, before: Callable[[Any], Awaitable[None]] = None,
         async def inner(client: BolitestClient):
             try:
                 async with client:
-                    await client.context.db.close_transaction()
-                    await client.context.db.drop_all()
-                    await client.context.db.create_all()
+                    await client.data_ctx.db.close_transaction()
+                    await client.data_ctx.db.drop_all()
+                    await client.data_ctx.db.create_all()
                     if before is not None:
                         await async_invoke(before, context=client.context, mock=client.mock)
-                    await client.context.db.close_transaction()
+                    await client.data_ctx.db.close_transaction()
                     await func(client=client)
                     if after is not None:
                         await async_invoke(after, context=client.context, mock=client.mock)
-                    await client.context.db.close_transaction()
-                    await client.context.db.drop_all()
+                    await client.data_ctx.db.close_transaction()
+                    await client.data_ctx.db.drop_all()
             except Exception as e:
-                await client.context.db.rollback_transaction()
-                await client.context.db.drop_all()
+                await client.data_ctx.db.rollback_transaction()
+                await client.data_ctx.db.drop_all()
                 raise e
         return inner
     return wrapper

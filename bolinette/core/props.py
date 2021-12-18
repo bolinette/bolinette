@@ -1,13 +1,14 @@
+from abc import ABC
 import itertools
 from collections.abc import Iterator
 from typing import TypeVar
 
-from bolinette import core, abc
+from bolinette import core
 
 _T = TypeVar('_T')
 
 
-class Properties:
+class Properties(ABC):
     def __init__(self, parent):
         self.parent = parent
 
@@ -25,6 +26,6 @@ class Properties:
                 for name, attribute in vars(obj).items()
                 if isinstance(attribute, attr_type))
 
-    def get_instantiable(self, of_type: type[abc.inject.T_Instantiable]) -> Iterator[tuple[str, 'core.InstantiableAttribute[abc.inject.T_Instantiable]']]:
+    def get_instantiable(self, of_type: type[core.abc.T_Instance]) -> Iterator[tuple[str, 'core.InstantiableAttribute[core.abc.T_Instance]']]:
         attrs = self._get_cls_attributes_of_type(type(self.parent), core.InstantiableAttribute)
         return ((name, attr) for name, attr in attrs if attr.type == of_type)

@@ -1,6 +1,6 @@
-from bolinette import types, mapping
-from bolinette.decorators import model
-from bolinette.defaults.models import User
+from bolinette import types
+from bolinette.data import model, mapping
+from bolinette.data.defaults.models import User
 
 
 class UserWithFirstName:

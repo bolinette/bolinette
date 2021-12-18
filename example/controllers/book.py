@@ -1,12 +1,12 @@
-from bolinette import abc, web
-from bolinette.decorators import controller, get
+from bolinette.core import BolinetteContext
+from bolinette.web import WebContext, Controller, controller, route, Returns
 from example.services import BookService
 
 
 @controller('book', '/book', middlewares=['auth'])
-class BookController(web.Controller):
-    def __init__(self, context: abc.Context, book_service: BookService):
-        super().__init__(context)
+class BookController(Controller):
+    def __init__(self, context: BolinetteContext, web_ctx: WebContext, book_service: BookService):
+        super().__init__(context, web_ctx)
         self.book_service = book_service
 
     def default_routes(self):
@@ -19,10 +19,10 @@ class BookController(web.Controller):
             self.defaults.delete('complete')
         ]
 
-    @get('/pages+650', returns=web.Returns('book', as_list=True), middlewares=['!auth'])
+    @route.get('/pages+650', returns=Returns('book', as_list=True), middlewares=['!auth'])
     async def get_books_over_650_pages(self):
         return self.response.ok(data=await self.book_service.get_books_over_650_pages())
 
-    @get('/pages-700', returns=web.Returns('book', as_list=True), middlewares=['!auth'])
+    @route.get('/pages-700', returns=Returns('book', as_list=True), middlewares=['!auth'])
     async def get_books_under_700_pages(self):
         return self.response.ok(data=await self.book_service.get_books_under_700_pages())

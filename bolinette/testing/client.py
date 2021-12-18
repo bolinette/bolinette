@@ -3,14 +3,16 @@ from asyncio.events import AbstractEventLoop
 
 from aiohttp import test_utils
 
-from bolinette import abc
+from bolinette.core import abc, BolinetteContext
+from bolinette.data import DataContext, WithDataContext
 from bolinette.testing import Mock
 from bolinette.utils.serializing import serialize
 
 
-class BolitestClient(abc.WithContext):
-    def __init__(self, context: abc.Context, loop: AbstractEventLoop):
-        super().__init__(context)
+class BolitestClient(abc.WithContext, WithDataContext):
+    def __init__(self, context: BolinetteContext, loop: AbstractEventLoop):
+        abc.WithContext.__init__(self, context)
+        WithDataContext.__init__(self, context.registry.get_singleton(DataContext))
         server = test_utils.TestServer(context['aiohttp'], loop=loop)
         self.client = test_utils.TestClient(server, loop=loop)
         self.mock = Mock(context)

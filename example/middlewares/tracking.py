@@ -1,15 +1,16 @@
 from datetime import datetime
 
-from bolinette import abc, web
-from bolinette.decorators import middleware
+from bolinette.core import BolinetteContext
+from bolinette.data import DataContext
+from bolinette.web import ext, Middleware
 from bolinette.exceptions import InternalError
 from example.services import TraceService
 
 
-@middleware('tracking')
-class TrackingMiddleware(web.Middleware):
-    def __init__(self, context: abc.Context, trace_service: TraceService):
-        super().__init__(context)
+@ext.middleware('tracking')
+class TrackingMiddleware(Middleware):
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext, trace_service: TraceService):
+        super().__init__(context, data_ctx)
         self.trace_service = trace_service
 
     def define_options(self):

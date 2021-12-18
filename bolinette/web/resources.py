@@ -6,15 +6,17 @@ from aiohttp import web as aio_web
 from aiohttp.web_request import Request
 from aiohttp.web_urldispatcher import Resource, ResourceRoute
 
-from bolinette import abc, console, core, web
+from bolinette import console
+from bolinette.core import abc, BolinetteContext
+from bolinette.web import Controller, ControllerRoute, HttpMethod, Response
 from bolinette.exceptions import APIError, APIErrors, InternalError
 from bolinette.utils.serializing import serialize
 
 
-class BolinetteResources(abc.WithContext, abc.web.Resources):
-    def __init__(self, context: 'core.BolinetteContext'):
+class BolinetteResources(abc.WithContext):
+    def __init__(self, context: BolinetteContext):
         super().__init__(context)
-        self._routes: dict[str, dict[abc.web.HttpMethod, abc.web.Route]] = {}
+        self._routes: dict[str, dict[HttpMethod, ControllerRoute]] = {}
         self._aiohttp_resources: dict[str, 'BolinetteResource'] = {}
         self.cors: aiohttp_cors.CorsConfig | None = None
 
@@ -46,7 +48,7 @@ class BolinetteResources(abc.WithContext, abc.web.Resources):
         return cors
 
     def init_web(self, app: aio_web.Application):
-        for ctrl_cls in self.context.inject.registered(of_type=web.Controller):
+        for ctrl_cls in self.context.inject.registered(of_type=Controller):
             self.context.inject.require(ctrl_cls, immediate=True)
         self._aiohttp_resources = {}
         self.cors = aiohttp_cors.setup(app, defaults=self._setup_cors())
@@ -60,7 +62,7 @@ class BolinetteResources(abc.WithContext, abc.web.Resources):
                 self._aiohttp_resources[path].routes[method] = self.cors.add(
                     self._aiohttp_resources[path].resource.add_route(method.http_verb, handler.__call__))
 
-    def add_route(self, path: str, route: abc.web.Route):
+    def add_route(self, path: str, route: ControllerRoute):
         if path not in self._routes:
             self._routes[path] = {}
         self._routes[path][route.method] = route
@@ -69,16 +71,16 @@ class BolinetteResources(abc.WithContext, abc.web.Resources):
 class BolinetteResource:
     def __init__(self, resource: Resource):
         self.resource = resource
-        self.routes: dict[abc.web.HttpMethod, ResourceRoute] = {}
+        self.routes: dict[HttpMethod, ResourceRoute] = {}
 
 
 class RouteHandler:
-    def __init__(self, route: abc.web.Route):
+    def __init__(self, route: ControllerRoute):
         self.controller = route.controller
         self.route = route
 
     async def __call__(self, request: Request):
-        context: core.BolinetteContext = request.app['blnt']
+        context: BolinetteContext = request.app['blnt']
         params: dict[str, Any] = {
             'match': {},
             'query': {},
@@ -92,7 +94,7 @@ class RouteHandler:
             resp = await self.route.call_middleware_chain(request, params)
             return resp
         except (APIError, APIErrors) as ex:
-            res = web.Response(context).from_exception(ex)
+            res = Response(context).from_exception(ex)
             if context.env['debug']:
                 stack = traceback.format_exc()
                 if isinstance(ex, InternalError):

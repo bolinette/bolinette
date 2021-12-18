@@ -1,17 +1,17 @@
 import typing as _typing
 
-from bolinette import types, data, mapping
-from bolinette.decorators import model, model_property
+from bolinette import types
+from bolinette.data import Model, model, mapping
 
 
 @model('person', mixins=['historized'])
-class Person(data.Model):
+class Person(Model):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     uid = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
     first_name = types.defs.Column(types.db.String, nullable=False)
     last_name = types.defs.Column(types.db.String, nullable=False)
 
-    @model_property
+    @model.property
     def last_book(self):
         if len(self.books):
             return sorted(self.books, key=lambda b: b.publication_date, reverse=True)[0]
