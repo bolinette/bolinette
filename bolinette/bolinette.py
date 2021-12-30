@@ -20,7 +20,7 @@ class Bolinette:
         self._extensions: list[BolinetteExtension] = []
         try:
             self.context = BolinetteContext(paths.dirname(__file__), profile=profile, overrides=overrides)
-            self.context['__blnt__'] = self
+            self.context.registry.add_singleton(self)
         except InitError as init_error:
             Console().error(f'Error raised during Bolinette init phase\n{str(init_error)}')
             exit(1)
@@ -45,12 +45,8 @@ class Bolinette:
         self.console.debug(f'Startup took {int((datetime.utcnow() - self._start_time).microseconds / 1000)}ms')
 
     def start_server(self, *, host: str = None, port: int = None):
-        if 'aiohttp' not in self.context:
-            self.console.error('The aiohttp server was not initialized. '
-                               'Make sure to call the bolinette.startup() coroutine before start_server().')
-            sys.exit(1)
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
-        aio_web.run_app(self.context['aiohttp'],
+        aio_web.run_app(self.context.registry.get_singleton(aio_web.Application),
                         host=host or self.context.env['host'],
                         port=port or self.context.env['port'],
                         access_log=self.context.logger)

@@ -29,12 +29,9 @@ async def init_controllers(context: BolinetteContext):
 
 @ext.init_func(rerun_for_tests=True)
 async def init_aiohttp_web(context: BolinetteContext, web_ctx: WebContext):
-    if 'aiohttp' not in context:
-        app = aio_web.Application()
-        context['aiohttp'] = app
-        app['blnt'] = context
-    app = context['aiohttp']
-    web_ctx.resources.init_web(app)
-    if context.env['build_docs'] and 'blnt_docs' in context:
+    aiohttp_app = aio_web.Application()
+    context.registry.add_singleton(aiohttp_app)
+    web_ctx.resources.init_web(aiohttp_app)
+    if context.env['build_docs']:
         web_ctx.docs.build()
     web_ctx.docs.setup()

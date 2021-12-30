@@ -2,6 +2,7 @@ import json
 from asyncio.events import AbstractEventLoop
 
 from aiohttp import test_utils
+from aiohttp.web import Application
 
 from bolinette.core import abc, BolinetteContext
 from bolinette.data import DataContext, WithDataContext
@@ -13,7 +14,7 @@ class BolitestClient(abc.WithContext, WithDataContext):
     def __init__(self, context: BolinetteContext, loop: AbstractEventLoop):
         abc.WithContext.__init__(self, context)
         WithDataContext.__init__(self, context.registry.get_singleton(DataContext))
-        server = test_utils.TestServer(context['aiohttp'], loop=loop)
+        server = test_utils.TestServer(context.registry.get_singleton(Application), loop=loop)
         self.client = test_utils.TestClient(server, loop=loop)
         self.mock = Mock(context)
         self.cookies = {}

@@ -17,7 +17,6 @@ class BolinetteContext(AbstractContext):
     def __init__(self, origin: str, *, profile: str = None, overrides: dict[str, Any] = None):
         self._origin = origin
         self._cwd = paths.cwd()
-        self._ctx: dict[str, Any] = {}
         self.env = core.Environment(self, profile=profile, overrides=overrides)
         self.inject = core.BolinetteInjection(self)
         self.registry = InstanceRegistry()
@@ -25,22 +24,6 @@ class BolinetteContext(AbstractContext):
             self.root_path(), params={'version': self.env.get('version', '0.0.0')}) or {}
         self.logger = core.Logger(self)
         self.jwt = core.JWT(self)
-
-    def __getitem__(self, key: str):
-        if key not in self._ctx:
-            raise KeyError(f'No {key} element registered in context')
-        return self._ctx[key]
-
-    def __setitem__(self, key: str, value: Any):
-        self._ctx[key] = value
-
-    def __delitem__(self, key: str):
-        if key not in self._ctx:
-            raise KeyError(f'No {key} element registered in context')
-        del self._ctx[key]
-
-    def __contains__(self, key: str):
-        return key in self._ctx
 
     def internal_path(self, *path):
         return paths.join(self._origin, *path)

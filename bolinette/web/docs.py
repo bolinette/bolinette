@@ -2,6 +2,7 @@ import re
 from typing import Any, Literal
 
 import yaml
+from aiohttp import web as aio_web
 from aiohttp_swagger import setup_swagger
 
 from bolinette import types
@@ -197,18 +198,23 @@ class Documentation(abc.WithContext, WithDataContext, WithWebContext):
 
     def setup(self):
         if paths.exists(self.swagger_path):
-            setup_swagger(self.context['aiohttp'], swagger_url='/api', ui_version=3, swagger_from_file=self.swagger_path)
+            setup_swagger(self.context.registry.get_singleton(aio_web.Application),
+                          swagger_url='/api', ui_version=3, swagger_from_file=self.swagger_path)
         else:
-            no_docs_ctrl = NoDocsController(self.context)
-            no_docs_route: ControllerRoute = no_docs_ctrl.get_no_docs.instantiate(controller=no_docs_ctrl)
+            context = self.context
+            web_ctx = self.context.registry.get_singleton(WebContext)
+            no_docs_ctrl = NoDocsController(context, web_ctx)
+            no_docs_route: ControllerRoute = no_docs_ctrl.get_no_docs.instantiate(
+                controller=no_docs_ctrl, context=context, web_ctx=web_ctx
+            )
             no_docs_route.setup()
 
 
 class NoDocsController(Controller):
     __blnt__ = ControllerMetadata('no_docs', '', False, '', '/api', [])
 
-    def __init__(self, context: BolinetteContext):
-        super().__init__(context)
+    def __init__(self, context: BolinetteContext, web_ctx: WebContext):
+        super().__init__(context, web_ctx)
 
     @ext.route.get('')
     async def get_no_docs(self):

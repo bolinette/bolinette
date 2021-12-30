@@ -1,3 +1,4 @@
+import bolinette
 from bolinette import web
 from bolinette.core import BolinetteContext
 from bolinette.decorators import command
@@ -7,4 +8,4 @@ from bolinette.decorators import command
 @command.argument('option', 'host', flag='H', summary='The host the server will listen to')
 @command.argument('option', 'port', flag='p', summary='The port the server will listen on', value_type=int)
 def run_server(context: BolinetteContext, host: str = None, port: int = None):
-    context['__blnt__'].start_server(host=host, port=port)
+    context.registry.get_singleton(bolinette.Bolinette).start_server(host=host, port=port)
