@@ -5,7 +5,7 @@ from bolinette.decorators import command
 @command('init db', 'Initialize the database', exts=[data.ext])
 @command.argument('flag', 'seeders', flag='s', summary='Run the seeders after database creation')
 async def init_db(context: core.BolinetteContext, seeders: bool):
-    data_ctx = context.registry.get_singleton(data.DataContext)
+    data_ctx = context.registry.get(data.DataContext)
     context.logger.info('==== Initializing database ====')
     context.logger.info('**** Dropping all tables')
     await data_ctx.db.drop_all()

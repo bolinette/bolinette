@@ -20,7 +20,7 @@ class Bolinette:
         self._extensions: list[BolinetteExtension] = []
         try:
             self.context = BolinetteContext(paths.dirname(__file__), profile=profile, overrides=overrides)
-            self.context.registry.add_singleton(self)
+            self.context.registry.add(self)
         except InitError as init_error:
             Console().error(f'Error raised during Bolinette init phase\n{str(init_error)}')
             exit(1)
@@ -29,13 +29,13 @@ class Bolinette:
     async def startup(self, *, for_tests_only: bool = False):
         self.console.debug('Initializing Bolinette')
         if not for_tests_only:
-            self.context.registry.add_singleton(self.context)
+            self.context.registry.add(self.context)
         for ext in self._extensions:
             if not for_tests_only:
                 ext_ctx = ext.__create_context__(self.context)
-                self.context.registry.add_singleton(ext_ctx)
+                self.context.registry.add(ext_ctx)
             else:
-                ext_ctx = self.context.registry.get_singleton(ext.__context_type__)
+                ext_ctx = self.context.registry.get(ext.__context_type__)
             self.console.debug(f'* Initializing {ext} extension')
             for init_func in ext.init_funcs:
                 if for_tests_only and not init_func.rerun_for_tests:
@@ -46,7 +46,7 @@ class Bolinette:
 
     def start_server(self, *, host: str = None, port: int = None):
         self.context.logger.info(f"Starting Bolinette with '{self.context.env['profile']}' environment profile")
-        aio_web.run_app(self.context.registry.get_singleton(aio_web.Application),
+        aio_web.run_app(self.context.registry.get(aio_web.Application),
                         host=host or self.context.env['host'],
                         port=port or self.context.env['port'],
                         access_log=self.context.logger)

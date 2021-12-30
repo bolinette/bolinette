@@ -12,7 +12,7 @@ from bolinette.data import DataContext, WithDataContext, Model
 class Mocked(abc.WithContext, WithDataContext):
     def __init__(self, name, context: BolinetteContext):
         abc.WithContext.__init__(self, context)
-        WithDataContext.__init__(self, context.registry.get_singleton(DataContext))
+        WithDataContext.__init__(self, context.registry.get(DataContext))
         self.name = name
         self.model: Model = self.context.inject.require('model', self.name, immediate=True)
         self.database = self.data_ctx.db[self.model.__blnt__.database]

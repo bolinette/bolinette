@@ -140,8 +140,8 @@ class BolinetteInjection(abc.WithContext):
             setattr(_type, '__blnt_inject__', injected)
         injected = getattr(_type, '__blnt_inject__')
         for p_name, hook in injected.items():
-            if self.context.registry.has_singleton(hook):
-                init_args[p_name] = self.context.registry.get_singleton(hook)
+            if hook in self.context.registry:
+                init_args[p_name] = self.context.registry.get(hook)
             elif hook in args:
                 init_args[p_name] = args[hook]
             else:

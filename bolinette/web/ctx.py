@@ -8,7 +8,7 @@ class WebContext(ExtensionContext):
     def __init__(self, ext: BolinetteExtension, context: BolinetteContext):
         super().__init__(ext, context)
         self.resources = web.BolinetteResources(context)
-        self.docs = web.Documentation(context, context.registry.get_singleton(DataContext), self)
+        self.docs = web.Documentation(context, context.registry.get(DataContext), self)
 
 
 class WithWebContext(ABC):

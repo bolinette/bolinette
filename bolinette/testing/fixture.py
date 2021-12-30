@@ -23,7 +23,6 @@ def client(loop: AbstractEventLoop):
 
     async def create_client():
         return BolitestClient(bolinette_app.context, loop)
-    if 'aiohttp' in bolinette_app.context:
-        del bolinette_app.context['aiohttp']
+
     loop.run_until_complete(bolinette_app.startup(for_tests_only=True))
     return loop.run_until_complete(create_client())

@@ -49,44 +49,44 @@ class BolinetteContext(AbstractContext):
 
 class InstanceRegistry:
     def __init__(self) -> None:
-        self._single_by_type: dict[type[Any], Any] = {}
-        self._single_by_name: dict[str, Any] = {}
+        self._by_type: dict[type[Any], Any] = {}
+        self._by_name: dict[str, Any] = {}
 
     @overload
-    def get_singleton(self, _type: type[core.abc.T_Instance]) -> core.abc.T_Instance: ...
+    def get(self, _type: type[core.abc.T_Instance]) -> core.abc.T_Instance: ...
     @overload
-    def get_singleton(self, name: str) -> Any: ...
+    def get(self, name: str) -> Any: ...
 
-    def get_singleton(self, param: type[Any] | str) -> Any:
+    def get(self, param: type[Any] | str) -> Any:
         if isinstance(param, type):
-            if not param in self._single_by_type:
+            if not param in self._by_type:
                 raise InternalError(f'Injection error: No singleton of type {param} in context registry')
-            return self._single_by_type[param]
-        if param in self._single_by_name:
-            return self._single_by_name[param]
-        match [n for n in self._single_by_name if param in n]:
+            return self._by_type[param]
+        if param in self._by_name:
+            return self._by_name[param]
+        match [n for n in self._by_name if param in n]:
             case matches if len(matches) > 1:
                 raise InternalError(f'Injection error: {len(matches)} matches found for {param} in context registry')
             case matches if len(matches) > 0:
-                return self._single_by_name[matches[0]]
+                return self._by_name[matches[0]]
         raise InternalError(f'Injection error: No match for {param} found in context registry')
 
     @overload
-    def has_singleton(self, _type: type[Any]) -> bool: ...
+    def __contains__(self, _type: type[Any]) -> bool: ...
     @overload
-    def has_singleton(self, name: str) -> bool: ...
+    def __contains__(self, name: str) -> bool: ...
 
-    def has_singleton(self, param: type[Any] | str) -> bool:
+    def __contains__(self, param: type[Any] | str) -> bool:
         if isinstance(param, type):
-            return param in self._single_by_type
-        match [n for n in self._single_by_name if param in n]:
+            return param in self._by_type
+        match [n for n in self._by_name if param in n]:
             case matches if len(matches) > 1:
                 raise InternalError(f'Injection error: {len(matches)} matches found for {param} in context registry')
             case matches if len(matches) > 0:
                 return True
         return False
 
-    def add_singleton(self, instance: Any):
+    def add(self, instance: Any):
         i_type: type = type(instance)
-        self._single_by_type[i_type] = instance
-        self._single_by_name[f'{i_type.__module__}.{i_type.__name__}'] = instance
+        self._by_type[i_type] = instance
+        self._by_name[f'{i_type.__module__}.{i_type.__name__}'] = instance

@@ -198,11 +198,11 @@ class Documentation(abc.WithContext, WithDataContext, WithWebContext):
 
     def setup(self):
         if paths.exists(self.swagger_path):
-            setup_swagger(self.context.registry.get_singleton(aio_web.Application),
+            setup_swagger(self.context.registry.get(aio_web.Application),
                           swagger_url='/api', ui_version=3, swagger_from_file=self.swagger_path)
         else:
             context = self.context
-            web_ctx = self.context.registry.get_singleton(WebContext)
+            web_ctx = self.context.registry.get(WebContext)
             no_docs_ctrl = NoDocsController(context, web_ctx)
             no_docs_route: ControllerRoute = no_docs_ctrl.get_no_docs.instantiate(
                 controller=no_docs_ctrl, context=context, web_ctx=web_ctx
