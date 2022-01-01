@@ -1,27 +1,29 @@
 from typing import Any
 
-from bolinette import abc
+from bolinette.core import abc, BolinetteContext, BolinetteInjection
 from bolinette.core.objects import PaginationParams, OrderByParams
+from bolinette.data import DataContext, WithDataContext, Model
 from bolinette.decorators import injected
 from bolinette.exceptions import EntityNotFoundError
 
 
-class SimpleService(abc.inject.Injectable, abc.WithContext):
+class SimpleService(abc.WithContext, WithDataContext):
     __blnt__: 'ServiceMetadata' = None  # type: ignore
 
-    def __init__(self, context: abc.Context):
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext):
         abc.WithContext.__init__(self, context)
+        WithDataContext.__init__(self, data_ctx)
 
     def __repr__(self):
         return f'<Service {self.__blnt__.name}>'
 
 
 class Service(SimpleService):
-    def __init__(self, context: abc.Context):
-        super().__init__(context)
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext):
+        super().__init__(context, data_ctx)
 
     @injected
-    def model(self, inject: abc.inject.Injection):
+    def model(self, inject: BolinetteInjection) -> Model:
         return inject.require('model', self.__blnt__.model_name)
 
     @property

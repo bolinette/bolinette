@@ -1,160 +1,13 @@
 import inspect as _inspect
-from collections.abc import Callable, Awaitable
+from collections.abc import Callable
 from typing import Literal, Any
 
-from bolinette import abc, core, data, web
+from bolinette.core import abc, BolinetteInjection, InjectionProxy, __global_cache__, BolinetteExtension
 from bolinette.core.commands import Command as _Command, Argument as _Argument
 
 
-def injected(func: Callable[[Any, abc.inject.Injection], abc.inject.T_WContext], name: str = None):
-    return core.InjectionProxy(func, name or func.__name__)
-
-
-def model(model_name: str, *,
-          mixins: list[str] = None,
-          database: str = 'default',
-          model_type: Literal['relational', 'collection'] = 'relational',
-          definitions: Literal['ignore', 'append', 'overwrite'] = 'ignore',
-          join_table: bool = False):
-    def decorator(model_cls: type['data.Model']):
-        model_cls.__blnt__ = data.models.ModelMetadata(model_name, database, model_type == 'relational',
-                                                       join_table, mixins or [], definitions)
-        core.cache.register(model_cls, 'model', model_name)
-        return model_cls
-    return decorator
-
-
-def model_property(function):
-    return data.models.ModelProperty(function.__name__, function)
-
-
-class _MixinDecorator:
-    def __call__(self, mixin_name: str):
-        def decorator(mixin_cls: type['data.Mixin']):
-            mixin_cls.__blnt__ = data.MixinMetadata(mixin_name)
-            core.cache.register(mixin_cls, 'mixin', mixin_name)
-            return mixin_cls
-        return decorator
-
-    @staticmethod
-    def service_method(func: Callable):
-        return data.MixinServiceMethod(func.__name__, func)
-
-
-mixin = _MixinDecorator()
-
-
-def init_func(*, rerun_for_tests: bool = False):
-    def decorator(func: Callable[['core.BolinetteContext'], Awaitable[None]]):
-        init_func = core.InitFunction(func, rerun_for_tests)
-        core.cache.register_instance(init_func, 'init_func', init_func.name)
-        return func
-    return decorator
-
-
-def seeder(func: Callable[[abc.Context], None]):
-    seeder = data.Seeder(func)
-    core.cache.register_instance(seeder, 'seeder', seeder.name)
-    return func
-
-
-def service(service_name: str, *, model_name: str = None):
-    def decorator(service_cls: type[data.Service | data.SimpleService]):
-        service_cls.__blnt__ = data.ServiceMetadata(service_name, model_name or service_name)
-        core.cache.register(service_cls, 'service', service_name)
-        return service_cls
-    return decorator
-
-
-def controller(controller_name: str, path: str | None = None, *,
-               namespace: str = '/api', use_service: bool = True,
-               service_name: str = None, middlewares: str | list[str] | None = None):
-    _path = path if path is not None else f'/{controller_name}'
-    _service_name = service_name if service_name is not None else controller_name
-    _middlewares = (middlewares if isinstance(middlewares, list)
-                    else [middlewares] if isinstance(middlewares, str)
-                    else [])
-
-    def decorator(controller_cls: type['web.Controller']):
-        controller_cls.__blnt__ = web.ControllerMetadata(
-            controller_name, _path, use_service, _service_name, namespace, _middlewares)
-        core.cache.register(controller_cls, 'controller', controller_name)
-        return controller_cls
-
-    return decorator
-
-
-def route(path: str, *, method: abc.web.HttpMethod, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-          middlewares: str | list[str] | None = None):
-    if middlewares is None:
-        middlewares = []
-    if isinstance(middlewares, str):
-        middlewares = [middlewares]
-
-    def decorator(route_function: Callable):
-        if (not isinstance(route_function, core.InstantiableAttribute)
-                and not _inspect.iscoroutinefunction(route_function)):
-            raise ValueError(f'Route "{route_function.__name__}" must be an async function')
-        if expects is not None and not isinstance(expects, web.Expects):
-            raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Expects')
-        if returns is not None and not isinstance(returns, web.Returns):
-            raise ValueError(f'Route "{route_function.__name__}": expects argument must be of type web.Returns')
-        inner_route = None
-        if isinstance(route_function, core.InstantiableAttribute):
-            inner_route = route_function
-        docstring = route_function.__doc__
-        return core.InstantiableAttribute(web.ControllerRoute, dict(
-            func=route_function, path=path, method=method, docstring=docstring, expects=expects,
-            returns=returns, inner_route=inner_route, middlewares=middlewares
-        ))
-    return decorator
-
-
-def get(path: str, *, returns: 'web.Returns' = None,
-        middlewares: str | list[str] | None = None):
-    return route(path, method=abc.web.HttpMethod.GET, expects=None, returns=returns, middlewares=middlewares)
-
-
-def post(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-         middlewares: str | list[str] | None = None):
-    return route(path, method=abc.web.HttpMethod.POST, expects=expects, returns=returns, middlewares=middlewares)
-
-
-def put(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-        middlewares: str | list[str] | None = None):
-    return route(path, method=abc.web.HttpMethod.PUT, expects=expects, returns=returns, middlewares=middlewares)
-
-
-def patch(path: str, *, expects: 'web.Expects' = None, returns: 'web.Returns' = None,
-          middlewares: str | list[str] | None = None):
-    return route(path, method=abc.web.HttpMethod.PATCH, expects=expects, returns=returns, middlewares=middlewares)
-
-
-def delete(path: str, *, returns: 'web.Returns' = None,
-           middlewares: str | list[str] | None = None):
-    return route(path, method=abc.web.HttpMethod.DELETE, expects=None, returns=returns, middlewares=middlewares)
-
-
-def middleware(name: str, *, priority: int = 100, auto_load: bool = False, loadable: bool = True):
-    def decorator(middleware_cls: type['web.Middleware']):
-        middleware_cls.__blnt__ = web.MiddlewareMetadata(name, priority, auto_load, loadable)
-        core.cache.register(middleware_cls, 'middleware', name)
-        return middleware_cls
-    return decorator
-
-
-def topic(topic_name: str):
-    def decorator(topic_cls: type['web.Topic']):
-        topic_cls.__blnt__ = web.TopicMetadata(topic_name)
-        core.cache.register(topic_cls, 'topic', topic_name)
-        return topic_cls
-    return decorator
-
-
-def channel(rule: str):
-    def decorator(channel_function: Callable):
-        return web.TopicChannel(channel_function, rule)
-    return decorator
+def injected(func: Callable[[Any, BolinetteInjection], abc.T_Instance], name: str = None):
+    return InjectionProxy(func, name or func.__name__)
 
 
 class _CommandDecorator:
@@ -163,7 +16,7 @@ class _CommandDecorator:
         return _Command(func.__name__, func)
 
     def __call__(self, name: str, summary: str, *,
-                 run_init: bool = False, allow_anonymous: bool = False):
+                 exts: list[BolinetteExtension] = None, allow_anonymous: bool = False):
         def decorator(arg):
             if isinstance(arg, _Command):
                 cmd = arg
@@ -171,8 +24,8 @@ class _CommandDecorator:
                 cmd = self._create_command(arg)
             else:
                 raise ValueError('@command must only decorate functions or async functions')
-            cmd.init_params(name, summary, run_init, allow_anonymous)
-            core.cache.register_instance(cmd, 'command', cmd.name)
+            cmd.init_params(name, summary, exts or [], allow_anonymous)
+            __global_cache__.push(cmd, 'command', cmd.name)
             return cmd
         return decorator
 

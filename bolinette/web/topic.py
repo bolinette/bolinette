@@ -3,14 +3,13 @@ from collections.abc import Iterator
 
 from aiohttp import web as aio_web
 
-from bolinette import abc, core
-from bolinette.core import Properties
+from bolinette.core import abc, BolinetteContext, Properties
 
 
-class Topic(abc.WithContext, abc.inject.Injectable):
+class Topic(abc.WithContext):
     __blnt__: 'TopicMetadata' = None
 
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: BolinetteContext):
         super().__init__(context)
         self.__props__ = TopicProps(self)
         self._subscriptions: dict[str, list[aio_web.WebSocketResponse]] = {}

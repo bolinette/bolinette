@@ -1,10 +1,10 @@
 from collections.abc import Callable, Awaitable
 
-from bolinette import abc
+from bolinette import core
 
 
 class InitFunction:
-    def __init__(self, func: Callable[[abc.Context], Awaitable[None]], rerun_for_tests: bool):
+    def __init__(self, func: Callable[['core.BolinetteContext'], Awaitable[None]], rerun_for_tests: bool):
         self._func = func
         self._rerun_for_tests = rerun_for_tests
 
@@ -16,8 +16,9 @@ class InitFunction:
     def name(self):
         return self._func.__name__
 
-    def __call__(self, context: abc.Context):
-        return self._func(context)
+    @property
+    def function(self):
+        return self._func
 
     def __str__(self):
         return self.name

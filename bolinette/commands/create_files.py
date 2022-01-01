@@ -1,7 +1,8 @@
 import sys
 from typing import Any
 
-from bolinette import abc, Console
+from bolinette import Console
+from bolinette.core import BolinetteContext
 from bolinette.utils import files, paths
 from bolinette.decorators import command
 
@@ -27,7 +28,7 @@ def _update_init(path: str, module: str, folder: str, name: str, class_name: str
     files.write(file_path, f'from {module}.{folder}.{name} import {class_name}\n', mode='a+')
 
 
-def _create_model(context: abc.Context, console: Console, name: str):
+def _create_model(context: BolinetteContext, console: Console, name: str):
     module = context.manifest['module']
     dest_dir = context.root_path(module, 'models')
     class_name = name[0].upper() + name[1:]
@@ -40,7 +41,7 @@ def _create_model(context: abc.Context, console: Console, name: str):
     _update_init(dest_dir, module, 'models', name, class_name)
 
 
-def _create_service(context: abc.Context, console: Console, name: str):
+def _create_service(context: BolinetteContext, console: Console, name: str):
     module = context.manifest['module']
     dest_dir = context.root_path(module, 'services')
     class_name = name[0].upper() + name[1:]
@@ -53,7 +54,7 @@ def _create_service(context: abc.Context, console: Console, name: str):
     _update_init(dest_dir, module, 'services', name, f'{class_name}Service')
 
 
-def _create_controller(context: abc.Context, console: Console, name: str):
+def _create_controller(context: BolinetteContext, console: Console, name: str):
     module = context.manifest['module']
     dest_dir = context.root_path(module, 'controllers')
     class_name = name[0].upper() + name[1:]
@@ -66,7 +67,7 @@ def _create_controller(context: abc.Context, console: Console, name: str):
     _update_init(dest_dir, module, 'controllers', name, f'{class_name}Controller')
 
 
-def _create_middleware(context: abc.Context, console: Console, name: str):
+def _create_middleware(context: BolinetteContext, console: Console, name: str):
     module = context.manifest['module']
     dest_dir = context.root_path(module, 'middlewares')
     class_name = name[0].upper() + name[1:]
@@ -79,7 +80,7 @@ def _create_middleware(context: abc.Context, console: Console, name: str):
     _update_init(dest_dir, module, 'middlewares', name, f'{class_name}Middleware')
 
 
-def _create_mixin(context: abc.Context, console: Console, name: str):
+def _create_mixin(context: BolinetteContext, console: Console, name: str):
     module = context.manifest['module']
     dest_dir = context.root_path(module, 'mixins')
     class_name = name[0].upper() + name[1:]
@@ -96,7 +97,7 @@ def _create_mixin(context: abc.Context, console: Console, name: str):
 @command.argument('argument', 'name', summary='The new model\'s name')
 @command.argument('flag', 'service', flag='s', summary='Create an associated service')
 @command.argument('flag', 'controller', flag='c', summary='Create an associated controller')
-async def create_model(context: abc.Context, name: str, service: bool, controller: bool):
+async def create_model(context: BolinetteContext, name: str, service: bool, controller: bool):
     console = Console()
     _create_model(context, console, name)
     if service:
@@ -108,7 +109,7 @@ async def create_model(context: abc.Context, name: str, service: bool, controlle
 @command('new service', 'Create a new service file')
 @command.argument('argument', 'name', summary='The new service\'s name')
 @command.argument('flag', 'controller', flag='c', summary='Create an associated controller')
-async def create_service(context: abc.Context, name: str, controller: bool):
+async def create_service(context: BolinetteContext, name: str, controller: bool):
     console = Console()
     _create_service(context, console, name)
     if controller:
@@ -117,20 +118,20 @@ async def create_service(context: abc.Context, name: str, controller: bool):
 
 @command('new controller', 'Create a new controller file')
 @command.argument('argument', 'name', summary='The new controller\'s name')
-async def create_controller(context: abc.Context, name: str):
+async def create_controller(context: BolinetteContext, name: str):
     console = Console()
     _create_controller(context, console, name)
 
 
 @command('new middleware', 'Create a new middleware file')
 @command.argument('argument', 'name', summary='The new middleware\'s name')
-async def create_middleware(context: abc.Context, name: str):
+async def create_middleware(context: BolinetteContext, name: str):
     console = Console()
     _create_middleware(context, console, name)
 
 
 @command('new mixin', 'Create a new mixin file')
 @command.argument('argument', 'name', summary='The new mixin\'s name')
-async def create_mixin(context: abc.Context, name: str):
+async def create_mixin(context: BolinetteContext, name: str):
     console = Console()
     _create_mixin(context, console, name)

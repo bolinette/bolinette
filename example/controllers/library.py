@@ -1,9 +1,8 @@
-from bolinette import web
-from bolinette.decorators import controller
+from bolinette.web import Controller, controller
 
 
 @controller('library')
-class LibraryController(web.Controller):
+class LibraryController(Controller):
     def default_routes(self):
         return [
             self.defaults.create(),

@@ -52,7 +52,9 @@ class Parser:
             )
             sys.exit(1)
         func = command.func
-        if command.run_init:
+        if command.exts:
+            for ext in command.exts:
+                self.blnt.load(ext)
             asyncio.run(self.blnt.startup())
         if inspect.iscoroutinefunction(func):
             asyncio.run(async_invoke(func, self.blnt.context, **parsed))

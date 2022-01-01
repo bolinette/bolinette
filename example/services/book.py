@@ -1,12 +1,8 @@
-from bolinette import data, core
-from bolinette.decorators import service
+from bolinette.data import service, Service
 
 
 @service('book')
-class BookService(data.Service):
-    def __init__(self, context: 'core.BolinetteContext'):
-        super().__init__(context)
-
+class BookService(Service):
     async def get_books_over_650_pages(self):
         return await self.repo.query().filter(lambda b: b.pages >= 650).all()
 

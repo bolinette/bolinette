@@ -6,12 +6,13 @@ from abc import ABC
 
 import yaml
 
-from bolinette import abc, console, core
+from bolinette import console, core
+from bolinette.core import abc
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
 
 
-class Settings(abc.Environment, ABC):
+class Settings(ABC):
     def __init__(self):
         self._settings: dict[str, Any] = {}
 

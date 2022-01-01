@@ -1,31 +1,47 @@
+from enum import Enum, auto, unique
 import re
 from collections.abc import Generator, Callable
 from typing import Any
 
 from aiohttp.web_request import Request
 
-from bolinette import abc, core, data, web
-from bolinette.core.inject import instantiate_type
+from bolinette.core import abc, BolinetteContext, BolinetteInjection, Properties
+from bolinette.data import Service
+from bolinette.web import WebContext, WithWebContext, Response, Middleware
 from bolinette.decorators import injected
 from bolinette.exceptions import InitError
 from bolinette.utils import functions
 
 
-class Controller(abc.web.Controller):
+@unique
+class HttpMethod(Enum):
+    GET = auto()
+    POST = auto()
+    PUT = auto()
+    PATCH = auto()
+    DELETE = auto()
+
+    @property
+    def http_verb(self):
+        return self.name
+
+
+class Controller(abc.WithContext, WithWebContext):
     __blnt__: 'ControllerMetadata' = None  # type: ignore
 
-    def __init__(self, context: abc.Context):
-        super().__init__(context)
+    def __init__(self, context: BolinetteContext, web_ctx: WebContext):
+        abc.WithContext.__init__(self, context)
+        WithWebContext.__init__(self, web_ctx)
         self.__props__ = ControllerProps(self)
-        self.response = web.Response(context)
+        self.response = Response(context)
         if self.__blnt__.use_service:
-            self.defaults = ControllerDefaults(self)
+            self.defaults = ControllerDefaults(context, web_ctx, self)
 
     @injected
-    def service(self, inject: abc.inject.Injection) -> 'data.Service':
+    def service(self, inject: BolinetteInjection) -> Service:
         return inject.require('service', self.__blnt__.service_name)
 
-    def default_routes(self) -> list['web.ControllerRoute']:
+    def default_routes(self) -> list['ControllerRoute']:
         return []
 
     def __repr__(self):
@@ -43,7 +59,7 @@ class ControllerMetadata:
         self.middlewares = middlewares
 
 
-class ControllerProps(core.Properties):
+class ControllerProps(Properties):
     def __init__(self, controller):
         super().__init__(controller)
 
@@ -56,12 +72,15 @@ class _MiddlewareHandle:
         self.func = func
 
 
-class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
-    def __init__(self, controller: 'web.Controller', func: Callable, path: str, method: abc.web.HttpMethod,
+class ControllerRoute(abc.WithContext, WithWebContext):
+    def __init__(self, context: BolinetteContext, web_ctx: WebContext, controller: Controller,
+                 func: Callable, path: str, method: HttpMethod,
                  docstring: str | None, expects: 'Expects' = None, returns: 'Returns' = None,
-                 inner_route: 'ControllerRoute' = None, middlewares: list[str] = None, **kwargs):
-        abc.inject.Instantiable.__init__(self, **kwargs)
-        abc.web.Route.__init__(self, controller, method)
+                 inner_route: 'ControllerRoute' = None, middlewares: list[str] = None):
+        abc.WithContext.__init__(self, context)
+        WithWebContext.__init__(self, web_ctx)
+        self.controller = controller
+        self.method = method
         self.func = func
         self.path = path
         self.docstring = docstring
@@ -69,7 +88,7 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
         self.returns = returns
         self.inner_route = inner_route
         self._mdw_defs = middlewares or []
-        self.middlewares: list['web.Middleware'] = []
+        self.middlewares: list[Middleware] = []
 
     def __repr__(self):
         return f'<Route {self.method.name} "{self.full_path}" {self._mdw_defs}>'
@@ -79,13 +98,13 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
         return f'{self.controller.__blnt__.namespace}{self.controller.__blnt__.path}{self.path}'
 
     def setup(self):
-        self._init_middlewares(self.controller.context, self.controller.__blnt__.middlewares,
-                               self._init_sys_middleware(self.controller.context))
-        self.controller.context.resources.add_route(self.full_path, self)
+        self._init_middlewares(self.context, self.controller.__blnt__.middlewares,
+                               self._init_sys_middleware(self.context))
+        self.web_ctx.resources.add_route(self.full_path, self)
         if self.inner_route is not None:
             self.inner_route.setup()
 
-    def _init_middlewares(self, context: 'core.BolinetteContext', from_controller: list[str], system: list[str]):
+    def _init_middlewares(self, context: BolinetteContext, from_controller: list[str], system: list[str]):
         for mdw in system:
             self._parse_middleware_options(mdw, context, True)
         for mdw in from_controller:
@@ -95,8 +114,8 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
         self.middlewares = sorted(sorted(self.middlewares, key=lambda m: m.__blnt__.priority),
                                   key=lambda m: m.system_priority)
 
-    def _init_sys_middleware(self, context: 'core.BolinetteContext'):
-        sys_mdw = [m.__blnt__.name for m in context.inject.collect_types(web.Middleware) if m.__blnt__.auto_load]
+    def _init_sys_middleware(self, context: BolinetteContext):
+        sys_mdw = [m.__blnt__.name for m in self.web_ctx.ext.cache.collect_by_type(Middleware) if m.__blnt__.auto_load]
         if self.expects is not None:
             model = self.expects.model
             key = self.expects.key if self.expects.key is not None else 'default'
@@ -119,7 +138,7 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
             sys_mdw.append('blnt_response')
         return sys_mdw
 
-    def _parse_middleware_options(self, mdw: str, context: 'core.BolinetteContext', system: bool = False):
+    def _parse_middleware_options(self, mdw: str, context: BolinetteContext, system: bool = False):
         name, *args = mdw.split('|')
         if name.startswith('!'):
             self.middlewares = list(filter(lambda m: m.__blnt__.name != name[1:], self.middlewares))
@@ -129,7 +148,7 @@ class ControllerRoute(abc.inject.Instantiable, abc.web.Route):
             middleware = find[0]
             middleware.options = {}
         else:
-            middleware = instantiate_type(context, context.inject.collect_type('middleware', name))
+            middleware = context.inject.instantiate_type(self.web_ctx.ext.cache.collect_by_name('middleware', name))
 
         if not middleware.__blnt__.loadable and not system:
             raise InitError(f'[{type(self.controller).__name__}] Middleware '
@@ -180,16 +199,17 @@ class Returns:
         self.skip_none = skip_none
 
 
-class ControllerDefaults(abc.WithContext):
+class ControllerDefaults(abc.WithContext, WithWebContext):
     PARAM_NAME_DOT_REGEX = re.compile(r'\.')
     PARAM_NAME_CHAR_REGEX = re.compile(r'[^a-zA-Z0-9_]')
 
-    def __init__(self, controller: Controller):
-        super().__init__(controller.context)
+    def __init__(self, context: BolinetteContext, web_ctx: WebContext, controller: Controller):
+        abc.WithContext.__init__(self, context)
+        WithWebContext.__init__(self, web_ctx)
         self.controller = controller
 
     @injected
-    def service(self, inject: abc.inject.Injection):
+    def service(self, inject: BolinetteInjection):
         return inject.require('service', self.controller.__blnt__.service_name)
 
     def _get_url_keys(self, key: str | list[str] | None, *, route: str) -> list[str]:
@@ -216,7 +236,7 @@ class ControllerDefaults(abc.WithContext):
                 middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
 
-        async def route(controller: web.Controller, **kwargs):
+        async def route(controller: Controller, **kwargs):
             resp = await functions.async_invoke(controller.service.get_all, **kwargs)
             return controller.response.ok(data=resp)
 
@@ -225,9 +245,8 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The list of {model_name} entities
         """
-        return ControllerRoute(self.controller, route, f'{prefix}', abc.web.HttpMethod.GET, docstring,
-                               returns=Returns(model_name, returns, as_list=True),
-                               middlewares=middlewares)
+        return ControllerRoute(self.context, self.web_ctx, self.controller, route, f'{prefix}', HttpMethod.GET,
+                               docstring, returns=Returns(model_name, returns, as_list=True), middlewares=middlewares)
 
     def get_one(self, returns='default', *, key: str | list[str] | None = None,
                 prefix='', middlewares: list[str] = None, docstring: str = None):
@@ -235,7 +254,7 @@ class ControllerDefaults(abc.WithContext):
         url_keys = self._get_url_keys(key, route='get_one')
         url = self._get_url(url_keys, prefix=prefix)
 
-        async def route(controller: web.Controller, *, match, **kwargs):
+        async def route(controller: Controller, *, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             resp = await functions.async_invoke(controller.service.get_first_by_keys, keys, **kwargs)
             return controller.response.ok(data=resp)
@@ -246,15 +265,14 @@ class ControllerDefaults(abc.WithContext):
         -response 200 returns: The {model_name} entity
         -response 404: The {model_name} identified by "{key}" was not found
         """
-        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.GET, docstring,
-                               returns=Returns(model_name, returns),
-                               middlewares=middlewares)
+        return ControllerRoute(self.context, self.web_ctx, self.controller, route, url, HttpMethod.GET, docstring,
+                               returns=Returns(model_name, returns), middlewares=middlewares)
 
     def create(self, returns='default', expects='default', *, prefix='',
                middlewares: list[str] = None, docstring: str = None):
         model_name = self.service.__blnt__.model_name
 
-        async def route(controller: web.Controller, payload, **kwargs):
+        async def route(controller: Controller, payload, **kwargs):
             resp = await functions.async_invoke(controller.service.create, payload, **kwargs)
             return controller.response.created(messages=f'{controller.service.__blnt__.model_name}.created', data=resp)
 
@@ -263,10 +281,9 @@ class ControllerDefaults(abc.WithContext):
 
         -response 201 returns: The created {model_name} entity
         """
-        return ControllerRoute(self.controller, route, f'{prefix}', abc.web.HttpMethod.POST, docstring,
-                               expects=Expects(self.service.__blnt__.model_name, expects),
-                               returns=Returns(model_name, returns),
-                               middlewares=middlewares)
+        return ControllerRoute(self.context, self.web_ctx, self.controller, route, f'{prefix}', HttpMethod.POST,
+                               docstring, expects=Expects(self.service.__blnt__.model_name, expects),
+                               returns=Returns(model_name, returns), middlewares=middlewares)
 
     def update(self, returns='default', expects='default', *, key: str = None, prefix='',
                middlewares: list[str] = None, docstring: str = None):
@@ -274,7 +291,7 @@ class ControllerDefaults(abc.WithContext):
         url_keys = self._get_url_keys(key, route='update')
         url = self._get_url(url_keys, prefix=prefix)
 
-        async def route(controller: web.Controller, payload, match, **kwargs):
+        async def route(controller: Controller, payload, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             entity = await controller.service.get_first_by_keys(keys)
             resp = await functions.async_invoke(controller.service.update, entity, payload, **kwargs)
@@ -285,10 +302,9 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.PUT, docstring,
+        return ControllerRoute(self.context, self.web_ctx, self.controller, route, url, HttpMethod.PUT, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects),
-                               returns=Returns(model_name, returns),
-                               middlewares=middlewares)
+                               returns=Returns(model_name, returns), middlewares=middlewares)
 
     def patch(self, returns='default', expects='default', *, key: str = None, prefix='',
               middlewares: list[str] = None, docstring: str = None):
@@ -296,7 +312,7 @@ class ControllerDefaults(abc.WithContext):
         url_keys = self._get_url_keys(key, route='patch')
         url = self._get_url(url_keys, prefix=prefix)
 
-        async def route(controller: web.Controller, payload, match, **kwargs):
+        async def route(controller: Controller, payload, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             entity = await controller.service.get_first_by_keys(keys)
             resp = await functions.async_invoke(controller.service.patch, entity, payload, **kwargs)
@@ -307,10 +323,9 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The updated {model_name} entity
         """
-        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.PATCH, docstring,
+        return ControllerRoute(self.context, self.web_ctx, self.controller, route, url, HttpMethod.PATCH, docstring,
                                expects=Expects(self.service.__blnt__.model_name, expects, patch=True),
-                               returns=Returns(model_name, returns),
-                               middlewares=middlewares)
+                               returns=Returns(model_name, returns), middlewares=middlewares)
 
     def delete(self, returns='default', *, key: str = None, prefix='',
                middlewares: list[str] = None, docstring: str = None):
@@ -318,7 +333,7 @@ class ControllerDefaults(abc.WithContext):
         url_keys = self._get_url_keys(key, route='delete')
         url = self._get_url(url_keys, prefix=prefix)
 
-        async def route(controller: web.Controller, match, **kwargs):
+        async def route(controller: Controller, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             entity = await controller.service.get_first_by_keys(keys)
             resp = await functions.async_invoke(controller.service.delete, entity, **kwargs)
@@ -329,6 +344,5 @@ class ControllerDefaults(abc.WithContext):
 
         -response 200 returns: The deleted {model_name} entity
         """
-        return ControllerRoute(self.controller, route, url, abc.web.HttpMethod.DELETE, docstring,
-                               returns=Returns(model_name, returns),
-                               middlewares=middlewares)
+        return ControllerRoute(self.context, self.web_ctx, self.controller, route, url, HttpMethod.DELETE, docstring,
+                               returns=Returns(model_name, returns), middlewares=middlewares)

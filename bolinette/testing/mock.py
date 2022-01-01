@@ -4,15 +4,18 @@ import string
 from types import SimpleNamespace
 from typing import Any
 
-from bolinette import abc, core, types, data
+from bolinette import types
+from bolinette.core import abc, BolinetteContext
+from bolinette.data import DataContext, WithDataContext, Model
 
 
-class Mocked(abc.WithContext):
-    def __init__(self, name, context: 'core.BolinetteContext'):
-        super().__init__(context)
+class Mocked(abc.WithContext, WithDataContext):
+    def __init__(self, name, context: BolinetteContext):
+        abc.WithContext.__init__(self, context)
+        WithDataContext.__init__(self, context.registry.get(DataContext))
         self.name = name
-        self.model = self.context.inject.require('model', self.name, immediate=True)
-        self.database = self.context.db[self.model.__blnt__.database]
+        self.model: Model = self.context.inject.require('model', self.name, immediate=True)
+        self.database = self.data_ctx.db[self.model.__blnt__.database]
         self._fields = {}
 
     def __getitem__(self, key):
@@ -28,7 +31,7 @@ class Mocked(abc.WithContext):
         return repr(self._fields)
 
     @staticmethod
-    async def insert_entity(context: 'core.BolinetteContext', name: str, params: dict[str, Any]):
+    async def insert_entity(context: BolinetteContext, name: str, params: dict[str, Any]):
         mocked = Mocked(name, context)
         for key, value in params.items():
             mocked[key] = value
@@ -51,26 +54,26 @@ class Mocked(abc.WithContext):
         return dict(self._fields)
 
     async def insert(self):
-        return (await self.context.inject
-                .require('model', self.name, immediate=True).__props__.repo.create(self._fields))
+        model: Model = self.context.inject.require('model', self.name, immediate=True)
+        return await model.__props__.repo.create(self._fields)
 
     def to_response(self, key='default') -> dict:
-        definition = self.context.mapper.response(self.name, key)
-        return self.context.mapper.marshall(
+        definition = self.data_ctx.mapper.response(self.name, key)
+        return self.data_ctx.mapper.marshall(
             definition,
             self._to_object if self.database.relational else self._fields
         )
 
     def to_payload(self, key='default') -> dict:
-        definition = self.context.mapper.payload(self.name, key)
-        return self.context.mapper.marshall(
+        definition = self.data_ctx.mapper.payload(self.name, key)
+        return self.data_ctx.mapper.marshall(
             definition,
             self._to_object if self.database.relational else self._fields
         )
 
 
 class Mock(abc.WithContext):
-    def __init__(self, context: 'core.BolinetteContext'):
+    def __init__(self, context: BolinetteContext):
         super().__init__(context)
 
     @staticmethod
@@ -118,7 +121,7 @@ class Mock(abc.WithContext):
 
         rng = random.Random(hash(f'{model_name}.{m_id}'))
         mocked = Mocked(model_name, self.context)
-        model: data.Model = self.context.inject.require('model', model_name, immediate=True)
+        model: Model = self.context.inject.require('model', model_name, immediate=True)
         columns = model.__props__.get_columns()
         for _, column in columns:
             if column.auto_increment:

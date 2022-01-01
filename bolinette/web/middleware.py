@@ -5,14 +5,16 @@ from typing import Any
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 
-from bolinette import abc
+from bolinette.core import abc, BolinetteContext
+from bolinette.data import WithDataContext, DataContext
 
 
-class Middleware(abc.WithContext, abc.inject.Injectable):
+class Middleware(abc.WithContext, WithDataContext):
     __blnt__: 'MiddlewareMetadata' = None  # type: ignore
 
-    def __init__(self, context: abc.Context):
-        super().__init__(context)
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext):
+        abc.WithContext.__init__(self, context)
+        WithDataContext.__init__(self, data_ctx)
         self.system_priority = 1
         self.options: dict[str, MiddlewareParam] = {}
         self.params = MiddlewareParams()
@@ -37,8 +39,8 @@ class MiddlewareMetadata:
 
 
 class InternalMiddleware(Middleware):
-    def __init__(self, context: abc.Context):
-        super().__init__(context)
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext):
+        super().__init__(context, data_ctx)
         self.system_priority = 0
 
 

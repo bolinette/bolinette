@@ -1,9 +1,8 @@
-from bolinette import web
-from bolinette.decorators import controller
+from bolinette.web import Controller, controller
 
 
 @controller('person', '/person', middlewares=['auth'])
-class PersonController(web.Controller):
+class PersonController(Controller):
     def default_routes(self):
         return [
             self.defaults.get_all(middlewares=['!auth']),

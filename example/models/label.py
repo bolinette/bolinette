@@ -1,9 +1,9 @@
-from bolinette import data, types, mapping
-from bolinette.decorators import model
+from bolinette import types
+from bolinette.data import Model, model, mapping
 
 
 @model('label')
-class Label(data.Model):
+class Label(Model):
     tag_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('tag', 'id'), primary_key=True)
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)

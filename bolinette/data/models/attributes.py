@@ -1,11 +1,11 @@
 from typing import Literal, Any, Optional
 
-from bolinette import abc, types, data
+from bolinette import types, data
 
 
-class Reference(abc.inject.Instantiable):
-    def __init__(self, model: 'data.Model', column: 'data.models.Column', target_model: 'data.Model',
-                 target_column: 'data.models.Column', **kwargs):
+class Reference:
+    def __init__(self, model: 'data.Model', column: 'data.models.Column',
+                 target_model: 'data.Model', target_column: 'data.models.Column', **kwargs):
         super().__init__(**kwargs)
         self._model = model
         self._column = column
@@ -36,7 +36,7 @@ class Reference(abc.inject.Instantiable):
         return f'<Reference {self.model_name}.{self.column_name} -> {self.target_path}>'
 
 
-class Column(abc.inject.Instantiable):
+class Column:
     def __init__(self, name: str, model: 'data.Model', data_type: 'types.db.DataType', reference: Reference | None,
                  primary_key: bool, auto: bool | None, nullable: bool, unique: bool, entity_key: bool,
                  default: Any | None, **kwargs):
@@ -118,7 +118,7 @@ class ColumnList:
         self._origin = origin
 
 
-class Backref(abc.inject.Instantiable):
+class Backref:
     def __init__(self, model: 'data.Model', relationship: 'data.models.Relationship',
                  key: str, lazy: bool):
         self._model = model
@@ -138,7 +138,7 @@ class Backref(abc.inject.Instantiable):
         return f'<Backref <- {self._key}' + (' (lazy)' if self._lazy else '') + '>'
 
 
-class Relationship(abc.inject.Instantiable):
+class Relationship:
     def __init__(self, name: str, model: 'data.Model', target_model: 'data.Model', backref: Backref | None,
                  foreign_key: Column | None, remote_side: Column | None, lazy: bool | Literal['subquery'],
                  secondary: Optional['data.Model'], **kwargs):

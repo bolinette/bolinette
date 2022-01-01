@@ -1,9 +1,10 @@
 from collections.abc import Iterator, Callable
 
-from bolinette import abc, core, types
+from bolinette import types
+from bolinette.core import InstantiableAttribute, Properties
 
 
-class Mixin(abc.inject.Injectable):
+class Mixin:
     __blnt__: 'MixinMetadata' = None  # type: ignore
 
     def __init__(self):
@@ -18,7 +19,7 @@ class Mixin(abc.inject.Injectable):
     def __getitem__(self, key):
         return self._methods[key]
 
-    def columns(self) -> dict[str, 'core.InstantiableAttribute']:
+    def columns(self) -> dict[str, InstantiableAttribute]:
         pass
 
     def relationships(self) -> dict[str, 'types.defs.Relationship']:
@@ -36,7 +37,7 @@ class MixinMetadata:
         self.name = name
 
 
-class MixinProps(core.Properties):
+class MixinProps(Properties):
     def get_service_methods(self) -> Iterator[tuple[str, 'MixinServiceMethod']]:
         return self._get_cls_attributes_of_type(type(self.parent), MixinServiceMethod)
 

@@ -1,25 +1,27 @@
 from typing import Any
 
-from bolinette import abc, data
+from bolinette.core import abc, BolinetteContext
 from bolinette.core.objects import Pagination, PaginationParams, OrderByParams
-from bolinette.core.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
+from bolinette.data import DataContext, WithDataContext, Model
+from bolinette.data.models import Relationship
+from bolinette.data.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
 from bolinette.utils.functions import setattr_, getattr_, async_invoke
 
 
-class Repository(abc.WithContext):
-    def __init__(self, context: abc.Context, model: 'data.Model'):
-        super().__init__(context)
+class Repository(abc.WithContext, WithDataContext):
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext, model: Model):
+        abc.WithContext.__init__(self, context)
+        WithDataContext.__init__(self, data_ctx)
         self._model = model
-        self._query_builder = self._get_query_builder(model, context)
+        self._query_builder = self._get_query_builder(model, self.data_ctx)
 
     @property
     def model(self):
         return self._model
 
-    @staticmethod
-    def _get_query_builder(model: 'data.Model', context: abc.Context):
-        db = context.db[model.__blnt__.database]
+    def _get_query_builder(self, model: Model, context: BolinetteContext):
+        db = self.data_ctx.db[model.__blnt__.database]
         if db.relational:
             return RelationalQueryBuilder(model, context)
         return CollectionQueryBuilder(model, context)
@@ -101,7 +103,7 @@ class Repository(abc.WithContext):
         return values
 
     @staticmethod
-    async def _validate_linked_model(relationship: 'data.models.Relationship', values: dict[str, Any],
+    async def _validate_linked_model(relationship: Relationship, values: dict[str, Any],
                                      repo_args: dict[str, Any], ignore_keys: list[str]):
         if relationship.foreign_key is None:
             return

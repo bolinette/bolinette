@@ -1,10 +1,10 @@
 import requests
 
-from bolinette import abc, core
+from bolinette.core import BolinetteContext, WithContext
 
 
-class Mailgun(abc.WithContext):
-    def __init__(self, context: 'core.BolinetteContext'):
+class Mailgun(WithContext):
+    def __init__(self, context: BolinetteContext):
         super().__init__(context)
         self.url = context.env['mailgun_url']
         self.ready = True
