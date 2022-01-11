@@ -1,5 +1,6 @@
 import inspect
 from collections.abc import Callable
+from typing import TypeVar
 
 from bolinette.core import BolinetteContext, BolinetteExtension, InstantiableAttribute
 from bolinette.data import ext as data_ext
@@ -8,6 +9,10 @@ from bolinette.web import (
     Middleware, MiddlewareMetadata, HttpMethod,
     Expects, Returns, Topic, TopicMetadata, TopicChannel
 )
+
+T_Middleware = TypeVar('T_Middleware', bound=Middleware)
+T_Controller = TypeVar('T_Controller', bound=Controller)
+T_Topic = TypeVar('T_Topic', bound=Topic)
 
 
 class WebExtension(BolinetteExtension[WebContext]):
@@ -30,18 +35,16 @@ class WebExtension(BolinetteExtension[WebContext]):
         _middlewares = (middlewares if isinstance(middlewares, list)
                         else [middlewares] if isinstance(middlewares, str)
                         else [])
-
-        def decorator(controller_cls: type[Controller]):
+        def decorator(controller_cls: type[T_Controller]) -> type[T_Controller]:
             controller_cls.__blnt__ = ControllerMetadata(
                 controller_name, _path, use_service, _service_name, namespace, _middlewares)
             self._cache.push(controller_cls, 'controller', controller_name)
             return controller_cls
-
         return decorator
 
 
     def middleware(self, name: str, *, priority: int = 100, auto_load: bool = False, loadable: bool = True):
-        def decorator(middleware_cls: type[Middleware]):
+        def decorator(middleware_cls: type[T_Middleware]) -> type[T_Middleware]:
             middleware_cls.__blnt__ = MiddlewareMetadata(name, priority, auto_load, loadable)
             self._cache.push(middleware_cls, 'middleware', name)
             return middleware_cls
@@ -49,7 +52,7 @@ class WebExtension(BolinetteExtension[WebContext]):
 
 
     def topic(self, topic_name: str):
-        def decorator(topic_cls: type[Topic]):
+        def decorator(topic_cls: type[T_Topic]) -> type[T_Topic]:
             topic_cls.__blnt__ = TopicMetadata(topic_name)
             self._cache.push(topic_cls, 'topic', topic_name)
             return topic_cls
