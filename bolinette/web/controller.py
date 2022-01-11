@@ -181,7 +181,7 @@ class ControllerRoute(abc.WithContext, WithWebContext):
         return await handles[index].func(request, params, _next)
 
     async def _final_middleware_call(self, _1, params: dict[str, Any], _2):
-        return await functions.async_invoke(self.func, self.controller, **params)
+        return await functions.invoke(self.func, self.controller, **params)
 
 
 class Expects:
@@ -237,7 +237,7 @@ class ControllerDefaults(abc.WithContext, WithWebContext):
         model_name = self.service.__blnt__.model_name
 
         async def route(controller: Controller, **kwargs):
-            resp = await functions.async_invoke(controller.service.get_all, **kwargs)
+            resp = await functions.invoke(controller.service.get_all, **kwargs)
             return controller.response.ok(data=resp)
 
         docstring = docstring or f"""
@@ -256,7 +256,7 @@ class ControllerDefaults(abc.WithContext, WithWebContext):
 
         async def route(controller: Controller, *, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
-            resp = await functions.async_invoke(controller.service.get_first_by_keys, keys, **kwargs)
+            resp = await functions.invoke(controller.service.get_first_by_keys, keys, **kwargs)
             return controller.response.ok(data=resp)
 
         docstring = docstring or f"""
@@ -273,7 +273,7 @@ class ControllerDefaults(abc.WithContext, WithWebContext):
         model_name = self.service.__blnt__.model_name
 
         async def route(controller: Controller, payload, **kwargs):
-            resp = await functions.async_invoke(controller.service.create, payload, **kwargs)
+            resp = await functions.invoke(controller.service.create, payload, **kwargs)
             return controller.response.created(messages=f'{controller.service.__blnt__.model_name}.created', data=resp)
 
         docstring = docstring or f"""
@@ -294,7 +294,7 @@ class ControllerDefaults(abc.WithContext, WithWebContext):
         async def route(controller: Controller, payload, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             entity = await controller.service.get_first_by_keys(keys)
-            resp = await functions.async_invoke(controller.service.update, entity, payload, **kwargs)
+            resp = await functions.invoke(controller.service.update, entity, payload, **kwargs)
             return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.updated', data=resp)
 
         docstring = docstring or f"""
@@ -315,7 +315,7 @@ class ControllerDefaults(abc.WithContext, WithWebContext):
         async def route(controller: Controller, payload, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             entity = await controller.service.get_first_by_keys(keys)
-            resp = await functions.async_invoke(controller.service.patch, entity, payload, **kwargs)
+            resp = await functions.invoke(controller.service.patch, entity, payload, **kwargs)
             return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.updated', data=resp)
 
         docstring = docstring or f"""
@@ -336,7 +336,7 @@ class ControllerDefaults(abc.WithContext, WithWebContext):
         async def route(controller: Controller, match, **kwargs):
             keys = self._get_match_params(url_keys, match)
             entity = await controller.service.get_first_by_keys(keys)
-            resp = await functions.async_invoke(controller.service.delete, entity, **kwargs)
+            resp = await functions.invoke(controller.service.delete, entity, **kwargs)
             return controller.response.ok(messages=f'{controller.service.__blnt__.model_name}.deleted', data=resp)
 
         docstring = docstring or f"""

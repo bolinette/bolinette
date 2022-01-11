@@ -47,13 +47,5 @@ class BolinetteCache:
     def get_instances(self, _type: type[abc.T_Instance]) -> Iterable[abc.T_Instance]:
         return (i for i in self._all_instances if isinstance(i, _type))
 
-    def merge(self, cache: 'BolinetteCache'):
-        for collection in cache._types_by_name:
-            for name in cache._types_by_name[collection]:
-                self.push(cache._types_by_name[collection][name], collection, name)
-        for collection in cache._instances_by_name:
-            for name in cache._instances_by_name[collection]:
-                self.push(cache._instances_by_name[collection][name], collection, name)
-
 
 __global_cache__ = BolinetteCache()

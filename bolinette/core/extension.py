@@ -39,9 +39,9 @@ class BolinetteExtension(ABC, Generic[T]):
     @abstractproperty
     def __context_type__(self) -> type[T]: ...
 
-    def init_func(self, *, rerun_for_tests: bool = False):
+    def init_func(self, *, rerunable: bool = False):
         def decorator(func: Callable[['core.BolinetteContext', T], Awaitable[None]]):
-            init_func = InitFunction(func, rerun_for_tests)
+            init_func = InitFunction(func, rerunable)
             self._init_funcs.append(init_func)
             return func
         return decorator

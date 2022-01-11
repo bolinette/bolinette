@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime
 from typing import Any, Callable
 
@@ -10,7 +9,7 @@ from bolinette.core.commands import Parser, Command
 from bolinette.core.extension import BolinetteExtension
 from bolinette.exceptions import InitError
 from bolinette.utils import paths
-from bolinette.utils.functions import async_invoke
+from bolinette.utils.functions import invoke
 
 
 class Bolinette:
@@ -26,22 +25,22 @@ class Bolinette:
             exit(1)
         self.console = Console(debug=self.context.env.debug)
 
-    async def startup(self, *, for_tests_only: bool = False):
+    async def startup(self, *, first_run: bool = True):
         self.console.debug('Initializing Bolinette')
-        if not for_tests_only:
+        if first_run:
             self.context.registry.add(self.context)
         for ext in self._extensions:
-            if not for_tests_only:
+            if first_run:
                 ext_ctx = ext.__create_context__(self.context)
                 self.context.registry.add(ext_ctx)
             else:
                 ext_ctx = self.context.registry.get(ext.__context_type__)
             self.console.debug(f'* Initializing {ext} extension')
             for init_func in ext.init_funcs:
-                if for_tests_only and not init_func.rerun_for_tests:
+                if not first_run and not init_func.rerunable:
                     continue
                 self.console.debug(f'  * Running {init_func} function')
-                await async_invoke(init_func.function, self.context, ext_ctx)
+                await invoke(init_func.function, self.context, ext_ctx)
         self.console.debug(f'Startup took {int((datetime.utcnow() - self._start_time).microseconds / 1000)}ms')
 
     def start_server(self, *, host: str = None, port: int = None):

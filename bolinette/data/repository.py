@@ -6,7 +6,7 @@ from bolinette.data import DataContext, WithDataContext, Model
 from bolinette.data.models import Relationship
 from bolinette.data.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
-from bolinette.utils.functions import setattr_, getattr_, async_invoke
+from bolinette.utils.functions import setattr_, getattr_, invoke
 
 
 class Repository(abc.WithContext, WithDataContext):
@@ -139,4 +139,4 @@ class Repository(abc.WithContext, WithDataContext):
     async def _call_mixin_methods(self, method_name: str, *args, **kwargs):
         for _, mixin in self._model.__props__.mixins.items():
             if method_name in mixin:
-                await async_invoke(mixin[method_name].func, *args, **kwargs)
+                await invoke(mixin[method_name].func, *args, **kwargs)

@@ -24,5 +24,5 @@ def client(loop: AbstractEventLoop):
     async def create_client():
         return BolitestClient(bolinette_app.context, loop)
 
-    loop.run_until_complete(bolinette_app.startup(for_tests_only=True))
+    loop.run_until_complete(bolinette_app.startup(first_run=False))
     return loop.run_until_complete(create_client())

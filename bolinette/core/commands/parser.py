@@ -8,7 +8,7 @@ import bolinette
 from bolinette import Console
 from bolinette.exceptions import InitError
 from bolinette.core.commands import Command, Argument
-from bolinette.utils.functions import async_invoke, invoke
+from bolinette.utils.functions import invoke
 
 
 class Parser:
@@ -57,7 +57,7 @@ class Parser:
                 self.blnt.load(ext)
             asyncio.run(self.blnt.startup())
         if inspect.iscoroutinefunction(func):
-            asyncio.run(async_invoke(func, self.blnt.context, **parsed))
+            asyncio.run(invoke(func, self.blnt.context, **parsed))
         else:
             invoke(func, self.blnt.context, **parsed)
 

@@ -1,7 +1,7 @@
 from aiohttp import web as aio_web
 
 from bolinette.core import BolinetteContext, InstantiableAttribute
-from bolinette.web import ext, WebContext, Controller, ControllerRoute, Documentation
+from bolinette.web import ext, WebContext, Controller, ControllerRoute
 
 
 @ext.init_func()
@@ -27,7 +27,7 @@ async def init_controllers(context: BolinetteContext):
         context.inject.register(controller_cls, 'controller', controller_cls.__blnt__.name, func=_init_ctrl)
 
 
-@ext.init_func(rerun_for_tests=True)
+@ext.init_func(rerunable=True)
 async def init_aiohttp_web(context: BolinetteContext, web_ctx: WebContext):
     aiohttp_app = aio_web.Application()
     context.registry.add(aiohttp_app)

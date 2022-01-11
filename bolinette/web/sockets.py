@@ -9,7 +9,7 @@ from bolinette.core import abc, BolinetteContext
 from bolinette.data import Transaction
 from bolinette.web import Topic, TopicChannel
 from bolinette.exceptions import APIError
-from bolinette.utils.functions import async_invoke
+from bolinette.utils.functions import invoke
 
 
 class BolinetteSockets(abc.WithContext):
@@ -115,7 +115,7 @@ class SocketHandler:
 
     @staticmethod
     async def _subscribe(topic: Topic, socket: aio_web.WebSocketResponse, payload, current_user):
-        if await async_invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
+        if await invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
             await topic.receive_subscription(payload['channel'], socket)
 
     async def process_topic_message(self, context: BolinetteContext,
@@ -130,5 +130,5 @@ class SocketHandler:
                     channels = context.sockets.channels(payload['topic'])
                     for channel in channels:
                         if channel.re.match(payload['channel']):
-                            await async_invoke(channel.function, topic, socket=socket, payload=payload,
-                                               current_user=current_user)
+                            await invoke(channel.function, topic, socket=socket, payload=payload,
+                                         current_user=current_user)
