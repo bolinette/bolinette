@@ -14,7 +14,7 @@ class Console:
 
     def debug(self, *values, sep=' ', end='\n'):
         if self._debug:
-            self.print(*values, sep=sep, end=end, flush=self._flush)
+            self.print(*values, sep=sep, end=end)
 
 
 console = Console()

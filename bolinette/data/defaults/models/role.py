@@ -1,9 +1,10 @@
 from bolinette import types, data
 from bolinette.data import ext, mapping
+from bolinette.data.defaults.entities import Role
 
 
 @ext.model('role')
-class Role(data.Model):
+class RoleModel(data.Model[Role]):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
 

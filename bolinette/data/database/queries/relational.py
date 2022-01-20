@@ -1,3 +1,4 @@
+from typing import Generic, TypeVar
 import sqlalchemy
 from sqlalchemy import orm as sqlalchemy_orm
 
@@ -7,7 +8,10 @@ from bolinette.data.database.queries import BaseQueryBuilder, BaseQuery
 from bolinette.exceptions import InternalError
 
 
-class RelationalQueryBuilder(BaseQueryBuilder):
+T_Entity = TypeVar('T_Entity', bound=data.Entity)
+
+
+class RelationalQueryBuilder(BaseQueryBuilder[T_Entity], Generic[T_Entity]):
     def __init__(self, model: 'data.Model', data_ctx: data.DataContext):
         super().__init__(model, data_ctx)
         if isinstance(database := data_ctx.db[model.__blnt__.database], RelationalDatabase):
@@ -32,13 +36,13 @@ class RelationalQueryBuilder(BaseQueryBuilder):
         return entity
 
 
-class RelationalQuery(BaseQuery):
+class RelationalQuery(BaseQuery[T_Entity], Generic[T_Entity]):
     def __init__(self, database: RelationalDatabase, table):
         super().__init__()
         self._database = database
         self._table = table
 
-    def _clone(self):
+    def _clone(self) -> 'RelationalQuery[T_Entity]':
         query = RelationalQuery(self._database, self._table)
         self._base_clone(query)
         return query

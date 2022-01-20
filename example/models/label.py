@@ -1,9 +1,11 @@
 from bolinette import types
 from bolinette.data import Model, model, mapping
 
+from example.entities import Label
+
 
 @model('label')
-class Label(Model):
+class LabelModel(Model[Label]):
     tag_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('tag', 'id'), primary_key=True)
     id = types.defs.Column(types.db.Integer, primary_key=True)
     name = types.defs.Column(types.db.String, nullable=False)

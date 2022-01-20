@@ -1,5 +1,6 @@
+from abc import ABC
 from collections.abc import Iterator, Iterable
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
 from bolinette import data
 from bolinette.core import abc, BolinetteContext, Properties
@@ -7,7 +8,14 @@ from bolinette.data import mapping, DataContext, WithDataContext
 from bolinette.data.database.engines import AbstractEngine
 
 
-class Model(abc.WithContext, WithDataContext):
+class Entity(ABC):
+    ...
+
+
+T_Entity = TypeVar('T_Entity', bound=Entity)
+
+
+class Model(abc.WithContext, WithDataContext, Generic[T_Entity]):
     __blnt__: 'ModelMetadata' = None  # type: ignore
 
     def __init__(self, context: BolinetteContext, data_ctx: DataContext):
@@ -37,12 +45,12 @@ class ModelMetadata:
         self.merge_defs = merge_defs
 
 
-class ModelProps(Properties):
-    def __init__(self, model: Model, database: AbstractEngine):
+class ModelProps(Properties, Generic[T_Entity]):
+    def __init__(self, model: Model[T_Entity], database: AbstractEngine):
         super().__init__(model)
         self.model = model
         self.database = database
-        self.repo: data.Repository | None = None
+        self.repo: data.Repository[T_Entity] | None = None
         self.mixins: dict[str, data.Mixin] = {}
         self.primary: list['data.models.Column'] | None = None
         self.entity_key: list['data.models.Column'] | None = None

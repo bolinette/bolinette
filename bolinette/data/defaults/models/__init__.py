@@ -1,3 +1,3 @@
-from bolinette.data.defaults.models.file import File
-from bolinette.data.defaults.models.role import Role
-from bolinette.data.defaults.models.user import User
+from bolinette.data.defaults.models.file import FileModel
+from bolinette.data.defaults.models.role import RoleModel
+from bolinette.data.defaults.models.user import UserModel

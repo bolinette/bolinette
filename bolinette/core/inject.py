@@ -128,6 +128,9 @@ class BolinetteInjection(abc.WithContext):
             params = inspect.signature(_type).parameters
             for p_name, param in params.items():
                 hint = param.annotation
+                # If the annotation is a generic type
+                if isinstance(getattr(hint, '__origin__', None), type):
+                    hint = hint.__origin__
                 if hint is BolinetteContext:
                     has_context = True
                 if hint == inspect.Signature.empty:
@@ -189,7 +192,7 @@ class InjectionProxy(Generic[abc.T_Instance]):
         self._func = func
         self._name = name
 
-    def __get__(self, instance, _) -> abc.T_Instance | None:
+    def __get__(self, instance, _) -> abc.T_Instance:
         if instance is None:
             return None
         if not isinstance(instance, abc.WithContext):

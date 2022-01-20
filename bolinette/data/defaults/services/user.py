@@ -3,11 +3,12 @@ import bcrypt
 from bolinette.core import BolinetteContext
 from bolinette.data import ext, DataContext, Service
 from bolinette.exceptions import ForbiddenError, UnprocessableEntityError
+from bolinette.data.defaults.entities import User
 from bolinette.data.defaults.services import FileService
 
 
 @ext.service('user')
-class UserService(Service):
+class UserService(Service[User]):
     def __init__(self, context: BolinetteContext, data_ctx: DataContext, file_service: FileService):
         super().__init__(context, data_ctx)
         self.file_service = file_service

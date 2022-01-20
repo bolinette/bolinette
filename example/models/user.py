@@ -1,6 +1,6 @@
 from bolinette import types
 from bolinette.data import model, mapping
-from bolinette.data.defaults.models import User
+from bolinette.data.defaults.models import UserModel
 
 
 class UserWithFirstName:
@@ -8,7 +8,7 @@ class UserWithFirstName:
 
 
 @model('user', definitions='append')
-class UserExtended(User, UserWithFirstName):
+class UserModelExtended(UserModel, UserWithFirstName):
     last_name = types.defs.Column(types.db.String, nullable=False)
 
     def payloads(self):

@@ -1,3 +1,4 @@
+from typing import Generic, TypeVar
 from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING
 from pymongo.collection import Collection
@@ -8,7 +9,10 @@ from bolinette.data.database.engines import CollectionDatabase
 from bolinette.data.database.queries import BaseQueryBuilder, BaseQuery
 
 
-class CollectionQueryBuilder(BaseQueryBuilder):
+T_Entity = TypeVar('T_Entity', bound=data.Entity)
+
+
+class CollectionQueryBuilder(BaseQueryBuilder[T_Entity], Generic[T_Entity]):
     def __init__(self, model: 'data.Model', data_ctx: data.DataContext):
         super().__init__(model, data_ctx)
         self._name = model.__blnt__.name

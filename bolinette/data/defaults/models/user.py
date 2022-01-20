@@ -1,15 +1,16 @@
 from bolinette import types, data, core
 from bolinette.data import ext, mapping
+from bolinette.data.defaults.entities import User
 
 
 @ext.model('users_roles', join_table=True)
-class UsersRoles(data.Model):
+class UsersRolesModel(data.Model):
     user_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('user', 'id'), primary_key=True)
     role_id = types.defs.Column(types.db.Integer, reference=types.defs.Reference('role', 'id'), primary_key=True)
 
 
 @ext.model('user')
-class User(data.Model):
+class UserModel(data.Model[User]):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     username = types.defs.Column(types.db.String, unique=True, nullable=False, entity_key=True)
     password = types.defs.Column(types.db.Password, nullable=False)

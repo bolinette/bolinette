@@ -4,10 +4,11 @@ import string
 from bolinette.utils import paths
 
 from bolinette.data import ext, Service
+from bolinette.data.defaults.entities import File
 
 
 @ext.service('file')
-class FileService(Service):
+class FileService(Service[File]):
     async def _generate_key(self):
         key = None
         while key is None or len(await self.get_by('key', key)):

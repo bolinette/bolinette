@@ -1,9 +1,10 @@
 from bolinette import types, data
 from bolinette.data import ext, mapping
+from bolinette.data.defaults.entities import File
 
 
 @ext.model('file')
-class File(data.Model):
+class FileModel(data.Model[File]):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     key = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)

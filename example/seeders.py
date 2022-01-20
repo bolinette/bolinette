@@ -10,7 +10,7 @@ from example.services import BookService, PersonService, LibraryService, TagServ
 
 @seeder
 async def role_seeder(context: BolinetteContext, data_ctx: DataContext):
-    role_service: RoleService = context.inject.require(RoleService, immediate=True)
+    role_service = context.inject.require(RoleService, immediate=True)
     async with Transaction(data_ctx):
         await role_service.create({'name': 'root'})
         await role_service.create({'name': 'admin'})
@@ -22,8 +22,8 @@ async def dev_user_seeder(context: BolinetteContext, data_ctx: DataContext):
     first_names = ['Bob', 'Jack', 'Bill', 'Joe']
     last_names = ['Smith', 'Johnson', 'Jones', 'Miller']
     if context.env['profile'] == 'development':
-        role_service: RoleService = context.inject.require(RoleService, immediate=True)
-        user_service: UserService = context.inject.require(UserService, immediate=True)
+        role_service = context.inject.require(RoleService, immediate=True)
+        user_service = context.inject.require(UserService, immediate=True)
         async with Transaction(data_ctx):
             root = await role_service.get_by_name('root')
             admin = await role_service.get_by_name('admin')

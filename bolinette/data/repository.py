@@ -1,30 +1,33 @@
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from bolinette.core import abc, BolinetteContext
 from bolinette.core.objects import Pagination, PaginationParams, OrderByParams
-from bolinette.data import DataContext, WithDataContext, Model
+from bolinette.data import DataContext, WithDataContext, Model, Entity
 from bolinette.data.models import Relationship
-from bolinette.data.database.queries import BaseQuery, RelationalQueryBuilder, CollectionQueryBuilder
+from bolinette.data.database.queries import BaseQuery, BaseQueryBuilder, RelationalQueryBuilder, CollectionQueryBuilder
 from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
 from bolinette.utils.functions import setattr_, getattr_, invoke
 
 
-class Repository(abc.WithContext, WithDataContext):
-    def __init__(self, context: BolinetteContext, data_ctx: DataContext, model: Model):
+T_Entity = TypeVar('T_Entity', bound=Entity)
+
+
+class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
+    def __init__(self, context: BolinetteContext, data_ctx: DataContext, model: Model[T_Entity]):
         abc.WithContext.__init__(self, context)
         WithDataContext.__init__(self, data_ctx)
         self._model = model
-        self._query_builder = self._get_query_builder(model, self.data_ctx)
+        self._query_builder = self._get_query_builder(model)
 
     @property
-    def model(self):
+    def model(self) -> Model[T_Entity]:
         return self._model
 
-    def _get_query_builder(self, model: Model, context: BolinetteContext):
+    def _get_query_builder(self, model: Model[T_Entity]) -> BaseQueryBuilder[T_Entity]:
         db = self.data_ctx.db[model.__blnt__.database]
         if db.relational:
-            return RelationalQueryBuilder(model, context)
-        return CollectionQueryBuilder(model, context)
+            return RelationalQueryBuilder(model, self.data_ctx)
+        return CollectionQueryBuilder(model, self.data_ctx)
 
     def __repr__(self):
         return f'<Repository {self._model.__blnt__.name}>'

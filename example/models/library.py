@@ -1,9 +1,11 @@
 from bolinette import types
 from bolinette.data import Model, model, mapping
 
+from example.entities import Library
+
 
 @model('library', database='mongo')
-class Library(Model):
+class LibraryModel(Model[Library]):
     id = types.defs.Column(types.db.Integer, primary_key=True)
     key = types.defs.Column(types.db.String, nullable=False, unique=True, entity_key=True)
     name = types.defs.Column(types.db.String, nullable=False)
