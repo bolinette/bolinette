@@ -3,6 +3,6 @@ from bolinette.data import service, Service
 from example.entities import Library
 
 
-@service('library')
+@service("library")
 class LibraryService(Service[Library]):
     ...

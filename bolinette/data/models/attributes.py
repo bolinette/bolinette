@@ -4,8 +4,14 @@ from bolinette import types, data
 
 
 class Reference:
-    def __init__(self, model: 'data.Model', column: 'data.models.Column',
-                 target_model: 'data.Model', target_column: 'data.models.Column', **kwargs):
+    def __init__(
+        self,
+        model: "data.Model",
+        column: "data.models.Column",
+        target_model: "data.Model",
+        target_column: "data.models.Column",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._model = model
         self._column = column
@@ -30,16 +36,27 @@ class Reference:
 
     @property
     def target_path(self):
-        return f'{self.target_model_name}.{self.target_column_name}'
+        return f"{self.target_model_name}.{self.target_column_name}"
 
     def __repr__(self):
-        return f'<Reference {self.model_name}.{self.column_name} -> {self.target_path}>'
+        return f"<Reference {self.model_name}.{self.column_name} -> {self.target_path}>"
 
 
 class Column:
-    def __init__(self, name: str, model: 'data.Model', data_type: 'types.db.DataType', reference: Reference | None,
-                 primary_key: bool, auto: bool | None, nullable: bool, unique: bool, entity_key: bool,
-                 default: Any | None, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        model: "data.Model",
+        data_type: "types.db.DataType",
+        reference: Reference | None,
+        primary_key: bool,
+        auto: bool | None,
+        nullable: bool,
+        unique: bool,
+        entity_key: bool,
+        default: Any | None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._name = name
         self._type = data_type
@@ -105,22 +122,27 @@ class Column:
         self._nullable = value
 
     def __repr__(self):
-        s = f'<Column {self.model_name}.{self._name}: {repr(self._type)}'
+        s = f"<Column {self.model_name}.{self._name}: {repr(self._type)}"
         if self._reference is not None:
-            s += f' -> {self._reference.target_path}'
-        return s + '>'
+            s += f" -> {self._reference.target_path}"
+        return s + ">"
 
 
 class ColumnList:
-    def __init__(self, name: str, model: 'data.Model', origin: 'data.Model'):
+    def __init__(self, name: str, model: "data.Model", origin: "data.Model"):
         self._name = name
         self._model = model
         self._origin = origin
 
 
 class Backref:
-    def __init__(self, model: 'data.Model', relationship: 'data.models.Relationship',
-                 key: str, lazy: bool):
+    def __init__(
+        self,
+        model: "data.Model",
+        relationship: "data.models.Relationship",
+        key: str,
+        lazy: bool,
+    ):
         self._model = model
         self._relationship = relationship
         self._key = key
@@ -135,13 +157,22 @@ class Backref:
         return self._lazy
 
     def __repr__(self):
-        return f'<Backref <- {self._key}' + (' (lazy)' if self._lazy else '') + '>'
+        return f"<Backref <- {self._key}" + (" (lazy)" if self._lazy else "") + ">"
 
 
 class Relationship:
-    def __init__(self, name: str, model: 'data.Model', target_model: 'data.Model', backref: Backref | None,
-                 foreign_key: Column | None, remote_side: Column | None, lazy: bool | Literal['subquery'],
-                 secondary: Optional['data.Model'], **kwargs):
+    def __init__(
+        self,
+        name: str,
+        model: "data.Model",
+        target_model: "data.Model",
+        backref: Backref | None,
+        foreign_key: Column | None,
+        remote_side: Column | None,
+        lazy: bool | Literal["subquery"],
+        secondary: Optional["data.Model"],
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._name = name
         self._model = model
@@ -201,5 +232,8 @@ class Relationship:
         return self._target_model.__blnt__.name
 
     def __repr__(self):
-        return (f'<Relationship {self._model.__blnt__.name}.{self._name} -> {self.target_model_name}'
-                + ('  (lazy)' if self._lazy else '') + '>')
+        return (
+            f"<Relationship {self._model.__blnt__.name}.{self._name} -> {self.target_model_name}"
+            + ("  (lazy)" if self._lazy else "")
+            + ">"
+        )

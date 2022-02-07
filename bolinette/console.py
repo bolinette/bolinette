@@ -6,13 +6,13 @@ class Console:
         self._flush = flush
         self._debug = debug
 
-    def print(self, *values, sep=' ', end='\n'):
+    def print(self, *values, sep=" ", end="\n"):
         print(*values, sep=sep, end=end, flush=self._flush)
 
-    def error(self, *values, sep=' ', end='\n'):
+    def error(self, *values, sep=" ", end="\n"):
         print(*values, file=sys.stderr, sep=sep, end=end, flush=self._flush)
 
-    def debug(self, *values, sep=' ', end='\n'):
+    def debug(self, *values, sep=" ", end="\n"):
         if self._debug:
             self.print(*values, sep=sep, end=end)
 

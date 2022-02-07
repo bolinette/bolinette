@@ -14,7 +14,9 @@ class Mocked(abc.WithContext, WithDataContext):
         abc.WithContext.__init__(self, context)
         WithDataContext.__init__(self, context.registry.get(DataContext))
         self.name = name
-        self.model: Model = self.context.inject.require('model', self.name, immediate=True)
+        self.model: Model = self.context.inject.require(
+            "model", self.name, immediate=True
+        )
         self.database = self.data_ctx.db[self.model.__blnt__.database]
         self._fields = {}
 
@@ -31,7 +33,9 @@ class Mocked(abc.WithContext, WithDataContext):
         return repr(self._fields)
 
     @staticmethod
-    async def insert_entity(context: BolinetteContext, name: str, params: dict[str, Any]):
+    async def insert_entity(
+        context: BolinetteContext, name: str, params: dict[str, Any]
+    ):
         mocked = Mocked(name, context)
         for key, value in params.items():
             mocked[key] = value
@@ -54,21 +58,19 @@ class Mocked(abc.WithContext, WithDataContext):
         return dict(self._fields)
 
     async def insert(self):
-        model: Model = self.context.inject.require('model', self.name, immediate=True)
+        model: Model = self.context.inject.require("model", self.name, immediate=True)
         return await model.__props__.repo.create(self._fields)
 
-    def to_response(self, key='default') -> dict:
+    def to_response(self, key="default") -> dict:
         definition = self.data_ctx.mapper.response(self.name, key)
         return self.data_ctx.mapper.marshall(
-            definition,
-            self._to_object if self.database.relational else self._fields
+            definition, self._to_object if self.database.relational else self._fields
         )
 
-    def to_payload(self, key='default') -> dict:
+    def to_payload(self, key="default") -> dict:
         definition = self.data_ctx.mapper.payload(self.name, key)
         return self.data_ctx.mapper.marshall(
-            definition,
-            self._to_object if self.database.relational else self._fields
+            definition, self._to_object if self.database.relational else self._fields
         )
 
 
@@ -78,11 +80,11 @@ class Mock(abc.WithContext):
 
     @staticmethod
     def _random_lower(rng, length):
-        return ''.join(rng.choices(string.ascii_lowercase, k=length))
+        return "".join(rng.choices(string.ascii_lowercase, k=length))
 
     @staticmethod
     def _random_symbols(rng, length):
-        return ''.join(rng.choices(string.punctuation, k=length))
+        return "".join(rng.choices(string.punctuation, k=length))
 
     @staticmethod
     def _random_int(rng, a, b):
@@ -105,23 +107,29 @@ class Mock(abc.WithContext):
                 case types.db.String:
                     return Mock._random_lower(rng, 15)
                 case types.db.Email:
-                    return f'{Mock._random_lower(rng, 10)}@{Mock._random_lower(rng, 5)}.com'
+                    return f"{Mock._random_lower(rng, 10)}@{Mock._random_lower(rng, 5)}.com"
                 case types.db.Password:
-                    return (Mock._random_lower(rng, 10) + str(Mock._random_int(rng, 1, 100))
-                            + Mock._random_symbols(rng, 1))
+                    return (
+                        Mock._random_lower(rng, 10)
+                        + str(Mock._random_int(rng, 1, 100))
+                        + Mock._random_symbols(rng, 1)
+                    )
                 case types.db.Integer:
                     return Mock._random_int(rng, 1, 100)
                 case types.db.Float:
                     return Mock._random_int(rng, 1, 100)
                 case types.db.Date:
-                    return Mock._random_date(rng, datetime.datetime(1900, 1, 1),
-                                             datetime.datetime(2000, 1, 1))
+                    return Mock._random_date(
+                        rng,
+                        datetime.datetime(1900, 1, 1),
+                        datetime.datetime(2000, 1, 1),
+                    )
                 case _:
                     return None
 
-        rng = random.Random(hash(f'{model_name}.{m_id}'))
+        rng = random.Random(hash(f"{model_name}.{m_id}"))
         mocked = Mocked(model_name, self.context)
-        model: Model = self.context.inject.require('model', model_name, immediate=True)
+        model: Model = self.context.inject.require("model", model_name, immediate=True)
         columns = model.__props__.get_columns()
         for _, column in columns:
             if column.auto_increment:

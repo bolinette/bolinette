@@ -4,13 +4,13 @@ from pymongo import MongoClient
 
 from bolinette.data.database.engines import AbstractEngine
 
-_COLLECTION_REGEX = re.compile(r'^([^/]+://[^/]+/?)(.*)$')
+_COLLECTION_REGEX = re.compile(r"^([^/]+://[^/]+/?)(.*)$")
 
 
 class CollectionDatabase(AbstractEngine):
     def __init__(self, uri):
         super().__init__(relational=False)
-        db = 'bolinette'
+        db = "bolinette"
         if match := _COLLECTION_REGEX.match(uri):
             uri = match.group(1)
             db = match.group(2) or db

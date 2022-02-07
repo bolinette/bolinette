@@ -17,7 +17,7 @@ class BolinetteResources(abc.WithContext):
     def __init__(self, context: BolinetteContext):
         super().__init__(context)
         self._routes: dict[str, dict[HttpMethod, ControllerRoute]] = {}
-        self._aiohttp_resources: dict[str, 'BolinetteResource'] = {}
+        self._aiohttp_resources: dict[str, "BolinetteResource"] = {}
         self.cors: aiohttp_cors.CorsConfig | None = None
 
     @property
@@ -28,9 +28,9 @@ class BolinetteResources(abc.WithContext):
 
     def _setup_cors(self):
         parsed_conf = {}
-        conf = self.context.env.get_all(startswith='cors.')
+        conf = self.context.env.get_all(startswith="cors.")
         for key, value in conf.items():
-            keys = key.split('.', maxsplit=2)
+            keys = key.split(".", maxsplit=2)
             if len(keys) == 3:
                 _, site, prop = keys
                 if site not in parsed_conf:
@@ -39,11 +39,11 @@ class BolinetteResources(abc.WithContext):
         cors = {}
         for site, conf in parsed_conf.items():
             cors[site] = aiohttp_cors.ResourceOptions(
-                allow_credentials=conf.get('allow_credentials', False),
-                expose_headers=conf.get('expose_headers', ()),
-                allow_headers=conf.get('allow_headers', ()),
-                max_age=conf.get('max_age', None),
-                allow_methods=conf.get('allow_methods', None),
+                allow_credentials=conf.get("allow_credentials", False),
+                expose_headers=conf.get("expose_headers", ()),
+                allow_headers=conf.get("allow_headers", ()),
+                max_age=conf.get("max_age", None),
+                allow_methods=conf.get("allow_methods", None),
             )
         return cors
 
@@ -52,15 +52,21 @@ class BolinetteResources(abc.WithContext):
             self.context.inject.require(ctrl_cls, immediate=True)
         self._aiohttp_resources = {}
         self.cors = aiohttp_cors.setup(app, defaults=self._setup_cors())
-        aiohttp_app: aio_web.Application = self.context.registry.get(aio_web.Application)
+        aiohttp_app: aio_web.Application = self.context.registry.get(
+            aio_web.Application
+        )
         for path, methods in self._routes.items():
             for method, route in methods.items():
                 if path not in self._aiohttp_resources:
                     self._aiohttp_resources[path] = BolinetteResource(
-                        self.cors.add(aiohttp_app.router.add_resource(path)))
+                        self.cors.add(aiohttp_app.router.add_resource(path))
+                    )
                 handler = RouteHandler(route)
                 self._aiohttp_resources[path].routes[method] = self.cors.add(
-                    self._aiohttp_resources[path].resource.add_route(method.http_verb, handler.__call__))
+                    self._aiohttp_resources[path].resource.add_route(
+                        method.http_verb, handler.__call__
+                    )
+                )
 
     def add_route(self, path: str, route: ControllerRoute):
         if path not in self._routes:
@@ -81,25 +87,23 @@ class RouteHandler:
 
     async def __call__(self, request: Request):
         context = self.controller.context
-        params: dict[str, Any] = {
-            'match': {},
-            'query': {},
-            'request': request
-        }
+        params: dict[str, Any] = {"match": {}, "query": {}, "request": request}
         for key in request.match_info:
-            params['match'][key] = request.match_info[key]
+            params["match"][key] = request.match_info[key]
         for key in request.query:
-            params['query'][key] = request.query[key]
+            params["query"][key] = request.query[key]
         try:
             resp = await self.route.call_middleware_chain(request, params)
             return resp
         except (APIError, APIErrors) as ex:
             res = Response(context).from_exception(ex)
-            if context.env['debug']:
+            if context.env["debug"]:
                 stack = traceback.format_exc()
                 if isinstance(ex, InternalError):
                     console.error(stack)
-                res.content['trace'] = stack.split('\n')
-            serialized, mime = serialize(res.content, 'application/json')
-            web_response = aio_web.Response(text=serialized, status=res.code, content_type=mime)
+                res.content["trace"] = stack.split("\n")
+            serialized, mime = serialize(res.content, "application/json")
+            web_response = aio_web.Response(
+                text=serialized, status=res.code, content_type=mime
+            )
             return web_response

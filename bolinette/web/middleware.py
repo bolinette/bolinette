@@ -10,7 +10,7 @@ from bolinette.data import WithDataContext, DataContext
 
 
 class Middleware(abc.WithContext, WithDataContext):
-    __blnt__: 'MiddlewareMetadata' = None  # type: ignore
+    __blnt__: "MiddlewareMetadata" = None  # type: ignore
 
     def __init__(self, context: BolinetteContext, data_ctx: DataContext):
         abc.WithContext.__init__(self, context)
@@ -19,15 +19,19 @@ class Middleware(abc.WithContext, WithDataContext):
         self.options: dict[str, MiddlewareParam] = {}
         self.params = MiddlewareParams()
 
-    def define_options(self) -> dict[str, 'MiddlewareParam']:
+    def define_options(self) -> dict[str, "MiddlewareParam"]:
         return {}
 
-    async def handle(self, request: Request, params: dict[str, Any],
-                     next_func: Callable[[Request, dict[str, Any]], Awaitable[Response]]):
+    async def handle(
+        self,
+        request: Request,
+        params: dict[str, Any],
+        next_func: Callable[[Request, dict[str, Any]], Awaitable[Response]],
+    ):
         return await next_func(request, params)
 
     def __repr__(self):
-        return f'<Middleware {self.__blnt__.name}>'
+        return f"<Middleware {self.__blnt__.name}>"
 
 
 class MiddlewareMetadata:
@@ -62,7 +66,7 @@ class MiddlewareParams:
         return FloatParam(required, default)
 
     @staticmethod
-    def list(element: 'MiddlewareParam', required=False, default=None):
+    def list(element: "MiddlewareParam", required=False, default=None):
         if default is None:
             default = []
         return ListParam(element, required, default)
@@ -83,7 +87,7 @@ class BooleanParam(MiddlewareParam):
         return True
 
     def __repr__(self) -> str:
-        return 'bool'
+        return "bool"
 
 
 class StringParam(MiddlewareParam):
@@ -91,7 +95,7 @@ class StringParam(MiddlewareParam):
         return value
 
     def __repr__(self) -> str:
-        return 'str'
+        return "str"
 
 
 class IntParam(MiddlewareParam):
@@ -99,7 +103,7 @@ class IntParam(MiddlewareParam):
         return int(value)
 
     def __repr__(self) -> str:
-        return 'int'
+        return "int"
 
 
 class FloatParam(MiddlewareParam):
@@ -107,7 +111,7 @@ class FloatParam(MiddlewareParam):
         return float(value)
 
     def __repr__(self) -> str:
-        return 'float'
+        return "float"
 
 
 class ListParam(MiddlewareParam):
@@ -116,7 +120,7 @@ class ListParam(MiddlewareParam):
         self.element = element
 
     def validate(self, value: str):
-        return [self.element.validate(val) for val in value.split(',')]
+        return [self.element.validate(val) for val in value.split(",")]
 
     def __repr__(self) -> str:
-        return f'list[{repr(self.element)}]'
+        return f"list[{repr(self.element)}]"

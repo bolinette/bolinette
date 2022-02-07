@@ -7,8 +7,17 @@ from example.entities import Person
 
 
 class Book(Entity, ABC):
-    def __init__(self, id: int, uid: str, name: str, pages: int, price: float,
-                 publication_date: datetime, author_id: int, author: Person):
+    def __init__(
+        self,
+        id: int,
+        uid: str,
+        name: str,
+        pages: int,
+        price: float,
+        publication_date: datetime,
+        author_id: int,
+        author: Person,
+    ):
         self.id = id
         self.uid = uid
         self.name = name

@@ -7,16 +7,16 @@ from bolinette.core import abc, InitFunction, BolinetteCache
 
 
 class ExtensionContext(abc.WithContext, ABC):
-    def __init__(self, ext: 'BolinetteExtension', context: 'core.BolinetteContext'):
+    def __init__(self, ext: "BolinetteExtension", context: "core.BolinetteContext"):
         abc.WithContext.__init__(self, context)
         self.ext = ext
 
 
-T = TypeVar('T', bound=ExtensionContext)
+T = TypeVar("T", bound=ExtensionContext)
 
 
 class BolinetteExtension(ABC, Generic[T]):
-    def __init__(self, *, dependencies: list['BolinetteExtension'] = None):
+    def __init__(self, *, dependencies: list["BolinetteExtension"] = None):
         self._cache = BolinetteCache()
         self._init_funcs: list[InitFunction] = []
         self._dependencies = dependencies or []
@@ -30,20 +30,23 @@ class BolinetteExtension(ABC, Generic[T]):
         return (f for f in self._init_funcs)
 
     @property
-    def dependencies(self) -> Iterable['BolinetteExtension']:
+    def dependencies(self) -> Iterable["BolinetteExtension"]:
         return (d for d in self._dependencies)
 
     @abstractmethod
-    def __create_context__(self, context: 'core.BolinetteContext') -> T: ...
+    def __create_context__(self, context: "core.BolinetteContext") -> T:
+        ...
 
     @abstractproperty
-    def __context_type__(self) -> type[T]: ...
+    def __context_type__(self) -> type[T]:
+        ...
 
     def init_func(self, *, rerunable: bool = False):
-        def decorator(func: Callable[['core.BolinetteContext', T], Awaitable[None]]):
+        def decorator(func: Callable[["core.BolinetteContext", T], Awaitable[None]]):
             init_func = InitFunction(func, rerunable)
             self._init_funcs.append(init_func)
             return func
+
         return decorator
 
     def __str__(self):

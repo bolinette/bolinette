@@ -28,7 +28,7 @@ class RelationalDatabase(AbstractEngine):
 
     def table(self, key: str):
         if key not in self._tables:
-            raise InternalError(f'No table named {key} in database engine')
+            raise InternalError(f"No table named {key} in database engine")
         return self._tables[key]
 
     async def open_transaction(self):

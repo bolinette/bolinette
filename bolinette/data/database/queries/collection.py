@@ -9,34 +9,38 @@ from bolinette.data.database.engines import CollectionDatabase
 from bolinette.data.database.queries import BaseQueryBuilder, BaseQuery
 
 
-T_Entity = TypeVar('T_Entity', bound=data.Entity)
+T_Entity = TypeVar("T_Entity", bound=data.Entity)
 
 
 class CollectionQueryBuilder(BaseQueryBuilder[T_Entity], Generic[T_Entity]):
-    def __init__(self, model: 'data.Model', data_ctx: data.DataContext):
+    def __init__(self, model: "data.Model", data_ctx: data.DataContext):
         super().__init__(model, data_ctx)
         self._name = model.__blnt__.name
-        if isinstance(database := data_ctx.db[model.__blnt__.database], CollectionDatabase):
+        if isinstance(
+            database := data_ctx.db[model.__blnt__.database], CollectionDatabase
+        ):
             self._database: CollectionDatabase = database
         else:
-            raise TypeError(f'Database engine for "{model.__blnt__.name}" model has to be collection based')
+            raise TypeError(
+                f'Database engine for "{model.__blnt__.name}" model has to be collection based'
+            )
         self._collection = self._database.db[self._name]
 
-    def query(self) -> 'BaseQuery':
+    def query(self) -> "BaseQuery":
         return CollectionQuery(self._collection)
 
     async def insert_entity(self, values):
         result = self._collection.insert_one(values)
-        return self._collection.find_one({'_id': ObjectId(result.inserted_id)})
+        return self._collection.find_one({"_id": ObjectId(result.inserted_id)})
 
     async def update_entity(self, entity):
         values = dict(entity)
-        _id = values.pop('_id')
-        self._collection.update_one({'_id': _id}, {'$set': values})
-        return self._collection.find_one({'_id': ObjectId(_id)})
+        _id = values.pop("_id")
+        self._collection.update_one({"_id": _id}, {"$set": values})
+        return self._collection.find_one({"_id": ObjectId(_id)})
 
     async def delete_entity(self, entity):
-        self._collection.delete_one({'_id': entity['_id']})
+        self._collection.delete_one({"_id": entity["_id"]})
         return entity
 
 
@@ -57,7 +61,7 @@ class CollectionQuery(BaseQuery):
         return self._collection.find_one(self._build_filters())
 
     async def get_by_id(self, identifier):
-        return self._collection.find_one({'_id': ObjectId(identifier)})
+        return self._collection.find_one({"_id": ObjectId(identifier)})
 
     async def count(self):
         return self._collection.count_documents(self._build_filters())
@@ -67,7 +71,10 @@ class CollectionQuery(BaseQuery):
         if self._limit is not None:
             cursor.limit(self._limit)
         if len(self._order_by) > 0:
-            order_by = [(column, DESCENDING if desc else ASCENDING) for column, desc in self._order_by]
+            order_by = [
+                (column, DESCENDING if desc else ASCENDING)
+                for column, desc in self._order_by
+            ]
             cursor.sort(order_by)
         return cursor
 
@@ -75,7 +82,7 @@ class CollectionQuery(BaseQuery):
         params = {}
         if len(self._filters_by) > 0:
             for key in self._filters_by:
-                if key == '_id':
+                if key == "_id":
                     params[key] = ObjectId(self._filters_by[key])
                 else:
                     params[key] = self._filters_by[key]

@@ -4,11 +4,11 @@ from typing import TypeVar as _TypeVar
 from bolinette import core
 
 
-T_Instance = _TypeVar('T_Instance')
+T_Instance = _TypeVar("T_Instance")
 
 
 class WithContext(_ABC):
-    def __init__(self, context: 'core.BolinetteContext', **kwargs):
+    def __init__(self, context: "core.BolinetteContext", **kwargs):
         self.__blnt_ctx__ = context
 
     @property

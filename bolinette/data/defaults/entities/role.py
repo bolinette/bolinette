@@ -5,7 +5,7 @@ from bolinette.data.defaults import entities
 
 
 class Role(Entity, ABC):
-    def __init__(self, id: int, name: str, users: 'entities.User'):
+    def __init__(self, id: int, name: str, users: "entities.User"):
         self.id = id
         self.name = name
         self.users = users

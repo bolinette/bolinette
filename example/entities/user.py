@@ -6,9 +6,19 @@ from example.entities import Role, File
 
 
 class User(Entity, ABC):
-    def __init__(self, id: int, username: str, password: str, email: str, roles: list[Role],
-                 picture_id: int, profile_picture: File, timezone: str,
-                 first_name: str, last_name: str):
+    def __init__(
+        self,
+        id: int,
+        username: str,
+        password: str,
+        email: str,
+        roles: list[Role],
+        picture_id: int,
+        profile_picture: File,
+        timezone: str,
+        first_name: str,
+        last_name: str,
+    ):
         self.id = id
         self.username = username
         self.password = password

@@ -5,7 +5,7 @@ from bolinette.core import InstantiableAttribute, Properties
 
 
 class Mixin:
-    __blnt__: 'MixinMetadata' = None  # type: ignore
+    __blnt__: "MixinMetadata" = None  # type: ignore
 
     def __init__(self):
         self.__props__ = MixinProps(self)
@@ -22,7 +22,7 @@ class Mixin:
     def columns(self) -> dict[str, InstantiableAttribute]:
         pass
 
-    def relationships(self) -> dict[str, 'types.defs.Relationship']:
+    def relationships(self) -> dict[str, "types.defs.Relationship"]:
         pass
 
     def payload(self, model):
@@ -38,7 +38,7 @@ class MixinMetadata:
 
 
 class MixinProps(Properties):
-    def get_service_methods(self) -> Iterator[tuple[str, 'MixinServiceMethod']]:
+    def get_service_methods(self) -> Iterator[tuple[str, "MixinServiceMethod"]]:
         return self._get_cls_attributes_of_type(type(self.parent), MixinServiceMethod)
 
 

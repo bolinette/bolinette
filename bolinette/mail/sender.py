@@ -1,9 +1,7 @@
 from bolinette.core import BolinetteContext, WithContext
 from bolinette.mail.providers import Mailgun
 
-_providers = {
-    'mailgun': Mailgun
-}
+_providers = {"mailgun": Mailgun}
 
 
 class Sender(WithContext):
@@ -12,12 +10,14 @@ class Sender(WithContext):
         self.provider = None
 
     def init_app(self):
-        provider = self.context.env['mail_provider']
+        provider = self.context.env["mail_provider"]
         if provider:
             provider = provider.lower()
             if provider not in _providers:
-                self.context.logger.warning(f'Unknown "{provider}" mail provider. '
-                                            f'Available: {", ".join(_providers.keys())}')
+                self.context.logger.warning(
+                    f'Unknown "{provider}" mail provider. '
+                    f'Available: {", ".join(_providers.keys())}'
+                )
             else:
                 self.provider = _providers[provider](self.context)
 

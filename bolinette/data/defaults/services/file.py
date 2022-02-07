@@ -7,23 +7,23 @@ from bolinette.data import ext, Service
 from bolinette.data.defaults.entities import File
 
 
-@ext.service('file')
+@ext.service("file")
 class FileService(Service[File]):
     async def _generate_key(self):
         key = None
-        while key is None or len(await self.get_by('key', key)):
-            key = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
+        while key is None or len(await self.get_by("key", key)):
+            key = "".join(random.choices(string.ascii_lowercase + string.digits, k=32))
         return key
 
     async def write_file(self, content, key):
-        path = self.context.instance_path('uploads')
+        path = self.context.instance_path("uploads")
         if not paths.exists(path):
             paths.mkdir(path)
-        with open(paths.join(path, key), 'wb') as f:
+        with open(paths.join(path, key), "wb") as f:
             f.write(content)
 
     async def delete_file(self, key):
-        paths.rm(self.context.instance_path('uploads', key))
+        paths.rm(self.context.instance_path("uploads", key))
 
     async def delete(self, entity, **kwargs):
         ent = await super().delete(entity)
@@ -32,16 +32,16 @@ class FileService(Service[File]):
 
     async def save_file(self, request_file):
         params = {
-            'key': await self._generate_key(),
-            'name': request_file.filename,
-            'mime': request_file.content_type
+            "key": await self._generate_key(),
+            "name": request_file.filename,
+            "mime": request_file.content_type,
         }
-        await self.write_file(request_file.file.read(), params['key'])
+        await self.write_file(request_file.file.read(), params["key"])
         return await self.create(params)
 
     async def file_sender(self, key):
-        with open(self.context.instance_path('uploads', key), 'rb') as f:
-            chunk = f.read(2 ** 16)
+        with open(self.context.instance_path("uploads", key), "rb") as f:
+            chunk = f.read(2**16)
             while chunk:
                 yield chunk
-                chunk = f.read(2 ** 16)
+                chunk = f.read(2**16)

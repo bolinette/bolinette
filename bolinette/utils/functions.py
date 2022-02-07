@@ -18,13 +18,17 @@ def _parse_params(function, *args, **kwargs):
                 else:
                     out_args.append(param.default if not param.empty else None)
             case param.KEYWORD_ONLY:
-                out_kwargs[key] = kwargs.pop(key, param.default if not param.empty else None)
+                out_kwargs[key] = kwargs.pop(
+                    key, param.default if not param.empty else None
+                )
             case param.POSITIONAL_OR_KEYWORD:
                 if cur_arg < arg_cnt:
                     out_args.append(args[cur_arg])
                     cur_arg += 1
                 else:
-                    out_args.append(kwargs.pop(key, param.default if not param.empty else None))
+                    out_args.append(
+                        kwargs.pop(key, param.default if not param.empty else None)
+                    )
             case param.VAR_POSITIONAL:
                 while cur_arg < arg_cnt:
                     out_args.append(args[cur_arg])
@@ -39,7 +43,7 @@ def invoke(function: Callable, *args, **kwargs):
     if callable(function):
         args, kwargs = _parse_params(function, *args, **kwargs)
         return function(*args, **kwargs)
-    raise InternalError(f'internal.not_function:{function.__name__}')
+    raise InternalError(f"internal.not_function:{function.__name__}")
 
 
 def getattr_(entity, key, default):
@@ -62,4 +66,4 @@ def setattr_(entity, key, value):
 
 
 def is_db_entity(entity) -> bool:
-    return hasattr(entity, '_sa_instance_state')
+    return hasattr(entity, "_sa_instance_state")

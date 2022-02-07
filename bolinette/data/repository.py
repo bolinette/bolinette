@@ -4,16 +4,23 @@ from bolinette.core import abc, BolinetteContext
 from bolinette.core.objects import Pagination, PaginationParams, OrderByParams
 from bolinette.data import DataContext, WithDataContext, Model, Entity
 from bolinette.data.models import Relationship
-from bolinette.data.database.queries import BaseQuery, BaseQueryBuilder, RelationalQueryBuilder, CollectionQueryBuilder
+from bolinette.data.database.queries import (
+    BaseQuery,
+    BaseQueryBuilder,
+    RelationalQueryBuilder,
+    CollectionQueryBuilder,
+)
 from bolinette.exceptions import ParamConflictError, APIErrors, ParamNonNullableError
 from bolinette.utils.functions import setattr_, getattr_, invoke
 
 
-T_Entity = TypeVar('T_Entity', bound=Entity)
+T_Entity = TypeVar("T_Entity", bound=Entity)
 
 
 class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
-    def __init__(self, context: BolinetteContext, data_ctx: DataContext, model: Model[T_Entity]):
+    def __init__(
+        self, context: BolinetteContext, data_ctx: DataContext, model: Model[T_Entity]
+    ):
         abc.WithContext.__init__(self, context)
         WithDataContext.__init__(self, data_ctx)
         self._model = model
@@ -30,12 +37,14 @@ class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
         return CollectionQueryBuilder(model, self.data_ctx)
 
     def __repr__(self):
-        return f'<Repository {self._model.__blnt__.name}>'
+        return f"<Repository {self._model.__blnt__.name}>"
 
     def query(self):
         return self._query_builder.query()
 
-    async def get_all(self, pagination: PaginationParams = None, order_by: list[OrderByParams] = None):
+    async def get_all(
+        self, pagination: PaginationParams = None, order_by: list[OrderByParams] = None
+    ):
         if order_by is None:
             order_by = []
         query = self.query()
@@ -56,23 +65,27 @@ class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
         return await self.query().filter_by(**{key: value}).first()
 
     async def create(self, values: dict[str, Any], **kwargs):
-        await self._call_mixin_methods('create', self, values=values, **kwargs)
+        await self._call_mixin_methods("create", self, values=values, **kwargs)
         filtered = await self._validate_model(values, kwargs)
         entity = await self._query_builder.insert_entity(filtered)
         return entity
 
     async def update(self, entity, values: dict[str, Any], **kwargs):
-        await self._call_mixin_methods('update', self, entity=entity, values=values, **kwargs)
+        await self._call_mixin_methods(
+            "update", self, entity=entity, values=values, **kwargs
+        )
         await self._map_model(entity, values)
         return await self._query_builder.update_entity(entity)
 
     async def patch(self, entity, values: dict[str, Any], **kwargs):
-        await self._call_mixin_methods('patch', self, entity=entity, values=values, **kwargs)
+        await self._call_mixin_methods(
+            "patch", self, entity=entity, values=values, **kwargs
+        )
         await self._map_model(entity, values, patch=True)
         return await self._query_builder.update_entity(entity)
 
     async def delete(self, entity, **kwargs):
-        await self._call_mixin_methods('delete', self, entity=entity, **kwargs)
+        await self._call_mixin_methods("delete", self, entity=entity, **kwargs)
         return await self._query_builder.delete_entity(entity)
 
     @staticmethod
@@ -87,7 +100,9 @@ class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
         api_errors = APIErrors()
         ignore_keys: list[str] = []
         for _, relationship in self._model.__props__.get_relationships():
-            await self._validate_linked_model(relationship, values, repo_args, ignore_keys)
+            await self._validate_linked_model(
+                relationship, values, repo_args, ignore_keys
+            )
         for _, column in self._model.__props__.get_columns():
             key = column.name
             if column.auto_increment or key in ignore_keys:
@@ -106,8 +121,12 @@ class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
         return values
 
     @staticmethod
-    async def _validate_linked_model(relationship: Relationship, values: dict[str, Any],
-                                     repo_args: dict[str, Any], ignore_keys: list[str]):
+    async def _validate_linked_model(
+        relationship: Relationship,
+        values: dict[str, Any],
+        repo_args: dict[str, Any],
+        ignore_keys: list[str],
+    ):
         if relationship.foreign_key is None:
             return
         foreign_key = relationship.foreign_key.name
@@ -118,7 +137,9 @@ class Repository(abc.WithContext, WithDataContext, Generic[T_Entity]):
             ignore_keys.append(foreign_key)
             linked = values[key]
             if isinstance(linked, dict):
-                values[key] = await relationship.target_model.__repo__.create(values[key], **repo_args)
+                values[key] = await relationship.target_model.__repo__.create(
+                    values[key], **repo_args
+                )
 
     async def _map_model(self, entity, values: dict[str, Any], patch=False):
         api_errors = APIErrors()

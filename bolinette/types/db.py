@@ -13,10 +13,10 @@ class DataType:
         return self.name
 
 
-String = DataType('String', _sqlalchemy.String)
-Integer = DataType('Integer', _sqlalchemy.Integer)
-Float = DataType('Float', _sqlalchemy.Float)
-Boolean = DataType('Boolean', _sqlalchemy.Boolean)
-Date = DataType('Date', _sqlalchemy.DateTime)
-Email = DataType('Email', _sqlalchemy.String)
-Password = DataType('Password', _sqlalchemy.String)
+String = DataType("String", _sqlalchemy.String)
+Integer = DataType("Integer", _sqlalchemy.Integer)
+Float = DataType("Float", _sqlalchemy.Float)
+Boolean = DataType("Boolean", _sqlalchemy.Boolean)
+Date = DataType("Date", _sqlalchemy.DateTime)
+Email = DataType("Email", _sqlalchemy.String)
+Password = DataType("Password", _sqlalchemy.String)

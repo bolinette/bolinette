@@ -15,37 +15,57 @@ async def init_model_classes(context: BolinetteContext):
             return _attr.instantiate(name=_name, model=model)
 
         def _init_relationship(_name: str, _attr: InstantiableAttribute[Relationship]):
-            _target_name = _attr.pop('model_name')
-            _target_model = context.inject.require('model', _target_name, immediate=True)
-            _fk_name = _attr.pop('foreign_key')
+            _target_name = _attr.pop("model_name")
+            _target_model = context.inject.require(
+                "model", _target_name, immediate=True
+            )
+            _fk_name = _attr.pop("foreign_key")
             _foreign_key = None
             if _fk_name is not None:
                 _foreign_key = getattr(model, _fk_name, None)
-            _remote_name = _attr.pop('remote_side')
+            _remote_name = _attr.pop("remote_side")
             _remote_side = None
-            _secondary_name = _attr.pop('secondary')
+            _secondary_name = _attr.pop("secondary")
             _secondary = None
             if _secondary_name is not None:
-                _secondary = context.inject.require('model', _secondary_name, immediate=True)
+                _secondary = context.inject.require(
+                    "model", _secondary_name, immediate=True
+                )
             if _remote_name is not None:
                 _remote_side = getattr(model, _remote_name)
-            return _attr.instantiate(name=_name, model=model, target_model=_target_model, secondary=_secondary,
-                                     foreign_key=_foreign_key, remote_side=_remote_side)
+            return _attr.instantiate(
+                name=_name,
+                model=model,
+                target_model=_target_model,
+                secondary=_secondary,
+                foreign_key=_foreign_key,
+                remote_side=_remote_side,
+            )
 
         def _init_reference(_col: Column, _attr: InstantiableAttribute[Reference]):
-            _target_name = _attr.pop('model_name')
-            _target_model = context.inject.require('model', _target_name, immediate=True)
-            _target_col_name = _attr.pop('column_name')
+            _target_name = _attr.pop("model_name")
+            _target_model = context.inject.require(
+                "model", _target_name, immediate=True
+            )
+            _target_col_name = _attr.pop("column_name")
             _target_column = getattr(_target_model, _target_col_name, None)
             if _target_column is None:
-                raise InitError(f'{model.__blnt__.name}.{_col.name}: '
-                                f'no "{_target_col_name}" column in "{_target_name}" model')
-            return _attr.instantiate(model=model, column=_col,
-                                     target_model=_target_model, target_column=_target_column)
+                raise InitError(
+                    f"{model.__blnt__.name}.{_col.name}: "
+                    f'no "{_target_col_name}" column in "{_target_name}" model'
+                )
+            return _attr.instantiate(
+                model=model,
+                column=_col,
+                target_model=_target_model,
+                target_column=_target_column,
+            )
 
         # Instantiate mixins
         for mixin_name in model.__blnt__.mixins:
-            model.__props__.mixins[mixin_name] = ext.cache.collect_by_name('mixin', mixin_name)()
+            model.__props__.mixins[mixin_name] = ext.cache.collect_by_name(
+                "mixin", mixin_name
+            )()
 
         # Instantiate columns
         for col_name, attr_col in model.__props__.get_instantiable(Column):
@@ -72,8 +92,10 @@ async def init_model_classes(context: BolinetteContext):
         else:
             model.__props__.entity_key = entity_key
         if model.__props__.entity_key is None:
-            raise InitError(f'No entity key defined for "{model.__blnt__.name}" model. '
-                            'Mark one column or more as entity_key=True.')
+            raise InitError(
+                f'No entity key defined for "{model.__blnt__.name}" model. '
+                "Mark one column or more as entity_key=True."
+            )
 
         # Process relationships
         for rel_name, attr_rel in model.__props__.get_instantiable(Relationship):
@@ -95,10 +117,13 @@ async def init_model_classes(context: BolinetteContext):
                 if rel.backref.key not in added_back_refs:
                     added_back_refs[rel.target_model] = []
                 added_back_refs[rel.target_model].append(
-                    ColumnList(rel.backref.key, rel.target_model, model))
+                    ColumnList(rel.backref.key, rel.target_model, model)
+                )
 
     for model_cls in ext.cache.collect_by_type(Model):
-        context.inject.register(model_cls, 'model', model_cls.__blnt__.name, func=_init_model)
+        context.inject.register(
+            model_cls, "model", model_cls.__blnt__.name, func=_init_model
+        )
 
 
 @ext.init_func()
@@ -117,15 +142,23 @@ async def init_relational_models(context: BolinetteContext):
             if col.reference:
                 ref = sqlalchemy.ForeignKey(col.reference.target_path)
             orm_cols[model_name][col_name] = sqlalchemy.Column(
-                col_name, col.type.sqlalchemy_type, ref,
-                default=col.default, index=col.entity_key,
-                primary_key=col.primary_key, nullable=col.nullable,
-                unique=col.unique, autoincrement=col.auto_increment)
+                col_name,
+                col.type.sqlalchemy_type,
+                ref,
+                default=col.default,
+                index=col.entity_key,
+                primary_key=col.primary_key,
+                nullable=col.nullable,
+                unique=col.unique,
+                autoincrement=col.auto_increment,
+            )
         if not isinstance(model.__props__.database, RelationalDatabase):
-            raise InternalError(f'model.not_relational:{model.__blnt__.name}')
-        orm_tables[model_name] = sqlalchemy.Table(model_name,
-                                                  model.__props__.database.base.metadata,
-                                                  *(orm_cols[model_name].values()))
+            raise InternalError(f"model.not_relational:{model.__blnt__.name}")
+        orm_tables[model_name] = sqlalchemy.Table(
+            model_name,
+            model.__props__.database.base.metadata,
+            *(orm_cols[model_name].values()),
+        )
 
     for model_name, model in models.items():
         orm_defs = {}
@@ -133,18 +166,22 @@ async def init_relational_models(context: BolinetteContext):
             kwargs = {}
             rel.name = rel_name
             if rel.backref:
-                kwargs['backref'] = sqlalchemy_orm.backref(rel.backref.key, lazy=rel.backref.lazy)
+                kwargs["backref"] = sqlalchemy_orm.backref(
+                    rel.backref.key, lazy=rel.backref.lazy
+                )
             if rel.foreign_key:
-                kwargs['foreign_keys'] = orm_cols[model_name][rel.foreign_key.name]
+                kwargs["foreign_keys"] = orm_cols[model_name][rel.foreign_key.name]
             if rel.remote_side:
-                kwargs['remote_side'] = orm_cols[model_name][rel.remote_side.name]
+                kwargs["remote_side"] = orm_cols[model_name][rel.remote_side.name]
             if rel.secondary:
-                kwargs['secondary'] = orm_tables[rel.secondary.__blnt__.name]
-            orm_defs[rel_name] = sqlalchemy_orm.relationship(rel.target_model_name, lazy=rel.lazy, **kwargs)
+                kwargs["secondary"] = orm_tables[rel.secondary.__blnt__.name]
+            orm_defs[rel_name] = sqlalchemy_orm.relationship(
+                rel.target_model_name, lazy=rel.lazy, **kwargs
+            )
 
-        orm_defs['__table__'] = orm_tables[model_name]
+        orm_defs["__table__"] = orm_tables[model_name]
         if not isinstance(model.__props__.database, RelationalDatabase):
-            raise InternalError(f'model.not_relational:{model.__blnt__.name}')
+            raise InternalError(f"model.not_relational:{model.__blnt__.name}")
         orm_model = type(model_name, (model.__props__.database.base,), orm_defs)
 
         for att_name, attribute in model.__props__.get_properties():
@@ -163,7 +200,9 @@ async def init_databases(_, data_ctx: DataContext):
 async def init_repositories(context: BolinetteContext):
     for model_cls in context.inject.registered(of_type=Model):
         model: Model = context.inject.require(model_cls, immediate=True)
-        model.__props__.repo = context.inject.instantiate_type(Repository, args={Model: model})
+        model.__props__.repo = context.inject.instantiate_type(
+            Repository, args={Model: model}
+        )
 
 
 @ext.init_func()
@@ -176,4 +215,4 @@ async def init_mappings(context: BolinetteContext, data_ctx: DataContext):
 @ext.init_func()
 async def init_services(context: BolinetteContext):
     for service_cls in ext.cache.collect_by_type(SimpleService):
-        context.inject.register(service_cls, 'service', service_cls.__blnt__.name)
+        context.inject.register(service_cls, "service", service_cls.__blnt__.name)

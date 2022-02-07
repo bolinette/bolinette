@@ -12,14 +12,15 @@ class Mapper:
         self._responses: dict[str, dict[str, mapping.Definition]] = {}
 
     @staticmethod
-    def _get_def(collection: dict[str, dict[str, mapping.Definition]],
-                 model_name: str, key: str) -> 'mapping.Definition':
+    def _get_def(
+        collection: dict[str, dict[str, mapping.Definition]], model_name: str, key: str
+    ) -> "mapping.Definition":
         m = collection.get(model_name)
         if m is None:
-            raise InternalError(f'mapping.unknown_model:{model_name}')
+            raise InternalError(f"mapping.unknown_model:{model_name}")
         d = m.get(key)
         if d is None:
-            raise InternalError(f'mapping.unknown_definition:{model_name}.{key}')
+            raise InternalError(f"mapping.unknown_definition:{model_name}.{key}")
         return d
 
     def payload(self, model_name: str, key: str):
@@ -40,16 +41,22 @@ class Mapper:
             for key in self._responses[model_name]:
                 yield model_name, key, self._responses[model_name][key]
 
-    def _extract_defs(self, model: 'data.Model', model_cls: type['data.Model'],
-                      collection: Literal['payloads', 'responses'],
-                      merge_defs: Literal['ignore', 'append', 'overwrite']):
+    def _extract_defs(
+        self,
+        model: "data.Model",
+        model_cls: type["data.Model"],
+        collection: Literal["payloads", "responses"],
+        merge_defs: Literal["ignore", "append", "overwrite"],
+    ):
         defs = {}
         for parent in model_cls.__bases__:
             if issubclass(parent, data.Model) and parent != data.Model:
-                for _key, _def in self._extract_defs(model, parent, collection, merge_defs).items():
+                for _key, _def in self._extract_defs(
+                    model, parent, collection, merge_defs
+                ).items():
                     defs[_key] = _def
         def_func = getattr(model_cls, collection)
-        if hasattr_(def_func, '__func__'):
+        if hasattr_(def_func, "__func__"):
             def_func = def_func.__func__
         def_gen = def_func(model)
         if def_gen is None:
@@ -57,23 +64,25 @@ class Mapper:
         new_defs = list(def_gen)
         for _def in new_defs:
             if isinstance(_def, list):
-                model_key = 'default'
+                model_key = "default"
                 payload = _def
             else:
                 model_key, payload = _def
             if model_key in defs:
-                if merge_defs == 'append':
+                if merge_defs == "append":
                     for _param in payload:
                         defs[model_key].append(_param)
-                elif merge_defs == 'overwrite':
+                elif merge_defs == "overwrite":
                     defs[model_key] = payload
             else:
                 defs[model_key] = payload
         return defs
 
-    def register(self, model: 'data.Model'):
-        def create_defs(collection, attr_name: Literal['payloads', 'responses']):
-            defs = self._extract_defs(model, type(model), attr_name, model.__blnt__.merge_defs)
+    def register(self, model: "data.Model"):
+        def create_defs(collection, attr_name: Literal["payloads", "responses"]):
+            defs = self._extract_defs(
+                model, type(model), attr_name, model.__blnt__.merge_defs
+            )
             for model_key, payload in defs.items():
                 definition = mapping.Definition(model.__blnt__.name, model_key)
                 for field in payload:
@@ -82,21 +91,39 @@ class Mapper:
                     collection[definition.model_name] = {}
                 collection[definition.model_name][definition.model_key] = definition
 
-        create_defs(self._payloads, 'payloads')
-        create_defs(self._responses, 'responses')
+        create_defs(self._payloads, "payloads")
+        create_defs(self._responses, "responses")
 
-    def marshall(self, definition, entity, *, skip_none=False, as_list=False, use_foreign_key=False):
+    def marshall(
+        self,
+        definition,
+        entity,
+        *,
+        skip_none=False,
+        as_list=False,
+        use_foreign_key=False,
+    ):
         if entity is None:
             return None
         if as_list:
-            return [self.marshall(definition, e, skip_none=skip_none, as_list=False, use_foreign_key=use_foreign_key)
-                    for e in entity]
+            return [
+                self.marshall(
+                    definition,
+                    e,
+                    skip_none=skip_none,
+                    as_list=False,
+                    use_foreign_key=use_foreign_key,
+                )
+                for e in entity
+            ]
         values = {}
         for field in definition.fields:
             self._marshall_object(values, field, entity, skip_none, use_foreign_key)
         return values
 
-    def _marshall_object(self, values, field, entity, skip_none: bool, use_foreign_key: bool):
+    def _marshall_object(
+        self, values, field, entity, skip_none: bool, use_foreign_key: bool
+    ):
         if isinstance(field, mapping.Field):
             self._marshall_field(values, field, entity, skip_none)
         elif isinstance(field, mapping.Reference) and use_foreign_key:
@@ -107,7 +134,7 @@ class Mapper:
             self._marshall_list(values, field, entity, skip_none, use_foreign_key)
 
     @staticmethod
-    def _marshall_field(values, field: 'mapping.Field', entity, skip_none: bool):
+    def _marshall_field(values, field: "mapping.Field", entity, skip_none: bool):
         if field.function is not None:
             value = field.function(entity)
         else:
@@ -117,18 +144,32 @@ class Mapper:
         if not skip_none or value is not None:
             values[field.name] = value
 
-    def _marshall_definition(self, values, definition: 'mapping.Definition', entity,
-                             skip_none: bool, use_foreign_key: bool):
+    def _marshall_definition(
+        self,
+        values,
+        definition: "mapping.Definition",
+        entity,
+        skip_none: bool,
+        use_foreign_key: bool,
+    ):
         d = self.response(definition.model_name, definition.model_key)
         attr = None
         if definition.function and callable(definition.function):
             attr = definition.function(entity)
         elif hasattr_(entity, definition.name):
             attr = getattr_(entity, definition.name, None)
-        values[definition.name] = self.marshall(d, attr, skip_none=skip_none, as_list=False,
-                                                use_foreign_key=use_foreign_key)
+        values[definition.name] = self.marshall(
+            d, attr, skip_none=skip_none, as_list=False, use_foreign_key=use_foreign_key
+        )
 
-    def _marshall_list(self, values, field: 'mapping.List', entity, skip_none: bool, use_foreign_key: bool):
+    def _marshall_list(
+        self,
+        values,
+        field: "mapping.List",
+        entity,
+        skip_none: bool,
+        use_foreign_key: bool,
+    ):
         if field.function and callable(field.function):
             e_list = invoke(field.function, entity)
         else:
@@ -138,5 +179,10 @@ class Mapper:
             values[field.name] = [e for e in e_list]
         elif isinstance(elem, mapping.Definition):
             d = self.response(elem.model_name, elem.model_key)
-            values[field.name] = self.marshall(d, e_list, skip_none=skip_none, as_list=True,
-                                               use_foreign_key=use_foreign_key)
+            values[field.name] = self.marshall(
+                d,
+                e_list,
+                skip_none=skip_none,
+                as_list=True,
+                use_foreign_key=use_foreign_key,
+            )

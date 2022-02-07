@@ -5,8 +5,17 @@ from bolinette.data.defaults.entities import File, Role
 
 
 class User(Entity, ABC):
-    def __init__(self, id: int, username: str, password: str, email: str, roles: list[Role],
-                 picture_id: int, profile_picture: File, timezone: str):
+    def __init__(
+        self,
+        id: int,
+        username: str,
+        password: str,
+        email: str,
+        roles: list[Role],
+        picture_id: int,
+        profile_picture: File,
+        timezone: str,
+    ):
         self.id = id
         self.username = username
         self.password = password

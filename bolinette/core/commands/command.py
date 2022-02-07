@@ -14,7 +14,13 @@ class Command:
         self.exts: list[BolinetteExtension] = []
         self.allow_anonymous: bool = False
 
-    def init_params(self, path: str, summary: str, exts: list[BolinetteExtension], allow_anonymous: bool):
+    def init_params(
+        self,
+        path: str,
+        summary: str,
+        exts: list[BolinetteExtension],
+        allow_anonymous: bool,
+    ):
         self.path = path
         self.summary = summary
         self.exts = exts

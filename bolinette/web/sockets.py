@@ -47,11 +47,11 @@ class BolinetteSockets(abc.WithContext):
                 for subscription in subscriptions:
                     if subscription.closed:
                         continue
-                    pending_tasks.append(subscription.send_json({
-                       'topic': topic,
-                       'channel': channel,
-                       'message': message
-                    }))
+                    pending_tasks.append(
+                        subscription.send_json(
+                            {"topic": topic, "channel": channel, "message": message}
+                        )
+                    )
         await asyncio.gather(*pending_tasks)
 
     def add_socket_session(self, username: str, session: aio_web.WebSocketResponse):
@@ -67,7 +67,7 @@ class BolinetteSockets(abc.WithContext):
         self._anon_socket_sessions.remove(session)
 
     def init_socket_handler(self):
-        self.context.app.add_routes([aio_web.get('/ws', SocketHandler().__call__)])
+        self.context.app.add_routes([aio_web.get("/ws", SocketHandler().__call__)])
 
 
 class SocketHandler:
@@ -75,8 +75,8 @@ class SocketHandler:
         pass
 
     async def __call__(self, request: Request):
-        context: BolinetteContext = request.app['blnt']
-        user_service = context.inject.require('service', 'user', immediate=True)
+        context: BolinetteContext = request.app["blnt"]
+        user_service = context.inject.require("service", "user", immediate=True)
         socket = aio_web.WebSocketResponse()
         await socket.prepare(request)
 
@@ -93,19 +93,23 @@ class SocketHandler:
             try:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     payload = msg.json()
-                    action = payload['action']
-                    if action == 'close':
+                    action = payload["action"]
+                    if action == "close":
                         await socket.close()
-                    elif action == 'ping':
-                        await socket.send_str('pong')
+                    elif action == "ping":
+                        await socket.send_str("pong")
                     else:
-                        await self.process_topic_message(context, socket, payload, current_user)
+                        await self.process_topic_message(
+                            context, socket, payload, current_user
+                        )
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    context.logger.warning(f'ws connection closed with exception {socket.exception()})')
+                    context.logger.warning(
+                        f"ws connection closed with exception {socket.exception()})"
+                    )
             except APIError as e:
                 context.logger.error(e.message)
             except JSONDecodeError:
-                context.logger.error('sockets.non_deserializable_payload')
+                context.logger.error("sockets.non_deserializable_payload")
 
         if current_user is not None:
             context.sockets.delete_socket_session(current_user.username)
@@ -114,21 +118,38 @@ class SocketHandler:
         return socket
 
     @staticmethod
-    async def _subscribe(topic: Topic, socket: aio_web.WebSocketResponse, payload, current_user):
-        if await invoke(topic.validate_subscription, payload=payload, socket=socket, current_user=current_user):
-            await topic.receive_subscription(payload['channel'], socket)
+    async def _subscribe(
+        topic: Topic, socket: aio_web.WebSocketResponse, payload, current_user
+    ):
+        if await invoke(
+            topic.validate_subscription,
+            payload=payload,
+            socket=socket,
+            current_user=current_user,
+        ):
+            await topic.receive_subscription(payload["channel"], socket)
 
-    async def process_topic_message(self, context: BolinetteContext,
-                                    socket: aio_web.WebSocketResponse, payload, current_user):
-        action = payload['action']
-        topic = context.sockets.topic(payload['topic'])
+    async def process_topic_message(
+        self,
+        context: BolinetteContext,
+        socket: aio_web.WebSocketResponse,
+        payload,
+        current_user,
+    ):
+        action = payload["action"]
+        topic = context.sockets.topic(payload["topic"])
         if topic is not None:
             async with Transaction(context):
-                if action == 'subscribe':
+                if action == "subscribe":
                     await self._subscribe(topic, socket, payload, current_user)
-                elif action == 'send':
-                    channels = context.sockets.channels(payload['topic'])
+                elif action == "send":
+                    channels = context.sockets.channels(payload["topic"])
                     for channel in channels:
-                        if channel.re.match(payload['channel']):
-                            await invoke(channel.function, topic, socket=socket, payload=payload,
-                                         current_user=current_user)
+                        if channel.re.match(payload["channel"]):
+                            await invoke(
+                                channel.function,
+                                topic,
+                                socket=socket,
+                                payload=payload,
+                                current_user=current_user,
+                            )

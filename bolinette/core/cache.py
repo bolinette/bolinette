@@ -27,21 +27,29 @@ class BolinetteCache:
         self._all_instances.append(instance)
 
     @overload
-    def push(self, _type: type[Any], collection: str, name: str) -> None: ...
+    def push(self, _type: type[Any], collection: str, name: str) -> None:
+        ...
+
     @overload
-    def push(self, instance: Any, collection: str, name: str) -> None: ...
+    def push(self, instance: Any, collection: str, name: str) -> None:
+        ...
 
     def push(self, param: type[Any] | Any, collection: str, name: str):
         if isinstance(param, type):
             return self._push_type(param, collection, name)
         return self._push_instance(param, collection, name)
 
-    def collect_by_type(self, _type: type[abc.T_Instance]) -> Iterable[type[abc.T_Instance]]:
+    def collect_by_type(
+        self, _type: type[abc.T_Instance]
+    ) -> Iterable[type[abc.T_Instance]]:
         return (t for t in self._all_types if issubclass(t, _type))
 
     def collect_by_name(self, collection: str, name: str) -> type[Any]:
-        if collection not in self._types_by_name or name not in self._types_by_name[collection]:
-            raise InitError(f'{collection}.{name} does not exist in registered types')
+        if (
+            collection not in self._types_by_name
+            or name not in self._types_by_name[collection]
+        ):
+            raise InitError(f"{collection}.{name} does not exist in registered types")
         return self._types_by_name[collection][name]
 
     def get_instances(self, _type: type[abc.T_Instance]) -> Iterable[abc.T_Instance]:

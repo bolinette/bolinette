@@ -3,7 +3,7 @@ import pytz
 from bolinette.data import ext, SimpleService
 
 
-@ext.service('tz')
+@ext.service("tz")
 class TimezoneService(SimpleService):
     @staticmethod
     async def get_all():

@@ -7,4 +7,8 @@ from bolinette.core.extension import BolinetteExtension, ExtensionContext
 from bolinette.core.environment import init, Environment
 from bolinette.core.jwt import JWT
 from bolinette.core.context import AbstractContext, BolinetteContext
-from bolinette.core.inject import InstantiableAttribute, BolinetteInjection, InjectionProxy
+from bolinette.core.inject import (
+    InstantiableAttribute,
+    BolinetteInjection,
+    InjectionProxy,
+)

@@ -8,7 +8,7 @@ def cwd():
 
 
 def random_string(length):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def mkdir(path):

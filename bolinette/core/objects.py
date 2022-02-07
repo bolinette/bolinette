@@ -9,7 +9,9 @@ class Pagination:
         self.total = total
 
     def __repr__(self) -> str:
-        return f'<Pagination {self.page}:{self.per_page} {len(self.items)}/{self.total}>'
+        return (
+            f"<Pagination {self.page}:{self.per_page} {len(self.items)}/{self.total}>"
+        )
 
 
 class PaginationParams:
@@ -18,7 +20,7 @@ class PaginationParams:
         self.per_page = per_page
 
     def __repr__(self):
-        return f'<Pagination {self.page}:{self.per_page}>'
+        return f"<Pagination {self.page}:{self.per_page}>"
 
 
 class OrderByParams:

@@ -14,9 +14,11 @@ class Validator(abc.WithContext, WithDataContext):
         abc.WithContext.__init__(self, context)
         WithDataContext.__init__(self, data_ctx)
 
-    async def validate_payload(self, model: str, key: str, values, patch=False, attr_prefix: str = None):
+    async def validate_payload(
+        self, model: str, key: str, values, patch=False, attr_prefix: str = None
+    ):
         if attr_prefix is None:
-            attr_prefix = ''
+            attr_prefix = ""
         api_errors = APIErrors()
         valid = {}
         definition = self.data_ctx.mapper.payload(model, key)
@@ -27,13 +29,16 @@ class Validator(abc.WithContext, WithDataContext):
                 continue
             if isinstance(field, mapping.Reference):
                 try:
-                    valid[field_name] = await self._validate_linked_entity(field, field_name, values,
-                                                                           f'{attr_prefix}{field_name}.')
+                    valid[field_name] = await self._validate_linked_entity(
+                        field, field_name, values, f"{attr_prefix}{field_name}."
+                    )
                     if is_db_entity(valid[field_name]):
-                        valid[field.foreign_key] = getattr(valid[field_name], field.reference_key)
+                        valid[field.foreign_key] = getattr(
+                            valid[field_name], field.reference_key
+                        )
                 except APIErrors as errors:
                     for error in errors:
-                        error[0] = f'{attr_prefix}{field_name}.' + error[0]
+                        error[0] = f"{attr_prefix}{field_name}." + error[0]
                         api_errors.append(error)
                 except APIError as error:
                     api_errors.append(error)
@@ -47,7 +52,9 @@ class Validator(abc.WithContext, WithDataContext):
         return valid
 
     @staticmethod
-    def _validate_field(field: 'mapping.MappingObject', name: str, values: dict[str, Any]):
+    def _validate_field(
+        field: "mapping.MappingObject", name: str, values: dict[str, Any]
+    ):
         if field.required and name not in values:
             raise exceptions.ParamMissingError(name)
         value = values.get(name, field.default)
@@ -58,12 +65,19 @@ class Validator(abc.WithContext, WithDataContext):
                 value = date_parser.parse(value)
         return value
 
-    async def _validate_linked_entity(self, field: 'mapping.Reference', name: str,
-                                      values: dict[str, Any], attr_prefix: str):
-        model: data.Model = self.context.inject.require('model', field.model_name, immediate=True)
+    async def _validate_linked_entity(
+        self,
+        field: "mapping.Reference",
+        name: str,
+        values: dict[str, Any],
+        attr_prefix: str,
+    ):
+        model: data.Model = self.context.inject.require(
+            "model", field.model_name, immediate=True
+        )
         repo = model.__props__.repo
         if repo is None:
-            raise InternalError(f'internal.not_initialized.repo:{model.__blnt__.name}')
+            raise InternalError(f"internal.not_initialized.repo:{model.__blnt__.name}")
         if name not in values:
             if field.required:
                 raise exceptions.ParamMissingError(name)
@@ -71,16 +85,23 @@ class Validator(abc.WithContext, WithDataContext):
                 return None
         obj = values[name]
         if not isinstance(obj, dict):
-            raise exceptions.BadParamFormatError(name, 'dict')
+            raise exceptions.BadParamFormatError(name, "dict")
         field_def = self.data_ctx.mapper.payload(field.model_name, field.model_key)
         if model.__props__.entity_key is None:
-            raise InternalError('internal.not_initialized.entity_key')
+            raise InternalError("internal.not_initialized.entity_key")
         cols = [field_def[col.name] for col in model.__props__.entity_key]
         keys = dict((col.key, obj.get(col.name, None)) for col in cols)
         entity = await repo.query().filter_by(**keys).first()
         if entity is None:
             if not field.create_if_not_found:
-                raise exceptions.EntityNotFoundError(field.model_name, ','.join(keys.keys()), ','.join(keys.values()))
-            return await self.validate_payload(field.model_name, field.model_key, obj,
-                                               patch=False, attr_prefix=attr_prefix)
+                raise exceptions.EntityNotFoundError(
+                    field.model_name, ",".join(keys.keys()), ",".join(keys.values())
+                )
+            return await self.validate_payload(
+                field.model_name,
+                field.model_key,
+                obj,
+                patch=False,
+                attr_prefix=attr_prefix,
+            )
         return entity

@@ -15,9 +15,14 @@ bolinette_app = None
 def client(loop: AbstractEventLoop):
     global bolinette_app
     if bolinette_app is None:
-        bolinette_app = Bolinette(profile='test', overrides={
-            'secret_key': ''.join(random.choices(string.ascii_letters + string.digits, k=32))
-        })
+        bolinette_app = Bolinette(
+            profile="test",
+            overrides={
+                "secret_key": "".join(
+                    random.choices(string.ascii_letters + string.digits, k=32)
+                )
+            },
+        )
         bolinette_app.load(web_etx)
         loop.run_until_complete(bolinette_app.startup())
 

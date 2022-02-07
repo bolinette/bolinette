@@ -8,17 +8,17 @@ from bolinette.exceptions import EntityNotFoundError
 
 
 class SimpleService(abc.WithContext, WithDataContext):
-    __blnt__: 'ServiceMetadata' = None  # type: ignore
+    __blnt__: "ServiceMetadata" = None  # type: ignore
 
     def __init__(self, context: BolinetteContext, data_ctx: DataContext):
         abc.WithContext.__init__(self, context)
         WithDataContext.__init__(self, data_ctx)
 
     def __repr__(self):
-        return f'<Service {self.__blnt__.name}>'
+        return f"<Service {self.__blnt__.name}>"
 
 
-T_Entity = TypeVar('T_Entity', bound=Entity)
+T_Entity = TypeVar("T_Entity", bound=Entity)
 
 
 class Service(SimpleService, Generic[T_Entity]):
@@ -27,19 +27,21 @@ class Service(SimpleService, Generic[T_Entity]):
 
     @injected
     def model(self, inject: BolinetteInjection) -> Model:
-        return inject.require('model', self.__blnt__.model_name)
+        return inject.require("model", self.__blnt__.model_name)
 
     @property
     def repo(self) -> Repository[T_Entity]:
         return self.model.__props__.repo
 
     def __repr__(self):
-        return f'<Service {self.__blnt__.name}>'
+        return f"<Service {self.__blnt__.name}>"
 
     async def get(self, identifier, *, safe=False) -> T_Entity:
         entity = await self.repo.get(identifier)
         if entity is None and not safe:
-            raise EntityNotFoundError(model=self.__blnt__.name, key='id', value=identifier)
+            raise EntityNotFoundError(
+                model=self.__blnt__.name, key="id", value=identifier
+            )
         return entity
 
     async def get_by(self, key: str, value) -> list[T_Entity]:
@@ -54,13 +56,17 @@ class Service(SimpleService, Generic[T_Entity]):
     async def get_first_by_keys(self, keys: dict[str, Any], *, safe=False) -> T_Entity:
         entity = await self.repo.query().filter_by(**keys).first()
         if entity is None and not safe:
-            key = ','.join(keys.keys())
-            value = ','.join(keys.values())
+            key = ",".join(keys.keys())
+            value = ",".join(keys.values())
             raise EntityNotFoundError(model=self.__blnt__.name, key=key, value=value)
         return entity
 
-    async def get_all(self, *, pagination: PaginationParams = None,
-                      order_by: list[OrderByParams] = None) -> list[T_Entity]:
+    async def get_all(
+        self,
+        *,
+        pagination: PaginationParams = None,
+        order_by: list[OrderByParams] = None,
+    ) -> list[T_Entity]:
         return await self.repo.get_all(pagination, order_by)
 
     async def create(self, values: dict[str, Any], **kwargs) -> T_Entity:

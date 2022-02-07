@@ -8,16 +8,16 @@ class APIError(Exception):
         self._params = params or []
 
     def __str__(self):
-        return ':'.join([self._message] + self._params)
+        return ":".join([self._message] + self._params)
 
     def __repr__(self):
-        return f'<APIError {str(self)}>'
+        return f"<APIError {str(self)}>"
 
     def __getitem__(self, index: int):
         return self._params[index]
 
     def __setitem__(self, index: int, value: str):
-        self._params = self._params[:index - 1] + [value] + self._params[index+1:]
+        self._params = self._params[: index - 1] + [value] + self._params[index + 1 :]
 
     @property
     def message(self):
@@ -74,27 +74,27 @@ class UnauthorizedError(APIError):
 
 class EntityNotFoundError(NotFoundError):
     def __init__(self, model: str, key: str, value: str):
-        super().__init__('entity.not_found', [model, key, value])
+        super().__init__("entity.not_found", [model, key, value])
 
 
 class ParamMissingError(UnprocessableEntityError):
     def __init__(self, key: str):
-        super().__init__('param.required', [key])
+        super().__init__("param.required", [key])
 
 
 class ParamNonNullableError(UnprocessableEntityError):
     def __init__(self, key: str):
-        super().__init__('param.non_nullable', [key])
+        super().__init__("param.non_nullable", [key])
 
 
 class BadParamFormatError(UnprocessableEntityError):
     def __init__(self, key: str, p_type: str):
-        super().__init__('param.bad_format', [key, p_type])
+        super().__init__("param.bad_format", [key, p_type])
 
 
 class ParamConflictError(ConflictError):
     def __init__(self, key, value):
-        super().__init__('param.conflict', [key, value])
+        super().__init__("param.conflict", [key, value])
 
 
 class InitError(Exception):

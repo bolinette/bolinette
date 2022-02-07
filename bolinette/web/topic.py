@@ -7,7 +7,7 @@ from bolinette.core import abc, BolinetteContext, Properties
 
 
 class Topic(abc.WithContext):
-    __blnt__: 'TopicMetadata' = None
+    __blnt__: "TopicMetadata" = None
 
     def __init__(self, context: BolinetteContext):
         super().__init__(context)
@@ -22,7 +22,9 @@ class Topic(abc.WithContext):
     async def validate_subscription(self, *args, **kwargs) -> bool:
         return True
 
-    def _remove_closed_connections(self, channel: str) -> list[aio_web.WebSocketResponse]:
+    def _remove_closed_connections(
+        self, channel: str
+    ) -> list[aio_web.WebSocketResponse]:
         subs = self._subscriptions.get(channel)
         if subs is None:
             return []
@@ -34,14 +36,14 @@ class Topic(abc.WithContext):
 
     @staticmethod
     async def send(socket: aio_web.WebSocketResponse, data):
-        await socket.send_json({'data': data})
+        await socket.send_json({"data": data})
 
     @staticmethod
     async def send_error(socket: aio_web.WebSocketResponse, error: str):
-        await socket.send_json({'error': error})
+        await socket.send_json({"error": error})
 
     def __repr__(self):
-        return f'<Topic {self.__blnt__.name}>'
+        return f"<Topic {self.__blnt__.name}>"
 
 
 class TopicMetadata:
@@ -53,7 +55,7 @@ class TopicProps(Properties):
     def __init__(self, topic: Topic):
         super().__init__(topic)
 
-    def get_channels(self) -> Iterator[tuple[str, 'TopicChannel']]:
+    def get_channels(self) -> Iterator[tuple[str, "TopicChannel"]]:
         return self._get_cls_attributes_of_type(type(self.parent), TopicChannel)
 
 
@@ -61,7 +63,7 @@ class TopicChannel:
     def __init__(self, function, rule):
         self.function = function
         self.rule = rule
-        self.re = re.compile(f'^{rule}$')
+        self.re = re.compile(f"^{rule}$")
 
     def __repr__(self):
-        return f'<Channel {self.rule}>'
+        return f"<Channel {self.rule}>"

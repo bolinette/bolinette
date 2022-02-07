@@ -6,8 +6,11 @@ from bolinette.testing import BolitestClient
 from bolinette.utils.functions import invoke
 
 
-def bolitest(*, before: Callable[[Any], Awaitable[None]] = None,
-             after: Callable[[Any], Awaitable[None]] = None):
+def bolitest(
+    *,
+    before: Callable[[Any], Awaitable[None]] = None,
+    after: Callable[[Any], Awaitable[None]] = None
+):
     def wrapper(func):
         @wraps(func)
         async def inner(client: BolitestClient):
@@ -28,5 +31,7 @@ def bolitest(*, before: Callable[[Any], Awaitable[None]] = None,
                 await client.data_ctx.db.rollback_transaction()
                 await client.data_ctx.db.drop_all()
                 raise e
+
         return inner
+
     return wrapper

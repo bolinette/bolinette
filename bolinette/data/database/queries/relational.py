@@ -8,19 +8,23 @@ from bolinette.data.database.queries import BaseQueryBuilder, BaseQuery
 from bolinette.exceptions import InternalError
 
 
-T_Entity = TypeVar('T_Entity', bound=data.Entity)
+T_Entity = TypeVar("T_Entity", bound=data.Entity)
 
 
 class RelationalQueryBuilder(BaseQueryBuilder[T_Entity], Generic[T_Entity]):
-    def __init__(self, model: 'data.Model', data_ctx: data.DataContext):
+    def __init__(self, model: "data.Model", data_ctx: data.DataContext):
         super().__init__(model, data_ctx)
-        if isinstance(database := data_ctx.db[model.__blnt__.database], RelationalDatabase):
+        if isinstance(
+            database := data_ctx.db[model.__blnt__.database], RelationalDatabase
+        ):
             self._database: RelationalDatabase = database
         else:
-            raise TypeError(f'Database engine for "{model.__blnt__.name}" model has to be relation based')
+            raise TypeError(
+                f'Database engine for "{model.__blnt__.name}" model has to be relation based'
+            )
         self._table = self._database.table(model.__blnt__.name)
 
-    def query(self) -> 'BaseQuery':
+    def query(self) -> "BaseQuery":
         return RelationalQuery(self._database, self._table)
 
     async def insert_entity(self, values):
@@ -42,7 +46,7 @@ class RelationalQuery(BaseQuery[T_Entity], Generic[T_Entity]):
         self._database = database
         self._table = table
 
-    def _clone(self) -> 'RelationalQuery[T_Entity]':
+    def _clone(self) -> "RelationalQuery[T_Entity]":
         query = RelationalQuery(self._database, self._table)
         self._base_clone(query)
         return query
@@ -64,13 +68,15 @@ class RelationalQuery(BaseQuery[T_Entity], Generic[T_Entity]):
 
     def _build_filters_by(self, query: sqlalchemy_orm.Query) -> sqlalchemy_orm.Query:
         for key, value in self._filters_by.items():
-            path = key.split('.')
+            path = key.split(".")
             if len(path) == 1:
                 query = query.filter(getattr(self._table, key) == value)
             elif len(path) == 2:
-                query = query.filter(getattr(self._table, path[0]).has(**{path[1]: value}))
+                query = query.filter(
+                    getattr(self._table, path[0]).has(**{path[1]: value})
+                )
             else:
-                raise InternalError(f'internal.query.wrong_entity_key_path:{key}')
+                raise InternalError(f"internal.query.wrong_entity_key_path:{key}")
         return query
 
     def _build_query(self):

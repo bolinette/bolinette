@@ -7,7 +7,15 @@ from example.entities import User
 
 
 class Trace(Entity, ABC):
-    def __init__(self, id: int, name: str, visits: int, last_visit: datetime, user_id: int, user: User):
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        visits: int,
+        last_visit: datetime,
+        user_id: int,
+        user: User,
+    ):
         self.id = id
         self.name = name
         self.visits = visits

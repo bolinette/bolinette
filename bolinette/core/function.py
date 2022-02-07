@@ -4,7 +4,11 @@ from bolinette import core
 
 
 class InitFunction:
-    def __init__(self, func: Callable[['core.BolinetteContext'], Awaitable[None]], rerunable: bool):
+    def __init__(
+        self,
+        func: Callable[["core.BolinetteContext"], Awaitable[None]],
+        rerunable: bool,
+    ):
         self._func = func
         self._rerunable = rerunable
 

@@ -6,9 +6,9 @@ from aiohttp.web_request import Request
 
 async def deserialize(request: Request):
     content_type = request.content_type
-    if content_type == 'application/json':
+    if content_type == "application/json":
         return await request.json()
-    if content_type == 'multipart/form-data':
+    if content_type == "multipart/form-data":
         return await request.post()
     return {}
 
@@ -24,7 +24,7 @@ class Serializer:
 
 class JSONSerializer(Serializer):
     def __init__(self):
-        super().__init__('application/json', 1)
+        super().__init__("application/json", 1)
 
     @staticmethod
     def _json_type_converter(o):
@@ -46,7 +46,9 @@ class Serializers:
 
     def add(self, serializer):
         self.serializers[serializer.mime] = serializer
-        self.priorities = sorted(self.priorities + [serializer], key=lambda s: s.priority)
+        self.priorities = sorted(
+            self.priorities + [serializer], key=lambda s: s.priority
+        )
 
     def get(self, mime):
         return self.serializers.get(mime, None)
@@ -56,9 +58,11 @@ class Serializers:
         return self.priorities[0]
 
 
-serializers = Serializers([
-    JSONSerializer(),
-])
+serializers = Serializers(
+    [
+        JSONSerializer(),
+    ]
+)
 
 
 def serialize(response, mime):
