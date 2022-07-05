@@ -12,7 +12,7 @@ def project_packages(module):
 
 
 setup(
-    name='Bolinette',
+    name='bolinette',
     packages=project_packages('bolinette'),
     include_package_data=True,
     version=context.manifest['version'],
