@@ -1,59 +1,62 @@
-from collections.abc import Iterable
-from typing import Any, overload
+import inspect
+from collections.abc import Awaitable, Callable, Iterable
+from typing import Any, ParamSpec, TypeVar
 
-from bolinette.core import abc
-from bolinette.exceptions import InitError
+from bolinette.core import InitFunction
+from bolinette.core.exceptions import InitError
 
-
-class BolinetteCache:
-    def __init__(self):
-        self._all_types: set[type[Any]] = set()
-        self._types_by_name: dict[str, dict[str, type[Any]]] = {}
-        self._all_instances: list[Any] = []
-        self._instances_by_name: dict[str, dict[str, Any]] = {}
-
-    def _push_type(self, _type: type[Any], collection: str, name: str):
-        if collection not in self._types_by_name:
-            self._types_by_name[collection] = {}
-        if name in self._types_by_name[collection]:
-            self._all_types.remove(self._types_by_name[collection][name])
-        self._all_types.add(_type)
-        self._types_by_name[collection][name] = _type
-
-    def _push_instance(self, instance: Any, collection: str, name: str):
-        if collection not in self._instances_by_name:
-            self._instances_by_name[collection] = {}
-        self._instances_by_name[collection][name] = instance
-        self._all_instances.append(instance)
-
-    @overload
-    def push(self, _type: type[Any], collection: str, name: str) -> None:
-        ...
-
-    @overload
-    def push(self, instance: Any, collection: str, name: str) -> None:
-        ...
-
-    def push(self, param: type[Any] | Any, collection: str, name: str):
-        if isinstance(param, type):
-            return self._push_type(param, collection, name)
-        return self._push_instance(param, collection, name)
-
-    def collect_by_type(
-        self, _type: type[abc.T_Instance]
-    ) -> Iterable[type[abc.T_Instance]]:
-        return (t for t in self._all_types if issubclass(t, _type))
-
-    def collect_by_name(self, collection: str, name: str) -> type[Any]:
-        if (
-            collection not in self._types_by_name
-            or name not in self._types_by_name[collection]
-        ):
-            raise InitError(f"{collection}.{name} does not exist in registered types")
-        return self._types_by_name[collection][name]
-
-    def get_instances(self, _type: type[abc.T_Instance]) -> Iterable[abc.T_Instance]:
-        return (i for i in self._all_instances if isinstance(i, _type))
+P = ParamSpec("P")
+T_Cls = TypeVar("T_Cls")
 
 
-__global_cache__ = BolinetteCache()
+class Cache:
+    def __init__(self) -> None:
+        self._types: set[type[Any]] = set()
+        self._init_funcs: list[InitFunction] = []
+
+    def add_type(self, _type: type[Any], *args: type[Any]) -> None:
+        self._types.add(_type)
+        for _t in args:
+            self.add_type(_t)
+
+    def add_init_finc(self, func: InitFunction) -> None:
+        self._init_funcs.append(func)
+
+    def of_type(self, _type: type[T_Cls]) -> Iterable[type[T_Cls]]:
+        return (t for t in self._types if issubclass(t, _type))
+
+    @property
+    def init_funcs(self) -> Iterable[InitFunction]:
+        return (f for f in self._init_funcs)
+
+    @property
+    def types(self) -> Iterable[type[Any]]:
+        return (t for t in self._types)
+
+
+__core_cache__ = Cache()
+
+
+def init_func():
+    def decorator(func: Callable[P, Awaitable[None]]) -> Callable[P, Awaitable[None]]:
+        if not inspect.iscoroutinefunction(func):
+            raise InitError(
+                f"{func} must be an async function to be decorated by @{init_func.__name__}"
+            )
+        init_func = InitFunction(func)
+        __core_cache__.add_init_finc(init_func)
+        return func
+
+    return decorator
+
+
+def injectable():
+    def decorator(cls: type[T_Cls]) -> type[T_Cls]:
+        if not inspect.isclass(cls):
+            raise InitError(
+                f"{cls} must be a class to be decorated by @{injectable.__name__}"
+            )
+        __core_cache__.add_type(cls)
+        return cls
+
+    return decorator
