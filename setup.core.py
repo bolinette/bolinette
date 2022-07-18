@@ -7,7 +7,7 @@ from bolinette.core.utils import files, paths
 context = Context(paths.join(paths.dirname(__file__), 'bolinette', 'core'))
 
 
-def project_packages(module):
+def project_packages(module) -> None:
     return [m for m in find_packages() if m.startswith(module)]
 
 
