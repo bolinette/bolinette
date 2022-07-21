@@ -1,7 +1,16 @@
 import pytest
 
-from bolinette.core import Cache, Injection, inject
-from bolinette.core.exceptions import InjectionError
+from bolinette.core import Cache, Injection
+from bolinette.core.exceptions import (
+    AnnotationMissingInjectionError,
+    InstanceExistsInjectionError,
+    InvalidArgCountInjectionError,
+    NoLiteralMatchInjectionError,
+    NoPositionalParameterInjectionError,
+    TooManyLiteralMatchInjectionError,
+    TypeNotRegisteredInjectionError,
+    TypeRegisteredInjectionError,
+)
 
 
 class InjectableClassB:
@@ -41,10 +50,21 @@ def test_add_type_twice() -> None:
     inject = Injection(Cache())
 
     inject.add(InjectableClassA)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypeRegisteredInjectionError) as info:
         inject.add(InjectableClassA)
 
-    assert f"'{InjectableClassA}' is already a registered type" in info.value.message
+    assert f"Type {InjectableClassA} is already a registered type" in info.value.message
+
+
+def test_instanciate_type_twice() -> None:
+    inject = Injection(Cache())
+
+    inject.add(InjectableClassB)
+    inject._instanciate(inject._types[InjectableClassB])
+    with pytest.raises(InstanceExistsInjectionError) as info:
+        inject._instanciate(inject._types[InjectableClassB])
+
+    assert f"Type {InjectableClassB} has already been instanciated" in info.value.message
 
 
 def test_class_injection() -> None:
@@ -96,11 +116,11 @@ async def test_fail_injection() -> None:
     cache.add_type(InjectableClassB)
 
     inject = Injection(cache)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypeNotRegisteredInjectionError) as info:
         inject.require(InjectableClassC)
 
     assert (
-        f"'{InjectableClassC}' is not a registered type in the injection system"
+        f"Type {InjectableClassC} is not a registered type in the injection system"
         in info.value.message
     )
 
@@ -110,15 +130,11 @@ async def test_fail_subinjection() -> None:
     cache.add_type(InjectableClassD)
 
     inject = Injection(cache)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypeNotRegisteredInjectionError) as info:
         inject.require(InjectableClassD)
 
     assert (
-        f"Errors raised while attemping to call '{InjectableClassD}'"
-        in info.value.message
-    )
-    assert (
-        f"'{InjectableClassC}' is not a registered type in the injection system"
+        f"Type {InjectableClassC} is not a registered type in the injection system"
         in info.value.message
     )
 
@@ -130,12 +146,11 @@ def test_fail_call_injection() -> None:
     cache = Cache()
 
     inject = Injection(cache)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypeNotRegisteredInjectionError) as info:
         inject.call(_test_func)
 
-    assert f"Errors raised while attemping to call '{_test_func}'" in info.value.message
     assert (
-        f"'{InjectableClassC}' is not a registered type in the injection system"
+        f"Type {InjectableClassC} is not a registered type in the injection system"
         in info.value.message
     )
 
@@ -163,17 +178,23 @@ def test_no_literal_match() -> None:
     cache.add_type(_TestClass)
 
     inject = Injection(cache)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(NoLiteralMatchInjectionError) as info:
         inject.require(_TestClass)
 
-    assert f"Literal '{_Value.__name__}' does not match any registered type" in info.value.message
+    assert (
+        f"Callable {_TestClass} Parameter 'value': "
+        f"literal '{_Value.__name__}' does not match any registered type"
+        in info.value.message
+    )
 
 
 def test_too_many_literal_matches() -> None:
     class _Value:
         pass
+
     class _1_Value:
         pass
+
     class _2_Value:
         pass
 
@@ -185,10 +206,14 @@ def test_too_many_literal_matches() -> None:
     cache.add_type(_TestClass, _1_Value, _2_Value)
 
     inject = Injection(cache)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TooManyLiteralMatchInjectionError) as info:
         inject.require(_TestClass)
 
-    assert f"Literal '{_Value.__name__}' matches with 2 registered types, use a more explicit name" in info.value.message
+    assert (
+        f"Callable {_TestClass} Parameter '_': "
+        f"literal '{_Value.__name__}' matches with 2 registered types, use a more explicit name"
+        in info.value.message
+    )
 
 
 def test_no_annotation() -> None:
@@ -200,11 +225,10 @@ def test_no_annotation() -> None:
     cache.add_type(_TestClass)
 
     inject = Injection(cache)
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(AnnotationMissingInjectionError) as info:
         inject.require(_TestClass)
 
-    assert "'_1' param requires a type annotation" in info.value.message
-    assert "'_2' param requires a type annotation" in info.value.message
+    assert f"Callable {_TestClass} Parameter '_1' requires a type annotation" in info.value.message
 
 
 def test_use_init_func() -> None:
@@ -237,3 +261,63 @@ def test_use_init_func() -> None:
     assert t2.value == "b"
     assert t1.cls_name == _ChildClass1.__name__
     assert t2.cls_name == _ChildClass2.__name__
+
+
+def test_arg_resolve_fail_wilcard() -> None:
+    def _test_func(a, *args):
+        pass
+
+    inject = Injection(Cache())
+
+    with pytest.raises(NoPositionalParameterInjectionError) as info:
+        inject.call(_test_func, kwargs={"a": "a", "b": "b"})
+
+    assert (
+        f"Callable {_test_func}: positional only parameters and positional wildcards are not allowed"
+        in info.value.message
+    )
+
+
+def test_arg_resolve_fail_positional_only() -> None:
+    def _test_func(a, /, b):
+        pass
+
+    inject = Injection(Cache())
+
+    with pytest.raises(NoPositionalParameterInjectionError) as info:
+        inject.call(_test_func, kwargs={"a": "a", "b": "b"})
+
+    assert (
+        f"Callable {_test_func}: positional only parameters and positional wildcards are not allowed"
+        in info.value.message
+    )
+
+
+def test_arg_resolve_fail_too_many_args() -> None:
+    def _test_func(a, b) -> None:
+        pass
+
+    inject = Injection(Cache())
+
+    with pytest.raises(InvalidArgCountInjectionError) as info:
+        inject.call(_test_func, args=["a", "b", "c"])
+
+    assert (
+        f"Callable {_test_func}: expected 2 arguments, 3 given"
+        in info.value.message
+    )
+
+
+def test_arg_resolve() -> None:
+    def _test_func(a, b, c: InjectableClassC, d="d", **kwargs) -> None:
+        assert a == "a"
+        assert b == "b"
+        assert c.func() == "c"
+        assert d == "d"
+        assert kwargs == {"e": "e", "f": "f"}
+
+    cache = Cache()
+    cache.add_type(InjectableClassC)
+
+    inject = Injection(cache)
+    inject.call(_test_func, args=["a"], kwargs={"b": "b", "e": "e", "f": "f"})

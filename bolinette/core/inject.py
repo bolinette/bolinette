@@ -4,33 +4,20 @@ from typing import Any, Generic, ParamSpec, TypeVar
 
 from bolinette.core import Cache
 from bolinette.core.cache import P
-from bolinette.core.exceptions import InjectionError
+from bolinette.core.exceptions import (
+    AnnotationMissingInjectionError,
+    InstanceExistsInjectionError,
+    InvalidArgCountInjectionError,
+    NoLiteralMatchInjectionError,
+    NoPositionalParameterInjectionError,
+    TooManyLiteralMatchInjectionError,
+    TypeNotRegisteredInjectionError,
+    TypeRegisteredInjectionError,
+)
 
 P_Func = ParamSpec("P_Func")
 T_Func = TypeVar("T_Func")
 T_Instance = TypeVar("T_Instance")
-
-
-class InstantiableAttribute(Generic[T_Instance]):
-    """TODO"""
-
-    def __init__(self, cls: type[T_Instance], _dict: dict[str, Any]) -> None:
-        self._cls = cls
-        self._dict = _dict
-
-    @property
-    def type(self) -> type[T_Instance]:
-        return self._cls
-
-    def pop(self, name: str) -> Any:
-        if name not in self._dict:
-            raise AttributeError(
-                f"Instantiable attribute '{self._cls}' has no '{name}' member"
-            )
-        return self._dict.pop(name)
-
-    def instantiate(self, **kwargs) -> T_Instance:
-        return self._cls(**(self._dict | kwargs))
 
 
 class _RegisteredType(Generic[T_Instance]):
@@ -85,21 +72,19 @@ class Injection:
         for t in self._cache.types:
             self.add(t)
 
-    def _find_type_by_name(self, name: str, errors: list[str]) -> type[Any] | None:
+    def _find_type_by_name(
+        self, func: Callable, param: str, name: str
+    ) -> type[Any] | None:
         """
         Looks for all the registered types which end match the given name.
 
-        Adds an error into the list if none or more than one match is found.
+        Raises if none or more than one match is found.
         """
         names = [n for n in self._names if n.endswith(name)]
         if not names:
-            errors.append(f"Literal '{name}' does not match any registered type")
-            return None
+            raise NoLiteralMatchInjectionError(func, param, name)
         if (l := len(names)) > 1:
-            errors.append(
-                f"Literal '{name}' matches with {l} registered types, use a more explicit name"
-            )
-            return None
+            raise TooManyLiteralMatchInjectionError(func, param, name, l)
         return self._names[names[0]]
 
     def _resolve_args(
@@ -112,81 +97,65 @@ class Injection:
         """
         Tries to map every parameter of the callable and raises if it fails.
 
-        Parameters are looked up from the given args and kwargs overrides then from the injection registry.
+        Parameters are looked up from the given kwargs overrides then from the injection registry.
         When resolving for a class `__init__` function (with the require method), non-instanciated types will
         be injected with a `_ProxyHook`. That hook will later be replaced with a lazy property that instanciates
         the type only on the first call.
         """
-        errors = []
-        injected: dict[str, str | type] = {}
-        params = inspect.signature(func).parameters
-        f_args: dict[str, Any] = {}
 
+        params = dict(inspect.signature(func).parameters)
+        if any(
+            (n, p)
+            for n, p in params.items()
+            if p.kind in [p.POSITIONAL_ONLY, p.VAR_POSITIONAL]
+        ):
+            raise NoPositionalParameterInjectionError(func)
+
+        f_args: dict[str, Any] = {}
         _args = [*args]
         _kwargs = {**kwargs}
 
         # Iterating over the parameters of the callable
         for p_name, param in params.items():
+            if param.kind == param.VAR_KEYWORD:
+                for kw_name, kw_value in _kwargs.items():
+                    f_args[kw_name] = kw_value
+                _kwargs = {}
+                break
+
             # Looking for parameters in the args and kwargs
-            match param.kind:
-                case param.POSITIONAL_ONLY:
-                    if _args:
-                        f_args[p_name] = _args.pop(0)
-                    elif not param.empty:
-                        f_args[p_name] = param.default
-                case param.KEYWORD_ONLY:
-                    if p_name in _kwargs:
-                        f_args[p_name] = _kwargs.pop(p_name)
-                    elif not param.empty:
-                        f_args = param.default
-                case param.POSITIONAL_OR_KEYWORD:
-                    if _args:
-                        f_args[p_name] = _args.pop(0)
-                    elif p_name in _kwargs:
-                        f_args[p_name] = _kwargs.pop(p_name)
-                    elif not param.empty:
-                        f_args = param.default
-                case param.VAR_POSITIONAL:
-                    while _args:
-                        f_args[p_name] = _args.pop(0)
-                case param.VAR_KEYWORD:
-                    for kw_name, kw_value in _kwargs.items():
-                        f_args[kw_name] = kw_value
-            # No params were found in the args or kwargs, try to find them in the registry
-            if p_name not in f_args:
+            if _args:
+                f_args[p_name] = _args.pop(0)
+            elif p_name in _kwargs:
+                f_args[p_name] = _kwargs.pop(p_name)
+            elif param.default is not param.empty:
+                f_args[p_name] = param.default
+            else:
+                # No params were found in the kwargs, try to find them in the registry
                 hint = param.annotation
                 if hint == inspect.Signature.empty:
-                    errors.append(f"'{p_name}' param requires a type annotation")
+                    raise AnnotationMissingInjectionError(func, p_name)
                 elif isinstance(hint, type) or isinstance(hint, str):
-                    injected[p_name] = hint
-
-        # For every param that wasn't mapped, it tries to look into the injection registry
-        for p_name, cls in injected.items():
-            _r_type: type[Any] | None = None
-            if isinstance(cls, str):
-                _r_type = self._find_type_by_name(cls, errors)
-            else:
-                _r_type = cls
-            if _r_type is not None:
-                if _r_type not in self._types:
-                    errors.append(
-                        f"'{_r_type}' is not a registered type in the injection system"
-                    )
-                else:
-                    registered = self._types[_r_type]
-                    if registered.instance is None:
-                        if immediate:
-                            f_args[p_name] = self._instanciate(registered)
-                        else:
-                            f_args[p_name] = _ProxyHook(registered)
+                    cls: type[Any] | None = None
+                    if isinstance(hint, str):
+                        cls = self._find_type_by_name(func, p_name, hint)
                     else:
-                        f_args[p_name] = registered.instance
+                        cls = hint
+                    if cls is not None:
+                        if cls not in self._types:
+                            raise TypeNotRegisteredInjectionError(cls)
+                        else:
+                            r_type = self._types[cls]
+                            if r_type.instance is None:
+                                if immediate:
+                                    f_args[p_name] = self._instanciate(r_type)
+                                else:
+                                    f_args[p_name] = _ProxyHook(r_type)
+                            else:
+                                f_args[p_name] = r_type.instance
 
-        if len(errors) > 0:
-            raise InjectionError(
-                f"Errors raised while attemping to call '{str(func)}':\n  "
-                + "\n  Injection error: ".join(errors)
-            )
+        if (_args or _kwargs):
+            raise InvalidArgCountInjectionError(func, len(params), len(args) + len(kwargs))
 
         return f_args
 
@@ -212,7 +181,7 @@ class Injection:
         After calling the constructor, all `_ProxyHook`s are replaced with `_InjectionProxy`s
         """
         if r_type.instance is not None:
-            raise InjectionError(f"'{r_type.type}' has already been instanciated")
+            raise InstanceExistsInjectionError(r_type.type)
         func_args = self._resolve_args(r_type.type, False, args or [], kwargs or {})
         instance = r_type.instanciate(func_args)
         self._hook_proxies(instance)
@@ -251,7 +220,7 @@ class Injection:
           These are keyword based.
         """
         if cls in self._types:
-            raise InjectionError(f"'{cls}' is already a registered type")
+            raise TypeRegisteredInjectionError(cls)
         self._types[cls] = _RegisteredType(self, cls, instance, func, params)
         self._names[f"{cls.__module__}.{cls.__name__}"] = cls
 
@@ -260,9 +229,7 @@ class Injection:
         Returns the instance of the registered type.
         """
         if cls not in self._types:
-            raise InjectionError(
-                f"'{cls}' is not a registered type in the injection system"
-            )
+            raise TypeNotRegisteredInjectionError(cls)
         _r_type = self._types[cls]
         if _r_type.instance is None:
             return self._instanciate(_r_type)
