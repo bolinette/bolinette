@@ -46,3 +46,30 @@ def rm_r(path) -> None:
         for name in dirs:
             os.rmdir(os.path.join(root, name))
     os.rmdir(path)
+
+
+class PathHelper:
+    def __init__(self, origin: str) -> None:
+        self._origin = origin
+        self._cwd = cwd()
+
+    def internal_path(self, *path) -> str:
+        return join(self._origin, *path)
+
+    def internal_files_path(self, *path) -> str:
+        return join(self._origin, "_files", *path)
+
+    def root_path(self, *path) -> str:
+        return join(self._cwd, *path)
+
+    def instance_path(self, *path) -> str:
+        return self.root_path("instance", *path)
+
+    def env_path(self, *path) -> str:
+        return self.root_path("env", *path)
+
+    def static_path(self, *path) -> str:
+        return self.root_path("static", *path)
+
+    def templates_path(self, *path) -> str:
+        return self.root_path("templates", *path)

@@ -1,6 +1,7 @@
 import pytest
 
-from bolinette.core import Cache, Injection
+from bolinette.core import Cache, Injection, InjectionStrategy
+from bolinette.core.inject import InjectionContext
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
     InstanceExistsInjectionError,
@@ -47,33 +48,34 @@ class InjectableClassA:
 
 
 def test_add_type_twice() -> None:
-    inject = Injection(Cache())
+    inject = Injection(Cache(), InjectionContext())
 
-    inject.add(InjectableClassA)
+    inject.add(InjectableClassA, InjectionStrategy.Singleton, None, None)
     with pytest.raises(TypeRegisteredInjectionError) as info:
-        inject.add(InjectableClassA)
+        inject.add(InjectableClassA, InjectionStrategy.Singleton, None, None)
 
     assert f"Type {InjectableClassA} is already a registered type" in info.value.message
 
 
 def test_instanciate_type_twice() -> None:
-    inject = Injection(Cache())
+    inject = Injection(Cache(), InjectionContext())
 
-    inject.add(InjectableClassB)
-    inject._instanciate(inject._types[InjectableClassB])
+    inject.add(InjectableClassB, InjectionStrategy.Singleton, None, None)
+    inject._instanciate(InjectableClassB)
     with pytest.raises(InstanceExistsInjectionError) as info:
-        inject._instanciate(inject._types[InjectableClassB])
+        inject._instanciate(InjectableClassB)
 
     assert f"Type {InjectableClassB} has already been instanciated" in info.value.message
 
 
 def test_class_injection() -> None:
     cache = Cache()
-    cache.add_type(
-        InjectableClassA, InjectableClassB, InjectableClassC, InjectableClassD
-    )
+    cache.add_type(InjectableClassA, InjectionStrategy.Singleton, None, None)
+    cache.add_type(InjectableClassB, InjectionStrategy.Singleton, None, None)
+    cache.add_type(InjectableClassC, InjectionStrategy.Singleton, None, None)
+    cache.add_type(InjectableClassD, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     a = inject.require(InjectableClassA)
 
     assert a.func() == "a"
@@ -90,11 +92,12 @@ def test_inject_call_sync() -> None:
         assert a.d_attr.c.func() == "c"
 
     cache = Cache()
-    cache.add_type(
-        InjectableClassA, InjectableClassB, InjectableClassC, InjectableClassD
-    )
+    cache.add_type(InjectableClassA, InjectionStrategy.Singleton, None, None)
+    cache.add_type(InjectableClassB, InjectionStrategy.Singleton, None, None)
+    cache.add_type(InjectableClassC, InjectionStrategy.Singleton, None, None)
+    cache.add_type(InjectableClassD, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
 
     inject.call(_test_func)
 
@@ -104,18 +107,18 @@ async def test_inject_call_async() -> None:
         assert b.func() == "b"
 
     cache = Cache()
-    cache.add_type(InjectableClassB)
+    cache.add_type(InjectableClassB, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
 
     await inject.call(_test_func)
 
 
 async def test_fail_injection() -> None:
     cache = Cache()
-    cache.add_type(InjectableClassB)
+    cache.add_type(InjectableClassB, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     with pytest.raises(TypeNotRegisteredInjectionError) as info:
         inject.require(InjectableClassC)
 
@@ -127,9 +130,9 @@ async def test_fail_injection() -> None:
 
 async def test_fail_subinjection() -> None:
     cache = Cache()
-    cache.add_type(InjectableClassD)
+    cache.add_type(InjectableClassD, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     with pytest.raises(TypeNotRegisteredInjectionError) as info:
         inject.require(InjectableClassD)
 
@@ -145,7 +148,7 @@ def test_fail_call_injection() -> None:
 
     cache = Cache()
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     with pytest.raises(TypeNotRegisteredInjectionError) as info:
         inject.call(_test_func)
 
@@ -157,9 +160,9 @@ def test_fail_call_injection() -> None:
 
 def test_require_twice() -> None:
     cache = Cache()
-    cache.add_type(InjectableClassB)
+    cache.add_type(InjectableClassB, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     b1 = inject.require(InjectableClassB)
     b2 = inject.require(InjectableClassB)
 
@@ -175,9 +178,9 @@ def test_no_literal_match() -> None:
             pass
 
     cache = Cache()
-    cache.add_type(_TestClass)
+    cache.add_type(_TestClass, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     with pytest.raises(NoLiteralMatchInjectionError) as info:
         inject.require(_TestClass)
 
@@ -203,9 +206,11 @@ def test_too_many_literal_matches() -> None:
             pass
 
     cache = Cache()
-    cache.add_type(_TestClass, _1_Value, _2_Value)
+    cache.add_type(_TestClass, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_1_Value, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_2_Value, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     with pytest.raises(TooManyLiteralMatchInjectionError) as info:
         inject.require(_TestClass)
 
@@ -222,9 +227,9 @@ def test_no_annotation() -> None:
             pass
 
     cache = Cache()
-    cache.add_type(_TestClass)
+    cache.add_type(_TestClass, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     with pytest.raises(AnnotationMissingInjectionError) as info:
         inject.require(_TestClass)
 
@@ -248,11 +253,11 @@ def test_use_init_func() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(InjectableClassB)
+    cache.add_type(InjectableClassB, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
-    inject.add(_ChildClass1, func=_test_func)
-    inject.add(_ChildClass2, func=_test_func)
+    inject = Injection(cache, InjectionContext())
+    inject.add(_ChildClass1, InjectionStrategy.Singleton, _test_func, None)
+    inject.add(_ChildClass2, InjectionStrategy.Singleton, _test_func, None)
 
     t1 = inject.require(_ChildClass1)
     t2 = inject.require(_ChildClass2)
@@ -267,7 +272,7 @@ def test_arg_resolve_fail_wilcard() -> None:
     def _test_func(a, *args):
         pass
 
-    inject = Injection(Cache())
+    inject = Injection(Cache(), InjectionContext())
 
     with pytest.raises(NoPositionalParameterInjectionError) as info:
         inject.call(_test_func, kwargs={"a": "a", "b": "b"})
@@ -282,7 +287,7 @@ def test_arg_resolve_fail_positional_only() -> None:
     def _test_func(a, /, b):
         pass
 
-    inject = Injection(Cache())
+    inject = Injection(Cache(), InjectionContext())
 
     with pytest.raises(NoPositionalParameterInjectionError) as info:
         inject.call(_test_func, kwargs={"a": "a", "b": "b"})
@@ -297,7 +302,7 @@ def test_arg_resolve_fail_too_many_args() -> None:
     def _test_func(a, b) -> None:
         pass
 
-    inject = Injection(Cache())
+    inject = Injection(Cache(), InjectionContext())
 
     with pytest.raises(InvalidArgCountInjectionError) as info:
         inject.call(_test_func, args=["a", "b", "c"])
@@ -317,7 +322,31 @@ def test_arg_resolve() -> None:
         assert kwargs == {"e": "e", "f": "f"}
 
     cache = Cache()
-    cache.add_type(InjectableClassC)
+    cache.add_type(InjectableClassC, InjectionStrategy.Singleton, None, None)
 
-    inject = Injection(cache)
+    inject = Injection(cache, InjectionContext())
     inject.call(_test_func, args=["a"], kwargs={"b": "b", "e": "e", "f": "f"})
+
+
+def test_two_injection() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        def __init__(self, c1: _C1) -> None:
+            self.c1 = c1
+
+    class _C3:
+        def __init__(self, c1: _C1) -> None:
+            self.c1 = c1
+
+    cache = Cache()
+    cache.add_type(_C1, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_C2, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_C3, InjectionStrategy.Singleton, None, None)
+
+    inject = Injection(cache, InjectionContext())
+    c2 = inject.require(_C2)
+    c3 = inject.require(_C3)
+
+    assert c2.c1 is c3.c1

@@ -1,7 +1,7 @@
 from functools import cache
 
 import pytest
-from bolinette.core import Cache, injectable, init_func
+from bolinette.core import Cache, injectable, init_func, InjectionStrategy
 from bolinette.core.exceptions import InitError
 
 
@@ -17,7 +17,7 @@ def test_add_type() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(_TestClass)
+    cache.add_type(_TestClass, InjectionStrategy.Singleton, None, None)
 
     assert len(cache.types) == 1
     assert cache.has_type(_TestClass)
@@ -34,8 +34,8 @@ def test_get_of_type() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(_ChildClass1)
-    cache.add_type(_ChildClass2)
+    cache.add_type(_ChildClass1, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_ChildClass2, InjectionStrategy.Singleton, None, None)
 
     assert len(cache.of_type(_ParentClass)) == 2
 

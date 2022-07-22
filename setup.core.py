@@ -7,7 +7,7 @@ from bolinette.core.utils import files, paths
 context = Context(paths.join(paths.dirname(__file__), 'bolinette', 'core'))
 
 
-def project_packages(module) -> None:
+def project_packages(module) -> list[str]:
     return [m for m in find_packages() if m.startswith(module)]
 
 
@@ -22,7 +22,7 @@ setup(
     long_description_content_type='text/markdown',
     author='Pierre Chat',
     author_email='pierrechat@outlook.com',
-    url='https://github.com/TheCaptainCat/bolinette',
+    url='https://github.com/bolinette/bolinette',
     keywords=['Bolinette', 'Framework', 'IoC', 'Dependency Injection'],
     install_requires=files.read_requirements(context.root_path()),
     classifiers=[

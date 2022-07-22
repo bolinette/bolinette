@@ -1,5 +1,5 @@
 import pytest
-from bolinette.core import InitFunction
+from bolinette.core.init import InitFunction
 from bolinette.core.exceptions import InitError
 
 

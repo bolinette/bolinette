@@ -52,7 +52,12 @@ class TypeRegisteredInjectionError(InjectionError):
 
 class InstanceExistsInjectionError(InjectionError):
     def __init__(self, cls: type[Any]) -> None:
-        super().__init__(f"Type {cls} has already been instanciated")
+        super().__init__(f"Type {cls} has already been instanciated in this scope")
+
+
+class InstanceNotExistInjectionError(InjectionError):
+    def __init__(self, cls: type[Any]) -> None:
+        super().__init__(f"Type {cls} has not been instanciated in this scope")
 
 
 class AnnotationMissingInjectionError(InjectionError):

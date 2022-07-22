@@ -2,11 +2,12 @@ import inspect
 from collections.abc import Callable
 from typing import Any, Generic, ParamSpec, TypeVar
 
-from bolinette.core import Cache
-from bolinette.core.cache import P
+from bolinette.core import Cache, InjectionStrategy
+from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
     InstanceExistsInjectionError,
+    InstanceNotExistInjectionError,
     InvalidArgCountInjectionError,
     NoLiteralMatchInjectionError,
     NoPositionalParameterInjectionError,
@@ -20,72 +21,52 @@ T_Func = TypeVar("T_Func")
 T_Instance = TypeVar("T_Instance")
 
 
-class _RegisteredType(Generic[T_Instance]):
-    """
-    **For internal use only**
+class InjectionContext:
+    def __init__(self) -> None:
+        self._instances: dict[type[Any], Any] = {}
 
-    Holds informations about a type registered in the injection
-    system and its instance after it has been initialized.
-    """
+    def __contains__(self, cls: Any) -> bool:
+        if not isinstance(cls, type):
+            raise TypeError('Only types allowed')
+        return cls in self._instances
 
-    def __init__(
-        self,
-        inject: "Injection",
-        cls: type[T_Instance],
-        instance: T_Instance | None = None,
-        func: Callable[[T_Instance], None] | None = None,
-        params: dict[str, Any] | None = None,
-    ) -> None:
-        self.inject = inject
-        self.type = cls
-        self.instance = instance
-        self.func = func
-        self.params = params
+    def __setitem__(self, cls: type[T_Instance], instance: T_Instance) -> None:
+        if cls in self:
+            raise InstanceExistsInjectionError(cls)
+        if not isinstance(instance, cls):
+            raise TypeError('Object is not an instance of cls')
+        self._instances[cls] = instance
 
-    def instanciate(self, args: dict[str, Any]) -> T_Instance:
-        self.instance = self.type(**args)
-        if self.func is not None:
-            self.inject.call(self.func, args=[self.instance])
-        return self.instance
+    def __getitem__(self, cls: type[T_Instance]) -> T_Instance:
+        if cls not in self:
+            raise InstanceNotExistInjectionError(cls)
+        return self._instances[cls]
 
 
 class Injection:
-    """
-    Bolinette's injection system.
-
-    It is used to instanciate all services and call any function that use inversion of control.
-
-    This system is the foundation of Bolinette and is used internally across all extensions.
-    It can also be used to call any type or function to easily inject parameters without having
-    to require each one at a time.
-    """
-
-    def __init__(self, cache: Cache) -> None:
+    def __init__(self, cache: Cache, global_ctx: InjectionContext) -> None:
         self._cache = cache
-        self._types: dict[type[Any], _RegisteredType[Any]] = {}
-        self._names: dict[str, type[Any]] = {}
+        self._global_ctx = global_ctx
         self.add(Injection, self)
-        self._init_from_cache()
 
-    def _init_from_cache(self) -> None:
-        """Collects all types from the cache."""
-        for t in self._cache.types:
-            self.add(t)
+    def _has_instance(self, cls: type[Any]) -> bool:
+        return cls in self._global_ctx
+
+    def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
+        return self._global_ctx[cls]
+
+    def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
+        self._global_ctx[cls] = instance
 
     def _find_type_by_name(
         self, func: Callable, param: str, name: str
     ) -> type[Any] | None:
-        """
-        Looks for all the registered types which end match the given name.
-
-        Raises if none or more than one match is found.
-        """
-        names = [n for n in self._names if n.endswith(name)]
+        names = self._cache.find_types_by_name(name)
         if not names:
             raise NoLiteralMatchInjectionError(func, param, name)
         if (l := len(names)) > 1:
             raise TooManyLiteralMatchInjectionError(func, param, name, l)
-        return self._names[names[0]]
+        return names[0]
 
     def _resolve_args(
         self,
@@ -94,15 +75,6 @@ class Injection:
         args: list[Any],
         kwargs: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Tries to map every parameter of the callable and raises if it fails.
-
-        Parameters are looked up from the given kwargs overrides then from the injection registry.
-        When resolving for a class `__init__` function (with the require method), non-instanciated types will
-        be injected with a `_ProxyHook`. That hook will later be replaced with a lazy property that instanciates
-        the type only on the first call.
-        """
-
         params = dict(inspect.signature(func).parameters)
         if any(
             (n, p)
@@ -142,49 +114,48 @@ class Injection:
                     else:
                         cls = hint
                     if cls is not None:
-                        if cls not in self._types:
+                        if not self._cache.has_type(cls):
                             raise TypeNotRegisteredInjectionError(cls)
                         else:
-                            r_type = self._types[cls]
-                            if r_type.instance is None:
-                                if immediate:
-                                    f_args[p_name] = self._instanciate(r_type)
-                                else:
-                                    f_args[p_name] = _ProxyHook(r_type)
+                            if self._has_instance(cls):
+                                f_args[p_name] = self._get_instance(cls)
                             else:
-                                f_args[p_name] = r_type.instance
+                                if immediate:
+                                    f_args[p_name] = self._instanciate(cls)
+                                else:
+                                    f_args[p_name] = _ProxyHook(cls)
 
-        if (_args or _kwargs):
-            raise InvalidArgCountInjectionError(func, len(params), len(args) + len(kwargs))
+        if _args or _kwargs:
+            raise InvalidArgCountInjectionError(
+                func, len(params), len(args) + len(kwargs)
+            )
 
         return f_args
 
     def _hook_proxies(self, instance: Any) -> None:
-        """Replaces injection hooks with injection proxies"""
         cls = type(instance)
         attrs = dict(vars(instance))
         for name, attr in attrs.items():
             if isinstance(attr, _ProxyHook):
                 delattr(instance, name)
-                setattr(cls, name, _InjectionProxy(self, name, attr.type))
+                setattr(cls, name, _InjectionProxy(self, name, attr.cls))
 
     def _instanciate(
         self,
-        r_type: _RegisteredType[T_Instance],
+        cls: type[T_Instance],
         *,
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
     ) -> T_Instance:
-        """
-        Creates the instance for a registered type only once.
-
-        After calling the constructor, all `_ProxyHook`s are replaced with `_InjectionProxy`s
-        """
-        if r_type.instance is not None:
-            raise InstanceExistsInjectionError(r_type.type)
-        func_args = self._resolve_args(r_type.type, False, args or [], kwargs or {})
-        instance = r_type.instanciate(func_args)
+        if self._has_instance(cls):
+            raise InstanceExistsInjectionError(cls)
+        r_type = self._cache.get_type(cls)
+        func_args = self._resolve_args(cls, False, args or [], (kwargs or {}) | (r_type.params or {}))
+        instance = cls(**func_args)
+        if (r_type.func is not None):
+            self.call(r_type.func, args=[instance])
         self._hook_proxies(instance)
+        self._set_instance(cls, instance)
         return instance
 
     def call(
@@ -194,73 +165,46 @@ class Injection:
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
     ) -> T_Func:
-        """
-        Uses the injection system to call the given function.
-
-        `args` and `kwargs` are used first and the missing parameters are picked from the registry.
-        Any undetermined parameter remaining will raise an `InjectionError`
-        """
         func_args = self._resolve_args(func, True, args or [], kwargs or {})
         return func(**func_args)
 
     def add(
         self,
         cls: type[T_Instance],
-        instance: T_Instance | None = None,
+        strategy: InjectionStrategy,
         func: Callable[[T_Instance], None] | None = None,
         params: dict[str, Any] | None = None,
     ) -> None:
-        """
-        Adds a type to the injection registry.
-
-        - The `instance` can be provided and will be used during injection.
-        - `func` will be called after the initialization.
-          If an instance is given, `func` will never be called.
-        - `params` are additional parameters that will be used during instanciation.
-          These are keyword based.
-        """
-        if cls in self._types:
+        if self._cache.has_type(cls):
             raise TypeRegisteredInjectionError(cls)
-        self._types[cls] = _RegisteredType(self, cls, instance, func, params)
-        self._names[f"{cls.__module__}.{cls.__name__}"] = cls
+        self._cache.add_type(cls, strategy, func, params)
 
     def require(self, cls: type[T_Instance]) -> T_Instance:
-        """
-        Returns the instance of the registered type.
-        """
-        if cls not in self._types:
+        if not self._cache.has_type(cls):
             raise TypeNotRegisteredInjectionError(cls)
-        _r_type = self._types[cls]
-        if _r_type.instance is None:
-            return self._instanciate(_r_type)
-        return _r_type.instance
+        if self._has_instance(cls):
+            return self._get_instance(cls)
+        return self._instanciate(cls)
 
 
 class _ProxyHook:
-    """Temporary object used to locate injected types after assignements in the `__init__` function of an instance"""
-
-    def __init__(self, r_type: _RegisteredType) -> None:
-        self.type = r_type
+    def __init__(self, cls: type[Any]) -> None:
+        self.cls = cls
 
 
 class _InjectionProxy(Generic[T_Instance]):
-    """
-    Holds informations about a non-initialized type waiting for the first call.
-
-    A proxy is attached to the class and acts like a built-in property.
-    On the first call, it replaced itself with the wanted instance, instanciating it if needed.
-    """
-
     def __init__(
-        self, inject: Injection, name: str, cls: _RegisteredType[T_Instance]
+        self, inject: Injection, name: str, cls: type[T_Instance]
     ) -> None:
         self._inject = inject
         self._name = name
         self._cls = cls
 
     def __get__(self, instance: Any, _) -> T_Instance:
-        obj = self._cls.instance
-        if obj is None:
+        obj = None
+        if self._inject._has_instance(self._cls):
+            obj = self._inject._get_instance(self._cls)
+        else:
             obj = self._inject._instanciate(self._cls)
         setattr(instance, self._name, obj)
         return obj
