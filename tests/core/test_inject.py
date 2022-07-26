@@ -5,9 +5,11 @@ from bolinette.core.inject import InjectionContext
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
     InstanceExistsInjectionError,
+    InstanceNotExistInjectionError,
     InvalidArgCountInjectionError,
     NoLiteralMatchInjectionError,
     NoPositionalParameterInjectionError,
+    NoScopedContextInjectionError,
     TooManyLiteralMatchInjectionError,
     TypeNotRegisteredInjectionError,
     TypeRegisteredInjectionError,
@@ -61,11 +63,13 @@ def test_instanciate_type_twice() -> None:
     inject = Injection(Cache(), InjectionContext())
 
     inject.add(InjectableClassB, InjectionStrategy.Singleton, None, None)
-    inject._instanciate(InjectableClassB)
+    inject._instanciate(inject._cache.get_type(InjectableClassB))
     with pytest.raises(InstanceExistsInjectionError) as info:
-        inject._instanciate(InjectableClassB)
+        inject._instanciate(inject._cache.get_type(InjectableClassB))
 
-    assert f"Type {InjectableClassB} has already been instanciated" in info.value.message
+    assert (
+        f"Type {InjectableClassB} has already been instanciated" in info.value.message
+    )
 
 
 def test_class_injection() -> None:
@@ -233,7 +237,10 @@ def test_no_annotation() -> None:
     with pytest.raises(AnnotationMissingInjectionError) as info:
         inject.require(_TestClass)
 
-    assert f"Callable {_TestClass} Parameter '_1' requires a type annotation" in info.value.message
+    assert (
+        f"Callable {_TestClass} Parameter '_1' requires a type annotation"
+        in info.value.message
+    )
 
 
 def test_use_init_func() -> None:
@@ -307,10 +314,7 @@ def test_arg_resolve_fail_too_many_args() -> None:
     with pytest.raises(InvalidArgCountInjectionError) as info:
         inject.call(_test_func, args=["a", "b", "c"])
 
-    assert (
-        f"Callable {_test_func}: expected 2 arguments, 3 given"
-        in info.value.message
-    )
+    assert f"Callable {_test_func}: expected 2 arguments, 3 given" in info.value.message
 
 
 def test_arg_resolve() -> None:
@@ -328,7 +332,7 @@ def test_arg_resolve() -> None:
     inject.call(_test_func, args=["a"], kwargs={"b": "b", "e": "e", "f": "f"})
 
 
-def test_two_injection() -> None:
+def test_two_injections() -> None:
     class _C1:
         pass
 
@@ -350,3 +354,148 @@ def test_two_injection() -> None:
     c3 = inject.require(_C3)
 
     assert c2.c1 is c3.c1
+
+
+def test_transcient_injection() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        pass
+
+    class _C3:
+        def __init__(self, c1: _C1, c2: _C2) -> None:
+            self.c1 = c1
+            self.c2 = c2
+
+    class _C4:
+        def __init__(self, c1: _C1, c2: _C2) -> None:
+            self.c1 = c1
+            self.c2 = c2
+
+    cache = Cache()
+    cache.add_type(_C1, InjectionStrategy.Transcient, None, None)
+    cache.add_type(_C2, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_C3, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_C4, InjectionStrategy.Singleton, None, None)
+
+    inject = Injection(cache, InjectionContext())
+    c3 = inject.require(_C3)
+    c4 = inject.require(_C4)
+
+    assert c3.c2 is c4.c2
+    assert c3.c1 is not c4.c1
+
+
+def test_scoped_injection_fail_no_scope() -> None:
+    class _C1:
+        pass
+
+    cache = Cache()
+    cache.add_type(_C1, InjectionStrategy.Scoped, None, None)
+
+    inject = Injection(cache, InjectionContext())
+
+    with pytest.raises(NoScopedContextInjectionError) as info:
+        c1 = inject.require(_C1)
+
+    assert (
+        f"Type {_C1}: cannot instanciate a scoped service outside of a scoped session"
+        in info.value.message
+    )
+
+
+def test_scoped_injection() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        pass
+
+    class _C3:
+        pass
+
+    class _C4:
+        def __init__(self, c1: _C1, c2: _C2, c3: _C3) -> None:
+            self.c1 = c1
+            self.c2 = c2
+            self.c3 = c3
+
+    class _C5:
+        def __init__(self, c1: _C1, c2: _C2, c3: _C3) -> None:
+            self.c1 = c1
+            self.c2 = c2
+            self.c3 = c3
+
+    cache = Cache()
+    cache.add_type(_C1, InjectionStrategy.Transcient, None, None)
+    cache.add_type(_C2, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_C3, InjectionStrategy.Scoped, None, None)
+    cache.add_type(_C4, InjectionStrategy.Scoped, None, None)
+    cache.add_type(_C5, InjectionStrategy.Scoped, None, None)
+
+    inject = Injection(cache, InjectionContext())
+    sub_inject1 = inject.get_scoped_session()
+    c4_1 = sub_inject1.require(_C4)
+    c5_1 = sub_inject1.require(_C5)
+    sub_inject2 = inject.get_scoped_session()
+    c4_2 = sub_inject2.require(_C4)
+
+    assert c4_1 is not c4_2
+    assert c4_1 is sub_inject1.require(_C4)
+    assert c4_2 is sub_inject2.require(_C4)
+
+    assert c4_1.c1 is not c4_2.c1
+    assert c4_1.c2 is c4_2.c2
+    assert c4_1.c3 is not c4_2.c3
+
+    assert c4_1.c1 is not c5_1.c1
+    assert c4_1.c2 is c5_1.c2
+    assert c4_1.c3 is c5_1.c3
+
+
+def test_require_transcient_service() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        pass
+
+    cache = Cache()
+    cache.add_type(_C1, InjectionStrategy.Transcient, None, None)
+    cache.add_type(_C2, InjectionStrategy.Singleton, None, None)
+
+    inject = Injection(cache, InjectionContext())
+
+    assert inject.require(_C1) is not inject.require(_C1)
+    assert inject.require(_C2) is inject.require(_C2)
+
+
+def test_context_errors() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        pass
+
+    ctx = InjectionContext()
+
+    with pytest.raises(TypeError):
+        (lambda x: x) in ctx
+
+    with pytest.raises(TypeError):
+        ctx[(lambda x: x)] = None
+
+    c1_1 = _C1()
+    c1_2 = _C1()
+
+    ctx[_C1] = c1_1
+
+    with pytest.raises(InstanceExistsInjectionError):
+        ctx[_C1] = c1_2
+
+    with pytest.raises(TypeError):
+        ctx[_C2] = c1_1
+
+    with pytest.raises(InstanceNotExistInjectionError):
+        _ = ctx[_C2]

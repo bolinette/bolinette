@@ -6,11 +6,13 @@ from bolinette.core import Cache, InjectionStrategy
 from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
+    InjectionError,
     InstanceExistsInjectionError,
     InstanceNotExistInjectionError,
     InvalidArgCountInjectionError,
     NoLiteralMatchInjectionError,
     NoPositionalParameterInjectionError,
+    NoScopedContextInjectionError,
     TooManyLiteralMatchInjectionError,
     TypeNotRegisteredInjectionError,
     TypeRegisteredInjectionError,
@@ -27,14 +29,14 @@ class InjectionContext:
 
     def __contains__(self, cls: Any) -> bool:
         if not isinstance(cls, type):
-            raise TypeError('Only types allowed')
+            raise TypeError("Only types allowed")
         return cls in self._instances
 
     def __setitem__(self, cls: type[T_Instance], instance: T_Instance) -> None:
         if cls in self:
             raise InstanceExistsInjectionError(cls)
         if not isinstance(instance, cls):
-            raise TypeError('Object is not an instance of cls')
+            raise TypeError("Object is not an instance of cls")
         self._instances[cls] = instance
 
     def __getitem__(self, cls: type[T_Instance]) -> T_Instance:
@@ -47,16 +49,27 @@ class Injection:
     def __init__(self, cache: Cache, global_ctx: InjectionContext) -> None:
         self._cache = cache
         self._global_ctx = global_ctx
-        self.add(Injection, self)
+        if not self._cache.has_type(Injection):
+            self.add(Injection, InjectionStrategy.Singleton)
+        if Injection not in self._global_ctx:
+            self._global_ctx[Injection] = self
 
-    def _has_instance(self, cls: type[Any]) -> bool:
-        return cls in self._global_ctx
+    def _has_instance(self, r_type: RegisteredType[Any]) -> bool:
+        if r_type.strategy is InjectionStrategy.Scoped:
+            raise NoScopedContextInjectionError(r_type.cls)
+        return (
+            r_type.strategy is InjectionStrategy.Singleton
+            and r_type.cls in self._global_ctx
+        )
 
-    def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
-        return self._global_ctx[cls]
+    def _get_instance(self, r_type: RegisteredType[T_Instance]) -> T_Instance:
+        return self._global_ctx[r_type.cls]
 
-    def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
-        self._global_ctx[cls] = instance
+    def _set_instance(
+        self, r_type: RegisteredType[T_Instance], instance: T_Instance
+    ) -> None:
+        if r_type.strategy is InjectionStrategy.Singleton:
+            self._global_ctx[r_type.cls] = instance
 
     def _find_type_by_name(
         self, func: Callable, param: str, name: str
@@ -117,13 +130,14 @@ class Injection:
                         if not self._cache.has_type(cls):
                             raise TypeNotRegisteredInjectionError(cls)
                         else:
-                            if self._has_instance(cls):
-                                f_args[p_name] = self._get_instance(cls)
+                            r_type = self._cache.get_type(cls)
+                            if self._has_instance(r_type):
+                                f_args[p_name] = self._get_instance(r_type)
                             else:
                                 if immediate:
-                                    f_args[p_name] = self._instanciate(cls)
+                                    f_args[p_name] = self._instanciate(r_type)
                                 else:
-                                    f_args[p_name] = _ProxyHook(cls)
+                                    f_args[p_name] = _ProxyHook(r_type)
 
         if _args or _kwargs:
             raise InvalidArgCountInjectionError(
@@ -138,24 +152,26 @@ class Injection:
         for name, attr in attrs.items():
             if isinstance(attr, _ProxyHook):
                 delattr(instance, name)
-                setattr(cls, name, _InjectionProxy(self, name, attr.cls))
+                setattr(cls, name, _InjectionProxy(name, attr.r_type))
 
     def _instanciate(
         self,
-        cls: type[T_Instance],
+        r_type: RegisteredType[T_Instance],
         *,
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
     ) -> T_Instance:
-        if self._has_instance(cls):
-            raise InstanceExistsInjectionError(cls)
-        r_type = self._cache.get_type(cls)
-        func_args = self._resolve_args(cls, False, args or [], (kwargs or {}) | (r_type.params or {}))
-        instance = cls(**func_args)
-        if (r_type.func is not None):
+        if self._has_instance(r_type):
+            raise InstanceExistsInjectionError(r_type.cls)
+        func_args = self._resolve_args(
+            r_type.cls, False, args or [], (kwargs or {}) | (r_type.params or {})
+        )
+        instance = r_type.cls(**func_args)
+        setattr(instance, "__blnt_inject__", self)
+        if r_type.func is not None:
             self.call(r_type.func, args=[instance])
         self._hook_proxies(instance)
-        self._set_instance(cls, instance)
+        self._set_instance(r_type, instance)
         return instance
 
     def call(
@@ -182,29 +198,71 @@ class Injection:
     def require(self, cls: type[T_Instance]) -> T_Instance:
         if not self._cache.has_type(cls):
             raise TypeNotRegisteredInjectionError(cls)
-        if self._has_instance(cls):
-            return self._get_instance(cls)
-        return self._instanciate(cls)
+        r_type = self._cache.get_type(cls)
+        if self._has_instance(r_type):
+            return self._get_instance(r_type)
+        return self._instanciate(r_type)
+
+    def get_scoped_session(self) -> "_ScopedInjection":
+        return _ScopedInjection(self, self._cache, self._global_ctx, InjectionContext())
 
 
 class _ProxyHook:
-    def __init__(self, cls: type[Any]) -> None:
-        self.cls = cls
+    def __init__(self, r_type: RegisteredType[Any]) -> None:
+        self.r_type = r_type
 
 
 class _InjectionProxy(Generic[T_Instance]):
-    def __init__(
-        self, inject: Injection, name: str, cls: type[T_Instance]
-    ) -> None:
-        self._inject = inject
+    def __init__(self, name: str, r_type: RegisteredType[T_Instance]) -> None:
         self._name = name
-        self._cls = cls
+        self._r_type = r_type
 
     def __get__(self, instance: Any, _) -> T_Instance:
-        obj = None
-        if self._inject._has_instance(self._cls):
-            obj = self._inject._get_instance(self._cls)
+        if not hasattr(instance, "__blnt_inject__"):
+            raise InjectionError(
+                f"Type {self._r_type.cls} has not been intanciated through the injection system"
+            )
+        inject: Injection = getattr(instance, "__blnt_inject__")
+        obj: T_Instance
+        if inject._has_instance(self._r_type):
+            obj = inject._get_instance(self._r_type)
         else:
-            obj = self._inject._instanciate(self._cls)
+            obj = inject._instanciate(self._r_type)
         setattr(instance, self._name, obj)
         return obj
+
+
+class _ScopedInjection(Injection):
+    def __init__(
+        self,
+        global_inject: Injection,
+        cache: Cache,
+        global_ctx: InjectionContext,
+        scoped_ctx: InjectionContext,
+    ) -> None:
+        super().__init__(cache, global_ctx)
+        self._global_inject = global_inject
+        self._scoped_ctx = scoped_ctx
+        self._scoped_ctx[Injection] = self
+
+    def _has_instance(self, r_type: RegisteredType[Any]) -> bool:
+        return (
+            r_type.strategy is InjectionStrategy.Scoped
+            and r_type.cls in self._scoped_ctx
+        ) or (
+            r_type.strategy is InjectionStrategy.Singleton
+            and r_type.cls in self._global_ctx
+        )
+
+    def _get_instance(self, r_type: RegisteredType[T_Instance]) -> T_Instance:
+        if r_type.strategy is InjectionStrategy.Scoped:
+            return self._scoped_ctx[r_type.cls]
+        return self._global_ctx[r_type.cls]
+
+    def _set_instance(
+        self, r_type: RegisteredType[T_Instance], instance: T_Instance
+    ) -> None:
+        if r_type.strategy is InjectionStrategy.Scoped:
+            self._scoped_ctx[r_type.cls] = instance
+        if r_type.strategy is InjectionStrategy.Singleton:
+            self._global_ctx[r_type.cls] = instance

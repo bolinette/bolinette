@@ -97,3 +97,13 @@ def test_init_func_decorator_fail() -> None:
         f"'{_TestClass}' must be an async function to be an init function"
         in info.value.message
     )
+
+
+def test_no_type_fail() -> None:
+    class _TestClass:
+        pass
+
+    cache = Cache()
+
+    with pytest.raises(KeyError):
+        cache.get_type(_TestClass)

@@ -93,7 +93,14 @@ class TooManyLiteralMatchInjectionError(InjectionError):
 class InvalidArgCountInjectionError(InjectionError):
     def __init__(self, func: Callable, expected: int, count: int) -> None:
         super().__init__(
-            f"Callable {func}: " f"expected {expected} arguments, {count} given"
+            f"Callable {func}: expected {expected} arguments, {count} given"
+        )
+
+
+class NoScopedContextInjectionError(InjectionError):
+    def __init__(self, cls: type[Any]) -> None:
+        super().__init__(
+            f"Type {cls}: cannot instanciate a scoped service outside of a scoped session"
         )
 
 

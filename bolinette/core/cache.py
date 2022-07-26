@@ -46,7 +46,7 @@ class Cache:
         params: dict[str, Any] | None,
     ) -> None:
         self._types[cls] = RegisteredType(cls, strategy, func, params)
-        self._names[f'{cls.__module__}.{cls.__name__}'] = cls
+        self._names[f"{cls.__module__}.{cls.__name__}"] = cls
 
     def find_types_by_name(self, name: str) -> list[type[Any]]:
         return [t for n, t in self._names.items() if n.endswith(name)]
