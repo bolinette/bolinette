@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 class BolinetteError(Exception):
     def __init__(self, message: str) -> None:
-        Exception.__init__(self, type(self).__name__)
+        Exception.__init__(self, message)
         self._message = message
 
     @property

@@ -1,3 +1,4 @@
+from bolinette.core.metadata import meta
 from bolinette.core.cache import (
     InjectionStrategy,
     Cache,
@@ -6,4 +7,5 @@ from bolinette.core.cache import (
     injectable,
 )
 from bolinette.core.inject import Injection
+from bolinette.core.environment import Environment, environment
 from bolinette.core.bolinette import Bolinette, main_func

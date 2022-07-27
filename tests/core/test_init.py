@@ -1,6 +1,7 @@
 import pytest
-from bolinette.core.init import InitFunction
+
 from bolinette.core.exceptions import InitError
+from bolinette.core.init import InitFunction
 
 
 def test_init_func_non_async() -> None:

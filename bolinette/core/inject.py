@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any, Generic, ParamSpec, TypeVar
 
-from bolinette.core import Cache, InjectionStrategy
+from bolinette.core import Cache, InjectionStrategy, meta
 from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
@@ -49,10 +49,16 @@ class Injection:
     def __init__(self, cache: Cache, global_ctx: InjectionContext) -> None:
         self._cache = cache
         self._global_ctx = global_ctx
-        if not self._cache.has_type(Injection):
-            self.add(Injection, InjectionStrategy.Singleton)
-        if Injection not in self._global_ctx:
-            self._global_ctx[Injection] = self
+        self._add_safe(Cache, InjectionStrategy.Singleton, self._cache)
+        self._add_safe(Injection, InjectionStrategy.Singleton, self)
+
+    def _add_safe(
+        self, cls: type[T_Instance], strategy: InjectionStrategy, instance: T_Instance
+    ):
+        if not self._cache.has_type(cls):
+            self.add(cls, strategy)
+        if cls not in self._global_ctx:
+            self._global_ctx[cls] = instance
 
     def _has_instance(self, r_type: RegisteredType[Any]) -> bool:
         if r_type.strategy is InjectionStrategy.Scoped:
@@ -167,7 +173,7 @@ class Injection:
             r_type.cls, False, args or [], (kwargs or {}) | (r_type.params or {})
         )
         instance = r_type.cls(**func_args)
-        setattr(instance, "__blnt_inject__", self)
+        meta.set(instance, Injection, self)
         if r_type.func is not None:
             self.call(r_type.func, args=[instance])
         self._hook_proxies(instance)
@@ -190,10 +196,19 @@ class Injection:
         strategy: InjectionStrategy,
         func: Callable[[T_Instance], None] | None = None,
         params: dict[str, Any] | None = None,
+        instance: None | T_Instance = None,
     ) -> None:
         if self._cache.has_type(cls):
             raise TypeRegisteredInjectionError(cls)
-        self._cache.add_type(cls, strategy, func, params)
+        r_type = self._cache.add_type(cls, strategy, func, params)
+        if instance is not None:
+            if not isinstance(instance, cls):
+                raise InjectionError(f"Object provided must an instance of type {cls}")
+            if strategy is not InjectionStrategy.Singleton:
+                raise InjectionError(
+                    f"Type {cls} must be a singleton if an instance is provided"
+                )
+            self._set_instance(r_type, instance)
 
     def require(self, cls: type[T_Instance]) -> T_Instance:
         if not self._cache.has_type(cls):
@@ -218,11 +233,11 @@ class _InjectionProxy(Generic[T_Instance]):
         self._r_type = r_type
 
     def __get__(self, instance: Any, _) -> T_Instance:
-        if not hasattr(instance, "__blnt_inject__"):
+        if not meta.has(instance, Injection):
             raise InjectionError(
                 f"Type {self._r_type.cls} has not been intanciated through the injection system"
             )
-        inject: Injection = getattr(instance, "__blnt_inject__")
+        inject = meta.get(instance, Injection)
         obj: T_Instance
         if inject._has_instance(self._r_type):
             obj = inject._get_instance(self._r_type)

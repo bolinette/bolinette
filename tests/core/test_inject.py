@@ -1,9 +1,10 @@
 import pytest
 
 from bolinette.core import Cache, Injection, InjectionStrategy
-from bolinette.core.inject import InjectionContext
+from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
+    InjectionError,
     InstanceExistsInjectionError,
     InstanceNotExistInjectionError,
     InvalidArgCountInjectionError,
@@ -14,6 +15,7 @@ from bolinette.core.exceptions import (
     TypeNotRegisteredInjectionError,
     TypeRegisteredInjectionError,
 )
+from bolinette.core.inject import InjectionContext, _InjectionProxy
 
 
 class InjectableClassB:
@@ -171,6 +173,47 @@ def test_require_twice() -> None:
     b2 = inject.require(InjectableClassB)
 
     assert b1 is b2
+
+
+def test_add_instance_no_singleton() -> None:
+    inject = Injection(Cache(), InjectionContext())
+
+    b = InjectableClassB()
+
+    with pytest.raises(InjectionError) as info:
+        inject.add(InjectableClassB, InjectionStrategy.Transcient, instance=b)
+
+    assert (
+        f"Type {InjectableClassB} must be a singleton if an instance is provided"
+        in info.value.message
+    )
+
+
+def test_add_instance_wrong_type() -> None:
+    inject = Injection(Cache(), InjectionContext())
+
+    b = InjectableClassB()
+
+    with pytest.raises(InjectionError) as info:
+        inject.add(InjectableClassA, InjectionStrategy.Singleton, instance=b)
+
+    assert (
+        f"Object provided must an instance of type {InjectableClassA}"
+        in info.value.message
+    )
+
+
+def test_add_instance() -> None:
+    inject = Injection(Cache(), InjectionContext())
+
+    b = InjectableClassB()
+
+    inject.add(InjectableClassB, InjectionStrategy.Singleton, instance=b)
+
+    _b = inject.require(InjectableClassB)
+
+    assert b is _b
+    assert b.func() == b.func()
 
 
 def test_no_literal_match() -> None:
@@ -397,7 +440,7 @@ def test_scoped_injection_fail_no_scope() -> None:
     inject = Injection(cache, InjectionContext())
 
     with pytest.raises(NoScopedContextInjectionError) as info:
-        c1 = inject.require(_C1)
+        inject.require(_C1)
 
     assert (
         f"Type {_C1}: cannot instanciate a scoped service outside of a scoped session"
@@ -499,3 +542,16 @@ def test_context_errors() -> None:
 
     with pytest.raises(InstanceNotExistInjectionError):
         _ = ctx[_C2]
+
+
+def test_proxy_no_meta() -> None:
+    r_type = RegisteredType(InjectableClassB, InjectionStrategy.Singleton, None, None)
+    proxy = _InjectionProxy("test", r_type)
+
+    with pytest.raises(InjectionError) as info:
+        proxy.__get__(InjectableClassB(), None)
+
+    assert (
+        f"Type {r_type.cls} has not been intanciated through the injection system"
+        in info.value.message
+    )

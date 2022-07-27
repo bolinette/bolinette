@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, Generic
+from typing import Generic, ParamSpec
 
 from bolinette.core.exceptions import InitError
 

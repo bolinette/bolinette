@@ -1,14 +1,13 @@
-from enum import Enum, unique, auto
 import inspect
 from collections.abc import Awaitable, Callable
+from enum import Enum, auto, unique
 from typing import Any, Generic, ParamSpec, TypeVar
 
-from bolinette.core.init import InitFunction
 from bolinette.core.exceptions import InitError
+from bolinette.core.init import InitFunction
 
 P = ParamSpec("P")
 T_Cls = TypeVar("T_Cls")
-T_Default = TypeVar("T_Default")
 
 
 @unique
@@ -37,6 +36,7 @@ class Cache:
         self._types: dict[type, RegisteredType[Any]] = {}
         self._names: dict[str, type[Any]] = {}
         self._init_funcs: list[InitFunction] = []
+        self._env_sections: dict[str, type[Any]] = {}
 
     def add_type(
         self,
@@ -44,9 +44,16 @@ class Cache:
         strategy: InjectionStrategy,
         func: Callable[[T_Cls], None] | None,
         params: dict[str, Any] | None,
-    ) -> None:
-        self._types[cls] = RegisteredType(cls, strategy, func, params)
+    ) -> RegisteredType[T_Cls]:
+        r_type = RegisteredType(cls, strategy, func, params)
+        self._types[cls] = r_type
         self._names[f"{cls.__module__}.{cls.__name__}"] = cls
+        return r_type
+
+    def get_type(self, cls: type[T_Cls]) -> RegisteredType[T_Cls]:
+        if cls not in self._types:
+            raise KeyError(cls)
+        return self._types[cls]
 
     def find_types_by_name(self, name: str) -> list[type[Any]]:
         return [t for n, t in self._names.items() if n.endswith(name)]
@@ -57,10 +64,9 @@ class Cache:
     def has_type(self, cls: type[Any]) -> bool:
         return cls in self._types
 
-    def get_type(self, cls: type[T_Cls]) -> RegisteredType[T_Cls]:
-        if cls not in self._types:
-            raise KeyError(cls)
-        return self._types[cls]
+    @property
+    def types(self) -> dict[type, RegisteredType[Any]]:
+        return {k: v for k, v in self._types.items()}
 
     def add_init_func(self, func: InitFunction) -> None:
         self._init_funcs.append(func)
@@ -69,9 +75,12 @@ class Cache:
     def init_funcs(self) -> list[InitFunction]:
         return [f for f in self._init_funcs]
 
+    def add_env_section(self, name: str, cls: type[Any]):
+        self._env_sections[name] = cls
+
     @property
-    def types(self) -> dict[type, RegisteredType[Any]]:
-        return {k: v for k, v in self._types.items()}
+    def env_sections(self) -> list[tuple[str, type[Any]]]:
+        return [(n, c) for n, c in self._env_sections.items()]
 
 
 __core_cache__ = Cache()

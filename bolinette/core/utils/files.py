@@ -1,4 +1,5 @@
 from typing import Any
+
 import yaml
 
 from bolinette.core.utils import paths

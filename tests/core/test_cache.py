@@ -1,7 +1,6 @@
-from functools import cache
-
 import pytest
-from bolinette.core import Cache, injectable, init_func, InjectionStrategy
+
+from bolinette.core import Cache, InjectionStrategy, init_func, injectable
 from bolinette.core.exceptions import InitError
 
 
