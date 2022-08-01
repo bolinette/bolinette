@@ -1,11 +1,12 @@
 import inspect
 from collections.abc import Callable
-from typing import Any, Generic, ParamSpec, TypeVar
+from typing import Any, Concatenate, Generic, ParamSpec, TypeVar
 
 from bolinette.core import Cache, InjectionStrategy, meta
 from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import (
     AnnotationMissingInjectionError,
+    InitError,
     InjectionError,
     InstanceExistsInjectionError,
     InstanceNotExistInjectionError,
@@ -17,6 +18,11 @@ from bolinette.core.exceptions import (
     TypeNotRegisteredInjectionError,
     TypeRegisteredInjectionError,
 )
+
+
+class _InitMethodMeta:
+    pass
+
 
 P_Func = ParamSpec("P_Func")
 T_Func = TypeVar("T_Func")
@@ -160,23 +166,31 @@ class Injection:
                 delattr(instance, name)
                 setattr(cls, name, _InjectionProxy(name, attr.r_type))
 
+    def _run_init_recursive(self, cls: type[T_Instance], instance: T_Instance):
+        for base in cls.__bases__:
+            self._run_init_recursive(base, instance)
+        for _, attr in vars(cls).items():
+            if meta.has(attr, _InitMethodMeta):
+                self.call(attr, args=[instance])
+
+    def _run_init_methods(
+        self, r_type: RegisteredType[T_Instance], instance: T_Instance
+    ):
+        self._run_init_recursive(r_type.cls, instance)
+        for method in r_type.init_methods:
+            self.call(method, args=[instance])
+
     def _instanciate(
         self,
         r_type: RegisteredType[T_Instance],
-        *,
-        args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
     ) -> T_Instance:
         if self._has_instance(r_type):
             raise InstanceExistsInjectionError(r_type.cls)
-        func_args = self._resolve_args(
-            r_type.cls, False, args or [], (kwargs or {}) | (r_type.params or {})
-        )
+        func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.kwargs)
         instance = r_type.cls(**func_args)
         meta.set(instance, Injection, self)
-        if r_type.func is not None:
-            self.call(r_type.func, args=[instance])
         self._hook_proxies(instance)
+        self._run_init_methods(r_type, instance)
         self._set_instance(r_type, instance)
         return instance
 
@@ -194,13 +208,14 @@ class Injection:
         self,
         cls: type[T_Instance],
         strategy: InjectionStrategy,
-        func: Callable[[T_Instance], None] | None = None,
-        params: dict[str, Any] | None = None,
-        instance: None | T_Instance = None,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        instance: T_Instance | None = None,
+        init_methods: list[Callable[[T_Instance], None]] | None = None,
     ) -> None:
         if self._cache.has_type(cls):
             raise TypeRegisteredInjectionError(cls)
-        r_type = self._cache.add_type(cls, strategy, func, params)
+        r_type = self._cache.add_type(cls, strategy, args, kwargs, init_methods)
         if instance is not None:
             if not isinstance(instance, cls):
                 raise InjectionError(f"Object provided must an instance of type {cls}")
@@ -281,3 +296,14 @@ class _ScopedInjection(Injection):
             self._scoped_ctx[r_type.cls] = instance
         if r_type.strategy is InjectionStrategy.Singleton:
             self._global_ctx[r_type.cls] = instance
+
+
+def init_method(
+    func: Callable[Concatenate[T_Instance, P_Func], None]
+) -> Callable[Concatenate[T_Instance, P_Func], None]:
+    if not inspect.isfunction(func):
+        raise InitError(
+            f"{func} must be a function to be decorated by {init_method.__name__}"
+        )
+    meta.set(func, _InitMethodMeta, _InitMethodMeta())
+    return func

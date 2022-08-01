@@ -7,7 +7,7 @@ from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
 
 P = ParamSpec("P")
-T_Cls = TypeVar("T_Cls")
+T_Instance = TypeVar("T_Instance")
 
 
 @unique
@@ -17,18 +17,20 @@ class InjectionStrategy(Enum):
     Singleton = auto()
 
 
-class RegisteredType(Generic[T_Cls]):
+class RegisteredType(Generic[T_Instance]):
     def __init__(
         self,
-        cls: type[T_Cls],
+        cls: type[T_Instance],
         strategy: InjectionStrategy,
-        func: Callable[[T_Cls], None] | None,
-        params: dict[str, Any] | None,
+        args: list[Any] | None,
+        kwargs: dict[str, Any] | None,
+        init_methods: list[Callable[[T_Instance], None]] | None,
     ) -> None:
         self.cls = cls
         self.strategy = strategy
-        self.func = func
-        self.params = params
+        self.args = args or []
+        self.kwargs = kwargs or {}
+        self.init_methods = init_methods or []
 
 
 class Cache:
@@ -40,17 +42,18 @@ class Cache:
 
     def add_type(
         self,
-        cls: type[T_Cls],
+        cls: type[T_Instance],
         strategy: InjectionStrategy,
-        func: Callable[[T_Cls], None] | None,
-        params: dict[str, Any] | None,
-    ) -> RegisteredType[T_Cls]:
-        r_type = RegisteredType(cls, strategy, func, params)
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        init_methods: list[Callable[[T_Instance], None]] | None = None,
+    ) -> RegisteredType[T_Instance]:
+        r_type = RegisteredType(cls, strategy, args, kwargs, init_methods)
         self._types[cls] = r_type
         self._names[f"{cls.__module__}.{cls.__name__}"] = cls
         return r_type
 
-    def get_type(self, cls: type[T_Cls]) -> RegisteredType[T_Cls]:
+    def get_type(self, cls: type[T_Instance]) -> RegisteredType[T_Instance]:
         if cls not in self._types:
             raise KeyError(cls)
         return self._types[cls]
@@ -58,7 +61,7 @@ class Cache:
     def find_types_by_name(self, name: str) -> list[type[Any]]:
         return [t for n, t in self._names.items() if n.endswith(name)]
 
-    def of_type(self, cls: type[T_Cls]) -> list[type[T_Cls]]:
+    def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:
         return [t for t in self._types if issubclass(t, cls)]
 
     def has_type(self, cls: type[Any]) -> bool:
@@ -99,16 +102,16 @@ def init_func(
 def injectable(
     *,
     strategy: InjectionStrategy = InjectionStrategy.Singleton,
-    func: Callable[[T_Cls], None] | None = None,
-    params: dict[str, Any] | None = None,
+    args: list[Any] | None = None,
+    kwargs: dict[str, Any] | None = None,
     cache: Cache | None = None,
-) -> Callable[[type[T_Cls]], type[T_Cls]]:
-    def decorator(cls: type[T_Cls]) -> type[T_Cls]:
+) -> Callable[[type[T_Instance]], type[T_Instance]]:
+    def decorator(cls: type[T_Instance]) -> type[T_Instance]:
         if not inspect.isclass(cls):
             raise InitError(
                 f"'{cls}' must be a class to be decorated by @{injectable.__name__}"
             )
-        (cache or __core_cache__).add_type(cls, strategy, func, params)
+        (cache or __core_cache__).add_type(cls, strategy, args, kwargs)
         return cls
 
     return decorator

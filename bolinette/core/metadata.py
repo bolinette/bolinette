@@ -44,6 +44,8 @@ def _get_meta_container(obj: Any) -> _BolinetteMetadata:
 class _MetaFunctions:
     @staticmethod
     def has(__obj: Any, __meta_cls: type[Any]) -> bool:
+        if not hasattr(__obj, "__dict__"):
+            return False
         if not isinstance(__meta_cls, type):
             raise TypeError(f"Argument {__meta_cls} must be a type")
         meta = _get_meta_container(__obj)

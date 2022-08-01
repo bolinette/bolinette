@@ -5,25 +5,51 @@ from bolinette.core import (
     Environment,
     Injection,
     InjectionStrategy,
+    Logger,
     __core_cache__,
 )
 from bolinette.core.inject import InjectionContext
-from bolinette.core.utils import paths
+from bolinette.core.utils import FileUtils, PathUtils
 
 
 class Bolinette:
     def __init__(
-        self, *, inject: Injection | None = None, cache: Cache | None = None
+        self,
+        *,
+        profile: str | None = None,
+        inject: Injection | None = None,
+        cache: Cache | None = None
     ) -> None:
-        self.paths = paths.PathHelper(paths.dirname(__file__))
+        self._logger = Logger()
+        self._paths = PathUtils(PathUtils.dirname(__file__))
+        self._files = FileUtils(self._paths)
+        self._profile = (
+            profile
+            or self._files.read_profile(self._paths.env_path())
+            or self._set_default_profile()
+        )
         self._cache = cache or __core_cache__
         self._inject = inject or Injection(self._cache, InjectionContext())
-        self._add_type_to_inject()
-        self._env = self._inject.require(Environment)
+        self._add_types_to_inject()
 
-    def _add_type_to_inject(self):
+    @property
+    def injection(self) -> Injection:
+        return self._inject
+
+    def _set_default_profile(self) -> str:
+        self._logger.warning(
+            "No profile set, defaulting to 'development'.",
+            "Be sure to set the current profile in a .profile file in the env folder",
+            package="Bolinette",
+        )
+        return "development"
+
+    def _add_types_to_inject(self):
         self._inject.add(Bolinette, InjectionStrategy.Singleton, instance=self)
-        self._inject.add(Environment, InjectionStrategy.Singleton)
+        self._inject.add(Logger, InjectionStrategy.Singleton, instance=self._logger)
+        self._inject.add(PathUtils, InjectionStrategy.Singleton, instance=self._paths)
+        self._inject.add(FileUtils, InjectionStrategy.Singleton, instance=self._files)
+        self._inject.add(Environment, InjectionStrategy.Singleton, args=[self._profile])
 
     async def startup(self) -> None:
         for func in self._cache.init_funcs:

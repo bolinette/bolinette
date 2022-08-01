@@ -16,7 +16,7 @@ def test_add_type() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(_TestClass, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_TestClass, InjectionStrategy.Singleton, None)
 
     assert len(cache.types) == 1
     assert cache.has_type(_TestClass)
@@ -33,8 +33,8 @@ def test_get_of_type() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(_ChildClass1, InjectionStrategy.Singleton, None, None)
-    cache.add_type(_ChildClass2, InjectionStrategy.Singleton, None, None)
+    cache.add_type(_ChildClass1, InjectionStrategy.Singleton, None)
+    cache.add_type(_ChildClass2, InjectionStrategy.Singleton, None)
 
     assert len(cache.of_type(_ParentClass)) == 2
 

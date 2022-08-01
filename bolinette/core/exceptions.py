@@ -20,7 +20,7 @@ class ErrorCollection(Exception):
         self._errors.append(error)
 
     def __bool__(self) -> bool:
-        return len(self._errors) > 0
+        return any(self._errors)
 
     def __iter__(self) -> _Iterator[BolinetteError]:
         return iter(self._errors)
@@ -102,6 +102,15 @@ class NoScopedContextInjectionError(InjectionError):
         super().__init__(
             f"Type {cls}: cannot instanciate a scoped service outside of a scoped session"
         )
+
+
+class EnvironmentError(BolinetteError):
+    pass
+
+
+class InitEnvironmentError(EnvironmentError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
 
 
 class InitError(Exception):

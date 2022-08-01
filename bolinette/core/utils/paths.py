@@ -3,64 +3,19 @@ import random
 import string
 
 
-def cwd() -> str:
-    return os.getcwd()
-
-
-def random_string(length) -> str:
-    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
-
-
-def mkdir(path) -> None:
-    os.makedirs(path)
-
-
-def exists(path) -> bool:
-    return os.path.exists(path)
-
-
-def rename(path, new_path) -> None:
-    os.rename(path, new_path)
-
-
-def join(*args) -> str:
-    return os.path.join(*args)
-
-
-def dirname(path) -> str:
-    return os.path.dirname(os.path.realpath(path))
-
-
-def split(path) -> tuple[str, str]:
-    return os.path.split(path)
-
-
-def rm(path) -> None:
-    os.remove(path)
-
-
-def rm_r(path) -> None:
-    for root, dirs, files in os.walk(path, topdown=False):
-        for name in files:
-            os.remove(os.path.join(root, name))
-        for name in dirs:
-            os.rmdir(os.path.join(root, name))
-    os.rmdir(path)
-
-
-class PathHelper:
+class PathUtils:
     def __init__(self, origin: str) -> None:
         self._origin = origin
-        self._cwd = cwd()
+        self._cwd = self.cwd()
 
     def internal_path(self, *path) -> str:
-        return join(self._origin, *path)
+        return self.join(self._origin, *path)
 
     def internal_files_path(self, *path) -> str:
-        return join(self._origin, "_files", *path)
+        return self.join(self._origin, "_files", *path)
 
     def root_path(self, *path) -> str:
-        return join(self._cwd, *path)
+        return self.join(self._cwd, *path)
 
     def instance_path(self, *path) -> str:
         return self.root_path("instance", *path)
@@ -73,3 +28,47 @@ class PathHelper:
 
     def templates_path(self, *path) -> str:
         return self.root_path("templates", *path)
+
+    @staticmethod
+    def cwd() -> str:
+        return os.getcwd()
+
+    @staticmethod
+    def random_string(length) -> str:
+        return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+    @staticmethod
+    def mkdir(path) -> None:
+        os.makedirs(path)
+
+    @staticmethod
+    def exists(path) -> bool:
+        return os.path.exists(path)
+
+    @staticmethod
+    def rename(path, new_path) -> None:
+        os.rename(path, new_path)
+
+    @staticmethod
+    def join(*args) -> str:
+        return os.path.join(*args)
+
+    @staticmethod
+    def dirname(path) -> str:
+        return os.path.dirname(os.path.realpath(path))
+
+    @staticmethod
+    def split(path) -> tuple[str, str]:
+        return os.path.split(path)
+
+    @staticmethod
+    def rm(path, *, recursive=False) -> None:
+        if recursive:
+            for root, dirs, files in os.walk(path, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            os.rmdir(path)
+        else:
+            os.remove(path)
