@@ -34,11 +34,20 @@ class RegisteredType(Generic[T_Instance]):
 
 
 class Cache:
-    def __init__(self) -> None:
+    def __init__(self, debug: bool | None = None) -> None:
+        self._debug = debug or False
         self._types: dict[type, RegisteredType[Any]] = {}
         self._names: dict[str, type[Any]] = {}
         self._init_funcs: list[InitFunction] = []
         self._env_sections: dict[str, type[Any]] = {}
+
+    @property
+    def debug(self) -> bool:
+        return self._debug
+
+    @debug.setter
+    def debug(self, value: bool) -> None:
+        self._debug = value
 
     def add_type(
         self,

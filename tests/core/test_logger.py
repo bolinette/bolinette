@@ -3,7 +3,12 @@ from datetime import datetime
 
 from pytest import CaptureFixture
 
-from bolinette.core import Logger
+from bolinette.core import Logger, CoreSection
+
+_section = CoreSection()
+_section.debug = False
+_debug_section = CoreSection()
+_debug_section.debug = True
 
 output_regex = re.compile(
     r"^([\d\-T\:\.]+) "  # timestamp
@@ -28,7 +33,7 @@ def _parse_output(out: str) -> _Output:
 
 
 def test_logger(capsys: CaptureFixture):
-    logger = Logger(debug=True)
+    logger = Logger(_debug_section)
 
     d1 = datetime.utcnow()
 
@@ -65,18 +70,17 @@ def test_logger(capsys: CaptureFixture):
 
 
 def test_logger_debug(capsys: CaptureFixture):
-    logger = Logger()
+    logger = Logger(_section)
 
     logger.debug("Test 1")
     captured = capsys.readouterr()
 
-    assert logger.is_debug is False
     assert captured.out == ""
 
-    logger.is_debug = True
+    logger = Logger(_debug_section)
+
     logger.debug("Test 2")
     captured = capsys.readouterr()
     output = _parse_output(captured.out)
 
-    assert logger.is_debug is True
     assert output.message == "Test 2"

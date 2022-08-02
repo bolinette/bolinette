@@ -82,6 +82,14 @@ class NoLiteralMatchInjectionError(InjectionError):
         )
 
 
+class NoTypeUnionInjectionError(InjectionError):
+    def __init__(self, func: Callable, param: str) -> None:
+        super().__init__(
+            f"Callable {func} Parameter '{param}': "
+            "Type unions are not allowed"
+        )
+
+
 class TooManyLiteralMatchInjectionError(InjectionError):
     def __init__(self, func: Callable, param: str, name: str, count: int) -> None:
         super().__init__(

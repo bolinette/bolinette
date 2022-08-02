@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import StrEnum, unique
 from typing import Protocol, TypeVar
 
+from bolinette.core import Cache
+
 _T = TypeVar("_T", contravariant=True)
 
 
@@ -41,16 +43,8 @@ class ConsoleColorCode(StrEnum):
 
 
 class Logger:
-    def __init__(self, *, debug=False) -> None:
-        self._debug = debug
-
-    @property
-    def is_debug(self):
-        return self._debug
-
-    @is_debug.setter
-    def is_debug(self, value: bool):
-        self._debug = value
+    def __init__(self, cache: Cache | None = None) -> None:
+        self._cache = cache or Cache()
 
     def _log(
         self,
@@ -84,7 +78,7 @@ class Logger:
         )
 
     def debug(self, *values, package: str | None = None, sep: str | None = None):
-        if self._debug:
+        if self._cache.debug:
             self._log(
                 "DEBUG",
                 package,

@@ -1,6 +1,7 @@
 import inspect
 from collections.abc import Callable
-from typing import Any, Concatenate, Generic, ParamSpec, TypeVar
+from types import UnionType
+from typing import Any, Concatenate, Generic, ParamSpec, TypeVar, Union, get_args, get_origin
 
 from bolinette.core import Cache, InjectionStrategy, meta
 from bolinette.core.cache import RegisteredType
@@ -14,6 +15,7 @@ from bolinette.core.exceptions import (
     NoLiteralMatchInjectionError,
     NoPositionalParameterInjectionError,
     NoScopedContextInjectionError,
+    NoTypeUnionInjectionError,
     TooManyLiteralMatchInjectionError,
     TypeNotRegisteredInjectionError,
     TypeRegisteredInjectionError,
@@ -85,7 +87,7 @@ class Injection:
 
     def _find_type_by_name(
         self, func: Callable, param: str, name: str
-    ) -> type[Any] | None:
+    ) -> type[Any]:
         names = self._cache.find_types_by_name(name)
         if not names:
             raise NoLiteralMatchInjectionError(func, param, name)
@@ -120,36 +122,56 @@ class Injection:
                 _kwargs = {}
                 break
 
+            default_set = False
+            default = None
+            if param.default is not param.empty:
+                default_set = True
+                default = param.default
+
             # Looking for parameters in the args and kwargs
             if _args:
                 f_args[p_name] = _args.pop(0)
-            elif p_name in _kwargs:
+                continue
+            if p_name in _kwargs:
                 f_args[p_name] = _kwargs.pop(p_name)
-            elif param.default is not param.empty:
-                f_args[p_name] = param.default
-            else:
-                # No params were found in the kwargs, try to find them in the registry
-                hint = param.annotation
-                if hint == inspect.Signature.empty:
-                    raise AnnotationMissingInjectionError(func, p_name)
-                elif isinstance(hint, type) or isinstance(hint, str):
-                    cls: type[Any] | None = None
-                    if isinstance(hint, str):
-                        cls = self._find_type_by_name(func, p_name, hint)
-                    else:
-                        cls = hint
-                    if cls is not None:
-                        if not self._cache.has_type(cls):
-                            raise TypeNotRegisteredInjectionError(cls)
-                        else:
-                            r_type = self._cache.get_type(cls)
-                            if self._has_instance(r_type):
-                                f_args[p_name] = self._get_instance(r_type)
-                            else:
-                                if immediate:
-                                    f_args[p_name] = self._instanciate(r_type)
-                                else:
-                                    f_args[p_name] = _ProxyHook(r_type)
+                continue
+
+            # No params were found in the kwargs, try to find them in the registry
+            hint = param.annotation
+            nullable = False
+            if hint == inspect.Signature.empty:
+                if default_set:
+                    f_args[p_name] = default
+                    continue
+                raise AnnotationMissingInjectionError(func, p_name)
+            if get_origin(hint) in [UnionType, Union]:
+                type_args = get_args(hint)
+                nullable = type(None) in type_args
+                if not nullable or (nullable and len(type_args) >= 3):
+                    raise NoTypeUnionInjectionError(func, p_name)
+                hint = next(filter(lambda t: t is not type(None), type_args))
+            if isinstance(hint, type) or isinstance(hint, str):
+                cls: type[Any] | None = None
+                if isinstance(hint, str):
+                    cls = self._find_type_by_name(func, p_name, hint)
+                else:
+                    cls = hint
+                if not self._cache.has_type(cls):
+                    if default_set:
+                        f_args[p_name] = default
+                        continue
+                    raise TypeNotRegisteredInjectionError(cls)
+                else:
+                    r_type = self._cache.get_type(cls)
+                    if self._has_instance(r_type):
+                        f_args[p_name] = self._get_instance(r_type)
+                        continue
+                    if immediate:
+                        f_args[p_name] = self._instanciate(r_type)
+                        continue
+                    f_args[p_name] = _ProxyHook(r_type)
+                    continue
+            raise TypeError('lol')
 
         if _args or _kwargs:
             raise InvalidArgCountInjectionError(
@@ -240,6 +262,14 @@ class Injection:
 class _ProxyHook:
     def __init__(self, r_type: RegisteredType[Any]) -> None:
         self.r_type = r_type
+
+    def __getattribute__(self, __name: str) -> Any:
+        if __name == "r_type":
+            return object.__getattribute__(self, __name)
+        raise InjectionError(
+            "Tried accessing an injected instance inside the __init__ method. "
+            "Use @init_method to process logic at instanciation."
+        )
 
 
 class _InjectionProxy(Generic[T_Instance]):

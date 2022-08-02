@@ -309,6 +309,21 @@ def test_optional_value_bis():
     assert test.a is None
 
 
+def test_optional_with_value():
+    cache = Cache()
+
+    @environment("test", cache=cache)
+    class TestSection:
+        a: int | None
+
+    mock = _setup_test(cache)
+    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
+    mock.injection.require(Environment)
+    test = mock.injection.require(TestSection)
+
+    assert test.a is 1
+
+
 def test_fail_not_optional():
     cache = Cache()
 

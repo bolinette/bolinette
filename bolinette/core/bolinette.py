@@ -20,7 +20,9 @@ class Bolinette:
         inject: Injection | None = None,
         cache: Cache | None = None
     ) -> None:
-        self._logger = Logger()
+        self._cache = cache or __core_cache__
+        self._logger = Logger(self._cache)
+        self._inject = inject or Injection(self._cache, InjectionContext())
         self._paths = PathUtils(PathUtils.dirname(__file__))
         self._files = FileUtils(self._paths)
         self._profile = (
@@ -28,8 +30,6 @@ class Bolinette:
             or self._files.read_profile(self._paths.env_path())
             or self._set_default_profile()
         )
-        self._cache = cache or __core_cache__
-        self._inject = inject or Injection(self._cache, InjectionContext())
         self._add_types_to_inject()
 
     @property
@@ -50,6 +50,7 @@ class Bolinette:
         self._inject.add(PathUtils, InjectionStrategy.Singleton, instance=self._paths)
         self._inject.add(FileUtils, InjectionStrategy.Singleton, instance=self._files)
         self._inject.add(Environment, InjectionStrategy.Singleton, args=[self._profile])
+        self._inject.require(Environment)
 
     async def startup(self) -> None:
         for func in self._cache.init_funcs:

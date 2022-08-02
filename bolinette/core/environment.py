@@ -6,6 +6,7 @@ from typing import Any, TypeVar, Union, get_args, get_origin
 
 from bolinette.core import (
     Cache,
+    CoreSection,
     Injection,
     InjectionStrategy,
     Logger,
@@ -81,6 +82,11 @@ class Environment:
                     merged[name][key] = value
         self._raw_env = merged
 
+        try:
+            self._cache.debug = self._inject.require(CoreSection).debug
+        except InjectionError:
+            pass
+
     @staticmethod
     def _init_from_os() -> dict[str, dict[str, Any]]:
         _vars: dict[str, str] = {}
@@ -151,6 +157,15 @@ class _EnvParser:
                 raise InitEnvironmentError(
                     f"Section {sub_path}: no literal allowed in type hints"
                 )
+            nullable = False
+            if get_origin(annotation) in [UnionType, Union]:
+                type_args = get_args(annotation)
+                nullable = type(None) in type_args
+                if (nullable and len(type_args) >= 3) or not nullable:
+                    raise InitEnvironmentError(
+                        f"Section {sub_path}: type unions are not allowed"
+                    )
+                annotation = next(filter(lambda t: t is not type(None), type_args))
             default_set = False
             default = None
             if hasattr(obj, att_name):
@@ -158,15 +173,11 @@ class _EnvParser:
                 default = getattr(obj, att_name)
             value = _EnvParser._get_value(path, att_name, node, default_set, default)
             if value is None:
-                if type(None) not in get_args(annotation):
+                if not nullable:
                     raise InitEnvironmentError(
                         f"Section {sub_path}: attemting to bind None value to a non-nullable attribute"
                     )
                 value = None
-            elif get_origin(annotation) in [UnionType, Union]:
-                raise InitEnvironmentError(
-                    f"Section {sub_path}: type unions are not allowed"
-                )
             elif annotation in (str, int, float, bool):
                 try:
                     value = annotation(value)
@@ -197,6 +208,5 @@ class _EnvParser:
         self._parse_object(self._object, self._env, str(type(self._object)))
 
 
-@environment("core")
-class CoreSection:
-    debug: bool = False
+environment("core")(CoreSection)
+
