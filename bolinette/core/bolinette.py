@@ -46,7 +46,7 @@ class Bolinette:
 
     def _add_types_to_inject(self):
         self._inject.add(Bolinette, InjectionStrategy.Singleton, instance=self)
-        self._inject.add(Logger, InjectionStrategy.Singleton, instance=self._logger)
+        self._inject.add(Logger, InjectionStrategy.Transcient)
         self._inject.add(PathUtils, InjectionStrategy.Singleton, instance=self._paths)
         self._inject.add(FileUtils, InjectionStrategy.Singleton, instance=self._files)
         self._inject.add(Environment, InjectionStrategy.Singleton, args=[self._profile])

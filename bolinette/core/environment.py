@@ -1,19 +1,20 @@
 import inspect
 import os
 from collections.abc import Callable
-from typing import Any, TypeVar
+from types import UnionType
+from typing import Any, TypeVar, Union, get_args, get_origin
 
 from bolinette.core import (
     Cache,
     Injection,
     InjectionStrategy,
+    Logger,
     __core_cache__,
     init_method,
     meta,
-    Logger,
 )
 from bolinette.core.exceptions import InitEnvironmentError, InitError, InjectionError
-from bolinette.core.utils import PathUtils, FileUtils
+from bolinette.core.utils import FileUtils, PathUtils
 
 T = TypeVar("T")
 
@@ -65,22 +66,23 @@ class Environment:
             )
 
         stack = [
-            self._init_from_env(),
+            self._init_from_os(),
             self._init_from_file("env.yaml"),
             self._init_from_file(f"env.{self._profile}.yaml"),
             self._init_from_file(f"env.local.{self._profile}.yaml"),
         ]
 
+        merged = {}
         for node in stack:
-            self._raw_env |= node
-
-        try:
-            self._logger.is_debug = self._inject.require(CoreSection).debug
-        except InjectionError:
-            pass
+            for name, section in node.items():
+                if name not in merged:
+                    merged[name] = {}
+                for key, value in section.items():
+                    merged[name][key] = value
+        self._raw_env = merged
 
     @staticmethod
-    def _init_from_env() -> dict[str, Any]:
+    def _init_from_os() -> dict[str, dict[str, Any]]:
         _vars: dict[str, str] = {}
         prefix_len = len(Environment._OS_ENV_PREFIX)
         for var in os.environ:
@@ -94,14 +96,14 @@ class Environment:
                 if p not in _node:
                     _node[p] = {}
                 _node = _node[p]
-            if not isinstance(_node, dict):
+            if not isinstance(_node, dict) or path[-1] in _node:
                 raise InitEnvironmentError(
-                    f"OS variable '{key}' conflicts with other variables"
+                    f"OS variable '{Environment._OS_ENV_PREFIX}{key}' conflicts with other variables"
                 )
             _node[path[-1]] = value
         return _env
 
-    def _init_from_file(self, file_name: str) -> dict[str, Any]:
+    def _init_from_file(self, file_name: str) -> dict[str, dict[str, Any]]:
         return self._files.read_yaml(self._paths.env_path(file_name)) or {}
 
 
@@ -135,7 +137,7 @@ class _EnvParser:
         if name not in node:
             if not default_set:
                 raise InitEnvironmentError(
-                    f"Section <{path}>: "
+                    f"Section {path}: "
                     "no value to bind found in environment and no default value set"
                 )
             return default
@@ -147,7 +149,7 @@ class _EnvParser:
             sub_path = f"{path}.{att_name}"
             if isinstance(annotation, str):
                 raise InitEnvironmentError(
-                    f"Section <{path}>: no literal allowed in type hints"
+                    f"Section {sub_path}: no literal allowed in type hints"
                 )
             default_set = False
             default = None
@@ -155,29 +157,44 @@ class _EnvParser:
                 default_set = True
                 default = getattr(obj, att_name)
             value = _EnvParser._get_value(path, att_name, node, default_set, default)
-            if annotation in (str, int, float, bool):
-                value = annotation(value)
-            elif isinstance(value, dict):
-                if not inspect.isclass(annotation):
+            if value is None:
+                if type(None) not in get_args(annotation):
                     raise InitEnvironmentError(
-                        f"Section <{sub_path}> must be typed has a class in order to map a dictionnary"
+                        f"Section {sub_path}: attemting to bind None value to a non-nullable attribute"
                     )
+                value = None
+            elif get_origin(annotation) in [UnionType, Union]:
+                raise InitEnvironmentError(
+                    f"Section {sub_path}: type unions are not allowed"
+                )
+            elif annotation in (str, int, float, bool):
+                try:
+                    value = annotation(value)
+                except (ValueError):
+                    raise InitEnvironmentError(
+                        f"Section {sub_path}: unable to bind value {value} to type {annotation}"
+                    )
+            elif inspect.isclass(annotation):
                 if len(inspect.signature(annotation).parameters) != 0:
-                    raise InitError(
+                    raise InitEnvironmentError(
                         f"Section {annotation} must have an empty __init__ method"
+                    )
+                if not isinstance(value, dict):
+                    raise InitEnvironmentError(
+                        f"Section {sub_path} is typed has a class and can only be mapped from a dictionnary"
                     )
                 sub_obj = annotation()
                 _EnvParser._parse_object(sub_obj, value, sub_path)
                 value = sub_obj
             else:
                 raise InitEnvironmentError(
-                    f"Unable to bind value to section <{sub_path}>, "
+                    f"Unable to bind value to section {sub_path}, "
                     "be sure to type hint with only classes and buit-in types"
                 )
             setattr(obj, att_name, value)
 
     def parse(self):
-        self._parse_object(self._object, self._env, type(self._object).__name__)
+        self._parse_object(self._object, self._env, str(type(self._object)))
 
 
 @environment("core")

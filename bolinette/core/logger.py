@@ -1,6 +1,6 @@
-from datetime import datetime
-from enum import unique, StrEnum
 import sys
+from datetime import datetime
+from enum import StrEnum, unique
 from typing import Protocol, TypeVar
 
 _T = TypeVar("_T", contravariant=True)
@@ -52,56 +52,51 @@ class Logger:
     def is_debug(self, value: bool):
         self._debug = value
 
-    def print(
-        self,
-        *values,
-        sep: str | None = None,
-        end: str | None = None,
-        file: SupportsWrite[str] | None = None,
-    ):
-        print(*values, sep=sep, end=end, file=file)
-
     def _log(
         self,
         prefix: str,
         package: str | None,
         text: str,
-        fg: ConsoleColorCode | None = None,
-        bg: ConsoleColorCode | None = None,
+        color: ConsoleColorCode | None = None,
         file: SupportsWrite[str] | None = None,
     ):
-        strs = [
-            f"{fg or ''}{bg or ''} {prefix}{' ' if bg is not None else ''}{ConsoleColorCode.Reset}"
-        ]
+        strs: list[str] = []
+        strs.append(f"{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')}")
+        strs.append(
+            f"{ConsoleColorCode.Bright}{color}{prefix.ljust(5)}{ConsoleColorCode.Reset}"
+        )
         if package is None:
             package = "Application"
-        strs.append(f"[{ConsoleColorCode.FgGreen}{package}{ConsoleColorCode.Reset}]")
         strs.append(
-            f"{ConsoleColorCode.Bright}{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')}{ConsoleColorCode.Reset}"
+            f"[{ConsoleColorCode.FgGreen}{package.ljust(12)[:12]}{ConsoleColorCode.Reset}]"
         )
         strs.append(text)
         print(*strs, file=file)
 
     def warning(self, *values, package: str | None = None, sep: str | None = None):
         self._log(
-            "WARN", package, (sep or " ").join(values), bg=ConsoleColorCode.BgYellow
+            "WARN", package, (sep or " ").join(values), color=ConsoleColorCode.FgYellow
         )
 
     def info(self, *values, package: str | None = None, sep: str | None = None):
         self._log(
-            "INFO", package, (sep or " ").join(values), fg=ConsoleColorCode.FgGreen
+            "INFO", package, (sep or " ").join(values), color=ConsoleColorCode.FgGreen
         )
 
     def debug(self, *values, package: str | None = None, sep: str | None = None):
-        self._log(
-            "DEBUG", package, (sep or " ").join(values), fg=ConsoleColorCode.FgBlue
-        )
+        if self._debug:
+            self._log(
+                "DEBUG",
+                package,
+                (sep or " ").join(values),
+                color=ConsoleColorCode.FgBlue,
+            )
 
     def error(self, *values, package: str | None = None, sep: str | None = None):
         self._log(
             "ERROR",
             package,
             (sep or " ").join(values),
-            bg=ConsoleColorCode.BgRed,
+            color=ConsoleColorCode.FgRed,
             file=sys.stderr,
         )
