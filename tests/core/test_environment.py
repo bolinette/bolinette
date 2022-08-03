@@ -5,7 +5,7 @@ from typing import Optional, Union
 import pytest
 
 from bolinette.core import Cache, Environment, InjectionStrategy, Logger, environment
-from bolinette.core.exceptions import InitEnvironmentError, InitError
+from bolinette.core.exceptions import EnvironmentError, InitError
 from bolinette.core.testing import Mock
 from bolinette.core.utils import FileUtils, PathUtils
 
@@ -87,7 +87,7 @@ def test_fail_missing_attribute():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": False}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -159,7 +159,7 @@ def test_non_empty_sub_init():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"sub": {}}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -182,7 +182,7 @@ def test_no_dict_to_map():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"sub": 4}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -205,7 +205,7 @@ def test_no_literal():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"sub": 4}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -219,7 +219,7 @@ def test_os_env_conflict() -> None:
     os.environ["BLNT_TEST__A"] = "2"
 
     mock = _setup_test()
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(Environment)
 
     assert (
@@ -270,7 +270,7 @@ def test_fail_wrong_type():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": "test"}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -335,7 +335,7 @@ def test_fail_not_optional():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": None}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -355,7 +355,7 @@ def test_fail_no_union():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert f"Section {TestSection}.a: type unions are not allowed" in info.value.message
@@ -372,7 +372,7 @@ def test_fail_no_union_bis():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert f"Section {TestSection}.a: type unions are not allowed" in info.value.message
@@ -389,7 +389,7 @@ def test_fail_unknow_type():
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (
@@ -409,7 +409,7 @@ def test_fail_no_section():
     mock.mock(FileUtils)
     mock.injection.require(Environment)
 
-    with pytest.raises(InitEnvironmentError) as info:
+    with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
     assert (

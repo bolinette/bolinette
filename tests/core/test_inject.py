@@ -1,21 +1,10 @@
+from typing import Callable
+
 import pytest
 
 from bolinette.core import Cache, Injection, InjectionStrategy, init_method
 from bolinette.core.cache import RegisteredType
-from bolinette.core.exceptions import (
-    AnnotationMissingInjectionError,
-    InitError,
-    InjectionError,
-    InstanceExistsInjectionError,
-    InstanceNotExistInjectionError,
-    InvalidArgCountInjectionError,
-    NoLiteralMatchInjectionError,
-    NoPositionalParameterInjectionError,
-    NoScopedContextInjectionError,
-    TooManyLiteralMatchInjectionError,
-    TypeNotRegisteredInjectionError,
-    TypeRegisteredInjectionError,
-)
+from bolinette.core.exceptions import InitError, InjectionError
 from bolinette.core.inject import InjectionContext, _InjectionProxy
 
 
@@ -56,7 +45,7 @@ def test_add_type_twice() -> None:
     inject = Injection(Cache(), InjectionContext())
 
     inject.add(InjectableClassA, InjectionStrategy.Singleton, None)
-    with pytest.raises(TypeRegisteredInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.add(InjectableClassA, InjectionStrategy.Singleton, None)
 
     assert f"Type {InjectableClassA} is already a registered type" in info.value.message
@@ -67,7 +56,7 @@ def test_instanciate_type_twice() -> None:
 
     inject.add(InjectableClassB, InjectionStrategy.Singleton, None)
     inject._instanciate(inject._cache.get_type(InjectableClassB))
-    with pytest.raises(InstanceExistsInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject._instanciate(inject._cache.get_type(InjectableClassB))
 
     assert (
@@ -126,7 +115,7 @@ async def test_fail_injection() -> None:
     cache.add_type(InjectableClassB, InjectionStrategy.Singleton)
 
     inject = Injection(cache, InjectionContext())
-    with pytest.raises(TypeNotRegisteredInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.require(InjectableClassC)
 
     assert (
@@ -140,7 +129,7 @@ async def test_fail_subinjection() -> None:
     cache.add_type(InjectableClassD, InjectionStrategy.Singleton)
 
     inject = Injection(cache, InjectionContext())
-    with pytest.raises(TypeNotRegisteredInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.require(InjectableClassD)
 
     assert (
@@ -156,7 +145,7 @@ def test_fail_call_injection() -> None:
     cache = Cache()
 
     inject = Injection(cache, InjectionContext())
-    with pytest.raises(TypeNotRegisteredInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.call(_test_func)
 
     assert (
@@ -229,12 +218,12 @@ def test_no_literal_match() -> None:
     cache.add_type(_TestClass, InjectionStrategy.Singleton)
 
     inject = Injection(cache, InjectionContext())
-    with pytest.raises(NoLiteralMatchInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
     assert (
-        f"Callable {_TestClass} Parameter 'value': "
-        f"literal '{_Value.__name__}' does not match any registered type"
+        f"Callable {_TestClass}, Parameter 'value', "
+        f"Literal '{_Value.__name__}' does not match any registered type"
         in info.value.message
     )
 
@@ -259,12 +248,12 @@ def test_too_many_literal_matches() -> None:
     cache.add_type(_2_Value, InjectionStrategy.Singleton)
 
     inject = Injection(cache, InjectionContext())
-    with pytest.raises(TooManyLiteralMatchInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
     assert (
-        f"Callable {_TestClass} Parameter '_': "
-        f"literal '{_Value.__name__}' matches with 2 registered types, use a more explicit name"
+        f"Callable {_TestClass}, Parameter '_', "
+        f"Literal '{_Value.__name__}' matches with 2 registered types, use a more explicit name"
         in info.value.message
     )
 
@@ -278,11 +267,11 @@ def test_no_annotation() -> None:
     cache.add_type(_TestClass, InjectionStrategy.Singleton)
 
     inject = Injection(cache, InjectionContext())
-    with pytest.raises(AnnotationMissingInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
     assert (
-        f"Callable {_TestClass} Parameter '_1' requires a type annotation"
+        f"Callable {_TestClass}, Parameter '_1', Annotation is required"
         in info.value.message
     )
 
@@ -342,11 +331,11 @@ def test_arg_resolve_fail_wilcard() -> None:
 
     inject = Injection(Cache(), InjectionContext())
 
-    with pytest.raises(NoPositionalParameterInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.call(_test_func, kwargs={"a": "a", "b": "b"})
 
     assert (
-        f"Callable {_test_func}: positional only parameters and positional wildcards are not allowed"
+        f"Callable {_test_func}, Positional only parameters and positional wildcards are not allowed"
         in info.value.message
     )
 
@@ -357,11 +346,11 @@ def test_arg_resolve_fail_positional_only() -> None:
 
     inject = Injection(Cache(), InjectionContext())
 
-    with pytest.raises(NoPositionalParameterInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.call(_test_func, kwargs={"a": "a", "b": "b"})
 
     assert (
-        f"Callable {_test_func}: positional only parameters and positional wildcards are not allowed"
+        f"Callable {_test_func}, Positional only parameters and positional wildcards are not allowed"
         in info.value.message
     )
 
@@ -372,10 +361,10 @@ def test_arg_resolve_fail_too_many_args() -> None:
 
     inject = Injection(Cache(), InjectionContext())
 
-    with pytest.raises(InvalidArgCountInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.call(_test_func, args=["a", "b", "c"])
 
-    assert f"Callable {_test_func}: expected 2 arguments, 3 given" in info.value.message
+    assert f"Callable {_test_func}, Expected 2 arguments, 3 given" in info.value.message
 
 
 def test_arg_resolve() -> None:
@@ -457,11 +446,11 @@ def test_scoped_injection_fail_no_scope() -> None:
 
     inject = Injection(cache, InjectionContext())
 
-    with pytest.raises(NoScopedContextInjectionError) as info:
+    with pytest.raises(InjectionError) as info:
         inject.require(_C1)
 
     assert (
-        f"Type {_C1}: cannot instanciate a scoped service outside of a scoped session"
+        f"Type {_C1}, Cannot instanciate a scoped service outside of a scoped session"
         in info.value.message
     )
 
@@ -552,13 +541,13 @@ def test_context_errors() -> None:
 
     ctx[_C1] = c1_1
 
-    with pytest.raises(InstanceExistsInjectionError):
+    with pytest.raises(InjectionError):
         ctx[_C1] = c1_2
 
     with pytest.raises(TypeError):
         ctx[_C2] = c1_1
 
-    with pytest.raises(InstanceNotExistInjectionError):
+    with pytest.raises(InjectionError):
         _ = ctx[_C2]
 
 
@@ -573,5 +562,77 @@ def test_proxy_no_meta() -> None:
 
     assert (
         f"Type {r_type.cls} has not been intanciated through the injection system"
+        in info.value.message
+    )
+
+
+def test_inject_nullable() -> None:
+    class _SubTestClass:
+        pass
+
+    class _TestClass:
+        def __init__(self, sub: _SubTestClass | None, i: int | None) -> None:
+            self.sub = sub
+            self.i = i
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.sub is None
+    assert t.i is None
+
+
+def test_inject_with_default() -> None:
+    class _SubTestClass:
+        pass
+
+    s = _SubTestClass()
+
+    class _TestClass:
+        def __init__(self, sub: _SubTestClass = s, i: int = 3) -> None:
+            self.sub = sub
+            self.i = i
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.sub is s
+    assert t.i is 3
+
+
+def test_inject_no_union() -> None:
+    class _TestClass:
+        def __init__(self, v: int | bool) -> None:
+            self.v = v
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(_TestClass)
+
+    assert (
+        f"Callable {_TestClass}, Parameter 'v', Type unions are not allowed"
+        in info.value.message
+    )
+
+
+def test_not_compatible_type() -> None:
+    class _TestClass:
+        def __init__(self, v: Callable[[], None]) -> None:
+            self.v = v
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(_TestClass)
+
+    assert (
+        f"Callable {_TestClass}, Parameter 'v': Type hint is nor supported by the injection system"
         in info.value.message
     )

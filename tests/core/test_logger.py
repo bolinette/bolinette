@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pytest import CaptureFixture
 
-from bolinette.core import Logger, CoreSection
+from bolinette.core import CoreSection, Logger
 
 _section = CoreSection()
 _section.debug = False

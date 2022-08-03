@@ -14,7 +14,7 @@ from bolinette.core import (
     init_method,
     meta,
 )
-from bolinette.core.exceptions import InitEnvironmentError, InitError, InjectionError
+from bolinette.core.exceptions import EnvironmentError, InitError
 from bolinette.core.utils import FileUtils, PathUtils
 
 T = TypeVar("T")
@@ -51,7 +51,7 @@ class Environment:
     def _init_section(self, section: object) -> None:
         section_name = meta.get(type(section), _EnvSectionMeta).name
         if section_name not in self._raw_env:
-            raise InitEnvironmentError(
+            raise EnvironmentError(
                 f"No '{section_name}' section was found in the environment files"
             )
         _EnvParser(self._raw_env[section_name], section).parse()
@@ -82,10 +82,8 @@ class Environment:
                     merged[name][key] = value
         self._raw_env = merged
 
-        try:
+        if self._inject.is_registered(CoreSection):
             self._cache.debug = self._inject.require(CoreSection).debug
-        except InjectionError:
-            pass
 
     @staticmethod
     def _init_from_os() -> dict[str, dict[str, Any]]:
@@ -103,7 +101,7 @@ class Environment:
                     _node[p] = {}
                 _node = _node[p]
             if not isinstance(_node, dict) or path[-1] in _node:
-                raise InitEnvironmentError(
+                raise EnvironmentError(
                     f"OS variable '{Environment._OS_ENV_PREFIX}{key}' conflicts with other variables"
                 )
             _node[path[-1]] = value
@@ -142,7 +140,7 @@ class _EnvParser:
     ) -> Any:
         if name not in node:
             if not default_set:
-                raise InitEnvironmentError(
+                raise EnvironmentError(
                     f"Section {path}: "
                     "no value to bind found in environment and no default value set"
                 )
@@ -154,7 +152,7 @@ class _EnvParser:
         for att_name, annotation in obj.__annotations__.items():
             sub_path = f"{path}.{att_name}"
             if isinstance(annotation, str):
-                raise InitEnvironmentError(
+                raise EnvironmentError(
                     f"Section {sub_path}: no literal allowed in type hints"
                 )
             nullable = False
@@ -162,7 +160,7 @@ class _EnvParser:
                 type_args = get_args(annotation)
                 nullable = type(None) in type_args
                 if (nullable and len(type_args) >= 3) or not nullable:
-                    raise InitEnvironmentError(
+                    raise EnvironmentError(
                         f"Section {sub_path}: type unions are not allowed"
                     )
                 annotation = next(filter(lambda t: t is not type(None), type_args))
@@ -174,7 +172,7 @@ class _EnvParser:
             value = _EnvParser._get_value(path, att_name, node, default_set, default)
             if value is None:
                 if not nullable:
-                    raise InitEnvironmentError(
+                    raise EnvironmentError(
                         f"Section {sub_path}: attemting to bind None value to a non-nullable attribute"
                     )
                 value = None
@@ -182,23 +180,23 @@ class _EnvParser:
                 try:
                     value = annotation(value)
                 except (ValueError):
-                    raise InitEnvironmentError(
+                    raise EnvironmentError(
                         f"Section {sub_path}: unable to bind value {value} to type {annotation}"
                     )
             elif inspect.isclass(annotation):
                 if len(inspect.signature(annotation).parameters) != 0:
-                    raise InitEnvironmentError(
+                    raise EnvironmentError(
                         f"Section {annotation} must have an empty __init__ method"
                     )
                 if not isinstance(value, dict):
-                    raise InitEnvironmentError(
+                    raise EnvironmentError(
                         f"Section {sub_path} is typed has a class and can only be mapped from a dictionnary"
                     )
                 sub_obj = annotation()
                 _EnvParser._parse_object(sub_obj, value, sub_path)
                 value = sub_obj
             else:
-                raise InitEnvironmentError(
+                raise EnvironmentError(
                     f"Unable to bind value to section {sub_path}, "
                     "be sure to type hint with only classes and buit-in types"
                 )
@@ -209,4 +207,3 @@ class _EnvParser:
 
 
 environment("core")(CoreSection)
-

@@ -1,25 +1,20 @@
 import inspect
 from collections.abc import Callable
 from types import UnionType
-from typing import Any, Concatenate, Generic, ParamSpec, TypeVar, Union, get_args, get_origin
+from typing import (
+    Any,
+    Concatenate,
+    Generic,
+    ParamSpec,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+)
 
 from bolinette.core import Cache, InjectionStrategy, meta
 from bolinette.core.cache import RegisteredType
-from bolinette.core.exceptions import (
-    AnnotationMissingInjectionError,
-    InitError,
-    InjectionError,
-    InstanceExistsInjectionError,
-    InstanceNotExistInjectionError,
-    InvalidArgCountInjectionError,
-    NoLiteralMatchInjectionError,
-    NoPositionalParameterInjectionError,
-    NoScopedContextInjectionError,
-    NoTypeUnionInjectionError,
-    TooManyLiteralMatchInjectionError,
-    TypeNotRegisteredInjectionError,
-    TypeRegisteredInjectionError,
-)
+from bolinette.core.exceptions import InitError, InjectionError
 
 
 class _InitMethodMeta:
@@ -42,14 +37,14 @@ class InjectionContext:
 
     def __setitem__(self, cls: type[T_Instance], instance: T_Instance) -> None:
         if cls in self:
-            raise InstanceExistsInjectionError(cls)
+            raise InjectionError(f"Type {cls} has already been instanciated in this scope")
         if not isinstance(instance, cls):
             raise TypeError("Object is not an instance of cls")
         self._instances[cls] = instance
 
     def __getitem__(self, cls: type[T_Instance]) -> T_Instance:
         if cls not in self:
-            raise InstanceNotExistInjectionError(cls)
+            raise InjectionError(f"Type {cls} has not been instanciated in this scope")
         return self._instances[cls]
 
 
@@ -70,7 +65,7 @@ class Injection:
 
     def _has_instance(self, r_type: RegisteredType[Any]) -> bool:
         if r_type.strategy is InjectionStrategy.Scoped:
-            raise NoScopedContextInjectionError(r_type.cls)
+            raise InjectionError(f"Cannot instanciate a scoped service outside of a scoped session", cls=r_type.cls)
         return (
             r_type.strategy is InjectionStrategy.Singleton
             and r_type.cls in self._global_ctx
@@ -85,14 +80,12 @@ class Injection:
         if r_type.strategy is InjectionStrategy.Singleton:
             self._global_ctx[r_type.cls] = instance
 
-    def _find_type_by_name(
-        self, func: Callable, param: str, name: str
-    ) -> type[Any]:
+    def _find_type_by_name(self, func: Callable, param: str, name: str) -> type[Any]:
         names = self._cache.find_types_by_name(name)
         if not names:
-            raise NoLiteralMatchInjectionError(func, param, name)
+            raise InjectionError(f"Literal '{name}' does not match any registered type", func=func, param=param)
         if (l := len(names)) > 1:
-            raise TooManyLiteralMatchInjectionError(func, param, name, l)
+            raise InjectionError(f"Literal '{name}' matches with {l} registered types, use a more explicit name", func=func, param=param)
         return names[0]
 
     def _resolve_args(
@@ -108,7 +101,7 @@ class Injection:
             for n, p in params.items()
             if p.kind in [p.POSITIONAL_ONLY, p.VAR_POSITIONAL]
         ):
-            raise NoPositionalParameterInjectionError(func)
+            raise InjectionError(f"Positional only parameters and positional wildcards are not allowed", func=func)
 
         f_args: dict[str, Any] = {}
         _args = [*args]
@@ -143,12 +136,12 @@ class Injection:
                 if default_set:
                     f_args[p_name] = default
                     continue
-                raise AnnotationMissingInjectionError(func, p_name)
+                raise InjectionError(f"Annotation is required", func=func, param=p_name)
             if get_origin(hint) in [UnionType, Union]:
                 type_args = get_args(hint)
                 nullable = type(None) in type_args
                 if not nullable or (nullable and len(type_args) >= 3):
-                    raise NoTypeUnionInjectionError(func, p_name)
+                    raise InjectionError(f"Type unions are not allowed", func=func, param=p_name)
                 hint = next(filter(lambda t: t is not type(None), type_args))
             if isinstance(hint, type) or isinstance(hint, str):
                 cls: type[Any] | None = None
@@ -157,10 +150,13 @@ class Injection:
                 else:
                     cls = hint
                 if not self._cache.has_type(cls):
+                    if nullable:
+                        f_args[p_name] = None
+                        continue
                     if default_set:
                         f_args[p_name] = default
                         continue
-                    raise TypeNotRegisteredInjectionError(cls)
+                    raise InjectionError(f"Type {cls} is not a registered type in the injection system")
                 else:
                     r_type = self._cache.get_type(cls)
                     if self._has_instance(r_type):
@@ -171,11 +167,13 @@ class Injection:
                         continue
                     f_args[p_name] = _ProxyHook(r_type)
                     continue
-            raise TypeError('lol')
+            raise InjectionError(
+                f"Callable {func}, Parameter '{p_name}': Type hint is nor supported by the injection system"
+            )
 
         if _args or _kwargs:
-            raise InvalidArgCountInjectionError(
-                func, len(params), len(args) + len(kwargs)
+            raise InjectionError(f"Expected {len(params)} arguments, {len(args) + len(kwargs)} given",
+                func=func
             )
 
         return f_args
@@ -207,7 +205,7 @@ class Injection:
         r_type: RegisteredType[T_Instance],
     ) -> T_Instance:
         if self._has_instance(r_type):
-            raise InstanceExistsInjectionError(r_type.cls)
+            raise InjectionError(f"Type {r_type.cls} has already been instanciated in this scope")
         func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.kwargs)
         instance = r_type.cls(**func_args)
         meta.set(instance, Injection, self)
@@ -236,7 +234,7 @@ class Injection:
         init_methods: list[Callable[[T_Instance], None]] | None = None,
     ) -> None:
         if self._cache.has_type(cls):
-            raise TypeRegisteredInjectionError(cls)
+            raise InjectionError(f"Type {cls} is already a registered type")
         r_type = self._cache.add_type(cls, strategy, args, kwargs, init_methods)
         if instance is not None:
             if not isinstance(instance, cls):
@@ -249,11 +247,14 @@ class Injection:
 
     def require(self, cls: type[T_Instance]) -> T_Instance:
         if not self._cache.has_type(cls):
-            raise TypeNotRegisteredInjectionError(cls)
+            raise InjectionError(f"Type {cls} is not a registered type in the injection system")
         r_type = self._cache.get_type(cls)
         if self._has_instance(r_type):
             return self._get_instance(r_type)
         return self._instanciate(r_type)
+
+    def is_registered(self, cls: type[Any]) -> bool:
+        return self._cache.has_type(cls)
 
     def get_scoped_session(self) -> "_ScopedInjection":
         return _ScopedInjection(self, self._cache, self._global_ctx, InjectionContext())

@@ -37,86 +37,25 @@ class InternalError(BolinetteError):
 
 
 class InjectionError(InternalError):
-    pass
-
-
-class TypeNotRegisteredInjectionError(InjectionError):
-    def __init__(self, cls: type[Any]) -> None:
-        super().__init__(f"Type {cls} is not a registered type in the injection system")
-
-
-class TypeRegisteredInjectionError(InjectionError):
-    def __init__(self, cls: type[Any]) -> None:
-        super().__init__(f"Type {cls} is already a registered type")
-
-
-class InstanceExistsInjectionError(InjectionError):
-    def __init__(self, cls: type[Any]) -> None:
-        super().__init__(f"Type {cls} has already been instanciated in this scope")
-
-
-class InstanceNotExistInjectionError(InjectionError):
-    def __init__(self, cls: type[Any]) -> None:
-        super().__init__(f"Type {cls} has not been instanciated in this scope")
-
-
-class AnnotationMissingInjectionError(InjectionError):
-    def __init__(self, func: Callable, param: str) -> None:
-        super().__init__(
-            f"Callable {func} Parameter '{param}' requires a type annotation"
-        )
-
-
-class NoPositionalParameterInjectionError(InjectionError):
-    def __init__(self, func: Callable) -> None:
-        super().__init__(
-            f"'Callable {func}: positional only parameters and positional wildcards are not allowed"
-        )
-
-
-class NoLiteralMatchInjectionError(InjectionError):
-    def __init__(self, func: Callable, param: str, name: str) -> None:
-        super().__init__(
-            f"Callable {func} Parameter '{param}': "
-            f"literal '{name}' does not match any registered type"
-        )
-
-
-class NoTypeUnionInjectionError(InjectionError):
-    def __init__(self, func: Callable, param: str) -> None:
-        super().__init__(
-            f"Callable {func} Parameter '{param}': "
-            "Type unions are not allowed"
-        )
-
-
-class TooManyLiteralMatchInjectionError(InjectionError):
-    def __init__(self, func: Callable, param: str, name: str, count: int) -> None:
-        super().__init__(
-            f"Callable {func} Parameter '{param}': "
-            f"literal '{name}' matches with {count} registered types, use a more explicit name"
-        )
-
-
-class InvalidArgCountInjectionError(InjectionError):
-    def __init__(self, func: Callable, expected: int, count: int) -> None:
-        super().__init__(
-            f"Callable {func}: expected {expected} arguments, {count} given"
-        )
-
-
-class NoScopedContextInjectionError(InjectionError):
-    def __init__(self, cls: type[Any]) -> None:
-        super().__init__(
-            f"Type {cls}: cannot instanciate a scoped service outside of a scoped session"
-        )
+    def __init__(
+        self,
+        message: str,
+        *,
+        cls: str | None = None,
+        func: Callable | None = None,
+        param: str | None = None,
+    ) -> None:
+        strs = [message]
+        if param is not None:
+            strs.insert(0, f"Parameter '{param}'")
+        if func is not None:
+            strs.insert(0, f"Callable {func}")
+        if cls is not None:
+            strs.insert(0, f"Type {cls}")
+        super().__init__(', '.join(strs))
 
 
 class EnvironmentError(BolinetteError):
-    pass
-
-
-class InitEnvironmentError(EnvironmentError):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
