@@ -108,7 +108,10 @@ class Environment:
         return _env
 
     def _init_from_file(self, file_name: str) -> dict[str, dict[str, Any]]:
-        return self._files.read_yaml(self._paths.env_path(file_name)) or {}
+        try:
+            return self._files.read_yaml(self._paths.env_path(file_name))
+        except FileNotFoundError:
+            return {}
 
 
 def environment(

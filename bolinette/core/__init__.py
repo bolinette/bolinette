@@ -1,3 +1,4 @@
+from bolinette.core.version import __version__
 from bolinette.core.objects import CoreSection
 from bolinette.core.metadata import meta
 from bolinette.core.cache import (

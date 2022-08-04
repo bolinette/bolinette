@@ -41,7 +41,7 @@ class InjectionError(InternalError):
         self,
         message: str,
         *,
-        cls: str | None = None,
+        cls: type[Any] | None = None,
         func: Callable | None = None,
         param: str | None = None,
     ) -> None:
@@ -52,7 +52,7 @@ class InjectionError(InternalError):
             strs.insert(0, f"Callable {func}")
         if cls is not None:
             strs.insert(0, f"Type {cls}")
-        super().__init__(', '.join(strs))
+        super().__init__(", ".join(strs))
 
 
 class EnvironmentError(BolinetteError):

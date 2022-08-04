@@ -121,9 +121,9 @@ def test_file_override():
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
-    assert test.a is 3
-    assert test.b is 2
-    assert test.c is 1
+    assert test.a == 3
+    assert test.b == 2
+    assert test.c == 1
 
 
 def test_non_empty_init():
@@ -256,7 +256,7 @@ def test_fail_cast_type():
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
-    assert test.a is 1
+    assert test.a == 1
 
 
 def test_fail_wrong_type():
@@ -321,7 +321,7 @@ def test_optional_with_value():
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
-    assert test.a is 1
+    assert test.a == 1
 
 
 def test_fail_not_optional():

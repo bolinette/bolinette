@@ -1,4 +1,0 @@
-name: Bolinette
-desc: The fast and easy Python inversion of control framework
-module: example
-version: {{version}}

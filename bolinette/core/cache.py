@@ -59,7 +59,7 @@ class Cache:
     ) -> RegisteredType[T_Instance]:
         r_type = RegisteredType(cls, strategy, args, kwargs, init_methods)
         self._types[cls] = r_type
-        self._names[f"{cls.__module__}.{cls.__name__}"] = cls
+        self._names[f"{cls.__module__}.{cls.__qualname__}"] = cls
         return r_type
 
     def get_type(self, cls: type[T_Instance]) -> RegisteredType[T_Instance]:
@@ -68,6 +68,7 @@ class Cache:
         return self._types[cls]
 
     def find_types_by_name(self, name: str) -> list[type[Any]]:
+        name = f".{name}"
         return [t for n, t in self._names.items() if n.endswith(name)]
 
     def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:

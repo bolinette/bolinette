@@ -1,6 +1,6 @@
 from setuptools import setup, find_namespace_packages
 
-from bolinette.core import __version__
+from bolinette.data import __version__
 from bolinette.core.utils import PathUtils, FileUtils
 
 
@@ -13,20 +13,20 @@ def project_packages(module) -> list[str]:
 
 
 setup(
-    name="bolinette",
-    packages=project_packages("bolinette.core"),
+    name="bolinette-data",
+    packages=project_packages("bolinette.data"),
     include_package_data=True,
     version=__version__,
     license="MIT",
-    description="The Bolinette core package, an async inversion of control framework",
+    description="The Bolinette data package, an async data management framework, based on bolinette and SQLAlchemy",
     long_description=files.read_file(paths.root_path("README.md")),
     long_description_content_type="text/markdown",
     author="Pierre Chat",
     author_email="pierrechat@outlook.com",
     url="https://github.com/bolinette/bolinette",
-    keywords=["Bolinette", "Framework", "IoC", "Dependency Injection"],
+    keywords=["Bolinette", "Framework", "ORM", "Data Management"],
     install_requires=files.read_requirements(
-        paths.root_path(), name="requirements.core.txt"
+        paths.root_path(), name="requirements.data.txt"
     ),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -36,7 +36,4 @@ setup(
         "Programming Language :: Python :: 3.11",
     ],
     setup_requires=["wheel"],
-    entry_points={
-        "console_scripts": ["blnt=bolinette.core.__main__:main"],
-    },
 )

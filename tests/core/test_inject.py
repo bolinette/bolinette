@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import pytest
 
@@ -230,13 +230,8 @@ def test_no_literal_match() -> None:
 
 def test_too_many_literal_matches() -> None:
     class _Value:
-        pass
-
-    class _1_Value:
-        pass
-
-    class _2_Value:
-        pass
+        class _Value:
+            pass
 
     class _TestClass:
         def __init__(self, _: "_Value") -> None:
@@ -244,8 +239,8 @@ def test_too_many_literal_matches() -> None:
 
     cache = Cache()
     cache.add_type(_TestClass, InjectionStrategy.Singleton)
-    cache.add_type(_1_Value, InjectionStrategy.Singleton)
-    cache.add_type(_2_Value, InjectionStrategy.Singleton)
+    cache.add_type(_Value, InjectionStrategy.Singleton)
+    cache.add_type(_Value._Value, InjectionStrategy.Singleton)
 
     inject = Injection(cache, InjectionContext())
     with pytest.raises(InjectionError) as info:
@@ -584,6 +579,22 @@ def test_inject_nullable() -> None:
     assert t.i is None
 
 
+def test_inject_nullable_bis() -> None:
+    class _SubTestClass:
+        pass
+
+    class _TestClass:
+        def __init__(self, sub: Optional[_SubTestClass]) -> None:
+            self.sub = sub
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.sub is None
+
+
 def test_inject_with_default() -> None:
     class _SubTestClass:
         pass
@@ -601,7 +612,7 @@ def test_inject_with_default() -> None:
     t = inject.require(_TestClass)
 
     assert t.sub is s
-    assert t.i is 3
+    assert t.i == 3
 
 
 def test_inject_no_union() -> None:
@@ -633,6 +644,54 @@ def test_not_compatible_type() -> None:
         inject.require(_TestClass)
 
     assert (
-        f"Callable {_TestClass}, Parameter 'v': Type hint is nor supported by the injection system"
+        f"Callable {_TestClass}, Parameter 'v': Type hint is not supported by the injection system"
         in info.value.message
     )
+
+
+def test_optional_type_literal_right() -> None:
+    class _TestClass:
+        def __init__(self, sub: "_SubTestClass | None") -> None:
+            self.sub = sub
+
+    class _SubTestClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.sub is None
+
+
+def test_optional_type_literal_left() -> None:
+    class _TestClass:
+        def __init__(self, sub: "None | _SubTestClass") -> None:
+            self.sub = sub
+
+    class _SubTestClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.sub is None
+
+
+def test_optional_type_literal_bis() -> None:
+    class _TestClass:
+        def __init__(self, sub: "Optional[_SubTestClass]") -> None:
+            self.sub = sub
+
+    class _SubTestClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.sub is None
