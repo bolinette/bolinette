@@ -22,7 +22,12 @@ class FileUtils:
     def read_requirements(
         self, path: str, *, name: str = "requirements.txt"
     ) -> list[str]:
-        return list(filter(lambda r: len(r), self.read_file(path).split("\n")))
+        return list(
+            filter(
+                lambda r: len(r),
+                self.read_file(self._paths.join(path, name)).split("\n"),
+            )
+        )
 
     def read_profile(self, path: str) -> str | None:
         try:
