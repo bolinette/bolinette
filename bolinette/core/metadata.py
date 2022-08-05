@@ -2,7 +2,7 @@ from typing import Any, TypeVar
 
 from bolinette.core.exceptions import InternalError
 
-_T = TypeVar("_T")
+T = TypeVar("T")
 
 
 class _BolinetteMetadata:
@@ -14,12 +14,12 @@ class _BolinetteMetadata:
             raise TypeError(f"Metadata key {key} must be a type")
         return key in self._data
 
-    def __getitem__(self, key: type[_T]) -> _T:
+    def __getitem__(self, key: type[T]) -> T:
         if not key in self:
             raise KeyError(key)
         return self._data[key]
 
-    def __setitem__(self, key: type[_T], value: _T) -> None:
+    def __setitem__(self, key: type[T], value: T) -> None:
         if not isinstance(key, type):
             raise TypeError(f"Metadata key {key} must be a type")
         if not isinstance(value, key):
@@ -43,29 +43,32 @@ def _get_meta_container(obj: Any) -> _BolinetteMetadata:
 
 class _MetaFunctions:
     @staticmethod
-    def has(__obj: Any, __meta_cls: type[Any]) -> bool:
-        if not hasattr(__obj, "__dict__"):
+    def has(obj: Any, cls: type[T], /) -> bool:
+        if not hasattr(obj, "__dict__"):
             return False
-        if not isinstance(__meta_cls, type):
-            raise TypeError(f"Argument {__meta_cls} must be a type")
-        meta = _get_meta_container(__obj)
-        return __meta_cls in meta
+        if not isinstance(cls, type):
+            raise TypeError(f"Argument {cls} must be a type")
+        container = _get_meta_container(obj)
+        return cls in container
 
     @staticmethod
-    def set(__obj: Any, __meta_cls: type[Any], __meta: Any) -> None:
-        if not isinstance(__meta_cls, type):
-            raise TypeError(f"Argument {__meta_cls} must be a type")
-        if not isinstance(__meta, __meta_cls):
-            raise TypeError(f"Type mismatch between {__meta_cls} and {__meta}")
-        meta = _get_meta_container(__obj)
-        meta[__meta_cls] = __meta
+    def set(obj: Any, meta: T, /, *, cls: type[T] | None = None) -> None:
+        if cls is None:
+            cls = type(meta)
+        else:
+            if not isinstance(cls, type):
+                raise TypeError(f"Argument {cls} must be a type")
+            if not isinstance(meta, cls):
+                raise TypeError(f"Type mismatch between {cls} and {meta}")
+        container = _get_meta_container(obj)
+        container[cls] = meta
 
     @staticmethod
-    def get(__obj: Any, __meta_cls: type[_T]) -> _T:
-        if not isinstance(__meta_cls, type):
-            raise TypeError(f"Argument {__meta_cls} must be a type")
-        meta = _get_meta_container(__obj)
-        return meta[__meta_cls]
+    def get(obj: Any, cls: type[T], /) -> T:
+        if not isinstance(cls, type):
+            raise TypeError(f"Argument {cls} must be a type")
+        container = _get_meta_container(obj)
+        return container[cls]
 
 
 meta = _MetaFunctions()

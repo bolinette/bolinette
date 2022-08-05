@@ -1,10 +1,11 @@
 import inspect
-from collections.abc import Callable
 import re
+from collections.abc import Callable
 from types import UnionType
 from typing import (
     Any,
     Concatenate,
+    ForwardRef,
     Generic,
     ParamSpec,
     TypeVar,
@@ -13,7 +14,7 @@ from typing import (
     get_origin,
 )
 
-from bolinette.core import Cache, InjectionStrategy, meta
+from bolinette.core import Cache, GenericMeta, InjectionStrategy, meta
 from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import InitError, InjectionError
 
@@ -163,8 +164,9 @@ class Injection:
                     elif match_opt:
                         hint = match_opt.group(1)
 
-            if isinstance(hint, type) or isinstance(hint, str):
-                cls: type[Any] | None = None
+            hint, templates = self._get_generic_templates(hint)
+
+            if isinstance(hint, (type, str)):
                 if isinstance(hint, str):
                     classes = self._cache.find_types_by_name(hint)
                     if not classes:
@@ -201,9 +203,9 @@ class Injection:
                         f_args[p_name] = self._get_instance(r_type)
                         continue
                     if immediate:
-                        f_args[p_name] = self._instanciate(r_type)
+                        f_args[p_name] = self._instanciate(r_type, templates)
                         continue
-                    f_args[p_name] = _ProxyHook(r_type)
+                    f_args[p_name] = _ProxyHook(r_type, templates)
                     continue
             raise InjectionError(
                 f"Callable {func}, Parameter '{p_name}': Type hint is not supported by the injection system"
@@ -223,7 +225,7 @@ class Injection:
         for name, attr in attrs.items():
             if isinstance(attr, _ProxyHook):
                 delattr(instance, name)
-                setattr(cls, name, _InjectionProxy(name, attr.r_type))
+                setattr(cls, name, _InjectionProxy(name, attr.r_type, attr.templates))
 
     def _run_init_recursive(self, cls: type[T_Instance], instance: T_Instance):
         for base in cls.__bases__:
@@ -239,9 +241,21 @@ class Injection:
         for method in r_type.init_methods:
             self.call(method, args=[instance])
 
+    def _get_generic_templates(
+        self, cls: type[T_Instance]
+    ) -> tuple[type[T_Instance], list[type[Any] | str]]:
+        if origin := get_origin(cls):
+            templates = []
+            for arg in get_args(cls):
+                if isinstance(arg, (type, str)):
+                    templates.append(arg)
+                elif isinstance(arg, ForwardRef) and (name := arg.__forward_arg__):
+                    templates.append(name)
+            return origin, templates  # type: ignore
+        return cls, []
+
     def _instanciate(
-        self,
-        r_type: RegisteredType[T_Instance],
+        self, r_type: RegisteredType[T_Instance], templates: list[Any] | None = None
     ) -> T_Instance:
         if self._has_instance(r_type):
             raise InjectionError(
@@ -249,8 +263,10 @@ class Injection:
             )
         func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.kwargs)
         instance = r_type.cls(**func_args)
-        meta.set(instance, Injection, self)
+        meta.set(instance, self, cls=Injection)
         self._hook_proxies(instance)
+        if templates:
+            meta.set(instance, GenericMeta(templates))
         self._run_init_methods(r_type, instance)
         self._set_instance(r_type, instance)
         return instance
@@ -287,6 +303,7 @@ class Injection:
             self._set_instance(r_type, instance)
 
     def require(self, cls: type[T_Instance]) -> T_Instance:
+        cls, templates = self._get_generic_templates(cls)
         if not self._cache.has_type(cls):
             raise InjectionError(
                 f"Type {cls} is not a registered type in the injection system"
@@ -294,7 +311,7 @@ class Injection:
         r_type = self._cache.get_type(cls)
         if self._has_instance(r_type):
             return self._get_instance(r_type)
-        return self._instanciate(r_type)
+        return self._instanciate(r_type, templates)
 
     def is_registered(self, cls: type[Any]) -> bool:
         return self._cache.has_type(cls)
@@ -304,11 +321,14 @@ class Injection:
 
 
 class _ProxyHook:
-    def __init__(self, r_type: RegisteredType[Any]) -> None:
+    def __init__(
+        self, r_type: RegisteredType[Any], templates: list[Any] | None = None
+    ) -> None:
         self.r_type = r_type
+        self.templates = templates
 
     def __getattribute__(self, __name: str) -> Any:
-        if __name == "r_type":
+        if __name in ["r_type", "templates"]:
             return object.__getattribute__(self, __name)
         raise InjectionError(
             "Tried accessing an injected instance inside the __init__ method. "
@@ -317,9 +337,15 @@ class _ProxyHook:
 
 
 class _InjectionProxy(Generic[T_Instance]):
-    def __init__(self, name: str, r_type: RegisteredType[T_Instance]) -> None:
+    def __init__(
+        self,
+        name: str,
+        r_type: RegisteredType[T_Instance],
+        templates: list[Any] | None = None,
+    ) -> None:
         self._name = name
         self._r_type = r_type
+        self._templates = templates
 
     def __get__(self, instance: Any, _) -> T_Instance:
         if not meta.has(instance, Injection):
@@ -331,7 +357,7 @@ class _InjectionProxy(Generic[T_Instance]):
         if inject._has_instance(self._r_type):
             obj = inject._get_instance(self._r_type)
         else:
-            obj = inject._instanciate(self._r_type)
+            obj = inject._instanciate(self._r_type, self._templates)
         setattr(instance, self._name, obj)
         return obj
 
@@ -379,5 +405,5 @@ def init_method(
         raise InitError(
             f"{func} must be a function to be decorated by {init_method.__name__}"
         )
-    meta.set(func, _InitMethodMeta, _InitMethodMeta())
+    meta.set(func, _InitMethodMeta())
     return func

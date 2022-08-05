@@ -39,7 +39,7 @@ def test_logger(capsys: CaptureFixture):
 
     logger.info("Test info message")
     logger.error("Test error message")
-    logger.warning("Test warning message", package="Test")
+    logger.warning("Test warning message")
     logger.debug("Test debug message")
 
     d2 = datetime.utcnow()
@@ -53,10 +53,10 @@ def test_logger(capsys: CaptureFixture):
     assert outputs[2].prefix == "DEBUG"
     assert outputs[3].prefix == "ERROR"
 
-    assert outputs[0].package == "Application"
-    assert outputs[1].package == "Test"
-    assert outputs[2].package == "Application"
-    assert outputs[3].package == "Application"
+    assert outputs[0].package == "<Logger>"
+    assert outputs[1].package == "<Logger>"
+    assert outputs[2].package == "<Logger>"
+    assert outputs[3].package == "<Logger>"
 
     assert d1 <= outputs[0].timestamp <= d2
     assert d1 <= outputs[1].timestamp <= d2

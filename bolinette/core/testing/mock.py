@@ -48,7 +48,7 @@ class _MockWrapper(Generic[T]):
             "__getattribute__",
             lambda i, n: _MockWrapper._get_mocked_attr(cls, i, n),
         )
-        meta.set(_t, _MockedMeta, _MockedMeta(cls))
+        meta.set(_t, _MockedMeta(cls))
         return _t
 
     def setup(self, name: str, value: Any) -> "_MockWrapper[T]":

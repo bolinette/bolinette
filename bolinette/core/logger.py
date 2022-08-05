@@ -1,15 +1,23 @@
 import sys
 from datetime import datetime
 from enum import StrEnum, unique
-from typing import Protocol, TypeVar
+from typing import Generic, Protocol, TypeVar
 
-from bolinette.core import Cache
+from bolinette.core import (
+    Cache,
+    GenericMeta,
+    InjectionStrategy,
+    init_method,
+    injectable,
+    meta,
+)
 
-_T = TypeVar("_T", contravariant=True)
+T_Contra = TypeVar("T_Contra", contravariant=True)
+T = TypeVar("T")
 
 
-class SupportsWrite(Protocol[_T]):
-    def write(self, __s: _T) -> object:
+class SupportsWrite(Protocol[T_Contra]):
+    def write(self, __s: T_Contra) -> object:
         ...
 
 
@@ -42,14 +50,24 @@ class ConsoleColorCode(StrEnum):
     BgWhite = "\x1b[47m"
 
 
-class Logger:
+@injectable(strategy=InjectionStrategy.Transcient)
+class Logger(Generic[T]):
     def __init__(self, cache: Cache | None = None) -> None:
         self._cache = cache or Cache()
+        self._package = "<Logger>"
+
+    @init_method
+    def _init(self) -> None:
+        if meta.has(self, GenericMeta):
+            templates = meta.get(self, GenericMeta).templates
+            if templates and len(templates):
+                template = templates[0]
+                if isinstance(template, type):
+                    self._package = template.__name__
 
     def _log(
         self,
         prefix: str,
-        package: str | None,
         text: str,
         color: ConsoleColorCode | None = None,
         file: SupportsWrite[str] | None = None,
@@ -59,37 +77,29 @@ class Logger:
         strs.append(
             f"{ConsoleColorCode.Bright}{color}{prefix.ljust(5)}{ConsoleColorCode.Reset}"
         )
-        if package is None:
-            package = "Application"
         strs.append(
-            f"[{ConsoleColorCode.FgGreen}{package.ljust(12)[:12]}{ConsoleColorCode.Reset}]"
+            f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]"
         )
         strs.append(text)
         print(*strs, file=file)
 
-    def warning(self, *values, package: str | None = None, sep: str | None = None):
-        self._log(
-            "WARN", package, (sep or " ").join(values), color=ConsoleColorCode.FgYellow
-        )
+    def warning(self, *values, sep: str | None = None):
+        self._log("WARN", (sep or " ").join(values), color=ConsoleColorCode.FgYellow)
 
-    def info(self, *values, package: str | None = None, sep: str | None = None):
-        self._log(
-            "INFO", package, (sep or " ").join(values), color=ConsoleColorCode.FgGreen
-        )
+    def info(self, *values, sep: str | None = None):
+        self._log("INFO", (sep or " ").join(values), color=ConsoleColorCode.FgGreen)
 
-    def debug(self, *values, package: str | None = None, sep: str | None = None):
+    def debug(self, *values, sep: str | None = None):
         if self._cache.debug:
             self._log(
                 "DEBUG",
-                package,
                 (sep or " ").join(values),
                 color=ConsoleColorCode.FgBlue,
             )
 
-    def error(self, *values, package: str | None = None, sep: str | None = None):
+    def error(self, *values, sep: str | None = None):
         self._log(
             "ERROR",
-            package,
             (sep or " ").join(values),
             color=ConsoleColorCode.FgRed,
             file=sys.stderr,

@@ -61,7 +61,7 @@ class Environment:
         for name, cls in self._cache.env_sections:
             if len(inspect.signature(cls).parameters) != 0:
                 raise InitError(f"Section {cls} must have an empty __init__ method")
-            meta.set(cls, _EnvSectionMeta, _EnvSectionMeta(name))
+            meta.set(cls, _EnvSectionMeta(name))
             self._inject.add(
                 cls, InjectionStrategy.Singleton, init_methods=[self._init_section]
             )

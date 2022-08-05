@@ -1,8 +1,15 @@
-from typing import Callable, Optional
+from typing import Generic, Optional, TypeVar
 
 import pytest
 
-from bolinette.core import Cache, Injection, InjectionStrategy, init_method
+from bolinette.core import (
+    Cache,
+    GenericMeta,
+    Injection,
+    InjectionStrategy,
+    init_method,
+    meta,
+)
 from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import InitError, InjectionError
 from bolinette.core.inject import InjectionContext, _InjectionProxy
@@ -632,23 +639,6 @@ def test_inject_no_union() -> None:
     )
 
 
-def test_not_compatible_type() -> None:
-    class _TestClass:
-        def __init__(self, v: Callable[[], None]) -> None:
-            self.v = v
-
-    inject = Injection(Cache(), InjectionContext())
-    inject.add(_TestClass, InjectionStrategy.Singleton)
-
-    with pytest.raises(InjectionError) as info:
-        inject.require(_TestClass)
-
-    assert (
-        f"Callable {_TestClass}, Parameter 'v': Type hint is not supported by the injection system"
-        in info.value.message
-    )
-
-
 def test_optional_type_literal_right() -> None:
     class _TestClass:
         def __init__(self, sub: "_SubTestClass | None") -> None:
@@ -695,3 +685,85 @@ def test_optional_type_literal_bis() -> None:
     t = inject.require(_TestClass)
 
     assert t.sub is None
+
+
+def test_generic_injection() -> None:
+    _T = TypeVar("_T")
+
+    class _GenericTest(Generic[_T]):
+        pass
+
+    class _ParamClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_GenericTest, InjectionStrategy.Singleton)
+
+    g = inject.require(_GenericTest[_ParamClass])
+
+    assert meta.has(g, GenericMeta)
+    assert meta.get(g, GenericMeta).templates == [_ParamClass]
+
+
+def test_generic_injection_literal() -> None:
+    _T = TypeVar("_T")
+
+    class _GenericTest(Generic[_T]):
+        pass
+
+    class _ParamClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_GenericTest, InjectionStrategy.Singleton)
+
+    g = inject.require(_GenericTest["_ParamClass"])
+
+    assert meta.has(g, GenericMeta)
+    assert meta.get(g, GenericMeta).templates == ["_ParamClass"]
+
+
+def test_generic_sub_injection() -> None:
+    _T = TypeVar("_T")
+
+    class _GenericTest(Generic[_T]):
+        pass
+
+    class _ParamClass:
+        pass
+
+    class _TestClass:
+        def __init__(self, g: _GenericTest[_ParamClass]) -> None:
+            self.g = g
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_GenericTest, InjectionStrategy.Singleton)
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert meta.has(t.g, GenericMeta)
+    assert meta.get(t.g, GenericMeta).templates == [_ParamClass]
+
+
+def test_generic_sub_injection_literal() -> None:
+    _T = TypeVar("_T")
+
+    class _GenericTest(Generic[_T]):
+        pass
+
+    class _ParamClass:
+        pass
+
+    class _TestClass:
+        def __init__(self, g: _GenericTest["_ParamClass"]) -> None:
+            self.g = g
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_GenericTest, InjectionStrategy.Singleton)
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert meta.has(t.g, GenericMeta)
+    assert meta.get(t.g, GenericMeta).templates == ["_ParamClass"]
