@@ -2,6 +2,7 @@ import pytest
 
 from bolinette.core import Cache, InjectionStrategy, init_func, injectable
 from bolinette.core.exceptions import InitError
+from bolinette.core.init import InitFunction
 
 
 def test_empty_cache() -> None:
@@ -40,11 +41,11 @@ def test_get_of_type() -> None:
 
 
 def test_add_init_func() -> None:
-    def _test_func():
+    async def _test_func() -> None:
         pass
 
     cache = Cache()
-    cache.add_init_func(_test_func)
+    cache.add_init_func(InitFunction(_test_func))
 
     assert len(cache.init_funcs) == 1
 
@@ -61,15 +62,15 @@ def test_injectable_decorator() -> None:
 
 
 def test_injectable_decorator_fail() -> None:
-    def _test_func():
+    def _test_func() -> None:
         pass
 
     cache = Cache()
     with pytest.raises(InitError) as info:
-        injectable(cache=cache)(_test_func)
+        injectable(cache=cache)(_test_func)  # type: ignore
 
     assert (
-        f"'{_test_func}' must be a class to be decorated by @{injectable.__name__}"
+        f"'{_test_func}' must be a class to be decorated by @{injectable.__name__}"  # type: ignore
         in info.value.message
     )
 
@@ -78,7 +79,7 @@ def test_init_func_decorator() -> None:
     cache = Cache()
 
     @init_func(cache=cache)
-    async def _test_func():
+    async def _test_func() -> None:
         pass
 
     assert len(cache.init_funcs) == 1
@@ -90,10 +91,10 @@ def test_init_func_decorator_fail() -> None:
 
     cache = Cache()
     with pytest.raises(InitError) as info:
-        init_func(cache=cache)(_TestClass)
+        init_func(cache=cache)(_TestClass)  # type: ignore
 
     assert (
-        f"'{_TestClass}' must be an async function to be an init function"
+        f"'{_TestClass}' must be an async function to be an init function"  # type: ignore
         in info.value.message
     )
 

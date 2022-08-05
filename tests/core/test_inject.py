@@ -88,7 +88,7 @@ def test_class_injection() -> None:
 
 
 def test_inject_call_sync() -> None:
-    def _test_func(a: InjectableClassA):
+    def _test_func(a: InjectableClassA) -> None:
         assert a.func() == "a"
         assert a.b.func() == "b"
         assert a.d_attr.func() == "d"
@@ -106,7 +106,7 @@ def test_inject_call_sync() -> None:
 
 
 async def test_inject_call_async() -> None:
-    async def _test_func(b: InjectableClassB):
+    async def _test_func(b: InjectableClassB) -> None:
         assert b.func() == "b"
 
     cache = Cache()
@@ -146,7 +146,7 @@ async def test_fail_subinjection() -> None:
 
 
 def test_fail_call_injection() -> None:
-    def _test_func(b: InjectableClassC):
+    def _test_func(b: InjectableClassC) -> None:
         assert b.func() == "b"
 
     cache = Cache()
@@ -285,13 +285,13 @@ def test_use_init_method() -> None:
             self.cls_name: str | None = None
 
         @init_method
-        def init(self, b: InjectableClassB):
+        def init(self, b: InjectableClassB) -> None:
             self.value = b.func()
             self.cls_name = type(self).__name__
 
     class _ChildClass1(_TestClass):
         @init_method
-        def sub_init(self, c: InjectableClassC):
+        def sub_init(self, c: InjectableClassC) -> None:
             self.value = self.value + c.func() if self.value else c.func()
 
     class _ChildClass2(_TestClass):
@@ -319,7 +319,7 @@ def test_init_method_fail_decorate_type() -> None:
         pass
 
     with pytest.raises(InitError) as info:
-        init_method(_TestClass)
+        init_method(_TestClass)  # type: ignore
 
     assert (
         f"{_TestClass} must be a function to be decorated by {init_method.__name__}"
@@ -328,7 +328,7 @@ def test_init_method_fail_decorate_type() -> None:
 
 
 def test_arg_resolve_fail_wilcard() -> None:
-    def _test_func(a, *args):
+    def _test_func(a, *args) -> None:
         pass
 
     inject = Injection(Cache(), InjectionContext())
@@ -343,7 +343,7 @@ def test_arg_resolve_fail_wilcard() -> None:
 
 
 def test_arg_resolve_fail_positional_only() -> None:
-    def _test_func(a, /, b):
+    def _test_func(a, /, b) -> None:
         pass
 
     inject = Injection(Cache(), InjectionContext())
@@ -536,7 +536,7 @@ def test_context_errors() -> None:
         (lambda x: x) in ctx
 
     with pytest.raises(TypeError):
-        ctx[(lambda x: x)] = None
+        ctx[(lambda x: x)] = None  # type: ignore
 
     c1_1 = _C1()
     c1_2 = _C1()

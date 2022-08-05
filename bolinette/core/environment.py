@@ -57,7 +57,7 @@ class Environment:
         _EnvParser(self._raw_env[section_name], section).parse()
 
     @init_method
-    def init(self):
+    def init(self) -> None:
         for name, cls in self._cache.env_sections:
             if len(inspect.signature(cls).parameters) != 0:
                 raise InitError(f"Section {cls} must have an empty __init__ method")
@@ -73,7 +73,7 @@ class Environment:
             self._init_from_file(f"env.local.{self._profile}.yaml"),
         ]
 
-        merged = {}
+        merged: dict = {}
         for node in stack:
             for name, section in node.items():
                 if name not in merged:
@@ -151,7 +151,7 @@ class _EnvParser:
         return node[name]
 
     @staticmethod
-    def _parse_object(obj: object, node: dict[str, Any], path: str):
+    def _parse_object(obj: object, node: dict[str, Any], path: str) -> None:
         for att_name, annotation in obj.__annotations__.items():
             sub_path = f"{path}.{att_name}"
             if isinstance(annotation, str):
@@ -205,7 +205,7 @@ class _EnvParser:
                 )
             setattr(obj, att_name, value)
 
-    def parse(self):
+    def parse(self) -> None:
         self._parse_object(self._object, self._env, str(type(self._object)))
 
 

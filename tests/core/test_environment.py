@@ -57,7 +57,7 @@ def test_init_env_from_os() -> None:
     del os.environ["BLNT_TEST__C"]
 
 
-def test_parse_yaml_file():
+def test_parse_yaml_file() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -74,7 +74,7 @@ def test_parse_yaml_file():
     assert test.b is True
 
 
-def test_fail_missing_attribute():
+def test_fail_missing_attribute() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -96,7 +96,7 @@ def test_fail_missing_attribute():
     ) in info.value.message
 
 
-def test_file_override():
+def test_file_override() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -105,7 +105,7 @@ def test_file_override():
         b: int
         c: int
 
-    def _read_yaml(path):
+    def _read_yaml(path) -> dict:
         match path:
             case "env.yaml":
                 return {"test": {"a": 1, "b": 1, "c": 1}}
@@ -126,7 +126,7 @@ def test_file_override():
     assert test.c == 1
 
 
-def test_non_empty_init():
+def test_non_empty_init() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -139,12 +139,12 @@ def test_non_empty_init():
         mock.injection.require(Environment)
 
     assert (
-        f"Section {TestSection} must have an empty __init__ method"
+        f"Section {TestSection} must have an empty __init__ method"  # type: ignore
         in info.value.message
     )
 
 
-def test_non_empty_sub_init():
+def test_non_empty_sub_init() -> None:
     cache = Cache()
 
     class SubTestSection:
@@ -168,7 +168,7 @@ def test_non_empty_sub_init():
     )
 
 
-def test_no_dict_to_map():
+def test_no_dict_to_map() -> None:
     cache = Cache()
 
     class SubTestSection:
@@ -191,7 +191,7 @@ def test_no_dict_to_map():
     )
 
 
-def test_no_literal():
+def test_no_literal() -> None:
     cache = Cache()
 
     class SubTestSection:
@@ -232,19 +232,19 @@ def test_os_env_conflict() -> None:
 
 
 def test_decorate_func() -> None:
-    def fail_func():
+    def fail_func() -> None:
         pass
 
     with pytest.raises(InitError) as info:
-        environment("fail")(fail_func)
+        environment("fail")(fail_func)  # type: ignore
 
     assert (
-        f"{fail_func} must be a class to be decorated with @{environment.__name__}"
+        f"{fail_func} must be a class to be decorated with @{environment.__name__}"  # type: ignore
         in info.value.message
     )
 
 
-def test_fail_cast_type():
+def test_fail_cast_type() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -259,7 +259,7 @@ def test_fail_cast_type():
     assert test.a == 1
 
 
-def test_fail_wrong_type():
+def test_fail_wrong_type() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -279,7 +279,7 @@ def test_fail_wrong_type():
     )
 
 
-def test_optional_value():
+def test_optional_value() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -294,7 +294,7 @@ def test_optional_value():
     assert test.a is None
 
 
-def test_optional_value_bis():
+def test_optional_value_bis() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -309,7 +309,7 @@ def test_optional_value_bis():
     assert test.a is None
 
 
-def test_optional_with_value():
+def test_optional_with_value() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -324,7 +324,7 @@ def test_optional_with_value():
     assert test.a == 1
 
 
-def test_fail_not_optional():
+def test_fail_not_optional() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -344,7 +344,7 @@ def test_fail_not_optional():
     )
 
 
-def test_fail_no_union():
+def test_fail_no_union() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -361,7 +361,7 @@ def test_fail_no_union():
     assert f"Section {TestSection}.a: type unions are not allowed" in info.value.message
 
 
-def test_fail_no_union_bis():
+def test_fail_no_union_bis() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -378,7 +378,7 @@ def test_fail_no_union_bis():
     assert f"Section {TestSection}.a: type unions are not allowed" in info.value.message
 
 
-def test_fail_unknow_type():
+def test_fail_unknow_type() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -398,7 +398,7 @@ def test_fail_unknow_type():
     ) in info.value.message
 
 
-def test_fail_no_section():
+def test_fail_no_section() -> None:
     cache = Cache()
 
     @environment("test", cache=cache)
@@ -415,3 +415,7 @@ def test_fail_no_section():
     assert (
         f"No 'test' section was found in the environment files"
     ) in info.value.message
+
+
+def test_list_attribute() -> None:
+    pass

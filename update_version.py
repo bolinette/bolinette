@@ -47,7 +47,7 @@ if __name__ == "__main__":
         raise ArgumentError("Invalid version format")
     if not (match := re.match(r"(\d+)\.(\d+).(\d+)", version)):
         raise ArgumentError("Invalid version format")
-    match (project):
+    match project:
         case "core":
             update_core(int(match.group(1)), int(match.group(2)), int(match.group(3)))
         case "data":

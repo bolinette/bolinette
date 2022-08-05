@@ -30,7 +30,7 @@ class _MockWrapper(Generic[T]):
         self._instance = self._cls()
 
     @staticmethod
-    def _get_mocked_attr(cls: type[T], instance: T, name: str):
+    def _get_mocked_attr(cls: type[T], instance: T, name: str) -> Any:
         if name == "__class__":
             return cls
         _meta = meta.get(type(instance), _MockedMeta)

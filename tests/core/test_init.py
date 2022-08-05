@@ -9,10 +9,10 @@ def test_init_func_non_async() -> None:
         pass
 
     with pytest.raises(InitError) as info:
-        InitFunction(_test_func)
+        InitFunction(_test_func)  # type: ignore
 
     assert (
-        f"'{_test_func}' must be an async function to be an init function"
+        f"'{_test_func}' must be an async function to be an init function"  # type: ignore
         in info.value.message
     )
 

@@ -227,7 +227,7 @@ class Injection:
                 delattr(instance, name)
                 setattr(cls, name, _InjectionProxy(name, attr.r_type, attr.templates))
 
-    def _run_init_recursive(self, cls: type[T_Instance], instance: T_Instance):
+    def _run_init_recursive(self, cls: type[T_Instance], instance: T_Instance) -> None:
         for base in cls.__bases__:
             self._run_init_recursive(base, instance)
         for _, attr in vars(cls).items():

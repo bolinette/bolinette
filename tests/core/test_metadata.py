@@ -91,7 +91,7 @@ def test_has_meta_fail() -> None:
         pass
 
     with pytest.raises(TypeError):
-        meta.has(_TestClass(), _Meta(0))
+        meta.has(_TestClass(), _Meta(0))  # type: ignore
 
 
 def test_get_meta_fail_type() -> None:
@@ -99,7 +99,7 @@ def test_get_meta_fail_type() -> None:
         pass
 
     with pytest.raises(TypeError):
-        meta.get(_TestClass(), _Meta(0))
+        meta.get(_TestClass(), _Meta(0))  # type: ignore
 
 
 def test_set_meta_fail_type() -> None:
@@ -107,7 +107,7 @@ def test_set_meta_fail_type() -> None:
         pass
 
     with pytest.raises(TypeError):
-        meta.set(_TestClass(), _Meta(0), cls=_Meta(0))
+        meta.set(_TestClass(), _Meta(0), cls=_Meta(0))  # type: ignore
 
     with pytest.raises(TypeError):
         meta.set(_TestClass(), _TestClass(), cls=_Meta)
@@ -143,7 +143,7 @@ def test_fail_container_contains() -> None:
     _c = _BolinetteMetadata()
 
     with pytest.raises(TypeError):
-        _TestClass() in _c
+        _TestClass() in _c  # type: ignore
 
 
 def test_fail_container_set_item() -> None:
@@ -153,7 +153,7 @@ def test_fail_container_set_item() -> None:
     _c = _BolinetteMetadata()
 
     with pytest.raises(TypeError):
-        _c[_TestClass()] = 0
+        _c[_TestClass()] = 0  # type: ignore
 
 
 def test_fail_container_set_item_wrong_type() -> None:

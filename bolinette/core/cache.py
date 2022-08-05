@@ -88,7 +88,7 @@ class Cache:
     def init_funcs(self) -> list[InitFunction]:
         return [f for f in self._init_funcs]
 
-    def add_env_section(self, name: str, cls: type[Any]):
+    def add_env_section(self, name: str, cls: type[Any]) -> None:
         self._env_sections[name] = cls
 
     @property

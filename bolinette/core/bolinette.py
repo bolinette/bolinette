@@ -43,7 +43,7 @@ class Bolinette:
         )
         return "development"
 
-    def _add_types_to_inject(self):
+    def _add_types_to_inject(self) -> None:
         self._inject.add(Bolinette, InjectionStrategy.Singleton, instance=self)
         self._inject.add(PathUtils, InjectionStrategy.Singleton, instance=self._paths)
         self._inject.add(FileUtils, InjectionStrategy.Singleton, instance=self._files)

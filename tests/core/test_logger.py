@@ -1,14 +1,10 @@
 import re
 from datetime import datetime
+from typing import Any
 
 from pytest import CaptureFixture
 
-from bolinette.core import CoreSection, Logger
-
-_section = CoreSection()
-_section.debug = False
-_debug_section = CoreSection()
-_debug_section.debug = True
+from bolinette.core import Cache, GenericMeta, Logger, meta
 
 output_regex = re.compile(
     r"^([\d\-T\:\.]+) "  # timestamp
@@ -32,8 +28,8 @@ def _parse_output(out: str) -> _Output:
     return _Output(match.group(1), match.group(2), match.group(3), match.group(4))
 
 
-def test_logger(capsys: CaptureFixture):
-    logger = Logger(_debug_section)
+def test_logger(capsys: CaptureFixture) -> None:
+    logger: Logger[Any] = Logger(Cache(debug=True))
 
     d1 = datetime.utcnow()
 
@@ -69,15 +65,41 @@ def test_logger(capsys: CaptureFixture):
     assert outputs[3].message == "Test error message"
 
 
-def test_logger_debug(capsys: CaptureFixture):
-    logger = Logger(_section)
+def test_logger_generic(capsys: CaptureFixture) -> None:
+    class _TestClass:
+        pass
+
+    logger: Logger[Any] = Logger(Cache(debug=True))
+    meta.set(logger, GenericMeta([_TestClass]))
+    logger._init()
+
+    d1 = datetime.utcnow()
+
+    logger.info("Test info message")
+
+    d2 = datetime.utcnow()
+
+    captured = capsys.readouterr()
+    lines = filter(lambda s: s, [*captured.out.split("\n"), *captured.err.split("\n")])
+    outputs = list(map(lambda s: _parse_output(s), lines))
+
+    assert outputs[0].prefix == "INFO"
+    assert outputs[0].package == "_TestClass"
+    assert d1 <= outputs[0].timestamp <= d2
+    assert outputs[0].message == "Test info message"
+
+
+def test_logger_debug(capsys: CaptureFixture) -> None:
+    cache = Cache()
+
+    logger: Logger[Any] = Logger(cache)
 
     logger.debug("Test 1")
     captured = capsys.readouterr()
 
     assert captured.out == ""
 
-    logger = Logger(_debug_section)
+    cache.debug = True
 
     logger.debug("Test 2")
     captured = capsys.readouterr()
