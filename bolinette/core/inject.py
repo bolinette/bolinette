@@ -389,8 +389,7 @@ class _ScopedInjection(Injection):
         )
 
     def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
-        r_type = self._cache.types[cls]
-        if r_type.strategy is InjectionStrategy.Scoped:
+        if cls in self._scoped_ctx:
             return self._scoped_ctx[cls]
         return self._global_ctx[cls]
 

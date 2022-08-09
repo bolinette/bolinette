@@ -506,6 +506,17 @@ def test_scoped_injection() -> None:
     assert c4_1.c3 is c5_1.c3
 
 
+def test_get_injection_scoped_context() -> None:
+    cache = Cache()
+    inject = Injection(cache, InjectionContext())
+    sub_inject1 = inject.get_scoped_session()
+    sub_inject2 = inject.get_scoped_session()
+
+    assert inject.require(Injection) is inject
+    assert sub_inject1.require(Injection) is sub_inject1
+    assert sub_inject2.require(Injection) is sub_inject2
+
+
 def test_require_transcient_service() -> None:
     class _C1:
         pass
