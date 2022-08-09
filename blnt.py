@@ -4,7 +4,7 @@ from bolinette.core import Bolinette, command
 
 @command('hello', 'Says hello')
 @command.argument('argument', 'name')
-async def test(name: str, t: int):
+async def test(name: str):
     print('hello', name)
 
 

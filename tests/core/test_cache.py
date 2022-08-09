@@ -106,4 +106,4 @@ def test_no_type_fail() -> None:
     cache = Cache()
 
     with pytest.raises(KeyError):
-        cache.types[_TestClass]
+        cache.types.strategy(_TestClass)

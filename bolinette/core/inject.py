@@ -15,7 +15,6 @@ from typing import (
 )
 
 from bolinette.core import Cache, GenericMeta, InjectionStrategy, meta
-from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import InitError, InjectionError
 
 
@@ -72,22 +71,19 @@ class Injection:
             self._global_ctx[cls] = instance
 
     def _has_instance(self, cls: type[Any]) -> bool:
-        r_type = self._cache.types[cls]
-        if r_type.strategy is InjectionStrategy.Scoped:
+        strategy = self._cache.types.strategy(cls)
+        if strategy is InjectionStrategy.Scoped:
             raise InjectionError(
                 f"Cannot instanciate a scoped service outside of a scoped session",
                 cls=cls,
             )
-        return (
-            r_type.strategy is InjectionStrategy.Singleton and cls in self._global_ctx
-        )
+        return strategy is InjectionStrategy.Singleton and cls in self._global_ctx
 
     def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
         return self._global_ctx[cls]
 
     def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
-        r_type = self._cache.types[cls]
-        if r_type.strategy is InjectionStrategy.Singleton:
+        if self._cache.types.strategy(cls) is InjectionStrategy.Singleton:
             self._global_ctx[cls] = instance
 
     def _resolve_args(
@@ -236,11 +232,9 @@ class Injection:
             if meta.has(attr, _InitMethodMeta):
                 self.call(attr, args=[instance])
 
-    def _run_init_methods(
-        self, r_type: RegisteredType[T_Instance], instance: T_Instance
-    ):
-        self._run_init_recursive(r_type.cls, instance)
-        for method in r_type.init_methods:
+    def _run_init_methods(self, cls: type[T_Instance], instance: T_Instance):
+        self._run_init_recursive(cls, instance)
+        for method in self._cache.types.init_methods(cls):
             self.call(method, args=[instance])
 
     @staticmethod
@@ -264,14 +258,15 @@ class Injection:
             raise InjectionError(
                 f"Type {cls} has already been instanciated in this scope"
             )
-        r_type = self._cache.types[cls]
-        func_args = self._resolve_args(cls, False, r_type.args, r_type.kwargs)
+        func_args = self._resolve_args(
+            cls, False, self._cache.types.args(cls), self._cache.types.kwargs(cls)
+        )
         instance = cls(**func_args)
         meta.set(instance, self, cls=Injection)
         self._hook_proxies(instance)
         if templates:
             meta.set(instance, GenericMeta(templates))
-        self._run_init_methods(r_type, instance)
+        self._run_init_methods(cls, instance)
         self._set_instance(cls, instance)
         return instance
 
@@ -381,11 +376,9 @@ class _ScopedInjection(Injection):
         self._scoped_ctx[Injection] = self
 
     def _has_instance(self, cls: type[Any]) -> bool:
-        r_type = self._cache.types[cls]
-        return (
-            r_type.strategy is InjectionStrategy.Scoped and cls in self._scoped_ctx
-        ) or (
-            r_type.strategy is InjectionStrategy.Singleton and cls in self._global_ctx
+        strategy = self._cache.types.strategy(cls)
+        return (strategy is InjectionStrategy.Scoped and cls in self._scoped_ctx) or (
+            strategy is InjectionStrategy.Singleton and cls in self._global_ctx
         )
 
     def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
@@ -394,10 +387,10 @@ class _ScopedInjection(Injection):
         return self._global_ctx[cls]
 
     def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
-        r_type = self._cache.types[cls]
-        if r_type.strategy is InjectionStrategy.Scoped:
+        strategy = self._cache.types.strategy(cls)
+        if strategy is InjectionStrategy.Scoped:
             self._scoped_ctx[cls] = instance
-        if r_type.strategy is InjectionStrategy.Singleton:
+        if strategy is InjectionStrategy.Singleton:
             self._global_ctx[cls] = instance
 
 

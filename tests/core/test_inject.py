@@ -10,7 +10,6 @@ from bolinette.core import (
     init_method,
     meta,
 )
-from bolinette.core.cache import RegisteredType
 from bolinette.core.exceptions import InitError, InjectionError
 from bolinette.core.inject import InjectionContext, _InjectionProxy
 

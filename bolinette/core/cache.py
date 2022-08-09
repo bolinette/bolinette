@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Awaitable, Callable
 from enum import Enum, auto, unique
-from typing import Any, Generic, ParamSpec, TypeVar
+from typing import Any, Iterable, ParamSpec, TypeVar
 
 from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
@@ -15,22 +15,6 @@ class InjectionStrategy(Enum):
     Transcient = auto()
     Scoped = auto()
     Singleton = auto()
-
-
-class RegisteredType(Generic[T_Instance]):
-    def __init__(
-        self,
-        cls: type[T_Instance],
-        strategy: InjectionStrategy,
-        args: list[Any] | None,
-        kwargs: dict[str, Any] | None,
-        init_methods: list[Callable[[T_Instance], None]] | None,
-    ) -> None:
-        self.cls = cls
-        self.strategy = strategy
-        self.args = args or []
-        self.kwargs = kwargs or {}
-        self.init_methods = init_methods or []
 
 
 class Cache:
@@ -64,10 +48,16 @@ class Cache:
         return [(n, c) for n, c in self._env_sections.items()]
 
 
+_TypeOptions = tuple[
+    InjectionStrategy, list[Any], dict[str, Any], list[Callable[[T_Instance], None]]
+]
+
+
 class _TypeCache:
     def __init__(self) -> None:
-        self._types: dict[type, RegisteredType[Any]] = {}
+        self._types: set[type[Any]] = set()
         self._names: dict[str, type[Any]] = {}
+        self._options: dict[type[Any], _TypeOptions] = {}
 
     def add(
         self,
@@ -77,19 +67,20 @@ class _TypeCache:
         kwargs: dict[str, Any] | None = None,
         init_methods: list[Callable[[T_Instance], None]] | None = None,
     ):
-        self._types[cls] = RegisteredType(cls, strategy, args, kwargs, init_methods)
+        if not isinstance(cls, type):
+            raise TypeError(cls)
+        self._types.add(cls)
+        self._options[cls] = (strategy, args or [], kwargs or {}, init_methods or [])
         self._names[f"{cls.__module__}.{cls.__qualname__}"] = cls
 
     def __contains__(self, cls: type[Any]) -> bool:
         return cls in self._types
 
-    def __getitem__(self, cls: type[T_Instance]) -> RegisteredType[T_Instance]:
-        if cls not in self._types:
-            raise KeyError(cls)
-        return self._types[cls]
-
     def __len__(self) -> int:
         return len(self._types)
+
+    def __iter__(self) -> Iterable[type[Any]]:
+        return (t for t in self._types)
 
     def by_name(self, name: str) -> list[type[Any]]:
         name = f".{name}"
@@ -98,8 +89,25 @@ class _TypeCache:
     def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:
         return [t for t in self._types if issubclass(t, cls)]
 
-    def all(self) -> dict[type, RegisteredType[Any]]:
-        return {k: v for k, v in self._types.items()}
+    def strategy(self, cls: type[Any]) -> InjectionStrategy:
+        if cls not in self:
+            raise KeyError(cls)
+        return self._options[cls][0]
+
+    def args(self, cls: type[Any]) -> list[Any]:
+        if cls not in self:
+            raise KeyError(cls)
+        return self._options[cls][1]
+
+    def kwargs(self, cls: type[Any]) -> dict[str, Any]:
+        if cls not in self:
+            raise KeyError(cls)
+        return self._options[cls][2]
+
+    def init_methods(self, cls: type[Any]) -> list[Callable[[T_Instance], None]]:
+        if cls not in self:
+            raise KeyError(cls)
+        return self._options[cls][3]
 
 
 class _ParameterBag:
