@@ -36,8 +36,8 @@ class RegisteredType(Generic[T_Instance]):
 class Cache:
     def __init__(self, *, debug: bool = False) -> None:
         self._debug = debug
-        self._types: dict[type, RegisteredType[Any]] = {}
-        self._names: dict[str, type[Any]] = {}
+        self.types = _TypeCache()
+        self.bag = _ParameterBag()
         self._init_funcs: list[InitFunction] = []
         self._env_sections: dict[str, type[Any]] = {}
 
@@ -48,38 +48,6 @@ class Cache:
     @debug.setter
     def debug(self, value: bool) -> None:
         self._debug = value
-
-    def add_type(
-        self,
-        cls: type[T_Instance],
-        strategy: InjectionStrategy,
-        args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
-        init_methods: list[Callable[[T_Instance], None]] | None = None,
-    ) -> RegisteredType[T_Instance]:
-        r_type = RegisteredType(cls, strategy, args, kwargs, init_methods)
-        self._types[cls] = r_type
-        self._names[f"{cls.__module__}.{cls.__qualname__}"] = cls
-        return r_type
-
-    def get_type(self, cls: type[T_Instance]) -> RegisteredType[T_Instance]:
-        if cls not in self._types:
-            raise KeyError(cls)
-        return self._types[cls]
-
-    def find_types_by_name(self, name: str) -> list[type[Any]]:
-        name = f".{name}"
-        return [t for n, t in self._names.items() if n.endswith(name)]
-
-    def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:
-        return [t for t in self._types if issubclass(t, cls)]
-
-    def has_type(self, cls: type[Any]) -> bool:
-        return cls in self._types
-
-    @property
-    def types(self) -> dict[type, RegisteredType[Any]]:
-        return {k: v for k, v in self._types.items()}
 
     def add_init_func(self, func: InitFunction) -> None:
         self._init_funcs.append(func)
@@ -94,6 +62,72 @@ class Cache:
     @property
     def env_sections(self) -> list[tuple[str, type[Any]]]:
         return [(n, c) for n, c in self._env_sections.items()]
+
+
+class _TypeCache:
+    def __init__(self) -> None:
+        self._types: dict[type, RegisteredType[Any]] = {}
+        self._names: dict[str, type[Any]] = {}
+
+    def add(
+        self,
+        cls: type[T_Instance],
+        strategy: InjectionStrategy,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        init_methods: list[Callable[[T_Instance], None]] | None = None,
+    ):
+        self._types[cls] = RegisteredType(cls, strategy, args, kwargs, init_methods)
+        self._names[f"{cls.__module__}.{cls.__qualname__}"] = cls
+
+    def __contains__(self, cls: type[Any]) -> bool:
+        return cls in self._types
+
+    def __getitem__(self, cls: type[T_Instance]) -> RegisteredType[T_Instance]:
+        if cls not in self._types:
+            raise KeyError(cls)
+        return self._types[cls]
+
+    def __len__(self) -> int:
+        return len(self._types)
+
+    def by_name(self, name: str) -> list[type[Any]]:
+        name = f".{name}"
+        return [t for n, t in self._names.items() if n.endswith(name)]
+
+    def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:
+        return [t for t in self._types if issubclass(t, cls)]
+
+    def all(self) -> dict[type, RegisteredType[Any]]:
+        return {k: v for k, v in self._types.items()}
+
+
+class _ParameterBag:
+    def __init__(self) -> None:
+        self._bag: dict[Any, list[Any]] = {}
+
+    def __contains__(self, key: Any) -> bool:
+        return key in self._bag
+
+    def __getitem__(self, key: Any) -> list[Any]:
+        if key not in self:
+            raise KeyError(key)
+        return self._bag[key]
+
+    def __delitem__(self, key: Any) -> None:
+        if key not in self:
+            raise KeyError(key)
+        del self._bag[key]
+
+    def push(self, key: Any, value: Any) -> None:
+        if key not in self:
+            self._bag[key] = []
+        self._bag[key].append(value)
+
+    def remove(self, key: Any, value: Any) -> None:
+        if key not in self:
+            raise KeyError(key)
+        self._bag[key] = list(filter(lambda i: i is not value, self._bag[key]))
 
 
 __core_cache__ = Cache()
@@ -121,7 +155,7 @@ def injectable(
             raise InitError(
                 f"'{cls}' must be a class to be decorated by @{injectable.__name__}"
             )
-        (cache or __core_cache__).add_type(cls, strategy, args, kwargs)
+        (cache or __core_cache__).types.add(cls, strategy, args, kwargs)
         return cls
 
     return decorator

@@ -50,7 +50,6 @@ class ConsoleColorCode(StrEnum):
     BgWhite = "\x1b[47m"
 
 
-@injectable(strategy=InjectionStrategy.Transcient)
 class Logger(Generic[T]):
     def __init__(self, cache: Cache | None = None) -> None:
         self._cache = cache or Cache()

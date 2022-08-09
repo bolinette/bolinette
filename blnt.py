@@ -1,10 +1,13 @@
-from bolinette.core import Bolinette, Environment, Logger
+import asyncio
+from bolinette.core import Bolinette, command
+
+
+@command('hello', 'Says hello')
+@command.argument('argument', 'name')
+async def test(name: str, t: int):
+    print('hello', name)
 
 
 if __name__ == '__main__':
     blnt = Bolinette()
-    logger = blnt.injection.require(Logger[Bolinette])
-    logger.info('Test info')
-    logger.debug('Test debug')
-    logger.warning('Test warning')
-    logger.error('Test error')
+    asyncio.run(blnt.exec_cmd_args())

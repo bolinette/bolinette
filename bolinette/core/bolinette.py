@@ -7,7 +7,10 @@ from bolinette.core import (
     InjectionStrategy,
     Logger,
     __core_cache__,
+    meta,
+    require,
 )
+from bolinette.core.command import Parser
 from bolinette.core.inject import InjectionContext
 from bolinette.core.utils import FileUtils, PathUtils
 
@@ -22,15 +25,32 @@ class Bolinette:
     ) -> None:
         self._cache = cache or __core_cache__
         self._inject = inject or Injection(self._cache, InjectionContext())
+        meta.set(self, self._inject)
+
+        self._inject.add(Logger, InjectionStrategy.Transcient)
+        self._inject.add(
+            PathUtils, InjectionStrategy.Singleton, args=[PathUtils.dirname(__file__)]
+        )
+        self._inject.add(FileUtils, InjectionStrategy.Singleton)
+
         self._logger = self._inject.require(Logger[Bolinette])
-        self._paths = PathUtils(PathUtils.dirname(__file__))
-        self._files = FileUtils(self._paths)
+        self._paths = self._inject.require(PathUtils)
+        self._files = self._inject.require(FileUtils)
+
         self._profile = (
             profile
             or self._files.read_profile(self._paths.env_path())
             or self._set_default_profile()
         )
-        self._add_types_to_inject()
+
+        self._inject.add(Bolinette, InjectionStrategy.Singleton, instance=self)
+        self._inject.add(
+            Environment,
+            InjectionStrategy.Singleton,
+            args=[self._profile],
+            instanciate=True,
+        )
+        self._inject.add(Parser, InjectionStrategy.Singleton)
 
     @property
     def injection(self) -> Injection:
@@ -43,16 +63,16 @@ class Bolinette:
         )
         return "development"
 
-    def _add_types_to_inject(self) -> None:
-        self._inject.add(Bolinette, InjectionStrategy.Singleton, instance=self)
-        self._inject.add(PathUtils, InjectionStrategy.Singleton, instance=self._paths)
-        self._inject.add(FileUtils, InjectionStrategy.Singleton, instance=self._files)
-        self._inject.add(Environment, InjectionStrategy.Singleton, args=[self._profile])
-        self._inject.require(Environment)
-
     async def startup(self) -> None:
         for func in self._cache.init_funcs:
             await self._inject.call(func.function)
+
+    @require(Parser)
+    def _parser(self):
+        ...
+
+    async def exec_cmd_args(self):
+        await self._parser.run()
 
 
 def main_func(func: Callable[[], Bolinette]) -> Callable[[], Bolinette]:

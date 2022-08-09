@@ -64,10 +64,12 @@ class _MetaFunctions:
         container[cls] = meta
 
     @staticmethod
-    def get(obj: Any, cls: type[T], /) -> T:
+    def get(obj: Any, cls: type[T], /, *, default: T | None = None) -> T:
         if not isinstance(cls, type):
             raise TypeError(f"Argument {cls} must be a type")
         container = _get_meta_container(obj)
+        if cls not in container and default is not None:
+            return default
         return container[cls]
 
 

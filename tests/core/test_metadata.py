@@ -1,4 +1,4 @@
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 import pytest
 
@@ -15,15 +15,6 @@ class _Meta:
 
     @property
     def value(self) -> Any:
-        return self._value
-
-
-class _GenericMeta(Generic[T]):
-    def __init__(self, value: T) -> None:
-        self._value = value
-
-    @property
-    def value(self) -> T:
         return self._value
 
 
@@ -164,3 +155,13 @@ def test_fail_container_set_item_wrong_type() -> None:
 
     with pytest.raises(TypeError):
         _c[_TestClass] = 0
+
+
+def test_set_get_meta_default() -> None:
+    class _TestClass:
+        pass
+
+    _m = _Meta(0)
+    t1 = _TestClass()
+
+    assert meta.get(t1, _Meta, default=_m) is _m

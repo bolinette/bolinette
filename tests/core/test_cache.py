@@ -17,10 +17,10 @@ def test_add_type() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(_TestClass, InjectionStrategy.Singleton, None)
+    cache.types.add(_TestClass, InjectionStrategy.Singleton, None)
 
     assert len(cache.types) == 1
-    assert cache.has_type(_TestClass)
+    assert _TestClass in cache.types
 
 
 def test_get_of_type() -> None:
@@ -34,10 +34,10 @@ def test_get_of_type() -> None:
         pass
 
     cache = Cache()
-    cache.add_type(_ChildClass1, InjectionStrategy.Singleton, None)
-    cache.add_type(_ChildClass2, InjectionStrategy.Singleton, None)
+    cache.types.add(_ChildClass1, InjectionStrategy.Singleton, None)
+    cache.types.add(_ChildClass2, InjectionStrategy.Singleton, None)
 
-    assert len(cache.of_type(_ParentClass)) == 2
+    assert len(cache.types.of_type(_ParentClass)) == 2
 
 
 def test_add_init_func() -> None:
@@ -58,7 +58,7 @@ def test_injectable_decorator() -> None:
         pass
 
     assert len(cache.types) == 1
-    assert cache.has_type(_TestClass)
+    assert _TestClass in cache.types
 
 
 def test_injectable_decorator_fail() -> None:
@@ -79,7 +79,7 @@ def test_init_func_decorator() -> None:
     cache = Cache()
 
     @init_func(cache=cache)
-    async def _test_func() -> None:
+    async def _() -> None:
         pass
 
     assert len(cache.init_funcs) == 1
@@ -106,4 +106,4 @@ def test_no_type_fail() -> None:
     cache = Cache()
 
     with pytest.raises(KeyError):
-        cache.get_type(_TestClass)
+        cache.types[_TestClass]
