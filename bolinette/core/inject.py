@@ -295,6 +295,10 @@ class Injection:
             raise InjectionError(f"Type {cls} is already a registered type")
         self._cache.types.add(cls, strategy, args, kwargs, init_methods)
         if instance is not None:
+            if instanciate:
+                raise InjectionError(
+                    f"Cannot instanciate {cls} if an instance is provided"
+                )
             if not isinstance(instance, cls):
                 raise InjectionError(f"Object provided must an instance of type {cls}")
             if strategy is not InjectionStrategy.Singleton:

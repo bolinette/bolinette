@@ -9,6 +9,7 @@ from bolinette.core import (
     InjectionStrategy,
     init_method,
     meta,
+    require,
 )
 from bolinette.core.exceptions import InitError, InjectionError
 from bolinette.core.inject import InjectionContext, _InjectionProxy
@@ -775,3 +776,68 @@ def test_generic_sub_injection_literal() -> None:
 
     assert meta.has(t.g, GenericMeta)
     assert meta.get(t.g, GenericMeta).templates == ["_ParamClass"]
+
+
+def test_require_decorator() -> None:
+    class _ParamClass:
+        def __init__(self) -> None:
+            self.v = 1
+
+    class _TestClass:
+        def __init__(self) -> None:
+            pass
+
+        @require(_ParamClass)
+        def param(self):
+            pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_ParamClass, InjectionStrategy.Singleton)
+    inject.add(_TestClass, InjectionStrategy.Singleton)
+
+    t = inject.require(_TestClass)
+
+    assert t.param.v == 1
+
+
+def test_require_decorator_fail() -> None:
+    class _TestClass:
+        pass
+
+    with pytest.raises(InitError) as info:
+        require(_TestClass)(_TestClass)
+
+    assert (
+        f"{_TestClass} must be a function to be decorated by {require.__name__}"  # type: ignore
+        in info.value.message
+    )
+
+
+def test_add_immediate_instanciate() -> None:
+    class _TestClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+    inject.add(_TestClass, InjectionStrategy.Singleton, instanciate=True)
+
+    assert inject._has_instance(_TestClass)
+
+
+def test_fail_immediate_instanciate() -> None:
+    class _TestClass:
+        pass
+
+    inject = Injection(Cache(), InjectionContext())
+
+    with pytest.raises(InjectionError) as info:
+        inject.add(
+            _TestClass,
+            InjectionStrategy.Singleton,
+            instance=_TestClass(),
+            instanciate=True,
+        )
+
+    assert (
+        f"Cannot instanciate {_TestClass} if an instance is provided"
+        in info.value.message
+    )

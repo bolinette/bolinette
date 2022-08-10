@@ -89,6 +89,27 @@ def test_logger_generic(capsys: CaptureFixture) -> None:
     assert outputs[0].message == "Test info message"
 
 
+def test_logger_generic_literal(capsys: CaptureFixture) -> None:
+    logger: Logger[Any] = Logger(Cache(debug=True))
+    meta.set(logger, GenericMeta(["_TestClass"]))
+    logger._init()
+
+    d1 = datetime.utcnow()
+
+    logger.info("Test info message")
+
+    d2 = datetime.utcnow()
+
+    captured = capsys.readouterr()
+    lines = filter(lambda s: s, [*captured.out.split("\n"), *captured.err.split("\n")])
+    outputs = list(map(lambda s: _parse_output(s), lines))
+
+    assert outputs[0].prefix == "INFO"
+    assert outputs[0].package == "_TestClass"
+    assert d1 <= outputs[0].timestamp <= d2
+    assert outputs[0].message == "Test info message"
+
+
 def test_logger_debug(capsys: CaptureFixture) -> None:
     cache = Cache()
 

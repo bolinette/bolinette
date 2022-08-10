@@ -18,7 +18,7 @@ T = TypeVar("T")
 
 class SupportsWrite(Protocol[T_Contra]):
     def write(self, __s: T_Contra) -> object:
-        ...
+        pass
 
 
 @unique

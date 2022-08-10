@@ -104,7 +104,7 @@ class Parser:
                 cur_node = cur_node[elem]
             elem = path[-1]
             if elem in cur_node:
-                raise InitError(f'Conflict with "{command.path}" command')
+                raise InitError(f"Conflict with '{command.path}' command")
             cur_node[elem] = func
             self._commands[command.path] = func
         return command_tree
@@ -213,7 +213,7 @@ class _CommandDecorator:
         ) -> Callable[P_Func, Awaitable[None]]:
             if not inspect.iscoroutinefunction(func):
                 raise InitError(
-                    f"{func} must be an async function to be decorated by @command"
+                    f"{func} must be an async function to be decorated by @command.argument"
                 )
             if not meta.has(func, _ArgumentMeta):
                 meta.set(func, _ArgumentMeta())
