@@ -1,4 +1,3 @@
-from typing import Any
 import pytest
 
 from bolinette.core import Cache, InjectionStrategy, init_func, injectable
@@ -32,7 +31,7 @@ def test_add_type_fail() -> None:
     cache = Cache()
 
     with pytest.raises(TypeError):
-        cache.types.add(_TestClass(), InjectionStrategy.Singleton)
+        cache.types.add(_TestClass(), InjectionStrategy.Singleton)  # type: ignore
 
 
 def test_get_of_type() -> None:
@@ -159,9 +158,9 @@ def test_get_type_args() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton, args=[1,2,3])
+    cache.types.add(_TestClass, InjectionStrategy.Singleton, args=[1, 2, 3])
 
-    assert cache.types.args(_TestClass) == [1,2,3]
+    assert cache.types.args(_TestClass) == [1, 2, 3]
 
 
 def test_get_type_kwargs() -> None:
@@ -169,9 +168,9 @@ def test_get_type_kwargs() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton, kwargs={'a': 1, 'b': 2})
+    cache.types.add(_TestClass, InjectionStrategy.Singleton, kwargs={"a": 1, "b": 2})
 
-    assert cache.types.kwargs(_TestClass) == {'a': 1, 'b': 2}
+    assert cache.types.kwargs(_TestClass) == {"a": 1, "b": 2}
 
 
 def test_param_bag_use() -> None:

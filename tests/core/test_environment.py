@@ -1,6 +1,6 @@
 import os
 from collections.abc import Callable
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import pytest
 
@@ -344,6 +344,23 @@ def test_fail_not_optional() -> None:
     )
 
 
+def test_hint_any() -> None:
+    cache = Cache()
+
+    @environment("test", cache=cache)
+    class TestSection:
+        a: Any
+        b: Any
+
+    mock = _setup_test(cache)
+    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1, "b": [1, 2]}})
+    mock.injection.require(Environment)
+    test = mock.injection.require(TestSection)
+
+    assert test.a == 1
+    assert test.b == [1, 2]
+
+
 def test_fail_no_union() -> None:
     cache = Cache()
 
@@ -417,5 +434,97 @@ def test_fail_no_section() -> None:
     ) in info.value.message
 
 
-def test_list_attribute() -> None:
-    pass
+def test_builtin_list_attribute() -> None:
+    cache = Cache()
+
+    @environment("test", cache=cache)
+    class TestSection:
+        a: list[int]
+        b: list[str]
+        c: list[float]
+        d: list[bool]
+
+    mock = _setup_test(cache)
+    mock.mock(FileUtils).setup(
+        "read_yaml",
+        lambda *_: {
+            "test": {"a": [1, 2], "b": ["a", "b"], "c": [1.1, 2.2], "d": [True, False]}
+        },
+    )
+    mock.injection.require(Environment)
+
+    t = mock.injection.require(TestSection)
+
+    assert t.a == [1, 2]
+    assert t.b == ["a", "b"]
+    assert t.c == [1.1, 2.2]
+    assert t.d == [True, False]
+
+
+def test_list_attribute_bad_cast() -> None:
+    cache = Cache()
+
+    @environment("test", cache=cache)
+    class TestSection:
+        a: list[int]
+
+    mock = _setup_test(cache)
+    mock.mock(FileUtils).setup(
+        "read_yaml",
+        lambda *_: {"test": {"a": ["1", "b"]}},
+    )
+    mock.injection.require(Environment)
+
+    with pytest.raises(EnvironmentError) as info:
+        mock.injection.require(TestSection)
+
+    assert (
+        f"Section {TestSection}.a[1]: unable to bind value b to type {int}"
+        in info.value.message
+    )
+
+
+def test_sub_object_in_list() -> None:
+    cache = Cache()
+
+    class SubTestSection:
+        a: int
+        b: str
+
+    @environment("test", cache=cache)
+    class TestSection:
+        subs: list[SubTestSection]
+
+    mock = _setup_test(cache)
+    mock.mock(FileUtils).setup(
+        "read_yaml",
+        lambda *_: {"test": {"subs": [{"a": 1, "b": "a"}, {"a": 2, "b": "b"}]}},
+    )
+    mock.injection.require(Environment)
+
+    t = mock.injection.require(TestSection)
+
+    assert len(t.subs) == 2
+    assert t.subs[0].a == 1
+    assert t.subs[0].b == "a"
+    assert t.subs[1].a == 2
+    assert t.subs[1].b == "b"
+
+
+def test_non_generic_list() -> None:
+    cache = Cache()
+
+    @environment("test", cache=cache)
+    class TestSection:
+        a: list
+
+    mock = _setup_test(cache)
+    mock.mock(FileUtils).setup(
+        "read_yaml",
+        lambda *_: {"test": {"a": [1, "b"]}},
+    )
+    mock.injection.require(Environment)
+
+    t = mock.injection.require(TestSection)
+
+    assert t.a == [1, "b"]

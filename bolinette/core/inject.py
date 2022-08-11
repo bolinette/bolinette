@@ -97,7 +97,7 @@ class Injection:
         if any(
             (n, p)
             for n, p in params.items()
-            if p.kind in [p.POSITIONAL_ONLY, p.VAR_POSITIONAL]
+            if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)
         ):
             raise InjectionError(
                 f"Positional only parameters and positional wildcards are not allowed",
@@ -136,7 +136,7 @@ class Injection:
                     continue
                 raise InjectionError(f"Annotation is required", func=func, param=p_name)
 
-            if get_origin(hint) in [UnionType, Union]:
+            if get_origin(hint) in (UnionType, Union):
                 type_args = get_args(hint)
                 nullable = type(None) in type_args
                 if not nullable or (nullable and len(type_args) >= 3):
@@ -332,7 +332,7 @@ class _ProxyHook:
         self.templates = templates
 
     def __getattribute__(self, __name: str) -> Any:
-        if __name in ["cls", "templates"]:
+        if __name in ("cls", "templates"):
             return object.__getattribute__(self, __name)
         raise InjectionError(
             "Tried accessing an injected instance inside the __init__ method. "

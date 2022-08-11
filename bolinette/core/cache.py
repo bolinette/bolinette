@@ -1,7 +1,7 @@
 import inspect
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable, Iterator
 from enum import Enum, auto, unique
-from typing import Any, Iterable, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
@@ -53,7 +53,7 @@ _TypeOptions = tuple[
 ]
 
 
-class _TypeCache:
+class _TypeCache(Iterable[type[Any]]):
     def __init__(self) -> None:
         self._types: set[type[Any]] = set()
         self._names: dict[str, type[Any]] = {}
@@ -79,7 +79,7 @@ class _TypeCache:
     def __len__(self) -> int:
         return len(self._types)
 
-    def __iter__(self) -> Iterable[type[Any]]:
+    def __iter__(self) -> Iterator[type[Any]]:
         return (t for t in self._types)
 
     def by_name(self, name: str) -> list[type[Any]]:

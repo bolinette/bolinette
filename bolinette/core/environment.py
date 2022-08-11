@@ -18,6 +18,7 @@ from bolinette.core.exceptions import EnvironmentError, InitError
 from bolinette.core.utils import FileUtils, PathUtils
 
 T = TypeVar("T")
+_NoAnnotation = type("_NoAnnotation", (), {})
 
 
 class _EnvSectionMeta:
@@ -150,60 +151,83 @@ class _EnvParser:
             return default
         return node[name]
 
-    @staticmethod
-    def _parse_object(obj: object, node: dict[str, Any], path: str) -> None:
+    def _parse_object(self, obj: object, node: dict[str, Any], path: str) -> None:
         for att_name, annotation in obj.__annotations__.items():
             sub_path = f"{path}.{att_name}"
-            if isinstance(annotation, str):
-                raise EnvironmentError(
-                    f"Section {sub_path}: no literal allowed in type hints"
-                )
-            nullable = False
-            if get_origin(annotation) in [UnionType, Union]:
-                type_args = get_args(annotation)
-                nullable = type(None) in type_args
-                if (nullable and len(type_args) >= 3) or not nullable:
-                    raise EnvironmentError(
-                        f"Section {sub_path}: type unions are not allowed"
-                    )
-                annotation = next(filter(lambda t: t is not type(None), type_args))
             default_set = False
             default = None
             if hasattr(obj, att_name):
                 default_set = True
                 default = getattr(obj, att_name)
-            value = _EnvParser._get_value(path, att_name, node, default_set, default)
-            if value is None:
-                if not nullable:
-                    raise EnvironmentError(
-                        f"Section {sub_path}: attemting to bind None value to a non-nullable attribute"
-                    )
-                value = None
-            elif annotation in (str, int, float, bool):
-                try:
-                    value = annotation(value)
-                except (ValueError):
-                    raise EnvironmentError(
-                        f"Section {sub_path}: unable to bind value {value} to type {annotation}"
-                    )
-            elif inspect.isclass(annotation):
-                if len(inspect.signature(annotation).parameters) != 0:
-                    raise EnvironmentError(
-                        f"Section {annotation} must have an empty __init__ method"
-                    )
-                if not isinstance(value, dict):
-                    raise EnvironmentError(
-                        f"Section {sub_path} is typed has a class and can only be mapped from a dictionnary"
-                    )
-                sub_obj = annotation()
-                _EnvParser._parse_object(sub_obj, value, sub_path)
-                value = sub_obj
-            else:
-                raise EnvironmentError(
-                    f"Unable to bind value to section {sub_path}, "
-                    "be sure to type hint with only classes and buit-in types"
-                )
+            env_value = _EnvParser._get_value(
+                path, att_name, node, default_set, default
+            )
+            value = self._parse_value(annotation, env_value, sub_path)
             setattr(obj, att_name, value)
+
+    def _parse_value(self, annotation: Any, value: Any, path: str) -> Any:
+        if annotation in (_NoAnnotation, Any):
+            return value
+        if isinstance(annotation, str):
+            raise EnvironmentError(f"Section {path}: no literal allowed in type hints")
+        nullable = False
+        if origin := get_origin(annotation):
+            type_args = get_args(annotation)
+            if origin in (UnionType, Union):
+                nullable = type(None) in type_args
+                if (nullable and len(type_args) >= 3) or not nullable:
+                    raise EnvironmentError(
+                        f"Section {path}: type unions are not allowed"
+                    )
+                annotation = next(filter(lambda t: t is not type(None), type_args))
+            if origin is list:
+                return self._parse_list(value, type_args[0], path)
+        if value is None:
+            if not nullable:
+                raise EnvironmentError(
+                    f"Section {path}: attemting to bind None value to a non-nullable attribute"
+                )
+            value = None
+        elif annotation is list:
+            return self._parse_list(value, _NoAnnotation, path)
+        elif annotation in (str, int, float, bool):
+            try:
+                value = annotation(value)
+            except (ValueError):
+                raise EnvironmentError(
+                    f"Section {path}: unable to bind value {value} to type {annotation}"
+                )
+        elif inspect.isclass(annotation):
+            if len(inspect.signature(annotation).parameters) != 0:
+                raise EnvironmentError(
+                    f"Section {annotation} must have an empty __init__ method"
+                )
+            if not isinstance(value, dict):
+                raise EnvironmentError(
+                    f"Section {path} is typed has a class and can only be mapped from a dictionnary"
+                )
+            sub_obj = annotation()
+            self._parse_object(sub_obj, value, path)
+            value = sub_obj
+        else:
+            raise EnvironmentError(
+                f"Unable to bind value to section {path}, "
+                "be sure to type hint with only classes and buit-in types"
+            )
+        return value
+
+    def _parse_list(self, value: Any, arg_type: type | None, path: str) -> list[Any]:
+        if not isinstance(value, list):
+            raise EnvironmentError(
+                f"Section {path} must be binded to a list, {type(value)} found"
+            )
+        index = 0
+        l = []
+        for elem in value:
+            sub_path = f"{path}[{index}]"
+            l.append(self._parse_value(arg_type, elem, sub_path))
+            index += 1
+        return l
 
     def parse(self) -> None:
         self._parse_object(self._object, self._env, str(type(self._object)))
