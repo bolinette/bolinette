@@ -410,8 +410,7 @@ def test_fail_unknow_type() -> None:
         mock.injection.require(TestSection)
 
     assert (
-        f"Unable to bind value to section {TestSection}.a, "
-        "be sure to type hint with only classes and buit-in types"
+        f"Section {TestSection}.a: unsupported generic type {Callable}"
     ) in info.value.message
 
 

@@ -1,14 +1,11 @@
 import sys
 from datetime import datetime
-from enum import StrEnum, unique
 from typing import Generic, Protocol, TypeVar
 
 from bolinette.core import (
     Cache,
     GenericMeta,
-    InjectionStrategy,
     init_method,
-    injectable,
     meta,
 )
 
@@ -21,8 +18,7 @@ class SupportsWrite(Protocol[T_Contra]):
         pass
 
 
-@unique
-class ConsoleColorCode(StrEnum):
+class ConsoleColorCode:
     Reset = "\x1b[0m"
     Bright = "\x1b[1m"
     Dim = "\x1b[2m"
@@ -70,7 +66,7 @@ class Logger(Generic[T]):
         self,
         prefix: str,
         text: str,
-        color: ConsoleColorCode | None = None,
+        color: str | None = None,
         file: SupportsWrite[str] | None = None,
     ):
         strs: list[str] = []

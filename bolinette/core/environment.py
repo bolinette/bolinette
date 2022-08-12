@@ -79,6 +79,8 @@ class Environment:
             for name, section in node.items():
                 if name not in merged:
                     merged[name] = {}
+                if isinstance(section, str):
+                    raise AttributeError(section, node, stack)
                 for key, value in section.items():
                     merged[name][key] = value
         self._raw_env = merged
@@ -180,8 +182,10 @@ class _EnvParser:
                         f"Section {path}: type unions are not allowed"
                     )
                 annotation = next(filter(lambda t: t is not type(None), type_args))
-            if origin is list:
+            elif origin is list:
                 return self._parse_list(value, type_args[0], path)
+            else:
+                raise EnvironmentError(f"Section {path}: unsupported generic type {origin}")
         if value is None:
             if not nullable:
                 raise EnvironmentError(
