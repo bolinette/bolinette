@@ -70,9 +70,17 @@ class Injection:
         if cls not in self._global_ctx:
             self._global_ctx[cls] = instance
 
-    def _has_instance(self, cls: type[Any]) -> bool:
+    def _has_instance(
+        self, cls: type[Any], *, origin: Callable | None = None, name: str | None = None
+    ) -> bool:
         strategy = self._cache.types.strategy(cls)
         if strategy is InjectionStrategy.Scoped:
+            if origin:
+                raise InjectionError(
+                    f"Cannot instanciate a scoped service in a non-scoped one",
+                    func=origin,
+                    param=name,
+                )
             raise InjectionError(
                 f"Cannot instanciate a scoped service outside of a scoped session",
                 cls=cls,
@@ -195,7 +203,7 @@ class Injection:
                         param=p_name,
                     )
                 else:
-                    if self._has_instance(cls):
+                    if self._has_instance(cls, origin=func, name=p_name):
                         f_args[p_name] = self._get_instance(cls)
                         continue
                     if immediate:
@@ -379,7 +387,7 @@ class _ScopedInjection(Injection):
         self._scoped_ctx = scoped_ctx
         self._scoped_ctx[Injection] = self
 
-    def _has_instance(self, cls: type[Any]) -> bool:
+    def _has_instance(self, cls: type[Any], **_) -> bool:
         strategy = self._cache.types.strategy(cls)
         return (strategy is InjectionStrategy.Scoped and cls in self._scoped_ctx) or (
             strategy is InjectionStrategy.Singleton and cls in self._global_ctx

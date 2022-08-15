@@ -457,6 +457,52 @@ def test_scoped_injection_fail_no_scope() -> None:
     )
 
 
+def test_scoped_injection_fail_no_scope_in_singleton() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        def __init__(self, c1: _C1) -> None:
+            pass
+
+    cache = Cache()
+    cache.types.add(_C1, InjectionStrategy.Scoped)
+    cache.types.add(_C2, InjectionStrategy.Singleton)
+
+    inject = Injection(cache, InjectionContext())
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(_C2)
+
+    assert (
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one"
+        in info.value.message
+    )
+
+
+def test_scoped_injection_fail_no_scope_in_transcient() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        def __init__(self, c1: _C1) -> None:
+            pass
+
+    cache = Cache()
+    cache.types.add(_C1, InjectionStrategy.Scoped)
+    cache.types.add(_C2, InjectionStrategy.Transcient)
+
+    inject = Injection(cache, InjectionContext())
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(_C2)
+
+    assert (
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one"
+        in info.value.message
+    )
+
+
 def test_scoped_injection() -> None:
     class _C1:
         pass

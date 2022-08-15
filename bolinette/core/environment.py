@@ -185,7 +185,9 @@ class _EnvParser:
             elif origin is list:
                 return self._parse_list(value, type_args[0], path)
             else:
-                raise EnvironmentError(f"Section {path}: unsupported generic type {origin}")
+                raise EnvironmentError(
+                    f"Section {path}: unsupported generic type {origin}"
+                )
         if value is None:
             if not nullable:
                 raise EnvironmentError(
