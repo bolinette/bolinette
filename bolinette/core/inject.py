@@ -15,7 +15,7 @@ from typing import (
     get_type_hints,
 )
 
-from bolinette.core import Cache, GenericMeta, InjectionStrategy, meta
+from bolinette.core import Cache, GenericMeta, InjectionStrategy, meta, __core_cache__
 from bolinette.core.exceptions import InitError, InjectionError
 
 
@@ -385,17 +385,35 @@ def init_method(
 ) -> Callable[Concatenate[T_Instance, P_Func], None]:
     if not inspect.isfunction(func):
         raise InitError(
-            f"{func} must be a function to be decorated by {init_method.__name__}"
+            f"{func} must be a function to be decorated by @{init_method.__name__}"
         )
     meta.set(func, _InitMethodMeta())
     return func
+
+
+def injectable(
+    *,
+    strategy: InjectionStrategy = InjectionStrategy.Singleton,
+    args: list[Any] | None = None,
+    kwargs: dict[str, Any] | None = None,
+    cache: Cache | None = None,
+) -> Callable[[type[T_Instance]], type[T_Instance]]:
+    def decorator(cls: type[T_Instance]) -> type[T_Instance]:
+        if not inspect.isclass(cls):
+            raise InitError(
+                f"'{cls}' must be a class to be decorated by @{injectable.__name__}"
+            )
+        (cache or __core_cache__).types.add(cls, strategy, args, kwargs)
+        return cls
+
+    return decorator
 
 
 def require(cls: type[T_Instance]):
     def decorator(func: Callable) -> _InjectionProxy[T_Instance]:
         if not inspect.isfunction(func):
             raise InitError(
-                f"{func} must be a function to be decorated by {require.__name__}"
+                f"{func} must be a function to be decorated by @{require.__name__}"
             )
         _cls, templates = Injection._get_generic_templates(cls)
         return _InjectionProxy(func.__name__, _cls, templates)

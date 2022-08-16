@@ -144,21 +144,3 @@ def init_func(
         return func
 
     return decorator
-
-
-def injectable(
-    *,
-    strategy: InjectionStrategy = InjectionStrategy.Singleton,
-    args: list[Any] | None = None,
-    kwargs: dict[str, Any] | None = None,
-    cache: Cache | None = None,
-) -> Callable[[type[T_Instance]], type[T_Instance]]:
-    def decorator(cls: type[T_Instance]) -> type[T_Instance]:
-        if not inspect.isclass(cls):
-            raise InitError(
-                f"'{cls}' must be a class to be decorated by @{injectable.__name__}"
-            )
-        (cache or __core_cache__).types.add(cls, strategy, args, kwargs)
-        return cls
-
-    return decorator

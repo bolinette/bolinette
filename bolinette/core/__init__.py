@@ -6,9 +6,8 @@ from bolinette.core.cache import (
     Cache,
     __core_cache__,
     init_func,
-    injectable,
 )
-from bolinette.core.inject import Injection, init_method, require
+from bolinette.core.inject import Injection, init_method, require, injectable
 from bolinette.core.logger import Logger, ConsoleColorCode
 from bolinette.core.environment import Environment, environment
 from bolinette.core.command import command

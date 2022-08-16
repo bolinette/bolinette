@@ -297,7 +297,7 @@ def test_init_method_fail_decorate_type() -> None:
         init_method(_TestClass)  # type: ignore
 
     assert (
-        f"{_TestClass} must be a function to be decorated by {init_method.__name__}"
+        f"{_TestClass} must be a function to be decorated by @{init_method.__name__}"
         in str(info.value)
     )
 
@@ -809,7 +809,7 @@ def test_require_decorator_fail() -> None:
         require(_TestClass)(_TestClass)
 
     assert (
-        f"{_TestClass} must be a function to be decorated by {require.__name__}"  # type: ignore
+        f"{_TestClass} must be a function to be decorated by @{require.__name__}"  # type: ignore
         in info.value.message
     )
 
