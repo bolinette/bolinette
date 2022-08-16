@@ -6,9 +6,9 @@ class CoreSection:
 
 
 class GenericMeta:
-    def __init__(self, templates: list[type[Any] | str]) -> None:
-        self._templates = templates
+    def __init__(self, args: list[type[Any] | str]) -> None:
+        self._args = args
 
     @property
-    def templates(self) -> list[type[Any] | str]:
-        return [t for t in self._templates]
+    def args(self) -> list[type[Any] | str]:
+        return [t for t in self._args]

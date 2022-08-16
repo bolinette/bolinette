@@ -48,16 +48,13 @@ class Cache:
         return [(n, c) for n, c in self._env_sections.items()]
 
 
-_TypeOptions = tuple[
-    InjectionStrategy, list[Any], dict[str, Any], list[Callable[[T_Instance], None]]
-]
-
-
 class _TypeCache(Iterable[type[Any]]):
     def __init__(self) -> None:
         self._types: set[type[Any]] = set()
-        self._names: dict[str, type[Any]] = {}
-        self._options: dict[type[Any], _TypeOptions] = {}
+        self._strategies: dict[type[Any], InjectionStrategy] = {}
+        self._args: dict[type[Any], list[Any]] = {}
+        self._kwargs: dict[type[Any], dict[str, Any]] = {}
+        self._init_methods: dict[type[Any], list[Callable[[T_Instance], None]]] = {}
 
     def add(
         self,
@@ -70,8 +67,10 @@ class _TypeCache(Iterable[type[Any]]):
         if not isinstance(cls, type):
             raise TypeError(cls)
         self._types.add(cls)
-        self._options[cls] = (strategy, args or [], kwargs or {}, init_methods or [])
-        self._names[f"{cls.__module__}.{cls.__qualname__}"] = cls
+        self._strategies[cls] = strategy
+        self._args[cls] = args or []
+        self._kwargs[cls] = kwargs or {}
+        self._init_methods[cls] = init_methods or []
 
     def __contains__(self, cls: type[Any]) -> bool:
         return cls in self._types
@@ -82,32 +81,28 @@ class _TypeCache(Iterable[type[Any]]):
     def __iter__(self) -> Iterator[type[Any]]:
         return (t for t in self._types)
 
-    def by_name(self, name: str) -> list[type[Any]]:
-        name = f".{name}"
-        return [t for n, t in self._names.items() if n.endswith(name)]
-
     def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:
         return [t for t in self._types if issubclass(t, cls)]
 
     def strategy(self, cls: type[Any]) -> InjectionStrategy:
         if cls not in self:
             raise KeyError(cls)
-        return self._options[cls][0]
+        return self._strategies[cls]
 
     def args(self, cls: type[Any]) -> list[Any]:
         if cls not in self:
             raise KeyError(cls)
-        return self._options[cls][1]
+        return self._args[cls]
 
     def kwargs(self, cls: type[Any]) -> dict[str, Any]:
         if cls not in self:
             raise KeyError(cls)
-        return self._options[cls][2]
+        return self._kwargs[cls]
 
     def init_methods(self, cls: type[Any]) -> list[Callable[[T_Instance], None]]:
         if cls not in self:
             raise KeyError(cls)
-        return self._options[cls][3]
+        return self._init_methods[cls]
 
 
 class _ParameterBag:

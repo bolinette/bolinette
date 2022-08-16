@@ -54,13 +54,9 @@ class Logger(Generic[T]):
     @init_method
     def _init(self) -> None:
         if meta.has(self, GenericMeta):
-            templates = meta.get(self, GenericMeta).templates
-            if templates and len(templates):
-                template = templates[0]
-                if isinstance(template, type):
-                    self._package = template.__name__
-                elif isinstance(template, str):
-                    self._package = template
+            args = meta.get(self, GenericMeta).args
+            if args and len(args):
+                self._package = args[0].__name__
 
     def _log(
         self,

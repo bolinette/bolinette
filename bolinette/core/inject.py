@@ -12,6 +12,7 @@ from typing import (
     Union,
     get_args,
     get_origin,
+    get_type_hints,
 )
 
 from bolinette.core import Cache, GenericMeta, InjectionStrategy, meta
@@ -116,6 +117,16 @@ class Injection:
         _args = [*args]
         _kwargs = {**kwargs}
 
+        try:
+            if inspect.isclass(func):
+                hints = get_type_hints(func.__init__)
+            else:
+                hints = get_type_hints(func)
+        except NameError as e:
+            raise InjectionError(
+                f"Type hint '{e.name}' could not be resolved", func=func
+            )
+
         for p_name, param in params.items():
             if param.kind == param.VAR_KEYWORD:
                 for kw_name, kw_value in _kwargs.items():
@@ -135,14 +146,15 @@ class Injection:
             if param.default is not param.empty:
                 default_set = True
                 default = param.default
-            hint = param.annotation
             nullable = False
 
-            if hint == inspect.Signature.empty:
+            if p_name not in hints:
                 if default_set:
                     f_args[p_name] = default
                     continue
                 raise InjectionError(f"Annotation is required", func=func, param=p_name)
+
+            hint = hints[p_name]  # type: type
 
             if get_origin(hint) in (UnionType, Union):
                 type_args = get_args(hint)
@@ -153,69 +165,29 @@ class Injection:
                     )
                 hint = next(filter(lambda t: t is not type(None), type_args))
 
-            if isinstance(hint, str):
-                if (
-                    (match_right := self._RIGHT_NONE_TYPE_REGEX.match(hint))
-                    or (match_left := self._LEFT_NONE_TYPE_REGEX.match(hint))
-                    or (match_opt := self._OPTIONAL_TYPE_REGEX.match(hint))
-                ):
-                    nullable = True
-                    if match_right:
-                        hint = match_right.group(1)
-                    elif match_left:
-                        hint = match_left.group(1)
-                    elif match_opt:
-                        hint = match_opt.group(1)
-
             hint, templates = self._get_generic_templates(hint)
 
-            if isinstance(hint, (type, str)):
-                if isinstance(hint, str):
-                    classes = self._cache.types.by_name(hint)
-                    if not classes:
-                        if nullable:
-                            f_args[p_name] = None
-                            break
-                        raise InjectionError(
-                            f"Literal '{hint}' does not match any registered type",
-                            func=func,
-                            param=p_name,
-                        )
-                    if (l := len(classes)) > 1:
-                        raise InjectionError(
-                            f"Literal '{hint}' matches with {l} registered types, use a more explicit name",
-                            func=func,
-                            param=p_name,
-                        )
-                    cls = classes[0]
-                else:
-                    cls = hint
-                if not cls in self._cache.types:
-                    if nullable:
-                        f_args[p_name] = None
-                        continue
-                    if default_set:
-                        f_args[p_name] = default
-                        continue
-                    raise InjectionError(
-                        f"Type {cls} is not a registered type in the injection system",
-                        func=func,
-                        param=p_name,
-                    )
-                else:
-                    if self._has_instance(cls, origin=func, name=p_name):
-                        f_args[p_name] = self._get_instance(cls)
-                        continue
-                    if immediate:
-                        f_args[p_name] = self._instanciate(cls, templates)
-                        continue
-                    f_args[p_name] = _ProxyHook(cls, templates)
+            if not hint in self._cache.types:
+                if nullable:
+                    f_args[p_name] = None
                     continue
-            raise InjectionError(
-                f"Type hint {hint} is not supported by the injection system",
-                func=func,
-                param=p_name,
-            )
+                if default_set:
+                    f_args[p_name] = default
+                    continue
+                raise InjectionError(
+                    f"Type {hint} is not a registered type in the injection system",
+                    func=func,
+                    param=p_name,
+                )
+            else:
+                if self._has_instance(hint, origin=func, name=p_name):
+                    f_args[p_name] = self._get_instance(hint)
+                    continue
+                if immediate:
+                    f_args[p_name] = self._instanciate(hint, templates)
+                    continue
+                f_args[p_name] = _ProxyHook(hint, templates)
+                continue
 
         if _args or _kwargs:
             raise InjectionError(
@@ -248,14 +220,16 @@ class Injection:
     @staticmethod
     def _get_generic_templates(
         cls: type[T_Instance],
-    ) -> tuple[type[T_Instance], list[type[Any] | str]]:
+    ) -> tuple[type[T_Instance], list[type[Any]]]:
         if origin := get_origin(cls):
             templates = []
             for arg in get_args(cls):
-                if isinstance(arg, (type, str)):
-                    templates.append(arg)
-                elif isinstance(arg, ForwardRef) and (name := arg.__forward_arg__):
-                    templates.append(name)
+                if isinstance(arg, ForwardRef):
+                    raise InjectionError(
+                        f"Generic parameter {arg}, literal type hints are not allowed in direct require calls",
+                        cls=origin,
+                    )
+                templates.append(arg)
             return origin, templates  # type: ignore
         return cls, []
 

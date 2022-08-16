@@ -48,6 +48,10 @@ class InjectableClassA:
         return "a"
 
 
+class _SubTestClass:
+    pass
+
+
 def test_add_type_twice() -> None:
     inject = Injection(Cache(), InjectionContext())
 
@@ -213,7 +217,7 @@ def test_add_instance() -> None:
     assert b.func() == b.func()
 
 
-def test_no_literal_match() -> None:
+def test_forward_ref_local_class_not_resolved() -> None:
     class _Value:
         pass
 
@@ -228,36 +232,7 @@ def test_no_literal_match() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert (
-        f"Callable {_TestClass}, Parameter 'value', "
-        f"Literal '{_Value.__name__}' does not match any registered type"
-        in info.value.message
-    )
-
-
-def test_too_many_literal_matches() -> None:
-    class _Value:
-        class _Value:
-            pass
-
-    class _TestClass:
-        def __init__(self, _: "_Value") -> None:
-            pass
-
-    cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton)
-    cache.types.add(_Value, InjectionStrategy.Singleton)
-    cache.types.add(_Value._Value, InjectionStrategy.Singleton)
-
-    inject = Injection(cache, InjectionContext())
-    with pytest.raises(InjectionError) as info:
-        inject.require(_TestClass)
-
-    assert (
-        f"Callable {_TestClass}, Parameter '_', "
-        f"Literal '{_Value.__name__}' matches with 2 registered types, use a more explicit name"
-        in info.value.message
-    )
+    assert f"Type hint '_Value' could not be resolved" in info.value.message
 
 
 def test_no_annotation() -> None:
@@ -624,9 +599,6 @@ def test_proxy_no_injection_meta() -> None:
 
 
 def test_inject_nullable() -> None:
-    class _SubTestClass:
-        pass
-
     class _TestClass:
         def __init__(self, sub: _SubTestClass | None, i: int | None) -> None:
             self.sub = sub
@@ -642,9 +614,6 @@ def test_inject_nullable() -> None:
 
 
 def test_inject_nullable_bis() -> None:
-    class _SubTestClass:
-        pass
-
     class _TestClass:
         def __init__(self, sub: Optional[_SubTestClass]) -> None:
             self.sub = sub
@@ -658,9 +627,6 @@ def test_inject_nullable_bis() -> None:
 
 
 def test_inject_with_default() -> None:
-    class _SubTestClass:
-        pass
-
     s = _SubTestClass()
 
     class _TestClass:
@@ -699,9 +665,6 @@ def test_optional_type_literal_right() -> None:
         def __init__(self, sub: "_SubTestClass | None") -> None:
             self.sub = sub
 
-    class _SubTestClass:
-        pass
-
     inject = Injection(Cache(), InjectionContext())
     inject.add(_TestClass, InjectionStrategy.Singleton)
 
@@ -715,9 +678,6 @@ def test_optional_type_literal_left() -> None:
         def __init__(self, sub: "None | _SubTestClass") -> None:
             self.sub = sub
 
-    class _SubTestClass:
-        pass
-
     inject = Injection(Cache(), InjectionContext())
     inject.add(_TestClass, InjectionStrategy.Singleton)
 
@@ -730,9 +690,6 @@ def test_optional_type_literal_bis() -> None:
     class _TestClass:
         def __init__(self, sub: "Optional[_SubTestClass]") -> None:
             self.sub = sub
-
-    class _SubTestClass:
-        pass
 
     inject = Injection(Cache(), InjectionContext())
     inject.add(_TestClass, InjectionStrategy.Singleton)
@@ -757,25 +714,26 @@ def test_generic_injection() -> None:
     g = inject.require(_GenericTest[_ParamClass])
 
     assert meta.has(g, GenericMeta)
-    assert meta.get(g, GenericMeta).templates == [_ParamClass]
+    assert meta.get(g, GenericMeta).args == [_ParamClass]
 
 
-def test_generic_injection_literal() -> None:
+def test_generic_no_direct_injection_literal() -> None:
     _T = TypeVar("_T")
 
     class _GenericTest(Generic[_T]):
         pass
 
-    class _ParamClass:
-        pass
-
     inject = Injection(Cache(), InjectionContext())
     inject.add(_GenericTest, InjectionStrategy.Singleton)
 
-    g = inject.require(_GenericTest["_ParamClass"])
+    with pytest.raises(InjectionError) as info:
+        inject.require(_GenericTest["_SubTestClass"])
 
-    assert meta.has(g, GenericMeta)
-    assert meta.get(g, GenericMeta).templates == ["_ParamClass"]
+    assert (
+        f"Type {_GenericTest}, Generic parameter ForwardRef('_SubTestClass'), "
+        "literal type hints are not allowed in direct require calls"
+        in info.value.message
+    )
 
 
 def test_generic_sub_injection() -> None:
@@ -798,7 +756,7 @@ def test_generic_sub_injection() -> None:
     t = inject.require(_TestClass)
 
     assert meta.has(t.g, GenericMeta)
-    assert meta.get(t.g, GenericMeta).templates == [_ParamClass]
+    assert meta.get(t.g, GenericMeta).args == [_ParamClass]
 
 
 def test_generic_sub_injection_literal() -> None:
@@ -807,11 +765,8 @@ def test_generic_sub_injection_literal() -> None:
     class _GenericTest(Generic[_T]):
         pass
 
-    class _ParamClass:
-        pass
-
     class _TestClass:
-        def __init__(self, g: _GenericTest["_ParamClass"]) -> None:
+        def __init__(self, g: _GenericTest["_SubTestClass"]) -> None:
             self.g = g
 
     inject = Injection(Cache(), InjectionContext())
@@ -821,7 +776,7 @@ def test_generic_sub_injection_literal() -> None:
     t = inject.require(_TestClass)
 
     assert meta.has(t.g, GenericMeta)
-    assert meta.get(t.g, GenericMeta).templates == ["_ParamClass"]
+    assert meta.get(t.g, GenericMeta).args == [_SubTestClass]
 
 
 def test_require_decorator() -> None:
