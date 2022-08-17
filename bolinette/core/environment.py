@@ -2,7 +2,7 @@ import inspect
 import os
 from collections.abc import Callable
 from types import UnionType
-from typing import Any, TypeVar, Union, get_args, get_origin
+from typing import Any, Protocol, Union, get_args, get_origin
 
 from bolinette.core import (
     Cache,
@@ -17,7 +17,6 @@ from bolinette.core import (
 from bolinette.core.exceptions import EnvironmentError, InitError
 from bolinette.core.utils import FileUtils, PathUtils
 
-T = TypeVar("T")
 _NoAnnotation = type("_NoAnnotation", (), {})
 
 
@@ -117,10 +116,15 @@ class Environment:
             return {}
 
 
+class EnvironmentSection(Protocol):
+    def __init__(self) -> None:
+        pass
+
+
 def environment(
     name: str, *, cache: Cache | None = None
-) -> Callable[[type[T]], type[T]]:
-    def decorator(cls: type[T]) -> type[T]:
+) -> Callable[[type[EnvironmentSection]], type[EnvironmentSection]]:
+    def decorator(cls: type[EnvironmentSection]) -> type[EnvironmentSection]:
         if not inspect.isclass(cls):
             raise InitError(
                 f"{cls} must be a class to be decorated with @{environment.__name__}"

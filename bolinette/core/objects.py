@@ -6,9 +6,9 @@ class CoreSection:
 
 
 class GenericMeta:
-    def __init__(self, args: list[type[Any] | str]) -> None:
+    def __init__(self, args: list[type[Any]]) -> None:
         self._args = args
 
     @property
-    def args(self) -> list[type[Any] | str]:
+    def args(self) -> list[type[Any]]:
         return [t for t in self._args]

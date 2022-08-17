@@ -15,7 +15,7 @@ from typing import (
     get_type_hints,
 )
 
-from bolinette.core import Cache, GenericMeta, InjectionStrategy, meta, __core_cache__
+from bolinette.core import Cache, GenericMeta, InjectionStrategy, __core_cache__, meta
 from bolinette.core.exceptions import InitError, InjectionError
 
 

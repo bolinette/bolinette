@@ -1,4 +1,3 @@
-import inspect
 from collections.abc import Awaitable, Callable, Iterable, Iterator
 from enum import Enum, auto, unique
 from typing import Any, ParamSpec, TypeVar

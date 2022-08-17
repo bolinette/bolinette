@@ -2,12 +2,7 @@ import sys
 from datetime import datetime
 from typing import Generic, Protocol, TypeVar
 
-from bolinette.core import (
-    Cache,
-    GenericMeta,
-    init_method,
-    meta,
-)
+from bolinette.core import Cache, GenericMeta, init_method, meta
 
 T_Contra = TypeVar("T_Contra", contravariant=True)
 T = TypeVar("T")
