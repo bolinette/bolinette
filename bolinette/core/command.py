@@ -26,11 +26,11 @@ class _Argument:
         arg_type: Literal["argument", "option", "flag", "count"],
         name: str,
         *,
-        flag: str = None,
-        summary: str = None,
-        value_type: type[Any] = None,
-        default=None,
-        choices: list = None,
+        flag: str | None = None,
+        summary: str | None = None,
+        value_type: type[Any] | None = None,
+        default: Any | None = None,
+        choices: list | None = None,
     ):
         self.arg_type = arg_type
         self.name = name
@@ -142,7 +142,7 @@ class Parser:
         *,
         optional: bool = False,
         use_flag: bool = False,
-        action: str = None,
+        action: str | None = None,
     ):
         args: list[Any] = []
         kwargs: dict[str, Any] = {}
@@ -202,11 +202,11 @@ class _CommandDecorator:
         arg_type: Literal["argument", "option", "flag", "count"],
         name: str,
         *,
-        flag: str = None,
-        summary: str = None,
-        value_type: type = None,
+        flag: str | None = None,
+        summary: str | None = None,
+        value_type: type | None = None,
         default=None,
-        choices: list = None,
+        choices: list | None = None,
     ):
         def decorator(
             func: Callable[P_Func, Awaitable[None]]

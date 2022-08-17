@@ -97,7 +97,7 @@ class Injection:
 
     def _resolve_args(
         self,
-        func: Callable[P_Func, T_Func],
+        func: Callable,
         immediate: bool,
         args: list[Any],
         kwargs: dict[str, Any],
@@ -219,11 +219,11 @@ class Injection:
 
     @staticmethod
     def _get_generic_templates(
-        cls: type[T_Instance],
+        _cls: type[T_Instance],
     ) -> tuple[type[T_Instance], list[type[Any]]]:
-        if origin := get_origin(cls):
+        if origin := get_origin(_cls):
             templates = []
-            for arg in get_args(cls):
+            for arg in get_args(_cls):
                 if isinstance(arg, ForwardRef):
                     raise InjectionError(
                         f"Generic parameter {arg}, literal type hints are not allowed in direct require calls",
@@ -231,7 +231,7 @@ class Injection:
                     )
                 templates.append(arg)
             return origin, templates  # type: ignore
-        return cls, []
+        return _cls, []
 
     def _instanciate(
         self, cls: type[T_Instance], templates: list[Any] | None = None
@@ -254,7 +254,7 @@ class Injection:
 
     def call(
         self,
-        func: Callable[P_Func, T_Func],
+        func: Callable[..., T_Func],
         *,
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
@@ -383,9 +383,9 @@ class _ScopedInjection(Injection):
 def init_method(
     func: Callable[Concatenate[T_Instance, P_Func], None]
 ) -> Callable[Concatenate[T_Instance, P_Func], None]:
-    if not inspect.isfunction(func):
+    if not callable(func):
         raise InitError(
-            f"{func} must be a function to be decorated by @{init_method.__name__}"
+            f"{func} must be callable to be decorated by @{init_method.__name__}"
         )
     meta.set(func, _InitMethodMeta())
     return func
@@ -399,7 +399,7 @@ def injectable(
     cache: Cache | None = None,
 ) -> Callable[[type[T_Instance]], type[T_Instance]]:
     def decorator(cls: type[T_Instance]) -> type[T_Instance]:
-        if not inspect.isclass(cls):
+        if not isinstance(cls, type):
             raise InitError(
                 f"'{cls}' must be a class to be decorated by @{injectable.__name__}"
             )
@@ -409,11 +409,11 @@ def injectable(
     return decorator
 
 
-def require(cls: type[T_Instance]):
+def require(cls: type[T_Instance]) -> Callable[[Callable], _InjectionProxy[T_Instance]]:
     def decorator(func: Callable) -> _InjectionProxy[T_Instance]:
-        if not inspect.isfunction(func):
+        if not callable(func):
             raise InitError(
-                f"{func} must be a function to be decorated by @{require.__name__}"
+                f"{func} must be callable to be decorated by @{require.__name__}"
             )
         _cls, templates = Injection._get_generic_templates(cls)
         return _InjectionProxy(func.__name__, _cls, templates)

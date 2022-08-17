@@ -61,7 +61,9 @@ class EnvironmentError(BolinetteError):
 
 
 class InitError(Exception):
-    def __init__(self, message: str = None, *, inner: Exception = None) -> None:
+    def __init__(
+        self, message: str | None = None, *, inner: Exception | None = None
+    ) -> None:
         self.message = message
         self.inner = inner
 

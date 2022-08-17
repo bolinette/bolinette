@@ -290,15 +290,11 @@ def test_use_init_method() -> None:
 
 
 def test_init_method_fail_decorate_type() -> None:
-    class _TestClass:
-        pass
-
     with pytest.raises(InitError) as info:
-        init_method(_TestClass)  # type: ignore
+        init_method(None)  # type: ignore
 
-    assert (
-        f"{_TestClass} must be a function to be decorated by @{init_method.__name__}"
-        in str(info.value)
+    assert f"{None} must be callable to be decorated by @{init_method.__name__}" in str(
+        info.value
     )
 
 
@@ -806,10 +802,10 @@ def test_require_decorator_fail() -> None:
         pass
 
     with pytest.raises(InitError) as info:
-        require(_TestClass)(_TestClass)
+        require(_TestClass)(None)  # type: ignore
 
     assert (
-        f"{_TestClass} must be a function to be decorated by @{require.__name__}"  # type: ignore
+        f"{None} must be callable to be decorated by @{require.__name__}"  # type: ignore
         in info.value.message
     )
 

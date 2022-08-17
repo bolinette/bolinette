@@ -125,7 +125,7 @@ def environment(
     name: str, *, cache: Cache | None = None
 ) -> Callable[[type[EnvironmentSection]], type[EnvironmentSection]]:
     def decorator(cls: type[EnvironmentSection]) -> type[EnvironmentSection]:
-        if not inspect.isclass(cls):
+        if not isinstance(cls, type):
             raise InitError(
                 f"{cls} must be a class to be decorated with @{environment.__name__}"
             )
@@ -207,7 +207,7 @@ class _EnvParser:
                 raise EnvironmentError(
                     f"Section {path}: unable to bind value {value} to type {annotation}"
                 )
-        elif inspect.isclass(annotation):
+        elif isinstance(annotation, type):
             if len(inspect.signature(annotation).parameters) != 0:
                 raise EnvironmentError(
                     f"Section {annotation} must have an empty __init__ method"

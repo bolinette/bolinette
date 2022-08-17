@@ -43,7 +43,7 @@ def _get_meta_container(obj: Any) -> _BolinetteMetadata:
 
 class _MetaFunctions:
     @staticmethod
-    def has(obj: Any, cls: type[T], /) -> bool:
+    def has(obj: Any, cls: type[Any], /) -> bool:
         if not hasattr(obj, "__dict__"):
             return False
         if not isinstance(cls, type):

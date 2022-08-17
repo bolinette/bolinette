@@ -53,7 +53,7 @@ class _TypeCache(Iterable[type[Any]]):
         self._strategies: dict[type[Any], InjectionStrategy] = {}
         self._args: dict[type[Any], list[Any]] = {}
         self._kwargs: dict[type[Any], dict[str, Any]] = {}
-        self._init_methods: dict[type[Any], list[Callable[[T_Instance], None]]] = {}
+        self._init_methods: dict[type[Any], list[Callable[[Any], None]]] = {}
 
     def add(
         self,
@@ -98,7 +98,7 @@ class _TypeCache(Iterable[type[Any]]):
             raise KeyError(cls)
         return self._kwargs[cls]
 
-    def init_methods(self, cls: type[Any]) -> list[Callable[[T_Instance], None]]:
+    def init_methods(self, cls: type[T_Instance]) -> list[Callable[[T_Instance], None]]:
         if cls not in self:
             raise KeyError(cls)
         return self._init_methods[cls]
