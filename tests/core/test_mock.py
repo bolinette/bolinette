@@ -1,6 +1,5 @@
 import pytest
 
-from bolinette.core.cache import InjectionStrategy
 from bolinette.core.testing import Mock
 
 
@@ -30,7 +29,7 @@ class _TestClass:
 def test_mock_get_mocked_attr() -> None:
     mock = Mock()
     mock.mock(_TestInjectedClass).setup("v1", "1")
-    mock.injection.add(_TestClass, InjectionStrategy.Singleton)
+    mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
     assert t.i.v1 == "1"
@@ -39,7 +38,7 @@ def test_mock_get_mocked_attr() -> None:
 def test_mock_get_mocked_attr_property() -> None:
     mock = Mock()
     mock.mock(_TestInjectedClass).setup("v2", "2")
-    mock.injection.add(_TestClass, InjectionStrategy.Singleton)
+    mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
     assert t.i.v2 == "2"
@@ -48,7 +47,7 @@ def test_mock_get_mocked_attr_property() -> None:
 def test_mock_get_mocked_attr_callable() -> None:
     mock = Mock()
     mock.mock(_TestInjectedClass).setup("get_v3", lambda: "3")
-    mock.injection.add(_TestClass, InjectionStrategy.Singleton)
+    mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
     assert t.i.get_v3() == "3"
@@ -57,7 +56,7 @@ def test_mock_get_mocked_attr_callable() -> None:
 def test_mock_get_mocked_attr_callable_args() -> None:
     mock = Mock()
     mock.mock(_TestInjectedClass).setup("get_v4", lambda value: value)
-    mock.injection.add(_TestClass, InjectionStrategy.Singleton)
+    mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
     assert t.i.get_v4("4") == "4"
@@ -67,7 +66,7 @@ def test_mock_two_mock_calls() -> None:
     mock = Mock()
     mock.mock(_TestInjectedClass).setup("v1", "1")
     mock.mock(_TestInjectedClass).setup("get_v3", lambda: "3")
-    mock.injection.add(_TestClass, InjectionStrategy.Singleton)
+    mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
     assert t.i.v1 == "1"
@@ -77,7 +76,7 @@ def test_mock_two_mock_calls() -> None:
 def test_mock_fail_not_mocked() -> None:
     mock = Mock()
     mock.mock(_TestInjectedClass)
-    mock.injection.add(_TestClass, InjectionStrategy.Singleton)
+    mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
     with pytest.raises(KeyError) as info:

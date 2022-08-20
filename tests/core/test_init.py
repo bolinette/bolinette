@@ -1,20 +1,4 @@
-import pytest
-
-from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
-
-
-def test_init_func_non_async() -> None:
-    def _test_func() -> None:
-        pass
-
-    with pytest.raises(InitError) as info:
-        InitFunction(_test_func)  # type: ignore
-
-    assert (
-        f"'{_test_func}' must be an async function to be an init function"  # type: ignore
-        in info.value.message
-    )
 
 
 def test_init_func() -> None:

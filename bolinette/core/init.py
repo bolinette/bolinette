@@ -1,4 +1,3 @@
-import inspect
 from collections.abc import Awaitable, Callable
 from typing import Generic, ParamSpec
 
@@ -9,10 +8,6 @@ P = ParamSpec("P")
 
 class InitFunction(Generic[P]):
     def __init__(self, func: Callable[P, Awaitable[None]]) -> None:
-        if not inspect.iscoroutinefunction(func):
-            raise InitError(
-                f"'{func}' must be an async function to be an init function"
-            )
         self._func = func
 
     @property

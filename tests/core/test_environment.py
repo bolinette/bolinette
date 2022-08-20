@@ -4,7 +4,7 @@ from typing import Any, Optional, Union
 
 import pytest
 
-from bolinette.core import Cache, Environment, InjectionStrategy, Logger, environment
+from bolinette.core import Cache, Environment, Logger, environment
 from bolinette.core.exceptions import EnvironmentError, InitError
 from bolinette.core.testing import Mock
 from bolinette.core.utils import FileUtils, PathUtils
@@ -15,7 +15,7 @@ def _setup_test(cache: Cache | None = None) -> Mock:
     mock.mock(Logger)
     mock.mock(PathUtils).setup("env_path", lambda *values: "".join(values))
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {})
-    mock.injection.add(Environment, InjectionStrategy.Singleton, args=["test"])
+    mock.injection.add(Environment, "singleton", args=["test"])
     return mock
 
 
@@ -126,20 +126,6 @@ def test_file_override() -> None:
     assert test.c == 1
 
 
-def test_non_empty_init() -> None:
-    class TestSection:
-        def __init__(self, _) -> None:
-            pass
-
-    with pytest.raises(InitError) as info:
-        environment("test", cache=Cache())(TestSection)  # type: ignore
-
-    assert (
-        f"Section {TestSection} must have an empty __init__ method"  # type: ignore
-        in info.value.message
-    )
-
-
 def test_non_empty_sub_init() -> None:
     cache = Cache()
 
@@ -225,19 +211,6 @@ def test_os_env_conflict() -> None:
 
     del os.environ["BLNT_TEST__A__A"]
     del os.environ["BLNT_TEST__A"]
-
-
-def test_decorate_func() -> None:
-    def fail_func() -> None:
-        pass
-
-    with pytest.raises(InitError) as info:
-        environment("fail")(fail_func)  # type: ignore
-
-    assert (
-        f"{fail_func} must be a class to be decorated with @{environment.__name__}"  # type: ignore
-        in info.value.message
-    )
 
 
 def test_fail_cast_type() -> None:

@@ -2,7 +2,6 @@ from bolinette.core.version import __version__
 from bolinette.core.objects import CoreSection, GenericMeta
 from bolinette.core.metadata import meta
 from bolinette.core.cache import (
-    InjectionStrategy,
     Cache,
     __core_cache__,
     init_func,

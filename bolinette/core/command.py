@@ -1,4 +1,3 @@
-import inspect
 import sys
 from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import Callable
@@ -187,10 +186,6 @@ class _CommandDecorator:
         def decorator(
             func: Callable[P_Func, Awaitable[None]]
         ) -> Callable[P_Func, Awaitable[None]]:
-            if not inspect.iscoroutinefunction(func):
-                raise InitError(
-                    f"{func} must be an async function to be decorated by @command"
-                )
             meta.set(func, _CommandMeta(name, summary))
             (cache or __core_cache__).bag.push(_CommandMeta, func)
             return func
@@ -211,10 +206,6 @@ class _CommandDecorator:
         def decorator(
             func: Callable[P_Func, Awaitable[None]]
         ) -> Callable[P_Func, Awaitable[None]]:
-            if not inspect.iscoroutinefunction(func):
-                raise InitError(
-                    f"{func} must be an async function to be decorated by @command.argument"
-                )
             if not meta.has(func, _ArgumentMeta):
                 meta.set(func, _ArgumentMeta())
             meta.get(func, _ArgumentMeta).append(

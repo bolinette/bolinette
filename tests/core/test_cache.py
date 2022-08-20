@@ -1,6 +1,6 @@
 import pytest
 
-from bolinette.core import Cache, InjectionStrategy, init_func, injectable
+from bolinette.core import Cache, init_func, injectable
 from bolinette.core.cache import _ParameterBag
 from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
@@ -18,7 +18,7 @@ def test_add_type() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton)
+    cache.types.add(_TestClass, "singleton")
 
     assert len(cache.types) == 1
     assert _TestClass in cache.types
@@ -31,7 +31,7 @@ def test_add_type_fail() -> None:
     cache = Cache()
 
     with pytest.raises(TypeError):
-        cache.types.add(_TestClass(), InjectionStrategy.Singleton)  # type: ignore
+        cache.types.add(_TestClass(), "singleton")  # type: ignore
 
 
 def test_get_of_type() -> None:
@@ -45,8 +45,8 @@ def test_get_of_type() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_ChildClass1, InjectionStrategy.Singleton)
-    cache.types.add(_ChildClass2, InjectionStrategy.Singleton)
+    cache.types.add(_ChildClass1, "singleton")
+    cache.types.add(_ChildClass2, "singleton")
 
     assert len(cache.types.of_type(_ParentClass)) == 2
     assert set(cache.types) == {_ChildClass1, _ChildClass2}
@@ -63,20 +63,6 @@ def test_injectable_decorator() -> None:
     assert _TestClass in cache.types
 
 
-def test_injectable_decorator_fail() -> None:
-    def _test_func() -> None:
-        pass
-
-    cache = Cache()
-    with pytest.raises(InitError) as info:
-        injectable(cache=cache)(_test_func)  # type: ignore
-
-    assert (
-        f"'{_test_func}' must be a class to be decorated by @{injectable.__name__}"  # type: ignore
-        in info.value.message
-    )
-
-
 def test_init_func_decorator() -> None:
     cache = Cache()
 
@@ -85,20 +71,6 @@ def test_init_func_decorator() -> None:
         pass
 
     assert len(cache.bag[InitFunction]) == 1
-
-
-def test_init_func_decorator_fail() -> None:
-    class _TestClass:
-        pass
-
-    cache = Cache()
-    with pytest.raises(InitError) as info:
-        init_func(cache=cache)(_TestClass)  # type: ignore
-
-    assert (
-        f"'{_TestClass}' must be an async function to be an init function"  # type: ignore
-        in info.value.message
-    )
 
 
 def test_no_type_fail() -> None:
@@ -128,7 +100,7 @@ def test_get_type_init_method() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton, init_methods=[_init])
+    cache.types.add(_TestClass, "singleton", init_methods=[_init])
 
     assert cache.types.init_methods(_TestClass) == [_init]
 
@@ -138,9 +110,9 @@ def test_get_type_strategy() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton)
+    cache.types.add(_TestClass, "singleton")
 
-    assert cache.types.strategy(_TestClass) is InjectionStrategy.Singleton
+    assert cache.types.strategy(_TestClass) == "singleton"
 
 
 def test_get_type_args() -> None:
@@ -148,7 +120,7 @@ def test_get_type_args() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton, args=[1, 2, 3])
+    cache.types.add(_TestClass, "singleton", args=[1, 2, 3])
 
     assert cache.types.args(_TestClass) == [1, 2, 3]
 
@@ -158,7 +130,7 @@ def test_get_type_kwargs() -> None:
         pass
 
     cache = Cache()
-    cache.types.add(_TestClass, InjectionStrategy.Singleton, kwargs={"a": 1, "b": 2})
+    cache.types.add(_TestClass, "singleton", kwargs={"a": 1, "b": 2})
 
     assert cache.types.kwargs(_TestClass) == {"a": 1, "b": 2}
 

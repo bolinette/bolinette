@@ -4,7 +4,6 @@ from bolinette.core import (
     Cache,
     Environment,
     Injection,
-    InjectionStrategy,
     Logger,
     __core_cache__,
     meta,
@@ -27,11 +26,9 @@ class Bolinette:
         self._inject = inject or Injection(self._cache, InjectionContext())
         meta.set(self, self._inject)
 
-        self._inject.add(Logger, InjectionStrategy.Transcient)
-        self._inject.add(
-            PathUtils, InjectionStrategy.Singleton, args=[PathUtils.dirname(__file__)]
-        )
-        self._inject.add(FileUtils, InjectionStrategy.Singleton)
+        self._inject.add(Logger, "transcient")
+        self._inject.add(PathUtils, "singleton", args=[PathUtils.dirname(__file__)])
+        self._inject.add(FileUtils, "singleton")
 
         self._logger = self._inject.require(Logger[Bolinette])
         self._paths = self._inject.require(PathUtils)
@@ -43,14 +40,14 @@ class Bolinette:
             or self._set_default_profile()
         )
 
-        self._inject.add(Bolinette, InjectionStrategy.Singleton, instance=self)
+        self._inject.add(Bolinette, "singleton", instance=self)
         self._inject.add(
             Environment,
-            InjectionStrategy.Singleton,
+            "singleton",
             args=[self._profile],
             instanciate=True,
         )
-        self._inject.add(Parser, InjectionStrategy.Singleton)
+        self._inject.add(Parser, "singleton")
 
     @property
     def injection(self) -> Injection:

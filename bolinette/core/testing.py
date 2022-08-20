@@ -1,6 +1,6 @@
 from typing import Any, Generic, TypeVar
 
-from bolinette.core import Cache, Injection, InjectionStrategy, meta
+from bolinette.core import Cache, Injection, meta
 from bolinette.core.inject import InjectionContext
 
 T = TypeVar("T")
@@ -30,25 +30,25 @@ class _MockWrapper(Generic[T]):
         self._instance = self._cls()
 
     @staticmethod
-    def _get_mocked_attr(cls: type[T], instance: T, name: str) -> Any:
+    def _get_mocked_attr(_cls: type[T], instance: T, name: str) -> Any:
         if name == "__class__":
-            return cls
+            return _cls
         _meta = meta.get(type(instance), _MockedMeta)
         if name in _meta:
             return _meta[name]
-        raise KeyError(f"'{name}' attribute has not been mocked in {cls}")
+        raise KeyError(f"'{name}' attribute has not been mocked in {_cls}")
 
     @staticmethod
-    def _setup_mocked_cls(cls: type[T]) -> type[T]:
-        _t = type(f"{cls.__name__}__Mocked", (cls,), {})
+    def _setup_mocked_cls(_cls: type) -> type:
+        _t = type(f"{_cls.__name__}__Mocked", (_cls,), {})  # type: ignore
         setattr(_t, "__init__", lambda _: None)
-        setattr(_t, "__repr__", lambda _: f"<Mocked[{cls.__name__}]>")
+        setattr(_t, "__repr__", lambda _: f"<Mocked[{_cls.__name__}]>")
         setattr(
             _t,
             "__getattribute__",
-            lambda i, n: _MockWrapper._get_mocked_attr(cls, i, n),
+            lambda i, n: _MockWrapper._get_mocked_attr(_cls, i, n),
         )
-        meta.set(_t, _MockedMeta(cls))
+        meta.set(_t, _MockedMeta(_cls))
         return _t
 
     def setup(self, name: str, value: Any) -> "_MockWrapper[T]":
@@ -70,9 +70,7 @@ class Mock:
         else:
             mocked = _MockWrapper(cls)
             self._mocked[cls] = mocked
-            self._inject.add(
-                cls, InjectionStrategy.Singleton, instance=mocked._instance
-            )
+            self._inject.add(cls, "singleton", instance=mocked._instance)
         return mocked
 
     @property

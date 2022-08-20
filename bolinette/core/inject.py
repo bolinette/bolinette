@@ -17,7 +17,7 @@ from typing import (
     overload,
 )
 
-from bolinette.core import Cache, GenericMeta, InjectionStrategy, __core_cache__, meta
+from bolinette.core import Cache, GenericMeta, __core_cache__, meta
 from bolinette.core.exceptions import InitError, InjectionError
 
 
@@ -62,11 +62,14 @@ class Injection:
     def __init__(self, cache: Cache, global_ctx: InjectionContext) -> None:
         self._cache = cache
         self._global_ctx = global_ctx
-        self._add_safe(Cache, InjectionStrategy.Singleton, self._cache)
-        self._add_safe(Injection, InjectionStrategy.Singleton, self)
+        self._add_safe(Cache, "singleton", self._cache)
+        self._add_safe(Injection, "singleton", self)
 
     def _add_safe(
-        self, cls: type[T_Instance], strategy: InjectionStrategy, instance: T_Instance
+        self,
+        cls: type[T_Instance],
+        strategy: Literal["singleton", "scoped", "transcient"],
+        instance: T_Instance,
     ):
         if not cls in self._cache.types:
             self.add(cls, strategy)
@@ -77,7 +80,7 @@ class Injection:
         self, cls: type[Any], *, origin: Callable | None = None, name: str | None = None
     ) -> bool:
         strategy = self._cache.types.strategy(cls)
-        if strategy is InjectionStrategy.Scoped:
+        if strategy == "scoped":
             if origin:
                 raise InjectionError(
                     f"Cannot instanciate a scoped service in a non-scoped one",
@@ -88,13 +91,13 @@ class Injection:
                 f"Cannot instanciate a scoped service outside of a scoped session",
                 cls=cls,
             )
-        return strategy is InjectionStrategy.Singleton and cls in self._global_ctx
+        return strategy == "singleton" and cls in self._global_ctx
 
     def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
         return self._global_ctx[cls]
 
     def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
-        if self._cache.types.strategy(cls) is InjectionStrategy.Singleton:
+        if self._cache.types.strategy(cls) == "singleton":
             self._global_ctx[cls] = instance
 
     def _resolve_args(
@@ -268,7 +271,7 @@ class Injection:
     def add(
         self,
         cls: type[T_Instance],
-        strategy: InjectionStrategy,
+        strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
         instance: T_Instance | None = None,
@@ -282,7 +285,7 @@ class Injection:
     def add(
         self,
         cls: type[T_Instance],
-        strategy: InjectionStrategy,
+        strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
         instance: T_Instance | None = None,
@@ -295,7 +298,7 @@ class Injection:
     def add(
         self,
         cls: type[T_Instance],
-        strategy: InjectionStrategy,
+        strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
         instance: T_Instance | None = None,
@@ -313,7 +316,7 @@ class Injection:
                 )
             if not isinstance(instance, cls):
                 raise InjectionError(f"Object provided must an instance of type {cls}")
-            if strategy is not InjectionStrategy.Singleton:
+            if strategy != "singleton":
                 raise InjectionError(
                     f"Type {cls} must be a singleton if an instance is provided"
                 )
@@ -394,8 +397,8 @@ class _ScopedInjection(Injection):
 
     def _has_instance(self, cls: type[Any], **_) -> bool:
         strategy = self._cache.types.strategy(cls)
-        return (strategy is InjectionStrategy.Scoped and cls in self._scoped_ctx) or (
-            strategy is InjectionStrategy.Singleton and cls in self._global_ctx
+        return (strategy == "scoped" and cls in self._scoped_ctx) or (
+            strategy == "singleton" and cls in self._global_ctx
         )
 
     def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
@@ -405,35 +408,27 @@ class _ScopedInjection(Injection):
 
     def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
         strategy = self._cache.types.strategy(cls)
-        if strategy is InjectionStrategy.Scoped:
+        if strategy == "scoped":
             self._scoped_ctx[cls] = instance
-        if strategy is InjectionStrategy.Singleton:
+        if strategy == "singleton":
             self._global_ctx[cls] = instance
 
 
 def init_method(
     func: Callable[Concatenate[T_Instance, P_Func], None]
 ) -> Callable[Concatenate[T_Instance, P_Func], None]:
-    if not callable(func):
-        raise InitError(
-            f"{func} must be callable to be decorated by @{init_method.__name__}"
-        )
     meta.set(func, _InitMethodMeta())
     return func
 
 
 def injectable(
     *,
-    strategy: InjectionStrategy = InjectionStrategy.Singleton,
+    strategy: Literal["singleton", "scoped", "transcient"] = "singleton",
     args: list[Any] | None = None,
     kwargs: dict[str, Any] | None = None,
     cache: Cache | None = None,
 ) -> Callable[[type[T_Instance]], type[T_Instance]]:
     def decorator(cls: type[T_Instance]) -> type[T_Instance]:
-        if not isinstance(cls, type):
-            raise InitError(
-                f"'{cls}' must be a class to be decorated by @{injectable.__name__}"
-            )
         (cache or __core_cache__).types.add(cls, strategy, args, kwargs)
         return cls
 
@@ -442,10 +437,6 @@ def injectable(
 
 def require(cls: type[T_Instance]) -> Callable[[Callable], _InjectionProxy[T_Instance]]:
     def decorator(func: Callable) -> _InjectionProxy[T_Instance]:
-        if not callable(func):
-            raise InitError(
-                f"{func} must be callable to be decorated by @{require.__name__}"
-            )
         _cls, templates = Injection._get_generic_templates(cls)
         return _InjectionProxy(func.__name__, _cls, templates)
 

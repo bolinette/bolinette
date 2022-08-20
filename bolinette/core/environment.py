@@ -8,7 +8,6 @@ from bolinette.core import (
     Cache,
     CoreSection,
     Injection,
-    InjectionStrategy,
     Logger,
     __core_cache__,
     init_method,
@@ -60,9 +59,7 @@ class Environment:
     def init(self) -> None:
         if EnvironmentSection in self._cache.bag:
             for cls in self._cache.bag[EnvironmentSection, type]:
-                self._inject.add(
-                    cls, InjectionStrategy.Singleton, init_methods=[self._init_section]
-                )
+                self._inject.add(cls, "singleton", init_methods=[self._init_section])
 
         stack = [
             self._init_from_os(),
@@ -126,12 +123,6 @@ def environment(
     name: str, *, cache: Cache | None = None
 ) -> Callable[[type[EnvT]], type[EnvT]]:
     def decorator(cls: type[EnvT]) -> type[EnvT]:
-        if not isinstance(cls, type):
-            raise InitError(
-                f"{cls} must be a class to be decorated with @{environment.__name__}"
-            )
-        if len(inspect.signature(cls).parameters) != 0:
-            raise InitError(f"Section {cls} must have an empty __init__ method")
         meta.set(cls, _EnvSectionMeta(name))
         (cache or __core_cache__).bag.push(EnvironmentSection, cls)
         return cls

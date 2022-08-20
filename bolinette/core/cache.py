@@ -1,19 +1,10 @@
 from collections.abc import Awaitable, Callable, Iterable, Iterator
-from enum import Enum, auto, unique
-from typing import Any, ParamSpec, TypeVar, overload
+from typing import Any, Literal, ParamSpec, TypeVar, overload
 
-from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
 
 P = ParamSpec("P")
 T_Instance = TypeVar("T_Instance")
-
-
-@unique
-class InjectionStrategy(Enum):
-    Transcient = auto()
-    Scoped = auto()
-    Singleton = auto()
 
 
 class Cache:
@@ -26,7 +17,9 @@ class Cache:
 class _TypeCache(Iterable[type[Any]]):
     def __init__(self) -> None:
         self._types: set[type[Any]] = set()
-        self._strategies: dict[type[Any], InjectionStrategy] = {}
+        self._strategies: dict[
+            type[Any], Literal["singleton", "scoped", "transcient"]
+        ] = {}
         self._args: dict[type[Any], list[Any]] = {}
         self._kwargs: dict[type[Any], dict[str, Any]] = {}
         self._init_methods: dict[type[Any], list[Callable[[Any], None]]] = {}
@@ -34,7 +27,7 @@ class _TypeCache(Iterable[type[Any]]):
     def add(
         self,
         cls: type[T_Instance],
-        strategy: InjectionStrategy,
+        strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
         init_methods: list[Callable[[T_Instance], None]] | None = None,
@@ -59,7 +52,7 @@ class _TypeCache(Iterable[type[Any]]):
     def of_type(self, cls: type[T_Instance]) -> list[type[T_Instance]]:
         return [t for t in self._types if issubclass(t, cls)]
 
-    def strategy(self, cls: type[Any]) -> InjectionStrategy:
+    def strategy(self, cls: type[Any]) -> Literal["singleton", "scoped", "transcient"]:
         if cls not in self:
             raise KeyError(cls)
         return self._strategies[cls]

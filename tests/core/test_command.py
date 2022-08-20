@@ -3,10 +3,10 @@ import sys
 import pytest
 from pytest import CaptureFixture
 
-from bolinette.core import Cache, InjectionStrategy, Logger, command, meta
+from bolinette.core import Cache, Logger, command, meta
 from bolinette.core.command import Parser, _ArgumentMeta, _CommandMeta
 from bolinette.core.environment import InitError
-from bolinette.core.testing.mock import Mock
+from bolinette.core.testing import Mock
 
 
 def test_decorate_command() -> None:
@@ -20,22 +20,6 @@ def test_decorate_command() -> None:
     assert cache.bag[_CommandMeta] == [_command]
 
 
-def test_decorate_command_fail() -> None:
-    def _command() -> None:
-        pass
-
-    cache = Cache()
-
-    with pytest.raises(InitError) as info:
-        command("command", "This is a test command", cache=cache)(_command)
-
-    assert (
-        f"{_command} must be an async function to be decorated by @command"  # type: ignore
-        in info.value.message
-    )
-    assert _CommandMeta not in cache.bag
-
-
 def test_decorate_argument() -> None:
     @command.argument("argument", "p1")
     async def _command():
@@ -46,26 +30,10 @@ def test_decorate_argument() -> None:
     assert meta.get(_command, _ArgumentMeta)[0].name == "p1"
 
 
-def test_decorate_argument_fail() -> None:
-    def _command() -> None:
-        pass
-
-    cache = Cache()
-
-    with pytest.raises(InitError) as info:
-        command.argument("argument", "p1")(_command)
-
-    assert (
-        f"{_command} must be an async function to be decorated by @command.argument"  # type: ignore
-        in info.value.message
-    )
-    assert _CommandMeta not in cache.bag
-
-
 async def test_launch_command() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     value = 1
@@ -100,7 +68,7 @@ async def test_launch_command() -> None:
 async def test_launch_command_not_found() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
 
     value = 1
 
@@ -143,7 +111,7 @@ async def test_launch_command_not_found() -> None:
 async def test_launch_sub_command() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     value = 1
@@ -187,7 +155,7 @@ async def test_launch_sub_command() -> None:
 async def test_launch_sub_command_not_found() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
 
     value = 1
 
@@ -235,7 +203,7 @@ async def test_launch_sub_command_not_found() -> None:
 async def test_command_argument() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     _argv = sys.argv
@@ -261,7 +229,7 @@ async def test_command_argument() -> None:
 async def test_command_option() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     _argv = sys.argv
@@ -287,7 +255,7 @@ async def test_command_option() -> None:
 async def test_command_option_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     _argv = sys.argv
@@ -313,7 +281,7 @@ async def test_command_option_flag() -> None:
 async def test_command_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     _argv = sys.argv
@@ -339,7 +307,7 @@ async def test_command_flag() -> None:
 async def test_command_flag_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     _argv = sys.argv
@@ -365,7 +333,7 @@ async def test_command_flag_flag() -> None:
 async def test_command_argument_help(capsys: CaptureFixture) -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     exited = False
@@ -401,7 +369,7 @@ async def test_command_argument_help(capsys: CaptureFixture) -> None:
 async def test_command_conflict() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, InjectionStrategy.Singleton)
+    mock.injection.add(Parser, "singleton")
     mock.mock(Logger)
 
     @command("command sub", "This is a test command", cache=cache)

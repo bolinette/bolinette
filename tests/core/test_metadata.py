@@ -77,22 +77,6 @@ def test_set_get_meta_obj_class() -> None:
     assert meta.get(t2, _Meta).value is 2
 
 
-def test_has_meta_fail() -> None:
-    class _TestClass:
-        pass
-
-    with pytest.raises(TypeError):
-        meta.has(_TestClass(), _Meta(0))  # type: ignore
-
-
-def test_get_meta_fail_type() -> None:
-    class _TestClass:
-        pass
-
-    with pytest.raises(TypeError):
-        meta.get(_TestClass(), _Meta(0))  # type: ignore
-
-
 def test_set_meta_fail_type() -> None:
     class _TestClass:
         pass
@@ -125,16 +109,6 @@ def test_fail_get_container() -> None:
         f"Metadata container in {_TestClass} has been overwritten. "
         "Please do not use '__blnt_meta__' as an attribute in any class"
     ) in info.value.message
-
-
-def test_fail_container_contains() -> None:
-    class _TestClass:
-        pass
-
-    _c = _BolinetteMetadata()
-
-    with pytest.raises(TypeError):
-        _TestClass() in _c  # type: ignore
 
 
 def test_fail_container_set_item() -> None:
