@@ -16,8 +16,8 @@ def test_decorate_command() -> None:
     async def _command() -> None:
         pass
 
-    assert _CommandMeta in cache.bag
-    assert cache.bag[_CommandMeta] == [_command]
+    assert _CommandMeta in cache
+    assert cache[_CommandMeta] == [_command]
 
 
 def test_decorate_argument() -> None:

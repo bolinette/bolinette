@@ -65,8 +65,8 @@ class Parser:
 
     @init_method
     def init(self):
-        if _CommandMeta in self._cache.bag:
-            self._functions = self._cache.bag[_CommandMeta]
+        if _CommandMeta in self._cache:
+            self._functions = self._cache[_CommandMeta, Callable[..., Awaitable[None]]]
 
     async def run(self) -> None:
         tree = self._parse_commands()
@@ -187,7 +187,7 @@ class _CommandDecorator:
             func: Callable[P_Func, Awaitable[None]]
         ) -> Callable[P_Func, Awaitable[None]]:
             meta.set(func, _CommandMeta(name, summary))
-            (cache or __core_cache__).bag.push(_CommandMeta, func)
+            (cache or __core_cache__).add(_CommandMeta, func)
             return func
 
         return decorator

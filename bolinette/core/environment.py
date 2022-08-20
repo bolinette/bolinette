@@ -57,8 +57,8 @@ class Environment:
 
     @init_method
     def init(self) -> None:
-        if EnvironmentSection in self._cache.bag:
-            for cls in self._cache.bag[EnvironmentSection, type]:
+        if EnvironmentSection in self._cache:
+            for cls in self._cache[EnvironmentSection, type]:
                 self._inject.add(cls, "singleton", init_methods=[self._init_section])
 
         stack = [
@@ -124,7 +124,7 @@ def environment(
 ) -> Callable[[type[EnvT]], type[EnvT]]:
     def decorator(cls: type[EnvT]) -> type[EnvT]:
         meta.set(cls, _EnvSectionMeta(name))
-        (cache or __core_cache__).bag.push(EnvironmentSection, cls)
+        (cache or __core_cache__).add(EnvironmentSection, cls)
         return cls
 
     return decorator
