@@ -127,16 +127,12 @@ def test_file_override() -> None:
 
 
 def test_non_empty_init() -> None:
-    cache = Cache()
-
-    @environment("test", cache=cache)
     class TestSection:
         def __init__(self, _) -> None:
             pass
 
-    mock = _setup_test(cache)
     with pytest.raises(InitError) as info:
-        mock.injection.require(Environment)
+        environment("test", cache=Cache())(TestSection)  # type: ignore
 
     assert (
         f"Section {TestSection} must have an empty __init__ method"  # type: ignore

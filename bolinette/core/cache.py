@@ -1,6 +1,6 @@
 from collections.abc import Awaitable, Callable, Iterable, Iterator
 from enum import Enum, auto, unique
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, overload
 
 from bolinette.core.exceptions import InitError
 from bolinette.core.init import InitFunction
@@ -18,33 +18,9 @@ class InjectionStrategy(Enum):
 
 class Cache:
     def __init__(self, *, debug: bool = False) -> None:
-        self._debug = debug
+        self.debug = debug
         self.types = _TypeCache()
         self.bag = _ParameterBag()
-        self._init_funcs: list[InitFunction] = []
-        self._env_sections: dict[str, type[Any]] = {}
-
-    @property
-    def debug(self) -> bool:
-        return self._debug
-
-    @debug.setter
-    def debug(self, value: bool) -> None:
-        self._debug = value
-
-    def add_init_func(self, func: InitFunction) -> None:
-        self._init_funcs.append(func)
-
-    @property
-    def init_funcs(self) -> list[InitFunction]:
-        return [f for f in self._init_funcs]
-
-    def add_env_section(self, name: str, cls: type[Any]) -> None:
-        self._env_sections[name] = cls
-
-    @property
-    def env_sections(self) -> list[tuple[str, type[Any]]]:
-        return [(n, c) for n, c in self._env_sections.items()]
 
 
 class _TypeCache(Iterable[type[Any]]):
@@ -108,10 +84,29 @@ class _ParameterBag:
     def __init__(self) -> None:
         self._bag: dict[Any, list[Any]] = {}
 
+    def __len__(self) -> int:
+        return len(self._bag)
+
     def __contains__(self, key: Any) -> bool:
         return key in self._bag
 
-    def __getitem__(self, key: Any) -> list[Any]:
+    @overload
+    def __getitem__(self, args: tuple[Any, type[T_Instance]], /) -> list[T_Instance]:
+        pass
+
+    @overload
+    def __getitem__(self, key: Any, /) -> list[Any]:
+        pass
+
+    def __getitem__(
+        self, args: tuple[Any, type[T_Instance]] | Any, /
+    ) -> list[T_Instance] | list[Any]:
+        key = None
+        match args:
+            case (_k, _):
+                key = _k
+            case _k:
+                key = _k
         if key not in self:
             raise KeyError(key)
         return self._bag[key]
@@ -139,7 +134,7 @@ def init_func(
     *, cache: Cache | None = None
 ) -> Callable[[Callable[P, Awaitable[None]]], Callable[P, Awaitable[None]]]:
     def decorator(func: Callable[P, Awaitable[None]]) -> Callable[P, Awaitable[None]]:
-        (cache or __core_cache__).add_init_func(InitFunction(func))
+        (cache or __core_cache__).bag.push(InitFunction, InitFunction(func))
         return func
 
     return decorator

@@ -10,7 +10,7 @@ def test_empty_cache() -> None:
     cache = Cache()
 
     assert len(cache.types) == 0
-    assert len(cache.init_funcs) == 0
+    assert len(cache.bag) == 0
 
 
 def test_add_type() -> None:
@@ -52,16 +52,6 @@ def test_get_of_type() -> None:
     assert set(cache.types) == {_ChildClass1, _ChildClass2}
 
 
-def test_add_init_func() -> None:
-    async def _test_func() -> None:
-        pass
-
-    cache = Cache()
-    cache.add_init_func(InitFunction(_test_func))
-
-    assert len(cache.init_funcs) == 1
-
-
 def test_injectable_decorator() -> None:
     cache = Cache()
 
@@ -94,7 +84,7 @@ def test_init_func_decorator() -> None:
     async def _() -> None:
         pass
 
-    assert len(cache.init_funcs) == 1
+    assert len(cache.bag[InitFunction]) == 1
 
 
 def test_init_func_decorator_fail() -> None:

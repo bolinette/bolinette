@@ -7,12 +7,14 @@ from typing import (
     Concatenate,
     ForwardRef,
     Generic,
+    Literal,
     ParamSpec,
     TypeVar,
     Union,
     get_args,
     get_origin,
     get_type_hints,
+    overload,
 )
 
 from bolinette.core import Cache, GenericMeta, InjectionStrategy, __core_cache__, meta
@@ -262,6 +264,34 @@ class Injection:
         func_args = self._resolve_args(func, True, args or [], kwargs or {})
         return func(**func_args)
 
+    @overload
+    def add(
+        self,
+        cls: type[T_Instance],
+        strategy: InjectionStrategy,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        instance: T_Instance | None = None,
+        init_methods: list[Callable[[T_Instance], None]] | None = None,
+        *,
+        instanciate: Literal[True],
+    ) -> T_Instance:
+        pass
+
+    @overload
+    def add(
+        self,
+        cls: type[T_Instance],
+        strategy: InjectionStrategy,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        instance: T_Instance | None = None,
+        init_methods: list[Callable[[T_Instance], None]] | None = None,
+        *,
+        instanciate: Literal[False] = False,
+    ) -> None:
+        pass
+
     def add(
         self,
         cls: type[T_Instance],
@@ -272,7 +302,7 @@ class Injection:
         init_methods: list[Callable[[T_Instance], None]] | None = None,
         *,
         instanciate: bool = False,
-    ) -> None:
+    ) -> T_Instance | None:
         if cls in self._cache.types:
             raise InjectionError(f"Type {cls} is already a registered type")
         self._cache.types.add(cls, strategy, args, kwargs, init_methods)
@@ -289,7 +319,8 @@ class Injection:
                 )
             self._set_instance(cls, instance)
         if instanciate:
-            self.require(cls)
+            return self.require(cls)
+        return None
 
     def require(self, cls: type[T_Instance]) -> T_Instance:
         cls, templates = self._get_generic_templates(cls)

@@ -2,7 +2,7 @@ import inspect
 import os
 from collections.abc import Callable
 from types import UnionType
-from typing import Any, Protocol, Union, get_args, get_origin
+from typing import Any, Protocol, TypeVar, Union, get_args, get_origin
 
 from bolinette.core import (
     Cache,
@@ -58,13 +58,11 @@ class Environment:
 
     @init_method
     def init(self) -> None:
-        for name, cls in self._cache.env_sections:
-            if len(inspect.signature(cls).parameters) != 0:
-                raise InitError(f"Section {cls} must have an empty __init__ method")
-            meta.set(cls, _EnvSectionMeta(name))
-            self._inject.add(
-                cls, InjectionStrategy.Singleton, init_methods=[self._init_section]
-            )
+        if EnvironmentSection in self._cache.bag:
+            for cls in self._cache.bag[EnvironmentSection, type]:
+                self._inject.add(
+                    cls, InjectionStrategy.Singleton, init_methods=[self._init_section]
+                )
 
         stack = [
             self._init_from_os(),
@@ -121,15 +119,21 @@ class EnvironmentSection(Protocol):
         pass
 
 
+EnvT = TypeVar("EnvT", bound=EnvironmentSection)
+
+
 def environment(
     name: str, *, cache: Cache | None = None
-) -> Callable[[type[EnvironmentSection]], type[EnvironmentSection]]:
-    def decorator(cls: type[EnvironmentSection]) -> type[EnvironmentSection]:
+) -> Callable[[type[EnvT]], type[EnvT]]:
+    def decorator(cls: type[EnvT]) -> type[EnvT]:
         if not isinstance(cls, type):
             raise InitError(
                 f"{cls} must be a class to be decorated with @{environment.__name__}"
             )
-        (cache or __core_cache__).add_env_section(name, cls)
+        if len(inspect.signature(cls).parameters) != 0:
+            raise InitError(f"Section {cls} must have an empty __init__ method")
+        meta.set(cls, _EnvSectionMeta(name))
+        (cache or __core_cache__).bag.push(EnvironmentSection, cls)
         return cls
 
     return decorator
