@@ -13,7 +13,7 @@ from bolinette.core import (
     init_method,
     meta,
 )
-from bolinette.core.exceptions import EnvironmentError, InitError
+from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.utils import FileUtils, PathUtils
 
 _NoAnnotation = type("_NoAnnotation", (), {})
@@ -198,10 +198,10 @@ class _EnvParser:
         elif annotation in (str, int, float, bool):
             try:
                 value = annotation(value)
-            except (ValueError):
+            except (ValueError) as exp:
                 raise EnvironmentError(
                     f"Section {path}: unable to bind value {value} to type {annotation}"
-                )
+                ) from exp
         elif isinstance(annotation, type):
             if len(inspect.signature(annotation).parameters) != 0:
                 raise EnvironmentError(

@@ -61,8 +61,7 @@ class Bolinette:
         return "development"
 
     async def startup(self) -> None:
-        for func in self._cache.init_funcs:
-            await self._inject.call(func.function)
+        pass
 
     @require(Parser)
     def _parser(self):

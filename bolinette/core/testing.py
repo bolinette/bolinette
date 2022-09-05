@@ -27,7 +27,7 @@ class _MockWrapper(Generic[T]):
         cls: type[T],
     ) -> None:
         self._cls = self._setup_mocked_cls(cls)
-        self._instance = self._cls()
+        self.instance = self._cls()
 
     @staticmethod
     def _get_mocked_attr(_cls: type[T], instance: T, name: str) -> Any:
@@ -70,7 +70,7 @@ class Mock:
         else:
             mocked = _MockWrapper(cls)
             self._mocked[cls] = mocked
-            self._inject.add(cls, "singleton", instance=mocked._instance)
+            self._inject.add(cls, "singleton", instance=mocked.instance)
         return mocked
 
     @property

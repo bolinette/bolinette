@@ -11,4 +11,4 @@ class GenericMeta:
 
     @property
     def args(self) -> list[type[Any]]:
-        return [t for t in self._args]
+        return list(self._args)

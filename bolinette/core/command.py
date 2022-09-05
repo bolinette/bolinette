@@ -94,18 +94,18 @@ class Parser:
     def _parse_commands(self):
         command_tree = {}
         for func in self._functions:
-            command = meta.get(func, _CommandMeta)
+            _cmd = meta.get(func, _CommandMeta)
             cur_node = command_tree
-            path = command.path.split(" ")
+            path = _cmd.path.split(" ")
             for elem in path[:-1]:
                 if elem not in cur_node:
                     cur_node[elem] = {}
                 cur_node = cur_node[elem]
             elem = path[-1]
             if elem in cur_node:
-                raise InitError(f"Conflict with '{command.path}' command")
+                raise InitError(f"Conflict with '{_cmd.path}' command")
             cur_node[elem] = func
-            self._commands[command.path] = func
+            self._commands[_cmd.path] = func
         return command_tree
 
     def _build_parsers(
@@ -116,12 +116,12 @@ class Parser:
     ):
         for name, elem in command_tree.items():
             if meta.has(elem, _CommandMeta):
-                command = meta.get(elem, _CommandMeta)
-                sub_parser = sub_parsers.add_parser(name, help=command.summary)
+                _cmd = meta.get(elem, _CommandMeta)
+                sub_parser = sub_parsers.add_parser(name, help=_cmd.summary)
                 if meta.has(elem, _ArgumentMeta):
                     for arg in meta.get(elem, _ArgumentMeta):
                         self._factories[arg.arg_type](arg, sub_parser)
-                sub_parser.set_defaults(__blnt_cmd__=command.path)
+                sub_parser.set_defaults(__blnt_cmd__=_cmd.path)
             else:
                 sub_parser = sub_parsers.add_parser(
                     name, help=self._build_help(elem, path + [name])

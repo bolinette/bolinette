@@ -13,7 +13,7 @@ class _BolinetteMetadata:
         return key in self._data
 
     def __getitem__(self, key: type[T]) -> T:
-        if not key in self:
+        if key not in self:
             raise KeyError(key)
         return self._data[key]
 
@@ -25,16 +25,16 @@ class _BolinetteMetadata:
 
 def _get_meta_container(obj: Any) -> _BolinetteMetadata:
     if "__blnt_meta__" not in vars(obj):
-        meta = _BolinetteMetadata()
-        setattr(obj, "__blnt_meta__", meta)
+        _meta = _BolinetteMetadata()
+        setattr(obj, "__blnt_meta__", _meta)
     else:
-        meta = getattr(obj, "__blnt_meta__")
-        if not isinstance(meta, _BolinetteMetadata):
+        _meta = getattr(obj, "__blnt_meta__")
+        if not isinstance(_meta, _BolinetteMetadata):
             raise InternalError(
                 f"Metadata container in {obj} has been overwritten. "
                 "Please do not use '__blnt_meta__' as an attribute in any class"
             )
-    return meta
+    return _meta
 
 
 class _MetaFunctions:
@@ -46,14 +46,14 @@ class _MetaFunctions:
         return cls in container
 
     @staticmethod
-    def set(obj: Any, meta: T, /, *, cls: type[T] | None = None) -> None:
+    def set(obj: Any, _meta: T, /, *, cls: type[T] | None = None) -> None:
         if cls is None:
-            cls = type(meta)
+            cls = type(_meta)
         else:
-            if not isinstance(meta, cls):
-                raise TypeError(f"Type mismatch between {cls} and {meta}")
+            if not isinstance(_meta, cls):
+                raise TypeError(f"Type mismatch between {cls} and {_meta}")
         container = _get_meta_container(obj)
-        container[cls] = meta
+        container[cls] = _meta
 
     @staticmethod
     def get(obj: Any, cls: type[T], /, *, default: T | None = None) -> T:

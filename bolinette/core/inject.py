@@ -1,7 +1,7 @@
 import inspect
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from types import UnionType
+from types import NoneType, UnionType
 from typing import (
     Any,
     Concatenate,
@@ -25,9 +25,9 @@ class _InitMethodMeta:
     pass
 
 
-P_Func = ParamSpec("P_Func")
-T_Func = TypeVar("T_Func")
-T_Instance = TypeVar("T_Instance")
+FuncP = ParamSpec("FuncP")
+FuncT = TypeVar("FuncT")
+InstanceT = TypeVar("InstanceT")
 
 
 class InjectionContext:
@@ -39,7 +39,7 @@ class InjectionContext:
             raise TypeError("Only types allowed")
         return cls in self._instances
 
-    def __setitem__(self, cls: type[T_Instance], instance: T_Instance) -> None:
+    def __setitem__(self, cls: type[InstanceT], instance: InstanceT) -> None:
         if cls in self:
             raise InjectionError(
                 f"Type {cls} has already been instanciated in this scope"
@@ -48,7 +48,7 @@ class InjectionContext:
             raise TypeError("Object is not an instance of cls")
         self._instances[cls] = instance
 
-    def __getitem__(self, cls: type[T_Instance]) -> T_Instance:
+    def __getitem__(self, cls: type[InstanceT]) -> InstanceT:
         if cls not in self:
             raise InjectionError(f"Type {cls} has not been instanciated in this scope")
         return self._instances[cls]
@@ -65,11 +65,11 @@ class Injection:
 
     def _add_safe(
         self,
-        cls: type[T_Instance],
+        cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
-        instance: T_Instance,
+        instance: InstanceT,
     ):
-        if not cls in self._cache[_InjectionMeta, type]:
+        if cls not in self._cache[_InjectionMeta, type]:
             self.add(cls, strategy)
         if cls not in self._global_ctx:
             self._global_ctx[cls] = instance
@@ -81,20 +81,20 @@ class Injection:
         if strategy == "scoped":
             if origin:
                 raise InjectionError(
-                    f"Cannot instanciate a scoped service in a non-scoped one",
+                    "Cannot instanciate a scoped service in a non-scoped one",
                     func=origin,
                     param=name,
                 )
             raise InjectionError(
-                f"Cannot instanciate a scoped service outside of a scoped session",
+                "Cannot instanciate a scoped service outside of a scoped session",
                 cls=cls,
             )
         return strategy == "singleton" and cls in self._global_ctx
 
-    def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
+    def _get_instance(self, cls: type[InstanceT]) -> InstanceT:
         return self._global_ctx[cls]
 
-    def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
+    def _set_instance(self, cls: type[InstanceT], instance: InstanceT) -> None:
         if meta.get(cls, _InjectionMeta).strategy == "singleton":
             self._global_ctx[cls] = instance
 
@@ -112,7 +112,7 @@ class Injection:
             if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)
         ):
             raise InjectionError(
-                f"Positional only parameters and positional wildcards are not allowed",
+                "Positional only parameters and positional wildcards are not allowed",
                 func=func,
             )
 
@@ -125,10 +125,10 @@ class Injection:
                 hints = get_type_hints(func.__init__)
             else:
                 hints = get_type_hints(func)
-        except NameError as e:
+        except NameError as exp:
             raise InjectionError(
-                f"Type hint '{e.name}' could not be resolved", func=func
-            )
+                f"Type hint '{exp.name}' could not be resolved", func=func
+            ) from exp
 
         for p_name, param in params.items():
             if param.kind == param.VAR_KEYWORD:
@@ -155,7 +155,7 @@ class Injection:
                 if default_set:
                     f_args[p_name] = default
                     continue
-                raise InjectionError(f"Annotation is required", func=func, param=p_name)
+                raise InjectionError("Annotation is required", func=func, param=p_name)
 
             hint = hints[p_name]  # type: type
 
@@ -164,13 +164,13 @@ class Injection:
                 nullable = type(None) in type_args
                 if not nullable or (nullable and len(type_args) >= 3):
                     raise InjectionError(
-                        f"Type unions are not allowed", func=func, param=p_name
+                        "Type unions are not allowed", func=func, param=p_name
                     )
-                hint = next(filter(lambda t: t is not type(None), type_args))
+                hint = next(filter(lambda t: t is not NoneType, type_args))
 
             hint, templates = self._get_generic_templates(hint)
 
-            if not hint in self._cache[_InjectionMeta]:
+            if hint not in self._cache[_InjectionMeta]:
                 if nullable:
                     f_args[p_name] = None
                     continue
@@ -182,15 +182,15 @@ class Injection:
                     func=func,
                     param=p_name,
                 )
-            else:
-                if self._has_instance(hint, origin=func, name=p_name):
-                    f_args[p_name] = self._get_instance(hint)
-                    continue
-                if immediate:
-                    f_args[p_name] = self._instanciate(hint, templates)
-                    continue
-                f_args[p_name] = _ProxyHook(hint, templates)
+
+            if self._has_instance(hint, origin=func, name=p_name):
+                f_args[p_name] = self._get_instance(hint)
                 continue
+            if immediate:
+                f_args[p_name] = self._instanciate(hint, templates)
+                continue
+            f_args[p_name] = _ProxyHook(hint, templates)
+            continue
 
         if _args or _kwargs:
             raise InjectionError(
@@ -208,22 +208,22 @@ class Injection:
                 delattr(instance, name)
                 setattr(cls, name, _InjectionProxy(name, attr.cls, attr.templates))
 
-    def _run_init_recursive(self, cls: type[T_Instance], instance: T_Instance) -> None:
+    def _run_init_recursive(self, cls: type[InstanceT], instance: InstanceT) -> None:
         for base in cls.__bases__:
             self._run_init_recursive(base, instance)
         for _, attr in vars(cls).items():
             if meta.has(attr, _InitMethodMeta):
                 self.call(attr, args=[instance])
 
-    def _run_init_methods(self, cls: type[T_Instance], instance: T_Instance):
+    def _run_init_methods(self, cls: type[InstanceT], instance: InstanceT):
         self._run_init_recursive(cls, instance)
         for method in meta.get(cls, _InjectionMeta).init_methods:
             self.call(method, args=[instance])
 
     @staticmethod
     def _get_generic_templates(
-        _cls: type[T_Instance],
-    ) -> tuple[type[T_Instance], list[type[Any]]]:
+        _cls: type[InstanceT],
+    ) -> tuple[type[InstanceT], list[type[Any]]]:
         if origin := get_origin(_cls):
             templates = []
             for arg in get_args(_cls):
@@ -237,8 +237,8 @@ class Injection:
         return _cls, []
 
     def _instanciate(
-        self, cls: type[T_Instance], templates: list[Any] | None = None
-    ) -> T_Instance:
+        self, cls: type[InstanceT], templates: list[Any] | None = None
+    ) -> InstanceT:
         if self._has_instance(cls):
             raise InjectionError(
                 f"Type {cls} has already been instanciated in this scope"
@@ -256,37 +256,37 @@ class Injection:
 
     def call(
         self,
-        func: Callable[..., T_Func],
+        func: Callable[..., FuncT],
         *,
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
-    ) -> T_Func:
+    ) -> FuncT:
         func_args = self._resolve_args(func, True, args or [], kwargs or {})
         return func(**func_args)
 
     @overload
     def add(
         self,
-        cls: type[T_Instance],
+        cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
-        instance: T_Instance | None = None,
-        init_methods: list[Callable[[T_Instance], None]] | None = None,
+        instance: InstanceT | None = None,
+        init_methods: list[Callable[[InstanceT], None]] | None = None,
         *,
         instanciate: Literal[True],
-    ) -> T_Instance:
+    ) -> InstanceT:
         pass
 
     @overload
     def add(
         self,
-        cls: type[T_Instance],
+        cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
-        instance: T_Instance | None = None,
-        init_methods: list[Callable[[T_Instance], None]] | None = None,
+        instance: InstanceT | None = None,
+        init_methods: list[Callable[[InstanceT], None]] | None = None,
         *,
         instanciate: Literal[False] = False,
     ) -> None:
@@ -294,15 +294,15 @@ class Injection:
 
     def add(
         self,
-        cls: type[T_Instance],
+        cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
         kwargs: dict[str, Any] | None = None,
-        instance: T_Instance | None = None,
-        init_methods: list[Callable[[T_Instance], None]] | None = None,
+        instance: InstanceT | None = None,
+        init_methods: list[Callable[[InstanceT], None]] | None = None,
         *,
         instanciate: bool = False,
-    ) -> T_Instance | None:
+    ) -> InstanceT | None:
         if cls in self._cache[_InjectionMeta]:
             raise InjectionError(f"Type {cls} is already a registered type")
         meta.set(cls, _InjectionMeta(strategy, args, kwargs, init_methods))
@@ -323,9 +323,9 @@ class Injection:
             return self.require(cls)
         return None
 
-    def require(self, cls: type[T_Instance]) -> T_Instance:
+    def require(self, cls: type[InstanceT]) -> InstanceT:
         cls, templates = self._get_generic_templates(cls)
-        if not cls in self._cache[_InjectionMeta]:
+        if cls not in self._cache[_InjectionMeta]:
             raise InjectionError(
                 f"Type {cls} is not a registered type in the injection system"
             )
@@ -354,24 +354,24 @@ class _ProxyHook:
         )
 
 
-class _InjectionProxy(Generic[T_Instance]):
+class _InjectionProxy(Generic[InstanceT]):
     def __init__(
         self,
         name: str,
-        cls: type[T_Instance],
+        cls: type[InstanceT],
         templates: list[Any] | None = None,
     ) -> None:
         self._name = name
         self._cls = cls
         self._templates = templates
 
-    def __get__(self, instance: Any, _) -> T_Instance:
+    def __get__(self, instance: Any, _) -> InstanceT:
         if not meta.has(instance, Injection):
             raise InjectionError(
                 f"{instance} has not been intanciated through the injection system"
             )
         inject = meta.get(instance, Injection)
-        obj: T_Instance
+        obj: InstanceT
         if inject._has_instance(self._cls):
             obj = inject._get_instance(self._cls)
         else:
@@ -399,12 +399,12 @@ class _ScopedInjection(Injection):
             strategy == "singleton" and cls in self._global_ctx
         )
 
-    def _get_instance(self, cls: type[T_Instance]) -> T_Instance:
+    def _get_instance(self, cls: type[InstanceT]) -> InstanceT:
         if cls in self._scoped_ctx:
             return self._scoped_ctx[cls]
         return self._global_ctx[cls]
 
-    def _set_instance(self, cls: type[T_Instance], instance: T_Instance) -> None:
+    def _set_instance(self, cls: type[InstanceT], instance: InstanceT) -> None:
         strategy = meta.get(cls, _InjectionMeta).strategy
         if strategy == "scoped":
             self._scoped_ctx[cls] = instance
@@ -433,8 +433,8 @@ class ArgumentResolver(ABC):
 
 
 def init_method(
-    func: Callable[Concatenate[T_Instance, P_Func], None]
-) -> Callable[Concatenate[T_Instance, P_Func], None]:
+    func: Callable[Concatenate[InstanceT, FuncP], None]
+) -> Callable[Concatenate[InstanceT, FuncP], None]:
     meta.set(func, _InitMethodMeta())
     return func
 
@@ -459,8 +459,8 @@ def injectable(
     args: list[Any] | None = None,
     kwargs: dict[str, Any] | None = None,
     cache: Cache | None = None,
-) -> Callable[[type[T_Instance]], type[T_Instance]]:
-    def decorator(cls: type[T_Instance]) -> type[T_Instance]:
+) -> Callable[[type[InstanceT]], type[InstanceT]]:
+    def decorator(cls: type[InstanceT]) -> type[InstanceT]:
         meta.set(cls, _InjectionMeta(strategy, args, kwargs))
         (cache or __core_cache__).add(_InjectionMeta, cls)
         return cls
@@ -468,8 +468,8 @@ def injectable(
     return decorator
 
 
-def require(cls: type[T_Instance]) -> Callable[[Callable], _InjectionProxy[T_Instance]]:
-    def decorator(func: Callable) -> _InjectionProxy[T_Instance]:
+def require(cls: type[InstanceT]) -> Callable[[Callable], _InjectionProxy[InstanceT]]:
+    def decorator(func: Callable) -> _InjectionProxy[InstanceT]:
         _cls, templates = Injection._get_generic_templates(cls)
         return _InjectionProxy(func.__name__, _cls, templates)
 

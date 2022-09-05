@@ -4,7 +4,6 @@ from bolinette.core.metadata import meta
 from bolinette.core.cache import (
     Cache,
     __core_cache__,
-    init_func,
 )
 from bolinette.core.inject import (
     Injection,

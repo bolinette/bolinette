@@ -5,16 +5,13 @@ from typing import Any, Callable
 class BolinetteError(Exception):
     def __init__(self, message: str) -> None:
         Exception.__init__(self, message)
-        self._message = message
-
-    @property
-    def message(self) -> str:
-        return self._message
+        self.message = message
 
 
 class ErrorCollection(Exception):
     def __init__(self, errors: list[BolinetteError] | None = None) -> None:
         self._errors: list[BolinetteError] = errors or []
+        Exception.__init__(self, "\n".join(e.message for e in self._errors))
 
     def append(self, error: BolinetteError) -> None:
         self._errors.append(error)
@@ -56,14 +53,14 @@ class InjectionError(InternalError):
 
 
 class EnvironmentError(BolinetteError):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
+    pass
 
 
 class InitError(Exception):
     def __init__(
         self, message: str | None = None, *, inner: Exception | None = None
     ) -> None:
+        Exception.__init__(self, message)
         self.message = message
         self.inner = inner
 

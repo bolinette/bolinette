@@ -1,10 +1,7 @@
-from collections.abc import Awaitable, Callable
 from typing import Any, ParamSpec, TypeVar, overload
 
-from bolinette.core.init import InitFunction
-
 P = ParamSpec("P")
-T_Instance = TypeVar("T_Instance")
+InstanceT = TypeVar("InstanceT")
 
 
 class Cache:
@@ -16,7 +13,7 @@ class Cache:
         return key in self._bag
 
     @overload
-    def __getitem__(self, args: tuple[Any, type[T_Instance]], /) -> list[T_Instance]:
+    def __getitem__(self, args: tuple[Any, type[InstanceT]], /) -> list[InstanceT]:
         pass
 
     @overload
@@ -24,8 +21,8 @@ class Cache:
         pass
 
     def __getitem__(
-        self, args: tuple[Any, type[T_Instance]] | Any, /
-    ) -> list[T_Instance] | list[Any]:
+        self, args: tuple[Any, type[InstanceT]] | Any, /
+    ) -> list[InstanceT] | list[Any]:
         key = None
         match args:
             case (_k, _):
@@ -56,13 +53,3 @@ class Cache:
 
 
 __core_cache__ = Cache()
-
-
-def init_func(
-    *, cache: Cache | None = None
-) -> Callable[[Callable[P, Awaitable[None]]], Callable[P, Awaitable[None]]]:
-    def decorator(func: Callable[P, Awaitable[None]]) -> Callable[P, Awaitable[None]]:
-        (cache or __core_cache__).add(InitFunction, InitFunction(func))
-        return func
-
-    return decorator
