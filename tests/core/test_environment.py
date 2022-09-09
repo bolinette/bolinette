@@ -5,7 +5,7 @@ from typing import Any, Optional, Union
 import pytest
 
 from bolinette.core import Cache, Environment, Logger, environment
-from bolinette.core.exceptions import EnvironmentError, InitError
+from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.testing import Mock
 from bolinette.core.utils import FileUtils, PathUtils
 

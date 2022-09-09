@@ -3,7 +3,7 @@ from typing import Generic, Optional, TypeVar
 import pytest
 
 from bolinette.core import Cache, GenericMeta, Injection, init_method, meta, require
-from bolinette.core.exceptions import InitError, InjectionError
+from bolinette.core.exceptions import InjectionError
 from bolinette.core.inject import InjectionContext, _InjectionProxy
 
 
@@ -517,7 +517,7 @@ def test_context_errors() -> None:
     ctx = InjectionContext()
 
     with pytest.raises(TypeError):
-        (lambda x: x) in ctx
+        (lambda x: x) in ctx  # type: ignore
 
     with pytest.raises(TypeError):
         ctx[(lambda x: x)] = None  # type: ignore
