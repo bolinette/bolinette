@@ -50,12 +50,10 @@ class Backref:
 class ManyToOne:
     def __init__(
         self,
-        target: type[Any],
         foreign_key: Column,
         backref: Backref | None = None,
         lazy: bool | Literal["subquery"] = True,
     ):
-        self.target = target
         self.foreign_key = foreign_key
         self.backref = backref
         self.lazy = lazy

@@ -124,6 +124,33 @@ def test_init_model_foreign_key() -> None:
     assert manager._models[Child].attributes["parent_id"].reference.column.name == "id"  # type: ignore
 
 
+def test_fail_init_model_wrong_foreign_key_type() -> None:
+    class Parent:
+        id: int
+
+    class ParentModel:
+        id = Column(types.Integer, primary_key=True)
+
+    class Child:
+        id: int
+        parent_id: str
+
+    class ChildModel:
+        id = Column(types.Integer)
+        parent_id = Column(types.String, reference=Reference(Parent, "id"))
+
+    cache = Cache()
+    model(Parent, cache=cache)(ParentModel)
+    model(Child, cache=cache)(ChildModel)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert f"Model {ChildModel}, Column 'parent_id', Type does not match referenced column type" in info.value.message
+
+
 def test_fail_init_model_unknown_model() -> None:
     class Parent:
         id: int
@@ -169,9 +196,7 @@ def test_fail_init_model_unknown_column() -> None:
     model(Parent, cache=cache)(ParentModel)
     model(Child, cache=cache)(ChildModel)
 
-    mock = Mock(cache=cache)
-    mock.injection.add(AttributeUtils, "singleton")
-    mock.injection.add(ModelManager, "singleton")
+    mock = _setup_mock(cache)
 
     with pytest.raises(ModelError) as info:
         mock.injection.require(ModelManager)
@@ -197,7 +222,7 @@ def test_init_model_many_to_ones() -> None:
     class ChildModel:
         id = Column(types.Integer)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
-        parent = ManyToOne(Parent, parent_id)
+        parent = ManyToOne(parent_id)
 
     cache = Cache()
     model(Parent, cache=cache)(ParentModel)
@@ -225,7 +250,7 @@ def test_fail_init_model_many_to_ones_missing_param() -> None:
     class ChildModel:
         id = Column(types.Integer)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
-        parent = ManyToOne(Parent, parent_id)
+        parent = ManyToOne(parent_id)
 
     cache = Cache()
     model(Parent, cache=cache)(ParentModel)
@@ -256,7 +281,7 @@ def test_fail_init_model_many_to_ones_wrong_type() -> None:
     class ChildModel:
         id = Column(types.Integer)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
-        parent = ManyToOne(Parent, parent_id)
+        parent = ManyToOne(parent_id)
 
     cache = Cache()
     model(Parent, cache=cache)(ParentModel)
@@ -272,103 +297,135 @@ def test_fail_init_model_many_to_ones_wrong_type() -> None:
     )
 
 
-class Parent:
+class ParentA:
     id: int
-    children: "list[Child]"
+    children: "list[ChildA]"
 
 
-class ParentModel:
+class ParentModelA:
     id = Column(types.Integer, primary_key=True)
 
 
-class Child:
+class ChildA:
     id: int
     parent_id: int
-    parent: Parent
+    parent: ParentA
 
 
-class ChildModel:
+class ChildModelA:
     id = Column(types.Integer)
-    parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
-    parent = ManyToOne(Parent, parent_id, Backref("children"))
+    parent_id = Column(types.Integer, reference=Reference(ParentA, "id"))
+    parent = ManyToOne(parent_id, Backref("children"))
 
 
 def test_init_model_many_to_ones_back_ref() -> None:
     cache = Cache()
-    model(Parent, cache=cache)(ParentModel)
-    model(Child, cache=cache)(ChildModel)
+    model(ParentA, cache=cache)(ParentModelA)
+    model(ChildA, cache=cache)(ChildModelA)
     mock = _setup_mock(cache)
 
     mock.injection.require(ModelManager)
 
 
-class Parent2:
+class ParentB:
     id: int
     children: list
 
 
-class ParentModel2:
+class ParentModelB:
     id = Column(types.Integer, primary_key=True)
 
 
-class Child2:
+class ChildB:
     id: int
     parent_id: int
-    parent: Parent2
+    parent: ParentB
 
 
-class ChildModel2:
+class ChildModelB:
     id = Column(types.Integer)
-    parent_id = Column(types.Integer, reference=Reference(Parent2, "id"))
-    parent = ManyToOne(Parent2, parent_id, Backref("children"))
+    parent_id = Column(types.Integer, reference=Reference(ParentB, "id"))
+    parent = ManyToOne(parent_id, Backref("children"))
 
 
 def test_fail_init_model_many_to_ones_back_ref_missing_generic() -> None:
     cache = Cache()
-    model(Parent2, cache=cache)(ParentModel2)
-    model(Child2, cache=cache)(ChildModel2)
+    model(ParentB, cache=cache)(ParentModelB)
+    model(ChildB, cache=cache)(ChildModelB)
     mock = _setup_mock(cache)
 
     with pytest.raises(ModelError) as info:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Entity {Parent2}, Attribute 'children', Type {list} needs a generic argument"
+        f"Entity {ParentB}, Attribute 'children', Type {list} needs a generic argument"
         in info.value.message
     )
 
 
-class Parent3:
+class ParentC:
     id: int
     children: list[int]
 
 
-class ParentModel3:
+class ParentModelC:
     id = Column(types.Integer, primary_key=True)
 
 
-class Child3:
+class ChildC:
     id: int
     parent_id: int
-    parent: Parent3
+    parent: ParentC
 
 
-class ChildModel3:
+class ChildModelC:
     id = Column(types.Integer)
-    parent_id = Column(types.Integer, reference=Reference(Parent3, "id"))
-    parent = ManyToOne(Parent3, parent_id, Backref("children"))
+    parent_id = Column(types.Integer, reference=Reference(ParentC, "id"))
+    parent = ManyToOne(parent_id, Backref("children"))
 
 
 def test_fail_init_model_many_to_ones_back_ref_wrong_generic() -> None:
     cache = Cache()
-    model(Parent3, cache=cache)(ParentModel3)
-    model(Child3, cache=cache)(ChildModel3)
+    model(ParentC, cache=cache)(ParentModelC)
+    model(ChildC, cache=cache)(ChildModelC)
     mock = _setup_mock(cache)
 
     with pytest.raises(ModelError) as info:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Entity {Parent3}, Attribute 'children', Type list[{int}] is not assignable to column type list[{Child3}]"
+        f"Entity {ParentC}, Attribute 'children', Type list[{int}] is not assignable to column type list[{ChildC}]"
+        in info.value.message
+    )
+
+
+def test_fail_init_model_many_to_ones_no_reference() -> None:
+    class Parent:
+        id: int
+
+    class ParentModel:
+        id = Column(types.Integer, primary_key=True)
+
+    class Child:
+        id: int
+        parent_id: int
+        parent: Parent
+
+    class ChildModel:
+        id = Column(types.Integer)
+        parent_id = Column(types.Integer)
+        parent = ManyToOne(parent_id)
+
+    cache = Cache()
+    model(Parent, cache=cache)(ParentModel)
+    model(Child, cache=cache)(ChildModel)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert (
+        f"Model {ChildModel}, Relationship 'parent', Given foreign key does not reference any column"
         in info.value.message
     )

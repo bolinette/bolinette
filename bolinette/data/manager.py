@@ -66,10 +66,12 @@ class ModelManager:
                     target_col = target_model.attributes[ref.column]
                     if not isinstance(target_col, _ColumnDef):
                         raise ModelError(
-                            f"Target attribute {att_name} is not column",
+                            f"Target attribute '{ref.column}' is not a column",
                             model=model_def.model,
                             column=att_name,
                         )
+                    if target_col.column.type is not attr.column.type:
+                        raise ModelError("Type does not match referenced column type", model=model_def.model, column=att_name)
                     ref_def = _ReferenceDef(target_model, target_col)
                     attr.reference = ref_def
 
@@ -78,13 +80,13 @@ class ModelManager:
             for rel_name, rel in self._attrs.get_cls_attrs(
                 model_def.model, of_type=ManyToOne
             ):
-                target = rel.target
-                if target not in self._models:
+                if rel.foreign_key.reference is None:
                     raise ModelError(
-                        f"{rel.target} is not known entity",
+                        "Given foreign key does not reference any column",
                         model=model_def.model,
-                        column=rel_name,
+                        rel=rel_name,
                     )
+                target = rel.foreign_key.reference.entity
                 target_model_def = self._models[target]
                 mto_def = _ManyToOneDef(rel_name, model_def, target_model_def)
                 model_def.attributes[rel_name] = mto_def
