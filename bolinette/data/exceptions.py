@@ -1,6 +1,7 @@
 from typing import Any
 
 from bolinette.core.exceptions import BolinetteError
+from bolinette.data.model import Model
 
 
 class DataError(BolinetteError):
@@ -12,7 +13,7 @@ class ModelError(DataError):
         self,
         message: str,
         *,
-        model: type[Any] | None = None,
+        model: type[Model] | None = None,
         column: str | None = None,
         rel: str | None = None,
         entity: type[Any] | None = None,

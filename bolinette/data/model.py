@@ -9,10 +9,14 @@ class Reference:
     def __init__(
         self,
         entity: type[Any],
-        column: str,
+        columns: str | list[str] | None,
     ):
         self.entity = entity
-        self.column = column
+        self.columns: list[str] | None
+        if columns is not None and not isinstance(columns, list):
+            self.columns = [columns]
+        else:
+            self.columns = columns
 
 
 class Column:
@@ -57,6 +61,24 @@ class ManyToOne:
         self.foreign_key = foreign_key
         self.backref = backref
         self.lazy = lazy
+
+
+class ManyToMany:
+    def __init__(
+        self,
+        reference: Reference,
+        join_columns: Column | list[Column] | None = None,
+        join_table: str | None = None,
+        backref: Backref | None = None,
+    ) -> None:
+        self.reference = reference
+        self.join_columns: list[Column] | None
+        if join_columns is not None and not isinstance(join_columns, list):
+            self.join_columns = [join_columns]
+        else:
+            self.join_columns = join_columns
+        self.join_table = join_table
+        self.backref = backref
 
 
 class Model(Protocol):

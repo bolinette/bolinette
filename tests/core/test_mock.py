@@ -85,3 +85,16 @@ def test_mock_fail_not_mocked() -> None:
     assert f"'get_v3' attribute has not been mocked in {_TestInjectedClass}" in str(
         info.value
     )
+
+
+def test_mock_dummy_mode() -> None:
+    mock = Mock()
+    mock.mock(_TestInjectedClass).dummy()
+    mock.injection.add(_TestClass, "singleton")
+
+    t = mock.injection.require(_TestClass)
+
+    assert t.i.v1 is None
+    assert t.i.v2 is None
+    assert t.i.get_v3() is None
+    assert t.i.get_v4("test") is None

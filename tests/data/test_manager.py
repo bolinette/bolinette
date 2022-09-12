@@ -1,6 +1,6 @@
 import pytest
 
-from bolinette.core import Cache
+from bolinette.core import Cache, Logger
 from bolinette.core.testing import Mock
 from bolinette.core.utils import AttributeUtils
 from bolinette.data import (
@@ -19,6 +19,7 @@ def _setup_mock(cache: Cache) -> Mock:
     mock = Mock(cache=cache)
     mock.injection.add(AttributeUtils, "singleton")
     mock.injection.add(ModelManager, "singleton")
+    mock.mock(Logger).dummy()
     return mock
 
 
@@ -44,6 +45,50 @@ def test_init_model_basic_columns() -> None:
     assert "id" in manager._models[Test].attributes
     assert "name" in manager._models[Test].attributes
     assert "price" in manager._models[Test].attributes
+
+
+def test_init_fail_same_entity() -> None:
+    class Test:
+        id: int
+
+    class TestModel1:
+        id = Column(types.Integer, primary_key=True)
+
+    class TestModel2:
+        id = Column(types.Integer, primary_key=True)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel1)
+    model(Test, cache=cache)(TestModel2)
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert (
+        f"Model {TestModel2}, Entity {Test} is already used by model {TestModel1}"
+        in info.value.message
+    )
+
+
+def test_fail_init_no_primary_key() -> None:
+    class Test:
+        id: int
+
+    class TestModel:
+        id = Column(types.Integer)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert (
+        f"Model {TestModel}, No primary key defined"
+        in info.value.message
+    )
 
 
 def test_fail_init_model_entity_missing_param() -> None:
@@ -105,7 +150,7 @@ def test_init_model_foreign_key() -> None:
         parent_id: int
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
 
     cache = Cache()
@@ -121,7 +166,7 @@ def test_init_model_foreign_key() -> None:
     assert "parent_id" in manager._models[Child].attributes
     assert manager._models[Child].attributes["parent_id"].reference is not None  # type: ignore
     assert manager._models[Child].attributes["parent_id"].reference.model.entity == Parent  # type: ignore
-    assert manager._models[Child].attributes["parent_id"].reference.column.name == "id"  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["parent_id"].reference.columns)) == ["id"]  # type: ignore
 
 
 def test_fail_init_model_wrong_foreign_key_type() -> None:
@@ -136,7 +181,7 @@ def test_fail_init_model_wrong_foreign_key_type() -> None:
         parent_id: str
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.String, reference=Reference(Parent, "id"))
 
     cache = Cache()
@@ -148,7 +193,10 @@ def test_fail_init_model_wrong_foreign_key_type() -> None:
     with pytest.raises(ModelError) as info:
         mock.injection.require(ModelManager)
 
-    assert f"Model {ChildModel}, Column 'parent_id', Type does not match referenced column type" in info.value.message
+    assert (
+        f"Model {ChildModel}, Column 'parent_id', Type does not match referenced column type"
+        in info.value.message
+    )
 
 
 def test_fail_init_model_unknown_model() -> None:
@@ -160,7 +208,7 @@ def test_fail_init_model_unknown_model() -> None:
         parent_id: int
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
 
     cache = Cache()
@@ -189,7 +237,7 @@ def test_fail_init_model_unknown_column() -> None:
         parent_id: int
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "uuid"))
 
     cache = Cache()
@@ -220,7 +268,7 @@ def test_init_model_many_to_ones() -> None:
         parent: Parent
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
         parent = ManyToOne(parent_id)
 
@@ -248,7 +296,7 @@ def test_fail_init_model_many_to_ones_missing_param() -> None:
         parent_id: int
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
         parent = ManyToOne(parent_id)
 
@@ -279,7 +327,7 @@ def test_fail_init_model_many_to_ones_wrong_type() -> None:
         parent: int
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
         parent = ManyToOne(parent_id)
 
@@ -313,7 +361,7 @@ class ChildA:
 
 
 class ChildModelA:
-    id = Column(types.Integer)
+    id = Column(types.Integer, primary_key=True)
     parent_id = Column(types.Integer, reference=Reference(ParentA, "id"))
     parent = ManyToOne(parent_id, Backref("children"))
 
@@ -343,7 +391,7 @@ class ChildB:
 
 
 class ChildModelB:
-    id = Column(types.Integer)
+    id = Column(types.Integer, primary_key=True)
     parent_id = Column(types.Integer, reference=Reference(ParentB, "id"))
     parent = ManyToOne(parent_id, Backref("children"))
 
@@ -379,7 +427,7 @@ class ChildC:
 
 
 class ChildModelC:
-    id = Column(types.Integer)
+    id = Column(types.Integer, primary_key=True)
     parent_id = Column(types.Integer, reference=Reference(ParentC, "id"))
     parent = ManyToOne(parent_id, Backref("children"))
 
@@ -412,7 +460,7 @@ def test_fail_init_model_many_to_ones_no_reference() -> None:
         parent: Parent
 
     class ChildModel:
-        id = Column(types.Integer)
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer)
         parent = ManyToOne(parent_id)
 
