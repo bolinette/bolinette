@@ -9,7 +9,7 @@ class Reference:
     def __init__(
         self,
         entity: type[Any],
-        columns: str | list[str] | None,
+        columns: str | list[str] | None = None,
     ):
         self.entity = entity
         self.columns: list[str] | None
@@ -79,6 +79,15 @@ class ManyToMany:
             self.join_columns = join_columns
         self.join_table = join_table
         self.backref = backref
+
+
+class PrimaryKey:
+    def __init__(self, columns: Column | list[Column]) -> None:
+        self.columns: list[Column]
+        if not isinstance(columns, list):
+            self.columns = [columns]
+        else:
+            self.columns = columns
 
 
 class Model(Protocol):

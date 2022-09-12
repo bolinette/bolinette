@@ -1,10 +1,10 @@
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import Any, TypeVar, get_args, get_origin, get_type_hints
 
 from bolinette.core import Cache, Logger, init_method, injectable, meta
 from bolinette.core.utils import AttributeUtils
 from bolinette.data import DataSection, __data_cache__
 from bolinette.data.exceptions import ModelError
-from bolinette.data.model import Column, ManyToOne, Model, ModelMeta
+from bolinette.data.model import Column, ManyToOne, Model, ModelMeta, PrimaryKey
 
 
 @injectable(cache=__data_cache__)
@@ -28,6 +28,7 @@ class ModelManager:
     def init(self) -> None:
         self._init_models()
         self._init_columns()
+        self._init_primary_key()
         self._init_references()
         self._init_many_to_ones()
         self._validate_entities()
@@ -46,7 +47,7 @@ class ModelManager:
             model_def = _ModelDef(model_meta.table_name, cls, entity)
             self._models[entity] = model_def
 
-    def _init_columns(self):
+    def _init_columns(self) -> None:
         for model_def in self._models.values():
             for col_name, col in self._attrs.get_cls_attrs(
                 model_def.model, of_type=Column
@@ -55,32 +56,47 @@ class ModelManager:
                     col, col_name, model_def, col.primary_key, col.entity_key
                 )
                 model_def.attributes[col_name] = col_def
-            model_def.primary_key = [
+
+    def _init_primary_key(self) -> None:
+        for model_def in self._models.values():
+            keys: list[_PrimaryKeyDef] = []
+            defined_key = [
                 c
                 for c in model_def.attributes.values()
                 if isinstance(c, _ColumnDef) and c.primary_key
             ]
-            if not model_def.primary_key:
-                raise ModelError(f"No primary key defined", model=model_def.model)
-            model_def.entity_key = [
-                c
-                for c in model_def.attributes.values()
-                if isinstance(c, _ColumnDef) and c.entity_key
+            if len(defined_key):
+                keys.append(_PrimaryKeyDef(f"{model_def.name}_pk", defined_key))
+            custom_keys = [
+                (name, attr)
+                for name, attr in self._attrs.get_cls_attrs(
+                    model_def.model, of_type=PrimaryKey
+                )
             ]
-            if not model_def.entity_key:
-                model_def.entity_key = list(model_def.primary_key)
+            all_col_defs = [c for _, c in model_def.attrs(_ColumnDef)]
+            for key_name, custom_key in custom_keys:
+                key_col_defs: list[_ColumnDef] = []
+                for col in custom_key.columns:
+                    key_col_defs.append(next(c for c in all_col_defs))
+                keys.append(_PrimaryKeyDef(key_name, key_col_defs))
+            if not len(keys):
+                raise ModelError("No primary key defined", model=model_def.model)
+            if len(keys) > 1:
+                raise ModelError(
+                    "Several primary keys cannot be defined", model=model_def.model
+                )
+            key = keys[0]
+            model_def.attributes[key.name] = key
 
-    def _init_references(self):
+    def _init_references(self) -> None:
         for model_def in self._models.values():
-            for att_name, attr in model_def.attributes.items():
-                if not isinstance(attr, _ColumnDef):
-                    continue
-                if (ref := attr.column.reference) is not None:
+            for col_name, col_def in model_def.attrs(_ColumnDef):
+                if (ref := col_def.column.reference) is not None:
                     if ref.entity not in self._models:
                         raise ModelError(
                             f"{ref.entity} is not known entity",
                             model=model_def.model,
-                            column=att_name,
+                            attribute=col_name,
                         )
                     target_model = self._models[ref.entity]
                     if ref.columns is None:
@@ -92,26 +108,26 @@ class ModelManager:
                                 raise ModelError(
                                     f"Target column '{column}' does not exist on {target_model.model}",
                                     model=model_def.model,
-                                    column=att_name,
+                                    attribute=col_name,
                                 )
                             target_col = target_model.attributes[column]
                             if not isinstance(target_col, _ColumnDef):
                                 raise ModelError(
                                     f"Target attribute '{column}' is not a column",
                                     model=model_def.model,
-                                    column=att_name,
+                                    attribute=col_name,
                                 )
-                            if target_col.column.type is not attr.column.type:
+                            if target_col.column.type is not col_def.column.type:
                                 raise ModelError(
                                     "Type does not match referenced column type",
                                     model=model_def.model,
-                                    column=att_name,
+                                    attribute=col_name,
                                 )
                             target_cols.append(target_col)
                     ref_def = _ReferenceDef(target_model, target_cols)
-                    attr.reference = ref_def
+                    col_def.reference = ref_def
 
-    def _init_many_to_ones(self):
+    def _init_many_to_ones(self) -> None:
         for model_def in self._models.values():
             for rel_name, rel in self._attrs.get_cls_attrs(
                 model_def.model, of_type=ManyToOne
@@ -120,7 +136,7 @@ class ModelManager:
                     raise ModelError(
                         "Given foreign key does not reference any column",
                         model=model_def.model,
-                        rel=rel_name,
+                        attribute=rel_name,
                     )
                 target = rel.foreign_key.reference.entity
                 target_model_def = self._models[target]
@@ -132,11 +148,13 @@ class ModelManager:
                     )
                     target_model_def.attributes[rel.backref.key] = otm_def
 
-    def _validate_entities(self):
+    def _validate_entities(self) -> None:
         for model_def in self._models.values():
             entity = model_def.entity
             hints: dict[str, type] = get_type_hints(entity)
             for att_name, attr in model_def.attributes.items():
+                if type(attr) in {_PrimaryKeyDef}:
+                    continue
                 if att_name not in hints:
                     raise ModelError(
                         f"No '{att_name}' annotated attribute found in {entity}",
@@ -176,14 +194,23 @@ class ModelManager:
                     )
 
 
+T = TypeVar("T")
+
+
 class _ModelDef:
     def __init__(self, name: str, model: type[Model], entity: type[Any]) -> None:
         self.name = name
         self.model = model
         self.entity = entity
-        self.attributes: dict[str, _ColumnDef | _ManyToOneDef | _OneToManyDef] = {}
-        self.primary_key: list[_ColumnDef] = []
-        self.entity_key: list[_ColumnDef] = []
+        self.attributes: dict[
+            str, _ColumnDef | _ManyToOneDef | _OneToManyDef | _PrimaryKeyDef
+        ] = {}
+
+    def attrs(
+        self,
+        of_type: type[T],
+    ) -> list[tuple[str, T]]:
+        return [(n, a) for n, a in self.attributes.items() if isinstance(a, of_type)]
 
 
 class _ReferenceDef:
@@ -221,3 +248,9 @@ class _ColumnDef:
         self.primary_key = primary_key
         self.entity_key = entity_key
         self.reference: _ReferenceDef | None = None
+
+
+class _PrimaryKeyDef:
+    def __init__(self, name: str, columns: list[_ColumnDef]) -> None:
+        self.name = name
+        self.columns = columns

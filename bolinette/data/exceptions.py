@@ -14,8 +14,6 @@ class ModelError(DataError):
         message: str,
         *,
         model: type[Model] | None = None,
-        column: str | None = None,
-        rel: str | None = None,
         entity: type[Any] | None = None,
         attribute: str | None = None,
     ) -> None:
@@ -24,10 +22,6 @@ class ModelError(DataError):
             strs.insert(0, f"Attribute '{attribute}'")
         if entity is not None:
             strs.insert(0, f"Entity {entity}")
-        if rel is not None:
-            strs.insert(0, f"Relationship '{rel}'")
-        if column is not None:
-            strs.insert(0, f"Column '{column}'")
         if model is not None:
             strs.insert(0, f"Model {model}")
         super().__init__(", ".join(strs))

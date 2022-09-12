@@ -8,11 +8,13 @@ from bolinette.data import (
     Column,
     ManyToOne,
     ModelManager,
+    PrimaryKey,
     Reference,
     model,
     types,
 )
 from bolinette.data.exceptions import ModelError
+from bolinette.data.manager import _ColumnDef
 
 
 def _setup_mock(cache: Cache) -> Mock:
@@ -41,7 +43,7 @@ def test_init_model_basic_columns() -> None:
 
     assert Test in manager._models
     assert manager._models[Test].name == "test"
-    assert len(manager._models[Test].attributes) == 3
+    assert len(manager._models[Test].attrs(_ColumnDef)) == 3
     assert "id" in manager._models[Test].attributes
     assert "name" in manager._models[Test].attributes
     assert "price" in manager._models[Test].attributes
@@ -85,10 +87,82 @@ def test_fail_init_no_primary_key() -> None:
     with pytest.raises(ModelError) as info:
         mock.injection.require(ModelManager)
 
-    assert (
-        f"Model {TestModel}, No primary key defined"
-        in info.value.message
-    )
+    assert f"Model {TestModel}, No primary key defined" in info.value.message
+
+
+def test_init_default_primary_key() -> None:
+    class Test:
+        id: int
+
+    class TestModel:
+        id = Column(types.Integer, primary_key=True)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(ModelManager)
+
+    assert "test_pk" in manager._models[Test].attributes
+    assert len(manager._models[Test].attributes["test_pk"].columns) == 1  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == ["id"]  # type: ignore
+
+
+def test_init_default_composite_primary_key() -> None:
+    class Test:
+        id1: int
+        id2: int
+
+    class TestModel:
+        id1 = Column(types.Integer, primary_key=True)
+        id2 = Column(types.Integer, primary_key=True)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(ModelManager)
+
+    assert "test_pk" in manager._models[Test].attributes
+    assert len(manager._models[Test].attributes["test_pk"].columns) == 2  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == ["id1", "id2"]  # type: ignore
+
+
+def test_init_manual_primary_key() -> None:
+    class Test:
+        id: int
+
+    class TestModel:
+        id = Column(types.Integer)
+        test_custom_pk = PrimaryKey(id)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(ModelManager)
+
+    assert "test_custom_pk" in manager._models[Test].attributes
+    assert len(manager._models[Test].attributes["test_custom_pk"].columns) == 1  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_custom_pk"].columns)) == ["id"]  # type: ignore
+
+
+def test_fail_init_two_primary_keys() -> None:
+    class Test:
+        id: int
+
+    class TestModel:
+        id = Column(types.Integer, primary_key=True)
+        test_custom_pk = PrimaryKey(id)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert f"Model {TestModel}, Several primary keys cannot be defined" in info.value.message
 
 
 def test_fail_init_model_entity_missing_param() -> None:
@@ -194,7 +268,7 @@ def test_fail_init_model_wrong_foreign_key_type() -> None:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Model {ChildModel}, Column 'parent_id', Type does not match referenced column type"
+        f"Model {ChildModel}, Attribute 'parent_id', Type does not match referenced column type"
         in info.value.message
     )
 
@@ -220,7 +294,7 @@ def test_fail_init_model_unknown_model() -> None:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Model {ChildModel}, Column 'parent_id', {Parent} is not known entity"
+        f"Model {ChildModel}, Attribute 'parent_id', {Parent} is not known entity"
         in info.value.message
     )
 
@@ -250,7 +324,7 @@ def test_fail_init_model_unknown_column() -> None:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Model {ChildModel}, Column 'parent_id', Target column 'uuid' does not exist on {ParentModel}"
+        f"Model {ChildModel}, Attribute 'parent_id', Target column 'uuid' does not exist on {ParentModel}"
         in info.value.message
     )
 
@@ -474,6 +548,6 @@ def test_fail_init_model_many_to_ones_no_reference() -> None:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Model {ChildModel}, Relationship 'parent', Given foreign key does not reference any column"
+        f"Model {ChildModel}, Attribute 'parent', Given foreign key does not reference any column"
         in info.value.message
     )
