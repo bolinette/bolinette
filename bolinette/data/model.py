@@ -90,6 +90,15 @@ class PrimaryKey:
             self.columns = columns
 
 
+class UniqueConstraint:
+    def __init__(self, columns: Column | list[Column]) -> None:
+        self.columns: list[Column]
+        if not isinstance(columns, list):
+            self.columns = [columns]
+        else:
+            self.columns = columns
+
+
 class Model(Protocol):
     def __init__(self) -> None:
         pass

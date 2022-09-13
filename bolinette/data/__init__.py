@@ -8,6 +8,7 @@ from bolinette.data.model import (
     ManyToOne,
     ManyToMany,
     PrimaryKey,
+    UniqueConstraint,
     model,
 )
 from bolinette.data.manager import DatabaseManager, ModelManager

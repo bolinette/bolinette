@@ -10,6 +10,7 @@ from bolinette.data import (
     ModelManager,
     PrimaryKey,
     Reference,
+    UniqueConstraint,
     model,
     types,
 )
@@ -105,7 +106,7 @@ def test_init_default_primary_key() -> None:
 
     assert "test_pk" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_pk"].columns) == 1  # type: ignore
-    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == ["id"]  # type: ignore
+    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == {"id"}  # type: ignore
 
 
 def test_init_default_composite_primary_key() -> None:
@@ -125,14 +126,16 @@ def test_init_default_composite_primary_key() -> None:
 
     assert "test_pk" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_pk"].columns) == 2  # type: ignore
-    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == ["id1", "id2"]  # type: ignore
+    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == {"id1", "id2"}  # type: ignore
 
 
-def test_init_manual_primary_key() -> None:
+def test_init_model_manual_primary_key() -> None:
     class Test:
+        name: str
         id: int
 
     class TestModel:
+        name = Column(types.String)
         id = Column(types.Integer)
         test_custom_pk = PrimaryKey(id)
 
@@ -144,10 +147,10 @@ def test_init_manual_primary_key() -> None:
 
     assert "test_custom_pk" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_custom_pk"].columns) == 1  # type: ignore
-    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_custom_pk"].columns)) == ["id"]  # type: ignore
+    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_custom_pk"].columns)) == {"id"}  # type: ignore
 
 
-def test_fail_init_two_primary_keys() -> None:
+def test_fail_init_model_two_primary_keys() -> None:
     class Test:
         id: int
 
@@ -162,7 +165,123 @@ def test_fail_init_two_primary_keys() -> None:
     with pytest.raises(ModelError) as info:
         mock.injection.require(ModelManager)
 
-    assert f"Model {TestModel}, Several primary keys cannot be defined" in info.value.message
+    assert (
+        f"Model {TestModel}, Several primary keys cannot be defined"
+        in info.value.message
+    )
+
+
+def test_fail_init_model_primary_key_and_unique_constraint() -> None:
+    class Test:
+        id: int
+
+    class TestModel:
+        id = Column(types.Integer, primary_key=True, unique=True)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert (
+        f"Model {TestModel}, A unique constraint has already been defined with the same columns as the primary key"
+        in info.value.message
+    )
+
+
+def test_fail_init_model_composite_primary_key_and_unique_constraint() -> None:
+    class Test:
+        id1: int
+        id2: int
+
+    class TestModel:
+        id1 = Column(types.Integer)
+        id2 = Column(types.Integer)
+        test_pk = PrimaryKey([id1, id2])
+        test_ids_u = UniqueConstraint([id2, id1])
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert (
+        f"Model {TestModel}, A unique constraint has already been defined with the same columns as the primary key"
+        in info.value.message
+    )
+
+
+def test_init_model_unique_constraint() -> None:
+    class Test:
+        id: int
+        name: str
+
+    class TestModel:
+        id = Column(types.Integer, primary_key=True)
+        name = Column(types.String, unique=True)
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(ModelManager)
+
+    assert "test_name_u" in manager._models[Test].attributes
+    assert len(manager._models[Test].attributes["test_name_u"].columns) == 1  # type: ignore
+    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_name_u"].columns)) == {"name"}  # type: ignore
+
+
+def test_init_model_multi_unique_constraint() -> None:
+    class Test:
+        id: int
+        firstname: str
+        lastname: str
+
+    class TestModel:
+        id = Column(types.Integer, primary_key=True)
+        firstname = Column(types.String)
+        lastname = Column(types.String)
+        test_firstname_lastname_u = UniqueConstraint([firstname, lastname])
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(ModelManager)
+
+    assert "test_firstname_lastname_u" in manager._models[Test].attributes
+    assert len(manager._models[Test].attributes["test_firstname_lastname_u"].columns) == 2  # type: ignore
+    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_firstname_lastname_u"].columns)) == {"firstname", "lastname"}  # type: ignore
+
+
+def test_fail_init_model_multi_unique_constraint() -> None:
+    class Test:
+        id: int
+        firstname: str
+        lastname: str
+
+    class TestModel:
+        id = Column(types.Integer, primary_key=True)
+        firstname = Column(types.String)
+        lastname = Column(types.String)
+        test_firstname_lastname_u1 = UniqueConstraint([firstname, lastname])
+        test_firstname_lastname_u2 = UniqueConstraint([firstname, lastname])
+
+    cache = Cache()
+    model(Test, cache=cache)(TestModel)
+    mock = _setup_mock(cache)
+
+    with pytest.raises(ModelError) as info:
+        mock.injection.require(ModelManager)
+
+    assert (
+        f"Model {TestModel}, Attribute 'test_firstname_lastname_u2', Another unique constraint has already been defined with the same columns"
+        in info.value.message
+    )
 
 
 def test_fail_init_model_entity_missing_param() -> None:
@@ -240,7 +359,7 @@ def test_init_model_foreign_key() -> None:
     assert "parent_id" in manager._models[Child].attributes
     assert manager._models[Child].attributes["parent_id"].reference is not None  # type: ignore
     assert manager._models[Child].attributes["parent_id"].reference.model.entity == Parent  # type: ignore
-    assert list(map(lambda c: c.name, manager._models[Child].attributes["parent_id"].reference.columns)) == ["id"]  # type: ignore
+    assert set(map(lambda c: c.name, manager._models[Child].attributes["parent_id"].reference.columns)) == {"id"}  # type: ignore
 
 
 def test_fail_init_model_wrong_foreign_key_type() -> None:
