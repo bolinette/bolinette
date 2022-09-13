@@ -6,6 +6,7 @@ from bolinette.core.utils import AttributeUtils
 from bolinette.data import (
     Backref,
     Column,
+    ForeignKey,
     ManyToOne,
     ModelManager,
     PrimaryKey,
@@ -106,7 +107,7 @@ def test_init_default_primary_key() -> None:
 
     assert "test_pk" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_pk"].columns) == 1  # type: ignore
-    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == {"id"}  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == ["id"]  # type: ignore
 
 
 def test_init_default_composite_primary_key() -> None:
@@ -126,7 +127,7 @@ def test_init_default_composite_primary_key() -> None:
 
     assert "test_pk" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_pk"].columns) == 2  # type: ignore
-    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == {"id1", "id2"}  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_pk"].columns)) == ["id1", "id2"]  # type: ignore
 
 
 def test_init_model_manual_primary_key() -> None:
@@ -147,7 +148,7 @@ def test_init_model_manual_primary_key() -> None:
 
     assert "test_custom_pk" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_custom_pk"].columns) == 1  # type: ignore
-    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_custom_pk"].columns)) == {"id"}  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_custom_pk"].columns)) == ["id"]  # type: ignore
 
 
 def test_fail_init_model_two_primary_keys() -> None:
@@ -232,7 +233,7 @@ def test_init_model_unique_constraint() -> None:
 
     assert "test_name_u" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_name_u"].columns) == 1  # type: ignore
-    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_name_u"].columns)) == {"name"}  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_name_u"].columns)) == ["name"]  # type: ignore
 
 
 def test_init_model_multi_unique_constraint() -> None:
@@ -255,7 +256,7 @@ def test_init_model_multi_unique_constraint() -> None:
 
     assert "test_firstname_lastname_u" in manager._models[Test].attributes
     assert len(manager._models[Test].attributes["test_firstname_lastname_u"].columns) == 2  # type: ignore
-    assert set(map(lambda c: c.name, manager._models[Test].attributes["test_firstname_lastname_u"].columns)) == {"firstname", "lastname"}  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Test].attributes["test_firstname_lastname_u"].columns)) == ["firstname", "lastname"]  # type: ignore
 
 
 def test_fail_init_model_multi_unique_constraint() -> None:
@@ -268,8 +269,8 @@ def test_fail_init_model_multi_unique_constraint() -> None:
         id = Column(types.Integer, primary_key=True)
         firstname = Column(types.String)
         lastname = Column(types.String)
-        test_firstname_lastname_u1 = UniqueConstraint([firstname, lastname])
-        test_firstname_lastname_u2 = UniqueConstraint([firstname, lastname])
+        test_firstname_lastname_u = UniqueConstraint([firstname, lastname])
+        test_lastname_firstname_u = UniqueConstraint([lastname, firstname])
 
     cache = Cache()
     model(Test, cache=cache)(TestModel)
@@ -279,7 +280,7 @@ def test_fail_init_model_multi_unique_constraint() -> None:
         mock.injection.require(ModelManager)
 
     assert (
-        f"Model {TestModel}, Attribute 'test_firstname_lastname_u2', Another unique constraint has already been defined with the same columns"
+        f"Model {TestModel}, Attribute 'test_lastname_firstname_u', Another unique constraint has already been defined with the same columns"
         in info.value.message
     )
 
@@ -344,6 +345,36 @@ def test_init_model_foreign_key() -> None:
 
     class ChildModel:
         id = Column(types.Integer, primary_key=True)
+        parent_id = Column(types.Integer, reference=Reference(Parent))
+
+    cache = Cache()
+    model(Parent, cache=cache)(ParentModel)
+    model(Child, cache=cache)(ChildModel)
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(ModelManager)
+
+    assert Parent in manager._models
+    assert Child in manager._models
+
+    assert "child_parent_fk" in manager._models[Child].attributes
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].source_cols)) == ["parent_id"]  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].target_cols)) == ["id"]  # type: ignore
+
+
+def test_init_model_manual_foreign_key() -> None:
+    class Parent:
+        id: int
+
+    class ParentModel:
+        id = Column(types.Integer, primary_key=True)
+
+    class Child:
+        id: int
+        parent_id: int
+
+    class ChildModel:
+        id = Column(types.Integer, primary_key=True)
         parent_id = Column(types.Integer, reference=Reference(Parent, "id"))
 
     cache = Cache()
@@ -356,13 +387,12 @@ def test_init_model_foreign_key() -> None:
     assert Parent in manager._models
     assert Child in manager._models
 
-    assert "parent_id" in manager._models[Child].attributes
-    assert manager._models[Child].attributes["parent_id"].reference is not None  # type: ignore
-    assert manager._models[Child].attributes["parent_id"].reference.model.entity == Parent  # type: ignore
-    assert set(map(lambda c: c.name, manager._models[Child].attributes["parent_id"].reference.columns)) == {"id"}  # type: ignore
+    assert "child_parent_fk" in manager._models[Child].attributes
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].source_cols)) == ["parent_id"]  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].target_cols)) == ["id"]  # type: ignore
 
 
-def test_fail_init_model_wrong_foreign_key_type() -> None:
+def test_init_model_attribute_foreign_key() -> None:
     class Parent:
         id: int
 
@@ -371,25 +401,62 @@ def test_fail_init_model_wrong_foreign_key_type() -> None:
 
     class Child:
         id: int
-        parent_id: str
+        parent_id: int
 
     class ChildModel:
         id = Column(types.Integer, primary_key=True)
-        parent_id = Column(types.String, reference=Reference(Parent, "id"))
+        parent_id = Column(types.Integer)
+        child_parent_fk = ForeignKey(parent_id, Parent)
 
     cache = Cache()
     model(Parent, cache=cache)(ParentModel)
     model(Child, cache=cache)(ChildModel)
 
     mock = _setup_mock(cache)
+    manager = mock.injection.require(ModelManager)
 
-    with pytest.raises(ModelError) as info:
-        mock.injection.require(ModelManager)
+    assert Parent in manager._models
+    assert Child in manager._models
 
-    assert (
-        f"Model {ChildModel}, Attribute 'parent_id', Type does not match referenced column type"
-        in info.value.message
-    )
+    assert "child_parent_fk" in manager._models[Child].attributes
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].source_cols)) == ["parent_id"]  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].target_cols)) == ["id"]  # type: ignore
+
+
+def test_init_model_composite_foreign_key() -> None:
+    class Parent:
+        id1: int
+        id2: int
+
+    class ParentModel:
+        id1 = Column(types.Integer)
+        id2 = Column(types.Integer)
+        parent_pk = PrimaryKey([id1, id2])
+
+    class Child:
+        id: int
+        parent_id1: int
+        parent_id2: int
+
+    class ChildModel:
+        id = Column(types.Integer, primary_key=True)
+        parent_id1 = Column(types.Integer)
+        parent_id2 = Column(types.Integer)
+        child_parent_fk = ForeignKey([parent_id1, parent_id2], Parent, ["id1", "id2"])
+
+    cache = Cache()
+    model(Parent, cache=cache)(ParentModel)
+    model(Child, cache=cache)(ChildModel)
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(ModelManager)
+
+    assert Parent in manager._models
+    assert Child in manager._models
+
+    assert "child_parent_fk" in manager._models[Child].attributes
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].source_cols)) ==  ["parent_id1", "parent_id2"]  # type: ignore
+    assert list(map(lambda c: c.name, manager._models[Child].attributes["child_parent_fk"].target_cols)) ==  ["id1", "id2"]  # type: ignore
 
 
 def test_fail_init_model_unknown_model() -> None:

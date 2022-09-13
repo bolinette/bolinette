@@ -99,6 +99,26 @@ class UniqueConstraint:
             self.columns = columns
 
 
+class ForeignKey:
+    def __init__(
+        self,
+        source_cols: Column | list[Column],
+        entity: type[Any],
+        target_cols: str | list[str] | None = None,
+    ) -> None:
+        self.source_cols: list[Column]
+        if not isinstance(source_cols, list):
+            self.source_cols = [source_cols]
+        else:
+            self.source_cols = source_cols
+        self.entity = entity
+        self.target_cols: list[str] | None
+        if target_cols is not None and not isinstance(target_cols, list):
+            self.target_cols = [target_cols]
+        else:
+            self.target_cols = target_cols
+
+
 class Model(Protocol):
     def __init__(self) -> None:
         pass

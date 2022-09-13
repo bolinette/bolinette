@@ -6,6 +6,7 @@ from bolinette.data import DataSection, __data_cache__
 from bolinette.data.exceptions import ModelError
 from bolinette.data.model import (
     Column,
+    ForeignKey,
     ManyToOne,
     Model,
     ModelMeta,
@@ -76,7 +77,7 @@ class ModelManager:
             for col_name, col in (
                 (n, c) for n, c in model_def.attrs(_ColumnDef) if c.unique
             ):
-                constraints.append(_UniqueDef(f"{model_def.name}_{col_name}_u", {col}))
+                constraints.append(_UniqueDef(f"{model_def.name}_{col_name}_u", [col]))
             custom_constraints = [
                 (name, attr)
                 for name, attr in self._attrs.get_cls_attrs(
@@ -85,12 +86,14 @@ class ModelManager:
             ]
             all_col_defs = [c for _, c in model_def.attrs(_ColumnDef)]
             for const_name, constraint in custom_constraints:
-                const_col_defs: set[_ColumnDef] = set()
+                const_col_defs: list[_ColumnDef] = []
                 for col in constraint.columns:
-                    const_col_defs.add(next(c for c in all_col_defs if c.column is col))
+                    const_col_defs.append(
+                        next(c for c in all_col_defs if c.column is col)
+                    )
                 constraints.append(_UniqueDef(const_name, const_col_defs))
             for constraint in constraints:
-                if model_def.check_unique(constraint):
+                if model_def.check_unique(constraint.columns):
                     raise ModelError(
                         "Another unique constraint has already been defined with the same columns",
                         model=model_def.model,
@@ -101,11 +104,11 @@ class ModelManager:
     def _init_primary_key(self) -> None:
         for model_def in self._models.values():
             keys: list[_PrimaryKeyDef] = []
-            defined_key = {
+            defined_key = [
                 c
                 for c in model_def.attributes.values()
                 if isinstance(c, _ColumnDef) and c.primary_key
-            }
+            ]
             if len(defined_key):
                 keys.append(_PrimaryKeyDef(f"{model_def.name}_pk", defined_key))
             custom_keys = [
@@ -116,9 +119,11 @@ class ModelManager:
             ]
             all_col_defs = [c for _, c in model_def.attrs(_ColumnDef)]
             for key_name, custom_key in custom_keys:
-                key_col_defs: set[_ColumnDef] = set()
+                key_col_defs: list[_ColumnDef] = []
                 for col in custom_key.columns:
-                    key_col_defs.add(next(c for c in all_col_defs if c.column is col))
+                    key_col_defs.append(
+                        next(c for c in all_col_defs if c.column is col)
+                    )
                 keys.append(_PrimaryKeyDef(key_name, key_col_defs))
             if not len(keys):
                 raise ModelError("No primary key defined", model=model_def.model)
@@ -127,7 +132,7 @@ class ModelManager:
                     "Several primary keys cannot be defined", model=model_def.model
                 )
             key = keys[0]
-            if model_def.check_unique(key):
+            if model_def.check_unique(key.columns):
                 raise ModelError(
                     "A unique constraint has already been defined with the same columns as the primary key",
                     model=model_def.model,
@@ -136,43 +141,73 @@ class ModelManager:
 
     def _init_references(self) -> None:
         for model_def in self._models.values():
+            defined_keys: list[
+                tuple[str | None, str, type[Any], list[Column], list[str] | None]
+            ] = []
             for col_name, col_def in model_def.attrs(_ColumnDef):
                 if (ref := col_def.column.reference) is not None:
-                    if ref.entity not in self._models:
-                        raise ModelError(
-                            f"{ref.entity} is not known entity",
-                            model=model_def.model,
-                            attribute=col_name,
+                    defined_keys.append(
+                        (
+                            None,
+                            col_name,
+                            ref.entity,
+                            [col_def.column],
+                            list(ref.columns) if ref.columns else None,
                         )
-                    target_model = self._models[ref.entity]
-                    target_cols: set[_ColumnDef]
-                    if ref.columns is None:
-                        target_cols = set()
-                    else:
-                        target_cols = set()
-                        for column in ref.columns:
-                            if column not in target_model.attributes:
-                                raise ModelError(
-                                    f"Target column '{column}' does not exist on {target_model.model}",
-                                    model=model_def.model,
-                                    attribute=col_name,
-                                )
-                            target_col = target_model.attributes[column]
-                            if not isinstance(target_col, _ColumnDef):
-                                raise ModelError(
-                                    f"Target attribute '{column}' is not a column",
-                                    model=model_def.model,
-                                    attribute=col_name,
-                                )
-                            if target_col.column.type is not col_def.column.type:
-                                raise ModelError(
-                                    "Type does not match referenced column type",
-                                    model=model_def.model,
-                                    attribute=col_name,
-                                )
-                            target_cols.add(target_col)
-                    ref_def = _ReferenceDef(target_model, target_cols)
-                    col_def.reference = ref_def
+                    )
+            for key_name, key in self._attrs.get_cls_attrs(
+                model_def.model, of_type=ForeignKey
+            ):
+                defined_keys.append(
+                    (
+                        key_name,
+                        key_name,
+                        key.entity,
+                        list(key.source_cols),
+                        list(key.target_cols) if key.target_cols else None,
+                    )
+                )
+            for key_name, attr_name, entity, source_cols, target_cols in defined_keys:
+                if entity not in self._models:
+                    raise ModelError(
+                        f"{entity} is not known entity",
+                        model=model_def.model,
+                        attribute=attr_name,
+                    )
+                all_source_col_defs = [c for _, c in model_def.attrs(_ColumnDef)]
+                source_col_defs: list[_ColumnDef] = []
+                for col in source_cols:
+                    source_col_defs.append(
+                        next(c for c in all_source_col_defs if c.column is col)
+                    )
+                target_model_def = self._models[entity]
+                target_col_defs: list[_ColumnDef] = []
+                if target_cols is None:
+                    primary_key_def = model_def.attrs(_PrimaryKeyDef)[0][1]
+                    target_col_defs = list(primary_key_def.columns)
+                else:
+                    for column in target_cols:
+                        if column not in target_model_def.attributes:
+                            raise ModelError(
+                                f"Target column '{column}' does not exist on {target_model_def.model}",
+                                model=model_def.model,
+                                attribute=attr_name,
+                            )
+                        target_col_def = target_model_def.attributes[column]
+                        if isinstance(target_col_def, _ColumnDef):
+                            target_col_defs.append(target_col_def)
+                if not key_name:
+                    key_name = f"{model_def.name}_{target_model_def.name}_fk"
+                if len(source_col_defs) != len(target_col_defs):
+                    raise ModelError(f"Composite key has different length on the two sides", model=model_def.model, attribute=attr_name)
+                model_def.attributes[key_name] = _ForeignDef(
+                    key_name,
+                    attr_name,
+                    model_def,
+                    source_col_defs,
+                    target_model_def,
+                    target_col_defs,
+                )
 
     def _init_many_to_ones(self) -> None:
         for model_def in self._models.values():
@@ -257,17 +292,16 @@ class _ColumnDef:
         self.primary_key = primary_key
         self.entity_key = entity_key
         self.unique = unique
-        self.reference: _ReferenceDef | None = None
 
 
 class _PrimaryKeyDef:
-    def __init__(self, name: str, columns: set[_ColumnDef]) -> None:
+    def __init__(self, name: str, columns: list[_ColumnDef]) -> None:
         self.name = name
         self.columns = columns
 
 
 class _UniqueDef:
-    def __init__(self, name: str, columns: set[_ColumnDef]) -> None:
+    def __init__(self, name: str, columns: list[_ColumnDef]) -> None:
         self.name = name
         self.columns = columns
 
@@ -282,7 +316,12 @@ class _ModelDef:
         self.entity = entity
         self.attributes: dict[
             str,
-            _ColumnDef | _ManyToOneDef | _OneToManyDef | _PrimaryKeyDef | _UniqueDef,
+            _ColumnDef
+            | _ManyToOneDef
+            | _OneToManyDef
+            | _PrimaryKeyDef
+            | _UniqueDef
+            | _ForeignDef,
         ] = {}
 
     def attrs(
@@ -291,20 +330,32 @@ class _ModelDef:
     ) -> list[tuple[str, T]]:
         return [(n, a) for n, a in self.attributes.items() if isinstance(a, of_type)]
 
-    def check_unique(self, constraint: _UniqueDef | _PrimaryKeyDef) -> bool:
-        for const in {a for _, a in self.attrs(_UniqueDef)}:
-            for col_def in const.columns:
-                if col_def not in constraint.columns:
+    def check_unique(self, columns: list[_ColumnDef]) -> bool:
+        for constraint in {a for _, a in self.attrs(_UniqueDef)}:
+            for col_def in constraint.columns:
+                if col_def not in columns:
                     break
             else:
                 return True
         return False
 
 
-class _ReferenceDef:
-    def __init__(self, model: _ModelDef, columns: "set[_ColumnDef]") -> None:
-        self.model = model
-        self.columns = columns
+class _ForeignDef:
+    def __init__(
+        self,
+        name: str,
+        attr_name: str,
+        source: _ModelDef,
+        source_cols: list[_ColumnDef],
+        target: _ModelDef,
+        target_cols: list[_ColumnDef],
+    ) -> None:
+        self.name = name
+        self.attr_name = attr_name
+        self.source = source
+        self.source_cols = source_cols
+        self.target = target
+        self.target_cols = target_cols
 
 
 class _ManyToOneDef:
