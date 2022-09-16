@@ -1,4 +1,4 @@
-from collections.abc import Iterator as _Iterator
+from collections.abc import Iterator
 from typing import Any, Callable
 
 
@@ -6,6 +6,18 @@ class BolinetteError(Exception):
     def __init__(self, message: str) -> None:
         Exception.__init__(self, message)
         self.message = message
+
+
+class ParameterError:
+    def __init__(self, **params: str) -> None:
+        self._error_params = params
+
+    def _format_params(self, message: str, **values: Any) -> str:
+        f_strings: list[str] = []
+        for param, f_string in self._error_params.items():
+            if param in values and values[param]:
+                f_strings.append(f_string.replace("{}", str(values[param])))
+        return ", ".join(f_strings + [message])
 
 
 class ErrorCollection(Exception):
@@ -19,7 +31,7 @@ class ErrorCollection(Exception):
     def __bool__(self) -> bool:
         return any(self._errors)
 
-    def __iter__(self) -> _Iterator[BolinetteError]:
+    def __iter__(self) -> Iterator[BolinetteError]:
         return iter(self._errors)
 
     def __str__(self) -> str:
@@ -33,7 +45,7 @@ class InternalError(BolinetteError):
     pass
 
 
-class InjectionError(InternalError):
+class InjectionError(InternalError, ParameterError):
     def __init__(
         self,
         message: str,
@@ -42,14 +54,12 @@ class InjectionError(InternalError):
         func: Callable | None = None,
         param: str | None = None,
     ) -> None:
-        strs = [message]
-        if param is not None:
-            strs.insert(0, f"Parameter '{param}'")
-        if func is not None:
-            strs.insert(0, f"Callable {func}")
-        if cls is not None:
-            strs.insert(0, f"Type {cls}")
-        super().__init__(", ".join(strs))
+        ParameterError.__init__(
+            self, cls="Type {}", func="Callable {}", param="Parameter '{}'"
+        )
+        InternalError.__init__(
+            self, self._format_params(message, cls=cls, func=func, param=param)
+        )
 
 
 class EnvironmentError(BolinetteError):

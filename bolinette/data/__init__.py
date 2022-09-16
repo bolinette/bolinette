@@ -12,4 +12,5 @@ from bolinette.data.model import (
     ForeignKey,
     model,
 )
-from bolinette.data.manager import DatabaseManager, ModelManager
+from bolinette.data.entity import entity
+from bolinette.data.manager import DatabaseManager, ModelManager, EntityManager
