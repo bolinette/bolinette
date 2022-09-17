@@ -27,11 +27,13 @@ class _ColumnProps:
     def __init__(
         self,
         name: str,
+        primary: tuple[str | None, bool],
         format: Literal["password", "email"] | None,
         unique: tuple[str | None, bool],
         foreign_key: ForeignKey | None,
     ) -> None:
         self.name = name
+        self.primary = primary
         self.format = format
         self.unique = unique
         self.foreign_key = foreign_key
@@ -71,6 +73,7 @@ _EntityT = TypeVar("_EntityT", bound=Entity)
 class _EntityColumnDecorator:
     def __init__(self, name: str) -> None:
         self.name = name
+        self._primary_key: tuple[str | None, bool] = (None, False)
         self._format: Literal["password", "email"] | None = None
         self._unique: tuple[str | None, bool] = (None, False)
         self._foreign_key: _ColumnProps.ForeignKey | None = None
@@ -86,7 +89,7 @@ class _EntityColumnDecorator:
     def __call__(self, cls: type[_EntityT]) -> type[_EntityT]:
         _meta = self._get_meta(cls)
         _meta.columns[self.name] = _ColumnProps(
-            self.name, self._format, self._unique, self._foreign_key
+            self.name, self._primary_key, self._format, self._unique, self._foreign_key
         )
         return cls
 
@@ -118,6 +121,12 @@ class _EntityColumnDecorator:
         self._foreign_key = _ColumnProps.ForeignKey(
             name, target, _target_cols, reference
         )
+        return self
+
+    def primary_key(
+        self, value: bool = True, /, *, name: str | None = None
+    ) -> "_EntityColumnDecorator":
+        self._primary_key = (name, value)
         return self
 
 

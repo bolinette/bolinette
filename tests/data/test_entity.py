@@ -36,6 +36,26 @@ def test_define_entity():
     assert "price" in manager._entities[Test].attributes
 
 
+def test_fail_entity_unkown_column_decorator():
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.column("name").unique()
+    class Test:
+        id: int
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Test}, 'name' in entity decorator does not match with any column"
+        in info.value.message
+    )
+
+
 def test_entity_nullable_attribute():
     cache = Cache()
 
@@ -51,8 +71,10 @@ def test_entity_nullable_attribute():
     assert Test in manager._entities
     assert "id" in manager._entities[Test].attributes
     assert not manager._entities[Test].attributes["id"].nullable
+    assert manager._entities[Test].attributes["id"].py_type is int
     assert "name" in manager._entities[Test].attributes
     assert manager._entities[Test].attributes["name"].nullable
+    assert manager._entities[Test].attributes["name"].py_type is str
 
 
 def test_entity_unique_constraint() -> None:
@@ -231,6 +253,64 @@ def test_entity_primary_key():
     assert list(map(lambda c: c.name, manager._entities[Test].constraints["test_pk"].columns)) == ["id"]  # type: ignore
 
 
+def test_entity_primary_key_column_decorator():
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.column("id").primary_key()
+    class Test:
+        id: int
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "test_pk" in manager._entities[Test].constraints
+    assert len(manager._entities[Test].constraints["test_pk"].columns) == 1  # type: ignore
+    assert list(map(lambda c: c.name, manager._entities[Test].constraints["test_pk"].columns)) == ["id"]  # type: ignore
+
+
+def test_fail_entity_two_primary_keys():
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.column("id1").primary_key()
+    @entity.column("id2").primary_key()
+    class Test:
+        id1: int
+        id2: int
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Test}, Several columns have been marked as primary"
+        in info.value.message
+    )
+
+
+def test_fail_entity_two_primary_keys_bis():
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.column("id1").primary_key()
+    @entity.primary_key("id2")
+    class Test:
+        id1: int
+        id2: int
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Test}, Several columns have been marked as primary"
+        in info.value.message
+    )
+
+
 def test_entity_primary_key_custom_name():
     cache = Cache()
 
@@ -319,9 +399,7 @@ def test_entity_foreign_key() -> None:
         parent_id: int
 
     mock = _setup_mock(cache)
-    manager = mock.injection.require(EntityManager)
-
-    assert "child_parent_fk" in manager._entities[Child].constraints
+    mock.injection.require(EntityManager)
 
 
 def test_entity_foreign_key_with_reference() -> None:

@@ -42,6 +42,7 @@ class EntityManager:
     def _init_columns(self) -> None:
         for entity_def in self._entities.values():
             hints: dict[str, type] = get_type_hints(entity_def.cls)
+            all_col_defs: dict[str, EntityAttribute] = {}
             for h_name, h_type in hints.items():
                 nullable = False
                 origin: type | None
@@ -56,32 +57,42 @@ class EntityManager:
                                 entity=entity_def.cls,
                                 attribute=h_name,
                             )
-                entity_def.attributes[h_name] = EntityAttribute(
-                    h_name, h_type, nullable
-                )
+                        h_type = h_args[0]
+                col_def = EntityAttribute(h_name, h_type, nullable)
+                entity_def.attributes[h_name] = col_def
+                all_col_defs[h_name] = col_def
+            _meta = meta.get(entity_def.cls, EntityPropsMeta)
+            for col_name in _meta.columns:
+                if col_name not in all_col_defs:
+                    raise EntityError(
+                        f"'{col_name}' in entity decorator does not match with any column",
+                        entity=entity_def.cls,
+                    )
 
     def _init_unique_constraints(self) -> None:
         for entity_def in self._entities.values():
             _meta = meta.get(entity_def.cls, EntityPropsMeta)
             all_entity_columns = dict(entity_def.get_attributes(EntityAttribute))
-            key_defs: list[tuple[str | None, list[str]]] = []
+            unique_defs: list[tuple[str | None, list[EntityAttribute]]] = []
             for c_name, key in _meta.unique_constraints:
-                key_defs.append((c_name, key))
-            for col_name, col_def in _meta.columns.items():
-                if col_def.unique[1]:
-                    key_defs.append((col_def.unique[0], [col_name]))
-            for c_name, key in key_defs:
-                key_columns: list[EntityAttribute] = []
                 for att_name in key:
                     if att_name not in all_entity_columns:
                         raise EntityError(
                             f"'{att_name}' in unique constraint does not refer to an entity column",
                             entity=entity_def.cls,
                         )
-                    key_columns.append(all_entity_columns[att_name])
+                unique_defs.append(
+                    (c_name, list(map(lambda k: all_entity_columns[k], key)))
+                )
+            for col_name, col_def in _meta.columns.items():
+                if col_def.unique[1]:
+                    unique_defs.append(
+                        (col_def.unique[0], [all_entity_columns[col_name]])
+                    )
+            for c_name, col_defs in unique_defs:
                 if c_name is None:
-                    c_name = f"{entity_def.name}_{'_'.join(key)}_u"
-                constraint = UniqueConstraint(c_name, key_columns)
+                    c_name = f"{entity_def.name}_{'_'.join(map(lambda c: c.name, col_defs))}_u"
+                constraint = UniqueConstraint(c_name, col_defs)
                 if entity_def.check_unique(constraint.columns):
                     raise EntityError(
                         "Several unique constraints are defined on the same columns",
@@ -93,20 +104,29 @@ class EntityManager:
         for entity_def in self._entities.values():
             _meta = meta.get(entity_def.cls, EntityPropsMeta)
             all_entity_columns = dict(entity_def.get_attributes(EntityAttribute))
-            key_columns: list[EntityAttribute] = []
-            c_name, att_names = _meta.primary_key
-            if not len(att_names):
-                raise EntityError("No primary key defined", entity=entity_def.cls)
-            for att_name in att_names:
+            key_name = _meta.primary_key[0]
+            col_defs: list[EntityAttribute] = []
+            for att_name in _meta.primary_key[1]:
                 if att_name not in all_entity_columns:
                     raise EntityError(
                         f"'{att_name}' in primary key does not refer to an entity column",
                         entity=entity_def.cls,
                     )
-                key_columns.append(all_entity_columns[att_name])
-            if c_name is None:
-                c_name = f"{entity_def.name}_pk"
-            constraint = PrimaryKeyConstraint(c_name, key_columns)
+                col_defs.append(all_entity_columns[att_name])
+            for col_name, col_prop in _meta.columns.items():
+                if col_prop.primary[1]:
+                    if len(col_defs):
+                        raise EntityError(
+                            "Several columns have been marked as primary",
+                            entity=entity_def.cls,
+                        )
+                    key_name = col_prop.primary[0]
+                    col_defs = [all_entity_columns[col_name]]
+            if not len(col_defs):
+                raise EntityError("No primary key defined", entity=entity_def.cls)
+            if key_name is None:
+                key_name = f"{entity_def.name}_pk"
+            constraint = PrimaryKeyConstraint(key_name, col_defs)
             if entity_def.check_unique(constraint.columns):
                 raise EntityError(
                     "Primary key is defined on the same columns as a unique constraint",
