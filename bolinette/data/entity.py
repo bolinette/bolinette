@@ -5,16 +5,36 @@ from bolinette.core.utils import StringUtils
 from bolinette.data import __data_cache__
 
 
+class Entity(Protocol):
+    def __init__(self) -> None:
+        pass
+
+
 class _ColumnProps:
+    class ForeignKey:
+        def __init__(
+            self,
+            name: str | None,
+            target: type[Entity] | None,
+            target_cols: list[str] | None,
+            reference: str | None,
+        ) -> None:
+            self.name = name
+            self.target = target
+            self.target_cols = target_cols
+            self.reference = reference
+
     def __init__(
         self,
         name: str,
         format: Literal["password", "email"] | None,
         unique: tuple[str | None, bool],
+        foreign_key: ForeignKey | None,
     ) -> None:
         self.name = name
         self.format = format
         self.unique = unique
+        self.foreign_key = foreign_key
 
 
 class EntityMeta:
@@ -23,15 +43,26 @@ class EntityMeta:
 
 
 class EntityPropsMeta:
+    class ForeignKeyTempDef:
+        def __init__(
+            self,
+            name: str | None,
+            src_cols: list[str],
+            reference: str | None,
+            target: type[Entity] | None,
+            target_cols: list[str] | None,
+        ) -> None:
+            self.name = name
+            self.src_cols = src_cols
+            self.reference = reference
+            self.target = target
+            self.target_cols = target_cols
+
     def __init__(self) -> None:
         self.primary_key: tuple[str | None, list[str]] = (None, [])
         self.unique_constraints: list[tuple[str | None, list[str]]] = []
+        self.foreign_keys: list[EntityPropsMeta.ForeignKeyTempDef] = []
         self.columns: dict[str, _ColumnProps] = {}
-
-
-class Entity(Protocol):
-    def __init__(self) -> None:
-        pass
 
 
 _EntityT = TypeVar("_EntityT", bound=Entity)
@@ -42,6 +73,7 @@ class _EntityColumnDecorator:
         self.name = name
         self._format: Literal["password", "email"] | None = None
         self._unique: tuple[str | None, bool] = (None, False)
+        self._foreign_key: _ColumnProps.ForeignKey | None = None
 
     def _get_meta(self, cls: type[_EntityT]) -> EntityPropsMeta:
         if meta.has(cls, EntityPropsMeta):
@@ -53,19 +85,39 @@ class _EntityColumnDecorator:
 
     def __call__(self, cls: type[_EntityT]) -> type[_EntityT]:
         _meta = self._get_meta(cls)
-        _meta.columns[self.name] = _ColumnProps(self.name, self._format, self._unique)
+        _meta.columns[self.name] = _ColumnProps(
+            self.name, self._format, self._unique, self._foreign_key
+        )
         return cls
 
     def format(
-        self, value: Literal["password", "email"] | None
+        self, value: Literal["password", "email"] | None, /
     ) -> "_EntityColumnDecorator":
         self._format = value
         return self
 
     def unique(
-        self, value: bool = True, *, name: str | None = None
+        self, value: bool = True, /, *, name: str | None = None
     ) -> "_EntityColumnDecorator":
         self._unique = (name, value)
+        return self
+
+    def foreign_key(
+        self,
+        *,
+        name: str | None = None,
+        target: type[Entity] | None = None,
+        reference: str | None = None,
+        target_columns: str | list[str] | None = None,
+    ) -> "_EntityColumnDecorator":
+        _target_cols: list[str] | None
+        if target_columns is not None and not isinstance(target_columns, list):
+            _target_cols = [target_columns]
+        else:
+            _target_cols = target_columns
+        self._foreign_key = _ColumnProps.ForeignKey(
+            name, target, _target_cols, reference
+        )
         return self
 
 
@@ -95,10 +147,10 @@ class _EntityDecorator:
 
         return decorator
 
-    def column(self, name: str):
+    def column(self, name: str, /):
         return _EntityColumnDecorator(name)
 
-    def primary_key(self, column: str, *columns: str, name: str | None = None):
+    def primary_key(self, column: str, /, *columns: str, name: str | None = None):
         def decorator(cls: type[_EntityT]) -> type[_EntityT]:
             _meta = self._get_meta(cls)
             _meta.primary_key = (name, [column, *columns])
@@ -106,10 +158,40 @@ class _EntityDecorator:
 
         return decorator
 
-    def unique(self, column: str, *columns: str, name: str | None = None):
+    def unique(self, column: str, /, *columns: str, name: str | None = None):
         def decorator(cls: type[_EntityT]) -> type[_EntityT]:
             _meta = self._get_meta(cls)
             _meta.unique_constraints.append((name, [column, *columns]))
+            return cls
+
+        return decorator
+
+    def foreign_key(
+        self,
+        source_columns: str | list[str],
+        /,
+        *,
+        reference: str | None = None,
+        target: type[Entity] | None = None,
+        target_columns: str | list[str] | None = None,
+        name: str | None = None,
+    ):
+        def decorator(cls: type[_EntityT]) -> type[_EntityT]:
+            _meta = self._get_meta(cls)
+            if not isinstance(source_columns, list):
+                _src_cols = [source_columns]
+            else:
+                _src_cols = source_columns
+            _tgt_cols: list[str] | None
+            if target_columns is not None and not isinstance(target_columns, list):
+                _tgt_cols = [target_columns]
+            else:
+                _tgt_cols = target_columns
+            _meta.foreign_keys.append(
+                EntityPropsMeta.ForeignKeyTempDef(
+                    name, _src_cols, reference, target, _tgt_cols
+                )
+            )
             return cls
 
         return decorator

@@ -301,3 +301,74 @@ def test_fail_entity_primary_key_duplicated_unique() -> None:
         f"Entity {Test}, Primary key is defined on the same columns as a unique constraint"
         in info.value.message
     )
+
+
+def test_entity_foreign_key() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.foreign_key("parent_id", target=Parent)
+    class Child:
+        id: int
+        parent_id: int
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "child_parent_fk" in manager._entities[Child].constraints
+
+
+def test_entity_foreign_key_with_reference() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.foreign_key("parent_id", reference="parent")
+    class Child:
+        id: int
+        parent_id: int
+        parent: Parent
+
+
+def test_entity_foreign_key_column_decorator() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.column("parent_id").foreign_key(target=Parent)
+    class Child:
+        id: int
+        parent_id: int
+
+
+def test_entity_foreign_key_column_decorator_reference() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.column("parent_id").foreign_key(reference="parent")
+    class Child:
+        id: int
+        parent_id: int
+        parent: Parent
