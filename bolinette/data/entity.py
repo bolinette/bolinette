@@ -1,4 +1,5 @@
-from typing import Literal, Protocol, TypeVar
+from collections.abc import Callable
+from typing import Literal, Protocol, TypeVar, overload
 
 from bolinette.core import Cache, meta
 from bolinette.core.utils import StringUtils
@@ -175,22 +176,43 @@ class _EntityDecorator:
 
         return decorator
 
+    @overload
     def foreign_key(
         self,
-        source_columns: str | list[str],
+        source_column: str,
         /,
-        *,
+        *source_columns: str,
+        reference: str,
+        target_columns: str | list[str] | None = None,
+        name: str | None = None,
+    ) -> Callable[[type[_EntityT]], type[_EntityT]]:
+        pass
+
+    @overload
+    def foreign_key(
+        self,
+        source_column: str,
+        /,
+        *source_columns: str,
+        target: type[Entity],
+        target_columns: str | list[str] | None = None,
+        name: str | None = None,
+    ) -> Callable[[type[_EntityT]], type[_EntityT]]:
+        pass
+
+    def foreign_key(
+        self,
+        source_column: str,
+        /,
+        *source_columns: str,
         reference: str | None = None,
         target: type[Entity] | None = None,
         target_columns: str | list[str] | None = None,
         name: str | None = None,
-    ):
+    ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         def decorator(cls: type[_EntityT]) -> type[_EntityT]:
             _meta = self._get_meta(cls)
-            if not isinstance(source_columns, list):
-                _src_cols = [source_columns]
-            else:
-                _src_cols = source_columns
+            _src_cols = [source_column, *source_columns]
             _tgt_cols: list[str] | None
             if target_columns is not None and not isinstance(target_columns, list):
                 _tgt_cols = [target_columns]

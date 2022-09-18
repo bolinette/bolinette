@@ -17,10 +17,20 @@ class DataType:
         return self.name
 
 
-String = DataType("String", _sqlalchemy.String, str)
-Integer = DataType("Integer", _sqlalchemy.Integer, int)
-Float = DataType("Float", _sqlalchemy.Float, float)
-Boolean = DataType("Boolean", _sqlalchemy.Boolean, bool)
-Date = DataType("Date", _sqlalchemy.DateTime, datetime)
-Email = DataType("Email", _sqlalchemy.String, str)
-Password = DataType("Password", _sqlalchemy.String, str)
+_all_types: dict[type[Any], Any] = {
+    str: _sqlalchemy.String,
+    int: _sqlalchemy.Integer,
+    float: _sqlalchemy.Float,
+    bool: _sqlalchemy.Boolean,
+    datetime: _sqlalchemy.DateTime,
+}
+
+
+def is_supported(py_type: type[Any]) -> bool:
+    return py_type in _all_types
+
+
+def get_sql_type(py_type: type[Any]) -> Any:
+    if not is_supported(py_type):
+        raise KeyError(py_type)
+    return _all_types[py_type]
