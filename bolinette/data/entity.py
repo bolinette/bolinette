@@ -106,13 +106,33 @@ class _EntityColumnDecorator:
         self._unique = (name, value)
         return self
 
-    def foreign_key(
+    @overload
+    def many_to_one(
         self,
         *,
+        target: type[Entity],
+        target_columns: str | list[str] | None = None,
         name: str | None = None,
+    ) -> "_EntityColumnDecorator":
+        pass
+
+    @overload
+    def many_to_one(
+        self,
+        *,
+        reference: str,
+        target_columns: str | list[str] | None = None,
+        name: str | None = None,
+    ) -> "_EntityColumnDecorator":
+        pass
+
+    def many_to_one(
+        self,
+        *,
         target: type[Entity] | None = None,
         reference: str | None = None,
         target_columns: str | list[str] | None = None,
+        name: str | None = None,
     ) -> "_EntityColumnDecorator":
         _target_cols: list[str] | None
         if target_columns is not None and not isinstance(target_columns, list):
@@ -177,7 +197,7 @@ class _EntityDecorator:
         return decorator
 
     @overload
-    def foreign_key(
+    def many_to_one(
         self,
         source_column: str,
         /,
@@ -189,7 +209,7 @@ class _EntityDecorator:
         pass
 
     @overload
-    def foreign_key(
+    def many_to_one(
         self,
         source_column: str,
         /,
@@ -200,7 +220,7 @@ class _EntityDecorator:
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         pass
 
-    def foreign_key(
+    def many_to_one(
         self,
         source_column: str,
         /,

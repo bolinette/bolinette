@@ -407,7 +407,7 @@ def test_fail_entity_reference_not_registered() -> None:
     )
 
 
-def test_entity_foreign_key() -> None:
+def test_entity_many_to_one() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -417,7 +417,7 @@ def test_entity_foreign_key() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.foreign_key("parent_id", target=Parent)
+    @entity.many_to_one("parent_id", target=Parent)
     class Child:
         id: int
         parent_id: int
@@ -433,7 +433,7 @@ def test_entity_foreign_key() -> None:
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
 
-def test_entity_foreign_key_with_reference() -> None:
+def test_entity_many_to_one_with_reference() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -444,7 +444,7 @@ def test_entity_foreign_key_with_reference() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.foreign_key("parent_id1", "parent_id2", reference="parent")
+    @entity.many_to_one("parent_id1", "parent_id2", reference="parent")
     class Child:
         id: int
         parent_id1: int
@@ -463,7 +463,7 @@ def test_entity_foreign_key_with_reference() -> None:
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id1", "id2"]
 
 
-def test_entity_foreign_key_column_decorator() -> None:
+def test_entity_many_to_one_column_decorator() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -473,7 +473,7 @@ def test_entity_foreign_key_column_decorator() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_id").foreign_key(target=Parent)
+    @entity.column("parent_id").many_to_one(target=Parent)
     class Child:
         id: int
         parent_id: int
@@ -489,7 +489,7 @@ def test_entity_foreign_key_column_decorator() -> None:
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
 
-def test_entity_foreign_key_column_decorator_reference() -> None:
+def test_entity_many_to_one_column_decorator_reference() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -499,7 +499,7 @@ def test_entity_foreign_key_column_decorator_reference() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_id").foreign_key(reference="parent")
+    @entity.column("parent_id").many_to_one(reference="parent")
     class Child:
         id: int
         parent_id: int
@@ -517,12 +517,12 @@ def test_entity_foreign_key_column_decorator_reference() -> None:
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
 
-def test_fail_entity_foreign_key_unknown_column() -> None:
+def test_fail_entity_many_to_one_unknown_column() -> None:
     cache = Cache()
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.foreign_key("parent_id", reference="parent")
+    @entity.many_to_one("parent_id", reference="parent")
     class Test:
         id: int
 
@@ -537,12 +537,12 @@ def test_fail_entity_foreign_key_unknown_column() -> None:
     )
 
 
-def test_fail_entity_foreign_key_unknown_reference() -> None:
+def test_fail_entity_many_to_one_unknown_reference() -> None:
     cache = Cache()
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.foreign_key("parent_id", reference="parent")
+    @entity.many_to_one("parent_id", reference="parent")
     class Test:
         id: int
         parent_id: int
@@ -558,7 +558,7 @@ def test_fail_entity_foreign_key_unknown_reference() -> None:
     )
 
 
-def test_fail_entity_foreign_key_unknown_foreign_target() -> None:
+def test_fail_entity_many_to_one_unknown_foreign_target() -> None:
     cache = Cache()
 
     class Parent:
@@ -566,7 +566,7 @@ def test_fail_entity_foreign_key_unknown_foreign_target() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.foreign_key("parent_id", target=Parent)
+    @entity.many_to_one("parent_id", target=Parent)
     class Child:
         id: int
         parent_id: int
@@ -582,7 +582,7 @@ def test_fail_entity_foreign_key_unknown_foreign_target() -> None:
     )
 
 
-def test_entity_foreign_key_custom_key() -> None:
+def test_entity_many_to_one_custom_key() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -594,7 +594,7 @@ def test_entity_foreign_key_custom_key() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_name").foreign_key(reference="parent", target_columns="name")
+    @entity.column("parent_name").many_to_one(reference="parent", target_columns="name")
     class Child:
         id: int
         parent_name: str
@@ -612,7 +612,7 @@ def test_entity_foreign_key_custom_key() -> None:
     assert list(map(lambda c: c.name, fk.target_columns)) == ["name"]
 
 
-def test_fail_entity_foreign_key_target_column_unknown() -> None:
+def test_fail_entity_many_to_one_target_column_unknown() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -622,7 +622,7 @@ def test_fail_entity_foreign_key_target_column_unknown() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_name").foreign_key(reference="parent", target_columns="name")
+    @entity.column("parent_name").many_to_one(reference="parent", target_columns="name")
     class Child:
         id: int
         parent_name: str
@@ -639,7 +639,7 @@ def test_fail_entity_foreign_key_target_column_unknown() -> None:
     )
 
 
-def test_fail_entity_foreign_key_target_column_not_unique() -> None:
+def test_fail_entity_many_to_one_target_column_not_unique() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -650,7 +650,7 @@ def test_fail_entity_foreign_key_target_column_not_unique() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_name").foreign_key(reference="parent", target_columns="name")
+    @entity.column("parent_name").many_to_one(reference="parent", target_columns="name")
     class Child:
         id: int
         parent_name: str
@@ -667,7 +667,7 @@ def test_fail_entity_foreign_key_target_column_not_unique() -> None:
     )
 
 
-def test_fail_entity_foreign_key_type_mismatch() -> None:
+def test_fail_entity_many_to_one_type_mismatch() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -677,7 +677,7 @@ def test_fail_entity_foreign_key_type_mismatch() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_id").foreign_key(reference="parent")
+    @entity.column("parent_id").many_to_one(reference="parent")
     class Child:
         id: int
         parent_id: str
@@ -694,7 +694,7 @@ def test_fail_entity_foreign_key_type_mismatch() -> None:
     )
 
 
-def test_fail_entity_foreign_key_length() -> None:
+def test_fail_entity_many_to_one_length() -> None:
     cache = Cache()
 
     @entity(cache=cache)
@@ -705,7 +705,7 @@ def test_fail_entity_foreign_key_length() -> None:
 
     @entity(cache=cache)
     @entity.primary_key("id")
-    @entity.column("parent_id").foreign_key(reference="parent")
+    @entity.column("parent_id").many_to_one(reference="parent")
     class Child:
         id: int
         parent_id: int
