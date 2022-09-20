@@ -5,7 +5,12 @@ from bolinette.core.testing import Mock
 from bolinette.core.utils import AttributeUtils
 from bolinette.data import EntityManager, entity
 from bolinette.data.exceptions import EntityError
-from bolinette.data.manager import ForeignKeyConstraint
+from bolinette.data.manager import (
+    CollectionReference,
+    ManyToManyConstraint,
+    ManyToOneConstraint,
+    TableReference,
+)
 
 
 def _setup_mock(cache: Cache) -> Mock:
@@ -428,7 +433,7 @@ def test_entity_many_to_one() -> None:
     assert "parent" not in manager._table_defs[Child].references
     assert "child_parent_fk" in manager._table_defs[Child].constraints
     fk = manager._table_defs[Child].constraints["child_parent_fk"]
-    assert isinstance(fk, ForeignKeyConstraint)
+    assert isinstance(fk, ManyToOneConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
@@ -455,10 +460,12 @@ def test_entity_many_to_one_with_reference() -> None:
     manager = mock.injection.require(EntityManager)
 
     assert "parent" in manager._table_defs[Child].references
-    assert manager._table_defs[Child].references["parent"].target.entity is Parent
+    ref = manager._table_defs[Child].references["parent"]
+    assert isinstance(ref, TableReference)
+    assert ref.target.entity is Parent
     assert "child_parent_fk" in manager._table_defs[Child].constraints
     fk = manager._table_defs[Child].constraints["child_parent_fk"]
-    assert isinstance(fk, ForeignKeyConstraint)
+    assert isinstance(fk, ManyToOneConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id1", "id2"]
 
@@ -484,7 +491,7 @@ def test_entity_many_to_one_column_decorator() -> None:
     assert "parent" not in manager._table_defs[Child].references
     assert "child_parent_fk" in manager._table_defs[Child].constraints
     fk = manager._table_defs[Child].constraints["child_parent_fk"]
-    assert isinstance(fk, ForeignKeyConstraint)
+    assert isinstance(fk, ManyToOneConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
@@ -509,10 +516,12 @@ def test_entity_many_to_one_column_decorator_reference() -> None:
     manager = mock.injection.require(EntityManager)
 
     assert "parent" in manager._table_defs[Child].references
-    assert manager._table_defs[Child].references["parent"].target.entity is Parent
+    ref = manager._table_defs[Child].references["parent"]
+    assert isinstance(ref, TableReference)
+    assert ref.target.entity is Parent
     assert "child_parent_fk" in manager._table_defs[Child].constraints
     fk = manager._table_defs[Child].constraints["child_parent_fk"]
-    assert isinstance(fk, ForeignKeyConstraint)
+    assert isinstance(fk, ManyToOneConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
@@ -553,7 +562,7 @@ def test_fail_entity_many_to_one_unknown_reference() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Test}, 'parent' in foreign_key does not match with any reference in the entity"
+        f"Entity {Test}, 'parent' in foreign key does not match with any reference in the entity"
         in info.value.message
     )
 
@@ -604,10 +613,12 @@ def test_entity_many_to_one_custom_key() -> None:
     manager = mock.injection.require(EntityManager)
 
     assert "parent" in manager._table_defs[Child].references
-    assert manager._table_defs[Child].references["parent"].target.entity is Parent
+    ref = manager._table_defs[Child].references["parent"]
+    assert isinstance(ref, TableReference)
+    assert ref.target.entity is Parent
     assert "child_parent_fk" in manager._table_defs[Child].constraints
     fk = manager._table_defs[Child].constraints["child_parent_fk"]
-    assert isinstance(fk, ForeignKeyConstraint)
+    assert isinstance(fk, ManyToOneConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.target_columns)) == ["name"]
 
@@ -651,6 +662,34 @@ def test_fail_entity_many_to_one_target_column_not_unique() -> None:
     @entity(cache=cache)
     @entity.primary_key("id")
     @entity.column("parent_name").many_to_one(reference="parent", target_columns="name")
+    class Child:
+        id: int
+        parent_name: str
+        parent: Parent
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, (name) target in foreign key is not a unique constraint on entity {Parent}"
+        in info.value.message
+    )
+
+
+def test_fail_entity_many_to_one_target_column_not_unique_bis() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+        name: str
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_one("parent_name", reference="parent", target_columns="name")
     class Child:
         id: int
         parent_name: str
@@ -718,5 +757,233 @@ def test_fail_entity_many_to_one_length() -> None:
 
     assert (
         f"Entity {Child}, (parent_id) foreign key and {Parent}(id1,id2) do not match"
+        in info.value.message
+    )
+
+
+def test_entity_many_to_many() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Entity1:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_many("entities")
+    class Entity2:
+        id: int
+        entities: list[Entity1]
+
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(EntityManager)
+
+    assert "entities" in manager._table_defs[Entity2].references
+    ref = manager._table_defs[Entity2].references["entities"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.element.entity is Entity1
+    assert "entity2_entity1_fk" in manager._table_defs[Entity2].constraints
+    const = manager._table_defs[Entity2].constraints["entity2_entity1_fk"]
+    assert isinstance(const, ManyToManyConstraint)
+    assert const.join_table == "entity2_entity1"
+    assert const.target.entity is Entity1
+    assert list(map(lambda c: c.name, const.source_columns)) == ["id"]
+    assert list(map(lambda c: c.name, const.target_columns)) == ["id"]
+
+
+def test_fail_entity_many_to_many_unknown_reference() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_many("entities")
+    class Entity:
+        id: int
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Entity}, 'entities' in foreign key does not match with any reference in the entity"
+        in info.value.message
+    )
+
+
+def test_fail_entity_many_to_many_wrong_reference_type() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Entity1:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_many("entities")
+    class Entity2:
+        id: int
+        entities: Entity1
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Entity2}, Many-to-many reference 'entities' must be a list of entities"
+        in info.value.message
+    )
+
+
+def test_entity_many_to_many_manual_columns() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.unique("name")
+    class Entity1:
+        id: int
+        name: str
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.unique("name")
+    @entity.many_to_many("entities", source_columns="name", target_columns="name")
+    class Entity2:
+        id: int
+        name: str
+        entities: list[Entity1]
+
+    mock = _setup_mock(cache)
+
+    manager = mock.injection.require(EntityManager)
+
+    assert "entities" in manager._table_defs[Entity2].references
+    ref = manager._table_defs[Entity2].references["entities"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.element.entity is Entity1
+    assert "entity2_entity1_fk" in manager._table_defs[Entity2].constraints
+    const = manager._table_defs[Entity2].constraints["entity2_entity1_fk"]
+    assert isinstance(const, ManyToManyConstraint)
+    assert const.join_table == "entity2_entity1"
+    assert const.target.entity is Entity1
+    assert list(map(lambda c: c.name, const.source_columns)) == ["name"]
+    assert list(map(lambda c: c.name, const.target_columns)) == ["name"]
+
+
+def test_entity_many_to_many_composite_manual_columns() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.unique("index", "name")
+    class Entity1:
+        id: int
+        index: int
+        name: str
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.unique("index", "name")
+    @entity.many_to_many(
+        "entities", source_columns=["index", "name"], target_columns=["index", "name"]
+    )
+    class Entity2:
+        id: int
+        index: int
+        name: str
+        entities: list[Entity1]
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "entities" in manager._table_defs[Entity2].references
+    ref = manager._table_defs[Entity2].references["entities"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.element.entity is Entity1
+    assert "entity2_entity1_fk" in manager._table_defs[Entity2].constraints
+    const = manager._table_defs[Entity2].constraints["entity2_entity1_fk"]
+    assert isinstance(const, ManyToManyConstraint)
+    assert const.join_table == "entity2_entity1"
+    assert const.target.entity is Entity1
+    assert list(map(lambda c: c.name, const.source_columns)) == ["index", "name"]
+    assert list(map(lambda c: c.name, const.target_columns)) == ["index", "name"]
+
+
+def test_fail_entity_many_to_many_unknown_source_column() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Entity1:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_many("entities", source_columns="name")
+    class Entity2:
+        id: int
+        entities: list[Entity1]
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Entity2}, 'name' in foreign key does not match with an entity column"
+        in info.value.message
+    )
+
+
+def test_fail_entity_many_to_many_unknown_target_column() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Entity1:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_many("entities", target_columns="name")
+    class Entity2:
+        id: int
+        entities: list[Entity1]
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Entity2}, 'name' in foreign key does not match with an column in target entity {Entity1}"
+        in info.value.message
+    )
+
+
+def test_fail_entity_reference_too_few_list_args() -> None:
+    cache = Cache()
+
+    class Entity1:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Entity2:
+        id: int
+        entities: list[Entity1]
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Entity2}, Attribute 'entities', Type {Entity1} is not a registered entity"
         in info.value.message
     )

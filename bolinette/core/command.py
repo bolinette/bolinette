@@ -41,7 +41,7 @@ class _Argument:
 
 
 class _ArgumentMeta(list[_Argument]):
-    ...
+    pass
 
 
 class Parser:

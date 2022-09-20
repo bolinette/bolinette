@@ -1,16 +1,17 @@
 import inspect
-import os
 import re
 import sys
 from ctypes import ArgumentError
 from typing import Any
 
-from bolinette import core, data, web
+from bolinette.core import version as core_version
+from bolinette.data import version as data_version
+from bolinette.web import version as web_version
 
 
 def update_version(module: Any, major: int, minor: int, patch: int) -> None:
     version = f"{major}.{minor}.{patch}"
-    file = os.path.join(os.path.dirname(inspect.getfile(module)), "version.py")
+    file = inspect.getfile(module)
     with open(file, 'w') as stream:
         stream.write(f'__version__ = "{version}"\n')
 
@@ -24,17 +25,17 @@ def update_requirements(file: str, name: str, version: str) -> None:
 
 
 def update_core(major: int, minor: int, patch: int) -> None:
-    update_version(core, major, minor, patch)
+    update_version(core_version, major, minor, patch)
 
 
 def update_data(major: int, minor: int, patch: int) -> None:
-    update_version(data, major, minor, patch)
-    update_requirements("requirements.data.txt", "bolinette", core.__version__)
+    update_version(data_version, major, minor, patch)
+    update_requirements("requirements.data.txt", "bolinette", core_version.__version__)
 
 
 def update_web(major: int, minor: int, patch: int) -> None:
-    update_version(web, major, minor, patch)
-    update_requirements("requirements.web.txt", "bolinette-data", data.__version__)
+    update_version(web_version, major, minor, patch)
+    update_requirements("requirements.web.txt", "bolinette-data", data_version.__version__)
 
 
 if __name__ == "__main__":

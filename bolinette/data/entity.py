@@ -46,7 +46,7 @@ class EntityMeta:
 
 
 class EntityPropsMeta:
-    class ForeignKeyTempDef:
+    class ManyToOneTempDef:
         def __init__(
             self,
             name: str | None,
@@ -61,10 +61,26 @@ class EntityPropsMeta:
             self.target = target
             self.target_cols = target_cols
 
+    class ManyToManyTempDef:
+        def __init__(
+            self,
+            name: str | None,
+            reference: str,
+            source_cols: list[str] | None,
+            target_cols: list[str] | None,
+            join_table: str | None,
+        ) -> None:
+            self.name = name
+            self.reference = reference
+            self.source_cols = source_cols
+            self.target_cols = target_cols
+            self.join_table = join_table
+
     def __init__(self) -> None:
         self.primary_key: tuple[str | None, list[str]] = (None, [])
         self.unique_constraints: list[tuple[str | None, list[str]]] = []
-        self.foreign_keys: list[EntityPropsMeta.ForeignKeyTempDef] = []
+        self.many_to_ones: list[EntityPropsMeta.ManyToOneTempDef] = []
+        self.many_to_manies: list[EntityPropsMeta.ManyToManyTempDef] = []
         self.columns: dict[str, _ColumnProps] = {}
 
 
@@ -238,9 +254,39 @@ class _EntityDecorator:
                 _tgt_cols = [target_columns]
             else:
                 _tgt_cols = target_columns
-            _meta.foreign_keys.append(
-                EntityPropsMeta.ForeignKeyTempDef(
+            _meta.many_to_ones.append(
+                EntityPropsMeta.ManyToOneTempDef(
                     name, _src_cols, reference, target, _tgt_cols
+                )
+            )
+            return cls
+
+        return decorator
+
+    def many_to_many(
+        self,
+        reference: str,
+        /,
+        source_columns: str | list[str] | None = None,
+        target_columns: str | list[str] | None = None,
+        name: str | None = None,
+        join_table: str | None = None,
+    ) -> Callable[[type[_EntityT]], type[_EntityT]]:
+        def decorator(cls: type[_EntityT]) -> type[_EntityT]:
+            _meta = self._get_meta(cls)
+            _src_cols: list[str] | None
+            if source_columns is not None and not isinstance(source_columns, list):
+                _src_cols = [source_columns]
+            else:
+                _src_cols = source_columns
+            _tgt_cols: list[str] | None
+            if target_columns is not None and not isinstance(target_columns, list):
+                _tgt_cols = [target_columns]
+            else:
+                _tgt_cols = target_columns
+            _meta.many_to_manies.append(
+                EntityPropsMeta.ManyToManyTempDef(
+                    name, reference, _src_cols, _tgt_cols, join_table
                 )
             )
             return cls

@@ -1,6 +1,8 @@
 from types import NoneType, UnionType
 from typing import Generic, TypeVar, get_args, get_origin, get_type_hints
 
+from sqlalchemy import table
+
 from bolinette.core import Cache, Logger, init_method, injectable, meta
 from bolinette.core.utils import AttributeUtils
 from bolinette.data import DataSection, __data_cache__, types
@@ -31,7 +33,8 @@ class EntityManager:
         self._init_columns()
         self._init_unique_constraints()
         self._init_primary_key()
-        self._init_foreign_keys()
+        self._init_many_to_ones()
+        self._init_many_to_manies()
 
     def _init_models(self) -> None:
         _type = type[Entity]
@@ -45,11 +48,12 @@ class EntityManager:
             hints: dict[str, type] = get_type_hints(table_def.entity)
             all_col_defs: dict[str, TableColumn] = {}
             for h_name, h_type in hints.items():
+                is_collection = False
                 nullable = False
                 origin: type | None
                 if (origin := get_origin(h_type)) is not None:
+                    h_args: tuple[type, ...] = get_args(h_type)
                     if origin is UnionType:
-                        h_args = get_args(h_type)
                         nullable = NoneType in h_args
                         h_args = tuple(a for a in h_args if a is not NoneType)
                         if len(h_args) > 1:
@@ -59,7 +63,22 @@ class EntityManager:
                                 attribute=h_name,
                             )
                         h_type = h_args[0]
-                if types.is_supported(h_type):
+                    elif origin is list:
+                        is_collection = True
+                        h_type = h_args[0]
+                if is_collection:
+                    target_ent = h_type
+                    if target_ent not in self._table_defs:
+                        raise EntityError(
+                            f"Type {target_ent} is not a registered entity",
+                            entity=table_def.entity,
+                            attribute=h_name,
+                        )
+                    collection_def = CollectionReference(
+                        h_name, self._table_defs[target_ent]
+                    )
+                    table_def.references[h_name] = collection_def
+                elif types.is_supported(h_type):
                     col_def = TableColumn(
                         h_name, h_type, types.get_sql_type(h_type), nullable
                     )
@@ -145,8 +164,8 @@ class EntityManager:
                 )
             table_def.constraints[constraint.name] = constraint
 
-    def _init_foreign_keys(self) -> None:
-        class ForeignKeyTempDef:
+    def _init_many_to_ones(self) -> None:
+        class ManyToOneTempDef:
             def __init__(
                 self,
                 name: str | None,
@@ -163,11 +182,11 @@ class EntityManager:
 
         for table_def in self._table_defs.values():
             _meta = meta.get(table_def.entity, EntityPropsMeta)
-            temp_defs: list[ForeignKeyTempDef] = []
+            temp_defs: list[ManyToOneTempDef] = []
             for col_name, col_def in _meta.columns.items():
                 if (_f_key := col_def.foreign_key) is not None:
                     temp_defs.append(
-                        ForeignKeyTempDef(
+                        ManyToOneTempDef(
                             None,
                             [table_def.columns[col_name]],
                             _f_key.reference,
@@ -175,7 +194,7 @@ class EntityManager:
                             _f_key.target_cols,
                         )
                     )
-            for tmp_def in _meta.foreign_keys:
+            for tmp_def in _meta.many_to_ones:
                 for att_name in tmp_def.src_cols:
                     if att_name not in table_def.columns:
                         raise EntityError(
@@ -183,7 +202,7 @@ class EntityManager:
                             entity=table_def.entity,
                         )
                 temp_defs.append(
-                    ForeignKeyTempDef(
+                    ManyToOneTempDef(
                         None,
                         list(map(lambda c: table_def.columns[c], tmp_def.src_cols)),
                         tmp_def.reference,
@@ -196,10 +215,15 @@ class EntityManager:
                 if ref_col is not None:
                     if ref_col not in table_def.references:
                         raise EntityError(
-                            f"'{ref_col}' in foreign_key does not match with any reference in the entity",
+                            f"'{ref_col}' in foreign key does not match with any reference in the entity",
                             entity=table_def.entity,
                         )
                     ref_def = table_def.references[ref_col]
+                    if not isinstance(ref_def, TableReference):
+                        raise EntityError(
+                            f"Many-to-one reference '{ref_col}' must not be a list",
+                            entity=table_def.entity,
+                        )
                     target_table = ref_def.target
                 else:
                     ref_def = None
@@ -216,13 +240,14 @@ class EntityManager:
                 key_name = tmp_def.name
                 if key_name is None:
                     key_name = f"{table_def.name}_{target_table.name}_fk"
-                target_col_defs: list[TableColumn] = []
+                target_col_defs: list[TableColumn]
                 if not tmp_def.target_cols:
                     primary_key = target_table.get_constraints(PrimaryKeyConstraint)[0][
                         1
                     ]
                     target_col_defs = [*primary_key.columns]
                 else:
+                    target_col_defs = []
                     for col in tmp_def.target_cols:
                         if col not in target_table.columns:
                             raise EntityError(
@@ -243,12 +268,97 @@ class EntityManager:
                         f"and {target_table.entity}({','.join(map(lambda c: c.name, target_col_defs))}) do not match",
                         entity=table_def.entity,
                     )
-                foreign_def = ForeignKeyConstraint(
+                foreign_def = ManyToOneConstraint(
                     key_name, tmp_def.src_cols, ref_def, target_table, target_col_defs
                 )
                 if ref_def is not None:
-                    ref_def.foreign_key = foreign_def
+                    ref_def.many_to_one = foreign_def
                 table_def.constraints[key_name] = foreign_def
+
+    def _init_many_to_manies(self):
+        class ManyToManyTempDef:
+            def __init__(
+                self,
+                name: str | None,
+                reference: str,
+                source_cols: list[str] | None,
+                target_cols: list[str] | None,
+                join_table: str | None,
+            ) -> None:
+                self.name = name
+                self.reference = reference
+                self.source_cols = source_cols
+                self.target_cols = target_cols
+                self.join_table = join_table
+
+        for table_def in self._table_defs.values():
+            _meta = meta.get(table_def.entity, EntityPropsMeta)
+            temp_defs: list[ManyToManyTempDef] = []
+            for tmp_def in _meta.many_to_manies:
+                temp_defs.append(
+                    ManyToManyTempDef(
+                        tmp_def.name,
+                        tmp_def.reference,
+                        tmp_def.source_cols,
+                        tmp_def.target_cols,
+                        tmp_def.join_table,
+                    )
+                )
+            for tmp_def in temp_defs:
+                ref_col = tmp_def.reference
+                if ref_col not in table_def.references:
+                    raise EntityError(
+                        f"'{ref_col}' in foreign key does not match with any reference in the entity",
+                        entity=table_def.entity,
+                    )
+                ref_def = table_def.references[ref_col]
+                if not isinstance(ref_def, CollectionReference):
+                    raise EntityError(
+                        f"Many-to-many reference '{ref_col}' must be a list of entities",
+                        entity=table_def.entity,
+                    )
+                target_table_def = ref_def.element
+                source_columns: list[TableColumn]
+                if tmp_def.source_cols is not None:
+                    source_columns = []
+                    for col_name in tmp_def.source_cols:
+                        if col_name not in table_def.columns:
+                            raise EntityError(
+                                f"'{col_name}' in foreign key does not match with an entity column",
+                                entity=table_def.entity,
+                            )
+                        source_columns.append(table_def.columns[col_name])
+                else:
+                    primary_key = table_def.get_constraints(PrimaryKeyConstraint)[0][1]
+                    source_columns = [*primary_key.columns]
+                target_columns: list[TableColumn]
+                if tmp_def.target_cols is not None:
+                    target_columns = []
+                    for col_name in tmp_def.target_cols:
+                        if col_name not in target_table_def.columns:
+                            raise EntityError(
+                                f"'{col_name}' in foreign key does not match with an column in target entity {target_table_def.entity}",
+                                entity=table_def.entity,
+                            )
+                        target_columns.append(table_def.columns[col_name])
+                else:
+                    primary_key = table_def.get_constraints(PrimaryKeyConstraint)[0][1]
+                    target_columns = [*primary_key.columns]
+                join_table_name = tmp_def.join_table
+                if join_table_name is None:
+                    join_table_name = f"{table_def.name}_{target_table_def.name}"
+                c_name = tmp_def.name
+                if c_name is None:
+                    c_name = f"{table_def.name}_{target_table_def.name}_fk"
+                foreign_def = ManyToManyConstraint(
+                    c_name,
+                    ref_def,
+                    source_columns,
+                    join_table_name,
+                    target_table_def,
+                    target_columns,
+                )
+                table_def.constraints[c_name] = foreign_def
 
 
 class TableColumn:
@@ -263,7 +373,14 @@ class TableReference:
     def __init__(self, name: str, target: "TableDefinition") -> None:
         self.name = name
         self.target = target
-        self.foreign_key: ForeignKeyConstraint | None = None
+        self.many_to_one: ManyToOneConstraint | None = None
+
+
+class CollectionReference:
+    def __init__(self, name: str, element: "TableDefinition") -> None:
+        self.name = name
+        self.element = element
+        self.many_to_one: ManyToOneConstraint | None = None
 
 
 class PrimaryKeyConstraint:
@@ -272,7 +389,7 @@ class PrimaryKeyConstraint:
         self.columns = columns
 
 
-class ForeignKeyConstraint:
+class ManyToOneConstraint:
     def __init__(
         self,
         name: str,
@@ -288,6 +405,24 @@ class ForeignKeyConstraint:
         self.target_columns = target_columns
 
 
+class ManyToManyConstraint:
+    def __init__(
+        self,
+        name: str,
+        reference: CollectionReference,
+        source_columns: list[TableColumn],
+        join_table: str,
+        target: "TableDefinition",
+        target_columns: list[TableColumn],
+    ) -> None:
+        self.name = name
+        self.reference = reference
+        self.source_columns = source_columns
+        self.join_table = join_table
+        self.target = target
+        self.target_columns = target_columns
+
+
 class UniqueConstraint:
     def __init__(self, name: str, columns: list[TableColumn]) -> None:
         self.name = name
@@ -295,7 +430,9 @@ class UniqueConstraint:
 
 
 EntityT = TypeVar("EntityT", bound=Entity)
-ConstraintType = UniqueConstraint | PrimaryKeyConstraint | ForeignKeyConstraint
+ConstraintType = (
+    UniqueConstraint | PrimaryKeyConstraint | ManyToOneConstraint | ManyToManyConstraint
+)
 ConstraintT = TypeVar("ConstraintT", bound=ConstraintType)
 
 
@@ -304,7 +441,7 @@ class TableDefinition(Generic[EntityT]):
         self.name = name
         self.entity = entity
         self.columns: dict[str, TableColumn] = {}
-        self.references: dict[str, TableReference] = {}
+        self.references: dict[str, TableReference | CollectionReference] = {}
         self.constraints: dict[str, ConstraintType] = {}
 
     def get_constraints(
