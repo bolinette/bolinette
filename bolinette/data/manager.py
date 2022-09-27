@@ -1,5 +1,5 @@
 from types import NoneType, UnionType
-from typing import Generic, TypeVar, get_args, get_origin, get_type_hints
+from typing import Generic, Literal, TypeVar, get_args, get_origin, get_type_hints
 
 from sqlalchemy import table
 
@@ -75,17 +75,30 @@ class EntityManager:
                             attribute=h_name,
                         )
                     collection_def = CollectionReference(
-                        h_name, self._table_defs[target_ent]
+                        table_def, h_name, self._table_defs[target_ent]
                     )
                     table_def.references[h_name] = collection_def
                 elif types.is_supported(h_type):
+                    _meta = meta.get(table_def.entity, EntityPropsMeta)
+                    format: Literal["password", "email"] | None
+                    if h_name in _meta.columns:
+                        format = _meta.columns[h_name].format  # type: ignore
+                    else:
+                        format = None
                     col_def = TableColumn(
-                        h_name, h_type, types.get_sql_type(h_type), nullable
+                        table_def,
+                        h_name,
+                        h_type,
+                        types.get_sql_type(h_type),
+                        nullable,
+                        format,
                     )
                     table_def.columns[h_name] = col_def
                     all_col_defs[h_name] = col_def
                 elif h_type in self._table_defs:
-                    ref_def = TableReference(h_name, self._table_defs[h_type])
+                    ref_def = TableReference(
+                        table_def, h_name, self._table_defs[h_type]
+                    )
                     table_def.references[h_name] = ref_def
                 else:
                     raise EntityError(
@@ -173,12 +186,16 @@ class EntityManager:
                 reference: str | None,
                 target: type[Entity] | None,
                 target_cols: list[str] | None,
+                lazy: bool | Literal["subquery"],
+                backref: tuple[str, bool | Literal["subquery"]] | None,
             ) -> None:
                 self.name = name
                 self.src_cols = src_cols
                 self.reference = reference
                 self.target = target
                 self.target_cols = target_cols
+                self.lazy = lazy
+                self.backref = backref
 
         for table_def in self._table_defs.values():
             _meta = meta.get(table_def.entity, EntityPropsMeta)
@@ -192,6 +209,8 @@ class EntityManager:
                             _f_key.reference,
                             _f_key.target,
                             _f_key.target_cols,
+                            _f_key.lazy,  # type: ignore
+                            _f_key.backref,
                         )
                     )
             for tmp_def in _meta.many_to_ones:
@@ -208,6 +227,8 @@ class EntityManager:
                         tmp_def.reference,
                         tmp_def.target,
                         tmp_def.target_cols,
+                        tmp_def.lazy,  # type: ignore
+                        tmp_def.backref,
                     )
                 )
             for tmp_def in temp_defs:
@@ -272,7 +293,30 @@ class EntityManager:
                     key_name, tmp_def.src_cols, ref_def, target_table, target_col_defs
                 )
                 if ref_def is not None:
-                    ref_def.many_to_one = foreign_def
+                    ref_def.constraint = foreign_def
+                    ref_def.lazy = tmp_def.lazy  # type: ignore
+                    if tmp_def.backref is not None:
+                        back_name, back_lazy = tmp_def.backref
+                        if back_name not in target_table.references:
+                            raise EntityError(
+                                f"'{back_name}' in backref does not match with any reference in the target entity {target_table.entity}",
+                                entity=table_def.entity,
+                            )
+                        back_ref = target_table.references[back_name]
+                        if not isinstance(back_ref, CollectionReference):
+                            raise EntityError(
+                                f"Many-to-one backref '{ref_col}' in {table_def.entity} must be a list",
+                                entity=table_def.entity,
+                            )
+                        if back_ref.constraint is not None:
+                            raise EntityError(
+                                f"Backref '{ref_col}' in {table_def.entity} is already used by another relationship",
+                                entity=table_def.entity,
+                            )
+                        back_ref.constraint = foreign_def
+                        back_ref.lazy = back_lazy
+                        ref_def.other_side = back_ref
+                        back_ref.other_side = ref_def
                 table_def.constraints[key_name] = foreign_def
 
     def _init_many_to_manies(self):
@@ -358,29 +402,61 @@ class EntityManager:
                     target_table_def,
                     target_columns,
                 )
+                if ref_def.constraint is not None:
+                    raise EntityError(
+                        f"Reference '{ref_col}' is already used by another relationship",
+                        entity=table_def.entity,
+                    )
+                ref_def.constraint = foreign_def
                 table_def.constraints[c_name] = foreign_def
 
 
 class TableColumn:
-    def __init__(self, name: str, py_type: type, sql_type, nullable: bool) -> None:
+    def __init__(
+        self,
+        table: "TableDefinition",
+        name: str,
+        py_type: type,
+        sql_type,
+        nullable: bool,
+        format: Literal["password", "email"] | None,
+    ) -> None:
+        self.table = table
         self.name = name
         self.py_type = py_type
         self.sql_type = sql_type
         self.nullable = nullable
+        self.format = format
 
 
 class TableReference:
-    def __init__(self, name: str, target: "TableDefinition") -> None:
+    def __init__(
+        self,
+        table: "TableDefinition",
+        name: str,
+        target: "TableDefinition",
+    ) -> None:
+        self.table = table
         self.name = name
         self.target = target
-        self.many_to_one: ManyToOneConstraint | None = None
+        self.lazy: bool | Literal["subquery"] = True
+        self.constraint: ManyToOneConstraint | None = None
+        self.other_side: CollectionReference | TableReference | None = None
 
 
 class CollectionReference:
-    def __init__(self, name: str, element: "TableDefinition") -> None:
+    def __init__(
+        self,
+        table: "TableDefinition",
+        name: str,
+        element: "TableDefinition",
+    ) -> None:
+        self.table = table
         self.name = name
         self.element = element
-        self.many_to_one: ManyToOneConstraint | None = None
+        self.lazy: bool | Literal["subquery"] = True
+        self.constraint: ManyToManyConstraint | ManyToOneConstraint | None = None
+        self.other_side: CollectionReference | TableReference | None = None
 
 
 class PrimaryKeyConstraint:

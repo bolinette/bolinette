@@ -83,6 +83,25 @@ def test_entity_nullable_attribute():
     assert manager._table_defs[Test].columns["name"].py_type is str
 
 
+def test_define_entity_column_format():
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.column("email").format("email")
+    @entity.column("password").format("password")
+    class Test:
+        id: int
+        email: str
+        password: str
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert manager._table_defs[Test].columns["email"].format == "email"
+    assert manager._table_defs[Test].columns["password"].format == "password"
+
+
 def test_entity_unique_constraint() -> None:
     cache = Cache()
 
@@ -987,3 +1006,43 @@ def test_fail_entity_reference_too_few_list_args() -> None:
         f"Entity {Entity2}, Attribute 'entities', Type {Entity1} is not a registered entity"
         in info.value.message
     )
+
+
+@entity.primary_key("id")
+class ParentA:
+    id: int
+    children: "list[ChildA]"
+
+
+@entity.primary_key("id")
+@entity.many_to_one("parent_id", reference="parent", backref="children")
+class ChildA:
+    id: int
+    parent_id: int
+    parent: ParentA
+
+
+def test_entity_many_to_one_backref() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentA)
+    entity(cache=cache)(ChildA)
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "children" in manager._table_defs[ParentA].references
+    ref = manager._table_defs[ParentA].references["children"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.element.entity is ChildA
+    assert ref.other_side is not None
+    assert isinstance(ref.other_side, TableReference)
+    assert ref.other_side.table.entity is ChildA
+
+    assert "parent" in manager._table_defs[ChildA].references
+    ref = manager._table_defs[ChildA].references["parent"]
+    assert isinstance(ref, TableReference)
+    assert ref.target.entity is ParentA
+    assert ref.other_side is not None
+    assert isinstance(ref.other_side, CollectionReference)
+    assert ref.other_side.table.entity is ParentA

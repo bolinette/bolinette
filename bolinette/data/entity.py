@@ -12,18 +12,22 @@ class Entity(Protocol):
 
 
 class _ColumnProps:
-    class ForeignKey:
+    class ManyToOne:
         def __init__(
             self,
             name: str | None,
             target: type[Entity] | None,
             target_cols: list[str] | None,
             reference: str | None,
+            lazy: bool | Literal["subquery"],
+            backref: tuple[str, bool | Literal["subquery"]] | None,
         ) -> None:
             self.name = name
             self.target = target
             self.target_cols = target_cols
             self.reference = reference
+            self.lazy = lazy
+            self.backref = backref
 
     def __init__(
         self,
@@ -31,7 +35,7 @@ class _ColumnProps:
         primary: tuple[str | None, bool],
         format: Literal["password", "email"] | None,
         unique: tuple[str | None, bool],
-        foreign_key: ForeignKey | None,
+        foreign_key: ManyToOne | None,
     ) -> None:
         self.name = name
         self.primary = primary
@@ -54,12 +58,16 @@ class EntityPropsMeta:
             reference: str | None,
             target: type[Entity] | None,
             target_cols: list[str] | None,
+            lazy: bool | Literal["subquery"],
+            backref: tuple[str, bool | Literal["subquery"]] | None,
         ) -> None:
             self.name = name
             self.src_cols = src_cols
             self.reference = reference
             self.target = target
             self.target_cols = target_cols
+            self.lazy = lazy
+            self.backref = backref
 
     class ManyToManyTempDef:
         def __init__(
@@ -93,7 +101,7 @@ class _EntityColumnDecorator:
         self._primary_key: tuple[str | None, bool] = (None, False)
         self._format: Literal["password", "email"] | None = None
         self._unique: tuple[str | None, bool] = (None, False)
-        self._foreign_key: _ColumnProps.ForeignKey | None = None
+        self._foreign_key: _ColumnProps.ManyToOne | None = None
 
     def _get_meta(self, cls: type[_EntityT]) -> EntityPropsMeta:
         if meta.has(cls, EntityPropsMeta):
@@ -129,6 +137,7 @@ class _EntityColumnDecorator:
         target: type[Entity],
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> "_EntityColumnDecorator":
         pass
 
@@ -139,6 +148,7 @@ class _EntityColumnDecorator:
         reference: str,
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> "_EntityColumnDecorator":
         pass
 
@@ -149,14 +159,21 @@ class _EntityColumnDecorator:
         reference: str | None = None,
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        lazy: bool | Literal["subquery"] = True,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> "_EntityColumnDecorator":
         _target_cols: list[str] | None
         if target_columns is not None and not isinstance(target_columns, list):
             _target_cols = [target_columns]
         else:
             _target_cols = target_columns
-        self._foreign_key = _ColumnProps.ForeignKey(
-            name, target, _target_cols, reference
+        _backref: tuple[str, bool | Literal["subquery"]] | None
+        if backref is not None and not isinstance(backref, tuple):
+            _backref = (backref, True)
+        else:
+            _backref = backref
+        self._foreign_key = _ColumnProps.ManyToOne(
+            name, target, _target_cols, reference, lazy, _backref
         )
         return self
 
@@ -221,6 +238,7 @@ class _EntityDecorator:
         reference: str,
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         pass
 
@@ -233,6 +251,7 @@ class _EntityDecorator:
         target: type[Entity],
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         pass
 
@@ -245,6 +264,8 @@ class _EntityDecorator:
         target: type[Entity] | None = None,
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        lazy: bool | Literal["subquery"] = True,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         def decorator(cls: type[_EntityT]) -> type[_EntityT]:
             _meta = self._get_meta(cls)
@@ -254,9 +275,14 @@ class _EntityDecorator:
                 _tgt_cols = [target_columns]
             else:
                 _tgt_cols = target_columns
+            _backref: tuple[str, bool | Literal["subquery"]] | None
+            if backref is not None and not isinstance(backref, tuple):
+                _backref = (backref, True)
+            else:
+                _backref = backref
             _meta.many_to_ones.append(
                 EntityPropsMeta.ManyToOneTempDef(
-                    name, _src_cols, reference, target, _tgt_cols
+                    name, _src_cols, reference, target, _tgt_cols, lazy, _backref
                 )
             )
             return cls
