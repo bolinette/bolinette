@@ -77,12 +77,16 @@ class EntityPropsMeta:
             source_cols: list[str] | None,
             target_cols: list[str] | None,
             join_table: str | None,
+            lazy: bool | Literal["subquery"],
+            backref: tuple[str, bool | Literal["subquery"]] | None,
         ) -> None:
             self.name = name
             self.reference = reference
             self.source_cols = source_cols
             self.target_cols = target_cols
             self.join_table = join_table
+            self.lazy = lazy
+            self.backref = backref
 
     def __init__(self) -> None:
         self.primary_key: tuple[str | None, list[str]] = (None, [])
@@ -238,6 +242,7 @@ class _EntityDecorator:
         reference: str,
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        lazy: bool | Literal["subquery"] = True,
         backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         pass
@@ -251,6 +256,7 @@ class _EntityDecorator:
         target: type[Entity],
         target_columns: str | list[str] | None = None,
         name: str | None = None,
+        lazy: bool | Literal["subquery"] = True,
         backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         pass
@@ -297,6 +303,8 @@ class _EntityDecorator:
         target_columns: str | list[str] | None = None,
         name: str | None = None,
         join_table: str | None = None,
+        lazy: bool | Literal["subquery"] = True,
+        backref: str | tuple[str, bool | Literal["subquery"]] | None = None,
     ) -> Callable[[type[_EntityT]], type[_EntityT]]:
         def decorator(cls: type[_EntityT]) -> type[_EntityT]:
             _meta = self._get_meta(cls)
@@ -310,9 +318,14 @@ class _EntityDecorator:
                 _tgt_cols = [target_columns]
             else:
                 _tgt_cols = target_columns
+            _backref: tuple[str, bool | Literal["subquery"]] | None
+            if backref is not None and not isinstance(backref, tuple):
+                _backref = (backref, True)
+            else:
+                _backref = backref
             _meta.many_to_manies.append(
                 EntityPropsMeta.ManyToManyTempDef(
-                    name, reference, _src_cols, _tgt_cols, join_table
+                    name, reference, _src_cols, _tgt_cols, join_table, lazy, _backref
                 )
             )
             return cls

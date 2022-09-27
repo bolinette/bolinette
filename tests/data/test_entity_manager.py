@@ -58,7 +58,7 @@ def test_fail_entity_unkown_column_decorator():
 
     assert (
         f"Entity {Test}, 'name' in entity decorator does not match with any column"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -157,7 +157,7 @@ def test_fail_entity_column_union_type() -> None:
 
     assert (
         f"Entity {Test}, Attribute 'name', Union types are not allowed"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -236,7 +236,7 @@ def test_fail_entity_unique_constraint_invalid_column() -> None:
 
     assert (
         f"Entity {Test}, '_name' in unique constraint does not refer to an entity column"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -258,7 +258,7 @@ def test_fail_entity_unique_constraint_duplicated() -> None:
 
     assert (
         f"Entity {Test}, Several unique constraints are defined on the same columns"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -311,7 +311,7 @@ def test_fail_entity_two_primary_keys():
 
     assert (
         f"Entity {Test}, Several columns have been marked as primary"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -332,7 +332,7 @@ def test_fail_entity_two_primary_keys_bis():
 
     assert (
         f"Entity {Test}, Several columns have been marked as primary"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -365,7 +365,7 @@ def test_fail_entity_no_primary_key() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert f"Entity {Test}, No primary key defined" in info.value.message
+    assert f"Entity {Test}, No primary key defined" == info.value.message
 
 
 def test_fail_entity_primary_key_invalid_column() -> None:
@@ -383,7 +383,7 @@ def test_fail_entity_primary_key_invalid_column() -> None:
 
     assert (
         f"Entity {Test}, 'none' in primary key does not refer to an entity column"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -404,7 +404,7 @@ def test_fail_entity_primary_key_duplicated_unique() -> None:
 
     assert (
         f"Entity {Test}, Primary key is defined on the same columns as a unique constraint"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -427,7 +427,7 @@ def test_fail_entity_reference_not_registered() -> None:
 
     assert (
         f"Entity {Child}, Attribute 'parent', Type {Parent} is not supported"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -561,7 +561,7 @@ def test_fail_entity_many_to_one_unknown_column() -> None:
 
     assert (
         f"Entity {Test}, 'parent_id' in foreign key does not match with an entity column"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -582,7 +582,7 @@ def test_fail_entity_many_to_one_unknown_reference() -> None:
 
     assert (
         f"Entity {Test}, 'parent' in foreign key does not match with any reference in the entity"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -606,7 +606,36 @@ def test_fail_entity_many_to_one_unknown_foreign_target() -> None:
 
     assert (
         f"Entity {Child}, Type {Parent} provided in foreign key is not a registered entity"
-        in info.value.message
+        == info.value.message
+    )
+
+
+def test_fail_entity_many_to_one_reference_used_twice() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_one("parent_id1", reference="parent")
+    @entity.many_to_one("parent_id2", reference="parent")
+    class Child:
+        id: int
+        parent: Parent
+        parent_id1: int
+        parent_id2: int
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, Reference 'parent' is already used by another relationship"
+        == info.value.message
     )
 
 
@@ -665,7 +694,7 @@ def test_fail_entity_many_to_one_target_column_unknown() -> None:
 
     assert (
         f"Entity {Child}, 'name' is not a column in entity {Parent}"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -693,7 +722,7 @@ def test_fail_entity_many_to_one_target_column_not_unique() -> None:
 
     assert (
         f"Entity {Child}, (name) target in foreign key is not a unique constraint on entity {Parent}"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -721,7 +750,7 @@ def test_fail_entity_many_to_one_target_column_not_unique_bis() -> None:
 
     assert (
         f"Entity {Child}, (name) target in foreign key is not a unique constraint on entity {Parent}"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -747,8 +776,8 @@ def test_fail_entity_many_to_one_type_mismatch() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Child}, (parent_id) foreign key and {Parent}(id) do not match"
-        in info.value.message
+        f"Entity {Child}, Foreign key to target {Parent} does not have the same column types on both sides"
+        == info.value.message
     )
 
 
@@ -775,8 +804,8 @@ def test_fail_entity_many_to_one_length() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Child}, (parent_id) foreign key and {Parent}(id1,id2) do not match"
-        in info.value.message
+        f"Entity {Child}, Foreign key to target {Parent} does not have the same column count on both sides"
+        == info.value.message
     )
 
 
@@ -828,7 +857,7 @@ def test_fail_entity_many_to_many_unknown_reference() -> None:
 
     assert (
         f"Entity {Entity}, 'entities' in foreign key does not match with any reference in the entity"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -854,7 +883,7 @@ def test_fail_entity_many_to_many_wrong_reference_type() -> None:
 
     assert (
         f"Entity {Entity2}, Many-to-many reference 'entities' must be a list of entities"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -955,7 +984,7 @@ def test_fail_entity_many_to_many_unknown_source_column() -> None:
 
     assert (
         f"Entity {Entity2}, 'name' in foreign key does not match with an entity column"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -981,7 +1010,7 @@ def test_fail_entity_many_to_many_unknown_target_column() -> None:
 
     assert (
         f"Entity {Entity2}, 'name' in foreign key does not match with an column in target entity {Entity1}"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -1004,7 +1033,7 @@ def test_fail_entity_reference_too_few_list_args() -> None:
 
     assert (
         f"Entity {Entity2}, Attribute 'entities', Type {Entity1} is not a registered entity"
-        in info.value.message
+        == info.value.message
     )
 
 
@@ -1015,7 +1044,9 @@ class ParentA:
 
 
 @entity.primary_key("id")
-@entity.many_to_one("parent_id", reference="parent", backref="children")
+@entity.many_to_one(
+    "parent_id", reference="parent", lazy=False, backref=("children", "subquery")
+)
 class ChildA:
     id: int
     parent_id: int
@@ -1036,6 +1067,7 @@ def test_entity_many_to_one_backref() -> None:
     assert isinstance(ref, CollectionReference)
     assert ref.element.entity is ChildA
     assert ref.other_side is not None
+    assert ref.lazy == "subquery"
     assert isinstance(ref.other_side, TableReference)
     assert ref.other_side.table.entity is ChildA
 
@@ -1044,5 +1076,258 @@ def test_entity_many_to_one_backref() -> None:
     assert isinstance(ref, TableReference)
     assert ref.target.entity is ParentA
     assert ref.other_side is not None
+    assert ref.lazy is False
     assert isinstance(ref.other_side, CollectionReference)
     assert ref.other_side.table.entity is ParentA
+
+
+def test_fail_entity_many_to_one_backref_no_target_ref() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_one("parent_id", reference="parent", backref="children")
+    class Child:
+        id: int
+        parent_id: int
+        parent: Parent
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, 'children' in backref does not match with any reference in the target entity {Parent}"
+        == info.value.message
+    )
+
+
+@entity.primary_key("id")
+class ParentB:
+    id: int
+    children: "ChildB"
+
+
+@entity.primary_key("id")
+@entity.many_to_one("parent_id", reference="parent", backref="children")
+class ChildB:
+    id: int
+    parent_id: int
+    parent: ParentB
+
+
+def test_fail_entity_many_to_one_backref_not_a_list() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentB)
+    entity(cache=cache)(ChildB)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {ChildB}, Many-to-one backref 'children' in {ParentB} must be a list"
+        == info.value.message
+    )
+
+
+@entity.primary_key("id")
+class ParentC:
+    id: int
+    children: "list[ChildC]"
+
+
+@entity.primary_key("id")
+@entity.many_to_one("parent_id1", reference="parent1", backref="children")
+@entity.many_to_one("parent_id2", reference="parent2", backref="children")
+class ChildC:
+    id: int
+    parent_id1: int
+    parent1: ParentC
+    parent_id2: int
+    parent2: ParentC
+
+
+def test_fail_entity_many_to_one_backref_already_in_use() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentC)
+    entity(cache=cache)(ChildC)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {ChildC}, Backref 'children' in {ParentC} is already used by another relationship"
+        == info.value.message
+    )
+
+
+@entity.primary_key("id")
+class ParentD:
+    id: int
+    children: "list[ChildD]"
+
+
+@entity.primary_key("id")
+@entity.many_to_many("parents", lazy=False, backref=("children", "subquery"))
+class ChildD:
+    id: int
+    parents: list[ParentD]
+
+
+def test_entity_many_to_many_backref() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentD)
+    entity(cache=cache)(ChildD)
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "children" in manager._table_defs[ParentD].references
+    ref = manager._table_defs[ParentD].references["children"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.element.entity is ChildD
+    assert ref.other_side is not None
+    assert ref.lazy == "subquery"
+    assert isinstance(ref.other_side, CollectionReference)
+    assert ref.other_side.table.entity is ChildD
+
+    assert "parents" in manager._table_defs[ChildD].references
+    ref = manager._table_defs[ChildD].references["parents"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.element.entity is ParentD
+    assert ref.other_side is not None
+    assert ref.lazy is False
+    assert isinstance(ref.other_side, CollectionReference)
+    assert ref.other_side.table.entity is ParentD
+
+
+def test_fail_entity_many_to_many_backref_no_target_ref() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    class Parent:
+        id: int
+
+    @entity(cache=cache)
+    @entity.primary_key("id")
+    @entity.many_to_many("parents", backref="children")
+    class Child:
+        id: int
+        parents: list[Parent]
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, 'children' in backref does not match with any reference in the target entity {Parent}"
+        == info.value.message
+    )
+
+
+@entity.primary_key("id")
+class ParentE:
+    id: int
+    children: "ChildE"
+
+
+@entity.primary_key("id")
+@entity.many_to_many("parents", backref="children")
+class ChildE:
+    id: int
+    parents: list[ParentE]
+
+
+def test_fail_entity_many_to_many_backref_not_a_list() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentE)
+    entity(cache=cache)(ChildE)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {ChildE}, Many-to-many backref 'children' in {ParentE} must be a list"
+        == info.value.message
+    )
+
+
+@entity.primary_key("id")
+class ParentF:
+    id: int
+    children: "list[ChildF]"
+
+
+@entity.primary_key("id")
+@entity.many_to_many("parents1", backref="children")
+@entity.many_to_many("parents2", backref="children")
+class ChildF:
+    id: int
+    parents1: list[ParentF]
+    parents2: list[ParentF]
+
+
+def test_fail_entity_many_to_many_backref_already_in_use() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentF)
+    entity(cache=cache)(ChildF)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {ChildF}, Backref 'children' in {ParentF} is already used by another relationship"
+        == info.value.message
+    )
+
+
+@entity.primary_key("id")
+class ParentG:
+    id: int
+    children: "list[ChildG]"
+
+
+@entity.primary_key("id")
+@entity.many_to_many("parents", backref="children")
+@entity.many_to_many("parents", backref="children")
+class ChildG:
+    id: int
+    parents: list[ParentG]
+
+
+def test_fail_entity_many_to_many_reference_used_twice() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentG)
+    entity(cache=cache)(ChildG)
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {ChildG}, Reference 'parents' is already used by another relationship"
+        == info.value.message
+    )

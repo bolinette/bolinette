@@ -281,18 +281,27 @@ class EntityManager:
                             f"({','.join(tmp_def.target_cols)}) target in foreign key is not a unique constraint on entity {target_table.entity}",
                             entity=table_def.entity,
                         )
-                if len(tmp_def.src_cols) != len(target_col_defs) or list(
-                    map(lambda x: x.py_type, tmp_def.src_cols)
-                ) != list(map(lambda x: x.py_type, target_col_defs)):
+                if len(tmp_def.src_cols) != len(target_col_defs):
                     raise EntityError(
-                        f"({','.join(map(lambda c: c.name, tmp_def.src_cols))}) foreign key "
-                        f"and {target_table.entity}({','.join(map(lambda c: c.name, target_col_defs))}) do not match",
+                        f"Foreign key to target {target_table.entity} does not have the same column count on both sides",
+                        entity=table_def.entity,
+                    )
+                if list(map(lambda x: x.py_type, tmp_def.src_cols)) != list(
+                    map(lambda x: x.py_type, target_col_defs)
+                ):
+                    raise EntityError(
+                        f"Foreign key to target {target_table.entity} does not have the same column types on both sides",
                         entity=table_def.entity,
                     )
                 foreign_def = ManyToOneConstraint(
                     key_name, tmp_def.src_cols, ref_def, target_table, target_col_defs
                 )
                 if ref_def is not None:
+                    if ref_def.constraint is not None:
+                        raise EntityError(
+                            f"Reference '{ref_col}' is already used by another relationship",
+                            entity=table_def.entity,
+                        )
                     ref_def.constraint = foreign_def
                     ref_def.lazy = tmp_def.lazy  # type: ignore
                     if tmp_def.backref is not None:
@@ -305,12 +314,12 @@ class EntityManager:
                         back_ref = target_table.references[back_name]
                         if not isinstance(back_ref, CollectionReference):
                             raise EntityError(
-                                f"Many-to-one backref '{ref_col}' in {table_def.entity} must be a list",
+                                f"Many-to-one backref '{back_name}' in {target_table.entity} must be a list",
                                 entity=table_def.entity,
                             )
                         if back_ref.constraint is not None:
                             raise EntityError(
-                                f"Backref '{ref_col}' in {table_def.entity} is already used by another relationship",
+                                f"Backref '{back_name}' in {target_table.entity} is already used by another relationship",
                                 entity=table_def.entity,
                             )
                         back_ref.constraint = foreign_def
@@ -328,12 +337,16 @@ class EntityManager:
                 source_cols: list[str] | None,
                 target_cols: list[str] | None,
                 join_table: str | None,
+                lazy: bool | Literal["subquery"],
+                backref: tuple[str, bool | Literal["subquery"]] | None,
             ) -> None:
                 self.name = name
                 self.reference = reference
                 self.source_cols = source_cols
                 self.target_cols = target_cols
                 self.join_table = join_table
+                self.lazy = lazy
+                self.backref = backref
 
         for table_def in self._table_defs.values():
             _meta = meta.get(table_def.entity, EntityPropsMeta)
@@ -346,6 +359,8 @@ class EntityManager:
                         tmp_def.source_cols,
                         tmp_def.target_cols,
                         tmp_def.join_table,
+                        tmp_def.lazy,  # type: ignore
+                        tmp_def.backref,
                     )
                 )
             for tmp_def in temp_defs:
@@ -408,6 +423,29 @@ class EntityManager:
                         entity=table_def.entity,
                     )
                 ref_def.constraint = foreign_def
+                ref_def.lazy = tmp_def.lazy  # type: ignore
+                if tmp_def.backref is not None:
+                    back_name, back_lazy = tmp_def.backref
+                    if back_name not in target_table_def.references:
+                        raise EntityError(
+                            f"'{back_name}' in backref does not match with any reference in the target entity {target_table_def.entity}",
+                            entity=table_def.entity,
+                        )
+                    back_ref = target_table_def.references[back_name]
+                    if not isinstance(back_ref, CollectionReference):
+                        raise EntityError(
+                            f"Many-to-many backref '{back_name}' in {target_table_def.entity} must be a list",
+                            entity=table_def.entity,
+                        )
+                    if back_ref.constraint is not None:
+                        raise EntityError(
+                            f"Backref '{back_name}' in {target_table_def.entity} is already used by another relationship",
+                            entity=table_def.entity,
+                        )
+                    back_ref.constraint = foreign_def
+                    back_ref.lazy = back_lazy
+                    ref_def.other_side = back_ref
+                    back_ref.other_side = ref_def
                 table_def.constraints[c_name] = foreign_def
 
 
