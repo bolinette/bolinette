@@ -1305,12 +1305,11 @@ def test_fail_entity_many_to_many_backref_already_in_use() -> None:
 @entity.primary_key("id")
 class ParentG:
     id: int
-    children: "list[ChildG]"
 
 
 @entity.primary_key("id")
-@entity.many_to_many("parents", backref="children")
-@entity.many_to_many("parents", backref="children")
+@entity.many_to_many("parents")
+@entity.many_to_many("parents")
 class ChildG:
     id: int
     parents: list[ParentG]

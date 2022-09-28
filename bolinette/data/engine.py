@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 
-from sqlalchemy import create_engine
+from sqlalchemy import Table, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
-from bolinette.core.exceptions import InternalError
 
 
 class AbstractEngine(ABC):
@@ -37,24 +35,15 @@ class RelationalDatabase(AbstractEngine):
         super().__init__(relational=True)
         self._engine = create_engine(uri, echo=False)
         self._base = declarative_base()
-        self._Session = sessionmaker(bind=self._engine)
-        self._session = self._Session()
-        self._tables = {}
+        self._session = sessionmaker(bind=self._engine)()
+        self._tables: dict[str, Table] = {}
 
-    @property
-    def base(self):
-        return self._base
-
-    @property
-    def session(self):
-        return self._session
-
-    def add_table(self, key: str, table):
+    def add_table(self, key: str, table: Table):
         self._tables[key] = table
 
-    def table(self, key: str):
+    def get_table(self, key: str):
         if key not in self._tables:
-            raise InternalError(f"No table named {key} in database engine")
+            raise KeyError(key)
         return self._tables[key]
 
     async def open_transaction(self):
