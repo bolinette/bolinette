@@ -7,7 +7,9 @@ InstanceT = TypeVar("InstanceT")
 class AttributeUtils:
     @staticmethod
     def get_cls_attrs(
-        obj: type[Any], *, of_type: type[InstanceT] | None = None
+        obj: type[Any],
+        *,
+        of_type: type[InstanceT] | tuple[type[InstanceT], ...] | None = None
     ) -> Iterable[tuple[str, InstanceT]]:
         parent_attrs = (
             AttributeUtils.get_cls_attrs(parent, of_type=of_type)

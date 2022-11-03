@@ -65,9 +65,10 @@ class _MockWrapper(Generic[T]):
         _meta[name] = value
         return self
 
-    def dummy(self, value: bool = True) -> None:
+    def dummy(self, value: bool = True) -> "_MockWrapper[T]":
         _meta = meta.get(self._cls, _MockedMeta)
         _meta.dummy = value
+        return self
 
 
 class Mock:
