@@ -5,11 +5,20 @@ import pytest
 from bolinette.core import Cache, Logger
 from bolinette.core.testing import Mock
 from bolinette.core.utils import AttributeUtils
-from bolinette.data import EntityManager, ForeignKey, Format, PrimaryKey, Unique, entity
+from bolinette.data import (
+    EntityManager,
+    ForeignKey,
+    Format,
+    ManyToOne,
+    PrimaryKey,
+    Unique,
+    entity,
+)
 from bolinette.data.exceptions import EntityError
 from bolinette.data.manager import (
     ForeignKeyConstraint,
     PrimaryKeyConstraint,
+    TableReference,
     UniqueConstraint,
 )
 
@@ -469,6 +478,7 @@ def test_entity_foreign_key() -> None:
     fk = manager._table_defs[Child].constraints["child_parent_fk"]
     assert isinstance(fk, ForeignKeyConstraint)
     assert fk.target.entity is Parent
+    assert list(map(lambda c: c.name, fk.source_columns)) == ["parent_id"]
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id"]
 
 
@@ -498,7 +508,60 @@ def test_entity_foreign_key_to_composite() -> None:
     fk = manager._table_defs[Child].constraints["custom_name"]
     assert isinstance(fk, ForeignKeyConstraint)
     assert fk.target.entity is Parent
+    assert list(map(lambda c: c.name, fk.source_columns)) == [
+        "parent_id1",
+        "parent_id2",
+    ]
     assert list(map(lambda c: c.name, fk.target_columns)) == ["id1", "id2"]
+
+
+def test_fail_entity_foreign_key_length_mismatch() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    class Parent:
+        id: Annotated[int, PrimaryKey()]
+
+    @entity(cache=cache)
+    class Child:
+        id: Annotated[int, PrimaryKey()]
+        parent_id1: int
+        parent_id2: int
+
+        custom_name = ForeignKey(Parent, ["parent_id1", "parent_id2"])
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, Attribute 'custom_name', Source columns in foreign key do not match with target columns"
+        == info.value.message
+    )
+
+
+def test_fail_entity_foreign_key_type_mismatch() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    class Parent:
+        id: Annotated[int, PrimaryKey()]
+
+    @entity(cache=cache)
+    class Child:
+        id: Annotated[int, PrimaryKey()]
+        parent_id: Annotated[str, ForeignKey(Parent)]
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, Attribute 'parent_id', Source columns in foreign key do not match with target columns"
+        == info.value.message
+    )
 
 
 def test_fail_entity_foreign_key_custom_columns() -> None:
@@ -594,6 +657,29 @@ def test_fail_entity_foreign_key_not_an_entity() -> None:
         f"Entity {Child}, Attribute 'parent_id', Type {Parent} is not a registered entity"
         == info.value.message
     )
+
+
+def test_entity_reference() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    class Parent:
+        id: Annotated[int, PrimaryKey()]
+
+    @entity(cache=cache)
+    class Child:
+        id: Annotated[int, PrimaryKey()]
+        parent_id: Annotated[int, ForeignKey(Parent)]
+        parent: Annotated[Parent, ManyToOne(["parent_id"])]
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "parent" in manager._table_defs[Child].references
+    ref = manager._table_defs[Child].references["parent"]
+    assert isinstance(ref, TableReference)
+    assert ref.table.entity is Child
+    assert ref.target.entity is Parent
 
 
 # def test_entity_many_to_one_with_reference() -> None:

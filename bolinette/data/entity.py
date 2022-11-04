@@ -103,6 +103,16 @@ class ForeignKey(_Constraint):
         return "foreign key"
 
 
+class ManyToOne(_Constraint):
+    def __init__(self, column: list[str], target: type[Entity] | None = None, /) -> None:
+        self.column = column
+        self.target = target
+
+    @property
+    def __lower_name__(self) -> str:
+        return "many-to-one constraint"
+
+
 class Format:
     def __init__(self, format: Literal["email", "password"], /) -> None:
         self.format = format

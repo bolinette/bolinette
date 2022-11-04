@@ -23,7 +23,7 @@ from bolinette.data import (
     __data_cache__,
     types,
 )
-from bolinette.data.entity import Entity, EntityMeta
+from bolinette.data.entity import Entity, EntityMeta, ManyToOne
 from bolinette.data.exceptions import EntityError
 
 
@@ -44,6 +44,19 @@ class EntityManager:
         self._logger = logger
         self._table_defs: dict[type[Entity], TableDefinition] = {}
 
+    @staticmethod
+    def check_columns_match(
+        cols1: "list[TableColumn]", cols2: "list[TableColumn]"
+    ) -> bool:
+        if len(cols1) != len(cols2):
+            return False
+        for i in range(len(cols1)):
+            col1 = cols1[i]
+            col2 = cols2[i]
+            if col1.py_type is not col2.py_type:
+                return False
+        return True
+
     @init_method
     def init(self) -> None:
         self._init_models()
@@ -56,6 +69,7 @@ class EntityManager:
         self._parse_annotations(temp_defs)
         self._parse_constraints(temp_defs)
         self._populate_tables(temp_defs)
+        self._populate_references(temp_defs)
 
     def _init_models(self) -> None:
         _type = type[Entity]
@@ -93,15 +107,14 @@ class EntityManager:
                         is_collection = True
                         h_type = h_args[0]
                 if is_collection:
-                    target_ent = h_type
-                    if target_ent not in temp_defs:
+                    if h_type not in temp_defs:
                         raise EntityError(
-                            f"Type {target_ent} is not a registered entity",
+                            f"Type {h_type} is not a registered entity",
                             entity=entity,
                             attribute=h_name,
                         )
                     tmp_def.collections.append(
-                        _TempTableDef.Collection(h_name, target_ent)
+                        _TempTableDef.Collection(h_name, h_type)  # type: ignore
                     )
                 elif types.is_supported(h_type):
                     format: Literal["password", "email"] | None = None
@@ -145,8 +158,11 @@ class EntityManager:
                         _TempTableDef.Column(h_name, h_type, nullable, format)
                     )
                 elif h_type in temp_defs:
-                    pass
-                    # tmp_def.many_to_ones.append(_TempTableDef.ManyToOne(h_name, h_type))
+                    for anno_arg in anno_args:
+                        if isinstance(anno_arg, ManyToOne):
+                            tmp_def.many_to_ones.append(_TempTableDef.ManyToOne(h_name, h_type))  # type: ignore
+                            break
+                        raise EntityError(f"Reference to {h_type} does not define any constraint", entity=entity, attribute=h_name)
                 else:
                     raise EntityError(
                         f"Type {h_type} is not supported",
@@ -270,10 +286,30 @@ class EntityManager:
                 target_table = self._table_defs[target_type]
                 if (fk_name := tmp_fk.name) is None:
                     fk_name = f"{table_def.name}_{target_table.name}_fk"
-                source_cols = list(table_def.get_primary_key().columns)
+                source_cols: list[TableColumn] = []
+                for col_name in tmp_fk.source_cols:
+                    source_cols.append(table_def.columns[col_name])
                 target_cols = list(target_table.get_primary_key().columns)
+                if not self.check_columns_match(source_cols, target_cols):
+                    raise EntityError(
+                        f"Source columns in foreign key do not match with target columns",
+                        entity=entity,
+                        attribute=tmp_fk.origin_name,
+                    )
                 table_def.constraints[fk_name] = ForeignKeyConstraint(
                     fk_name, source_cols, target_table, target_cols
+                )
+
+    def _populate_references(
+        self, temp_defs: "dict[type[Entity], _TempTableDef]"
+    ) -> None:
+        # == Add Many-To-One Relationships
+        for entity, tmp_def in temp_defs.items():
+            table_def = self._table_defs[entity]
+            for tmp_ref in tmp_def.many_to_ones:
+                target_def = self._table_defs[tmp_ref.type]
+                table_def.references[tmp_ref.name] = TableReference(
+                    table_def, tmp_ref.name, target_def
                 )
 
 
@@ -415,11 +451,6 @@ class _TempTableDef(Generic[EntityT]):
             self.source_cols = source_cols
             self.target = target
 
-    class Collection:
-        def __init__(self, name: str, _type: type, /) -> None:
-            self.name = name
-            self.type = _type
-
     class PrimaryKey:
         def __init__(self, origin_name: str, name: str, columns: list[str], /) -> None:
             self.origin_name = origin_name
@@ -432,10 +463,21 @@ class _TempTableDef(Generic[EntityT]):
             self.name = name
             self.columns = columns
 
+    class ManyToOne:
+        def __init__(self, name: str, _type: type[Entity], /) -> None:
+            self.name = name
+            self.type = _type
+
+    class Collection:
+        def __init__(self, name: str, _type: type[Entity], /) -> None:
+            self.name = name
+            self.type = _type
+
     def __init__(self, name: str) -> None:
         self.name = name
         self.columns: list[_TempTableDef.Column] = []
         self.foreign_keys: list[_TempTableDef.ForeignKey] = []
-        self.collections: list[_TempTableDef.Collection] = []
         self.primary_keys: list[_TempTableDef.PrimaryKey] = []
         self.uniques: list[_TempTableDef.Unique] = []
+        self.many_to_ones: list[_TempTableDef.ManyToOne] = []
+        self.collections: list[_TempTableDef.Collection] = []
