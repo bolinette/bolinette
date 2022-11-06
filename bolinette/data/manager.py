@@ -8,6 +8,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    Protocol,
 )
 
 from sqlalchemy import table
@@ -22,8 +23,11 @@ from bolinette.data import (
     Unique,
     __data_cache__,
     types,
+    ManyToOne,
+    OneToMany,
+    Entity,
 )
-from bolinette.data.entity import Entity, EntityMeta, ManyToOne
+from bolinette.data.entity import EntityMeta
 from bolinette.data.exceptions import EntityError
 
 
@@ -70,6 +74,7 @@ class EntityManager:
         self._parse_constraints(temp_defs)
         self._populate_tables(temp_defs)
         self._populate_references(temp_defs)
+        self._populate_back_references(temp_defs)
 
     def _init_models(self) -> None:
         _type = type[Entity]
@@ -106,17 +111,7 @@ class EntityManager:
                     elif origin is list:
                         is_collection = True
                         h_type = h_args[0]
-                if is_collection:
-                    if h_type not in temp_defs:
-                        raise EntityError(
-                            f"Type {h_type} is not a registered entity",
-                            entity=entity,
-                            attribute=h_name,
-                        )
-                    tmp_def.collections.append(
-                        _TempTableDef.Collection(h_name, h_type)  # type: ignore
-                    )
-                elif types.is_supported(h_type):
+                if types.is_supported(h_type):
                     format: Literal["password", "email"] | None = None
                     for anno_arg in anno_args:
                         if isinstance(anno_arg, Format):
@@ -160,9 +155,46 @@ class EntityManager:
                 elif h_type in temp_defs:
                     for anno_arg in anno_args:
                         if isinstance(anno_arg, ManyToOne):
-                            tmp_def.many_to_ones.append(_TempTableDef.ManyToOne(h_name, h_type))  # type: ignore
+                            if is_collection:
+                                raise EntityError(
+                                    f"Many-to-one relationship must be a single reference",
+                                    entity=entity,
+                                    attribute=h_name,
+                                )
+                            tmp_def.many_to_ones.append(
+                                _TempTableDef.ManyToOne(
+                                    h_name,
+                                    h_name,
+                                    h_type,  # type: ignore
+                                    anno_arg.lazy,  # type: ignore
+                                    anno_arg.columns,
+                                    anno_arg.other_side,
+                                )
+                            )
                             break
-                        raise EntityError(f"Reference to {h_type} does not define any constraint", entity=entity, attribute=h_name)
+                        if isinstance(anno_arg, OneToMany):
+                            if not is_collection:
+                                raise EntityError(
+                                    f"One-to-many relationship must be a collection reference",
+                                    entity=entity,
+                                    attribute=h_name,
+                                )
+                            tmp_def.one_to_manies.append(
+                                _TempTableDef.OneToMany(
+                                    h_name,
+                                    h_name,
+                                    h_type,  # type: ignore
+                                    anno_arg.lazy,  # type: ignore
+                                    anno_arg.other_side,
+                                )
+                            )
+                            break
+                    else:
+                        raise EntityError(
+                            f"Reference to {h_type} does not define any relationship",
+                            entity=entity,
+                            attribute=h_name,
+                        )
                 else:
                     raise EntityError(
                         f"Type {h_type} is not supported",
@@ -238,7 +270,7 @@ class EntityManager:
                         attribute=tmp_unique.origin_name,
                     )
                 table_def.constraints[tmp_unique.name] = UniqueConstraint(
-                    tmp_unique.name, u_columns
+                    table_def, tmp_unique.name, u_columns
                 )
 
         # == Add Primary Key Constraints ==
@@ -261,7 +293,7 @@ class EntityManager:
                         attribute=tmp_primary.origin_name,
                     )
                 table_def.constraints[tmp_primary.name] = PrimaryKeyConstraint(
-                    tmp_primary.name, pk_columns
+                    table_def, tmp_primary.name, pk_columns
                 )
             # == Check if there is only one primary key ==
             primary_keys = table_def.get_constraints(PrimaryKeyConstraint)
@@ -272,7 +304,7 @@ class EntityManager:
                     f"Several primary keys have been defined", entity=entity
                 )
 
-        # == Add Foreign Key Constraints
+        # == Add Foreign Key Constraints ==
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
             for tmp_fk in tmp_def.foreign_keys:
@@ -297,7 +329,7 @@ class EntityManager:
                         attribute=tmp_fk.origin_name,
                     )
                 table_def.constraints[fk_name] = ForeignKeyConstraint(
-                    fk_name, source_cols, target_table, target_cols
+                    table_def, fk_name, source_cols, target_table, target_cols
                 )
 
     def _populate_references(
@@ -306,11 +338,104 @@ class EntityManager:
         # == Add Many-To-One Relationships
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
-            for tmp_ref in tmp_def.many_to_ones:
-                target_def = self._table_defs[tmp_ref.type]
-                table_def.references[tmp_ref.name] = TableReference(
-                    table_def, tmp_ref.name, target_def
+            for tmp_mto in tmp_def.many_to_ones:
+                target_def = self._table_defs[tmp_mto.type]
+                columns: list[TableColumn] = []
+                for col_name in tmp_mto.columns:
+                    if col_name not in table_def.columns:
+                        raise EntityError(
+                            f"Column '{col_name}' does not exist in entity",
+                            entity=entity,
+                            attribute=tmp_mto.origin_name,
+                        )
+                    columns.append(table_def.columns[col_name])
+                const = table_def.find_constraint(columns)
+                if const is None or not isinstance(const, ForeignKeyConstraint):
+                    raise EntityError(
+                        f"Columns defined in reference do not match with any foreign key",
+                        entity=entity,
+                        attribute=tmp_mto.origin_name,
+                    )
+                if const.target != target_def:
+                    raise EntityError(
+                        f"Reference type is not the same as foreign key target entity",
+                        entity=entity,
+                        attribute=tmp_mto.origin_name,
+                    )
+                reference = TableReference(
+                    table_def,
+                    tmp_mto.name,
+                    target_def,
+                    tmp_mto.lazy,  # type: ignore
+                    const,
                 )
+                table_def.references[reference.name] = reference
+                const.reference = reference
+
+        # == Add One-To-Many Relationships ==
+        for entity, tmp_def in temp_defs.items():
+            table_def = self._table_defs[entity]
+            for tmp_otm in tmp_def.one_to_manies:
+                target_def = self._table_defs[tmp_otm.type]
+                collection = CollectionReference(
+                    table_def,
+                    tmp_otm.name,
+                    target_def,
+                    tmp_otm.lazy,  # type: ignore
+                )
+                table_def.references[collection.name] = collection
+
+    def _populate_back_references(
+        self, temp_defs: "dict[type[Entity], _TempTableDef]"
+    ) -> None:
+        for entity, tmp_def in temp_defs.items():
+            table_def = self._table_defs[entity]
+            # == Add Many-To-One Back Relationships ==
+            for tmp_mto in tmp_def.many_to_ones:
+                column_def = table_def.references[tmp_mto.name]
+                assert isinstance(column_def, TableReference)
+                target_def = self._table_defs[tmp_mto.type]
+                other_side: TableReference | CollectionReference | None = None
+                other_side_name = tmp_mto.other_side
+                if other_side_name is not None:
+                    if other_side_name not in target_def.references:
+                        raise EntityError(
+                            f"Relationship '{other_side_name}' does not exist on type {target_def.entity}",
+                            entity=entity,
+                            attribute=tmp_mto.origin_name,
+                        )
+                    other_side = target_def.references[other_side_name]
+                    if not isinstance(other_side, CollectionReference):
+                        raise EntityError(
+                            f"Relationship '{other_side_name}' must be a collection reference",
+                            entity=entity,
+                            attribute=tmp_mto.origin_name,
+                        )
+                    column_def.other_side = other_side
+                else:
+                    column_def.other_side = None
+
+            # == Add One-To-Many Back Relationships ==
+            for tmp_otm in tmp_def.one_to_manies:
+                column_def = table_def.references[tmp_otm.name]
+                assert isinstance(column_def, CollectionReference)
+                target_def = self._table_defs[tmp_otm.type]
+                other_side_name = tmp_otm.other_side
+                if other_side_name not in target_def.references:
+                    raise EntityError(
+                        f"Relationship '{other_side_name}' does not exist on type {target_def.entity}",
+                        entity=entity,
+                        attribute=tmp_otm.origin_name,
+                    )
+                other_side = target_def.references[other_side_name]
+                if not isinstance(other_side, TableReference):
+                    raise EntityError(
+                        f"Relationship '{other_side_name}' must be a single reference",
+                        entity=entity,
+                        attribute=tmp_otm.origin_name,
+                    )
+                column_def.other_side = other_side
+
 
 
 class TableColumn:
@@ -330,60 +455,87 @@ class TableColumn:
         self.nullable = nullable
         self.format = format
 
+    def __repr__(self) -> str:
+        return f"<Column {self.name}>"
 
-class TableReference:
+
+class Reference(Protocol):
+    table: "TableDefinition"
+    name: str
+    target: "TableDefinition"
+    lazy: bool | Literal["subquery"]
+    other_side: "CollectionReference | TableReference | None"
+
+
+class TableReference(Reference):
     def __init__(
         self,
         table: "TableDefinition",
         name: str,
         target: "TableDefinition",
+        lazy: bool | Literal["subquery"],
+        constraint: "ForeignKeyConstraint",
     ) -> None:
         self.table = table
         self.name = name
         self.target = target
-        self.lazy: bool | Literal["subquery"] = True
-        self.constraint: ForeignKeyConstraint | None = None
-        self.other_side: CollectionReference | TableReference | None = None
+        self.lazy = lazy
+        self.constraint = constraint
+        self.other_side: CollectionReference | TableReference | None
 
 
-class CollectionReference:
+class CollectionReference(Reference):
     def __init__(
         self,
         table: "TableDefinition",
         name: str,
-        element: "TableDefinition",
+        target: "TableDefinition",
+        lazy: bool | Literal["subquery"],
     ) -> None:
         self.table = table
         self.name = name
-        self.element = element
-        self.lazy: bool | Literal["subquery"] = True
-        self.constraint: ForeignKeyConstraint | None = None
-        self.other_side: CollectionReference | TableReference | None = None
+        self.target = target
+        self.lazy = lazy
+        self.other_side: CollectionReference | TableReference
 
 
-class PrimaryKeyConstraint:
-    def __init__(self, name: str, columns: list[TableColumn]) -> None:
+class Constraint(Protocol):
+    table: "TableDefinition"
+    name: str
+    columns: list[TableColumn]
+
+
+class PrimaryKeyConstraint(Constraint):
+    def __init__(
+        self, table: "TableDefinition", name: str, columns: list[TableColumn]
+    ) -> None:
+        self.table = table
         self.name = name
         self.columns = columns
 
 
-class ForeignKeyConstraint:
+class ForeignKeyConstraint(Constraint):
     def __init__(
         self,
+        table: "TableDefinition",
         name: str,
-        source_columns: list[TableColumn],
+        columns: list[TableColumn],
         target: "TableDefinition",
         target_columns: list[TableColumn],
     ) -> None:
+        self.table = table
         self.name = name
-        self.source_columns = source_columns
+        self.columns = columns
         self.target = target
         self.target_columns = target_columns
         self.reference: TableReference | None = None
 
 
-class UniqueConstraint:
-    def __init__(self, name: str, columns: list[TableColumn]) -> None:
+class UniqueConstraint(Constraint):
+    def __init__(
+        self, table: "TableDefinition", name: str, columns: list[TableColumn]
+    ) -> None:
+        self.table = table
         self.name = name
         self.columns = columns
 
@@ -407,6 +559,15 @@ class TableDefinition(Generic[EntityT]):
     ) -> list[tuple[str, ConstraintT]]:
         return [(n, a) for n, a in self.constraints.items() if isinstance(a, of_type)]
 
+    def find_constraint(self, columns: list[TableColumn]) -> ConstraintType | None:
+        for const in self.constraints.values():
+            for col in columns:
+                if col not in const.columns:
+                    break
+            else:
+                return const
+        return None
+
     def get_primary_key(self) -> PrimaryKeyConstraint:
         return next(
             c for c in self.constraints.values() if isinstance(c, PrimaryKeyConstraint)
@@ -420,6 +581,9 @@ class TableDefinition(Generic[EntityT]):
             else:
                 return constraint
         return None
+
+    def __repr__(self) -> str:
+        return f"<Table {self.name}>"
 
 
 class _TempTableDef(Generic[EntityT]):
@@ -464,14 +628,38 @@ class _TempTableDef(Generic[EntityT]):
             self.columns = columns
 
     class ManyToOne:
-        def __init__(self, name: str, _type: type[Entity], /) -> None:
+        def __init__(
+            self,
+            origin_name: str,
+            name: str,
+            _type: type[Entity],
+            lazy: bool | Literal["subquery"],
+            columns: list[str],
+            other_side: str | None,
+            /,
+        ) -> None:
+            self.origin_name = origin_name
             self.name = name
             self.type = _type
+            self.lazy = lazy
+            self.columns = columns
+            self.other_side = other_side
 
-    class Collection:
-        def __init__(self, name: str, _type: type[Entity], /) -> None:
+    class OneToMany:
+        def __init__(
+            self,
+            origin_name: str,
+            name: str,
+            _type: type[Entity],
+            lazy: bool | Literal["subquery"],
+            other_side: str,
+            /,
+        ) -> None:
+            self.origin_name = origin_name
             self.name = name
             self.type = _type
+            self.lazy = lazy
+            self.other_side = other_side
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -480,4 +668,4 @@ class _TempTableDef(Generic[EntityT]):
         self.primary_keys: list[_TempTableDef.PrimaryKey] = []
         self.uniques: list[_TempTableDef.Unique] = []
         self.many_to_ones: list[_TempTableDef.ManyToOne] = []
-        self.collections: list[_TempTableDef.Collection] = []
+        self.one_to_manies: list[_TempTableDef.OneToMany] = []

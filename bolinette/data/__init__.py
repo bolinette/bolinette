@@ -8,5 +8,7 @@ from bolinette.data.entity import (
     Format,
     ForeignKey,
     ManyToOne,
+    OneToMany,
+    Entity,
 )
 from bolinette.data.manager import DatabaseManager, EntityManager

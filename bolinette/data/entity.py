@@ -39,14 +39,14 @@ class _EntityDecorator:
 entity = _EntityDecorator()
 
 
-class _Constraint(ABC):
+class _NamedTableAttribute(ABC):
     @property
     @abstractmethod
     def __lower_name__(self) -> str:
         pass
 
 
-class PrimaryKey(_Constraint):
+class PrimaryKey(_NamedTableAttribute):
     @overload
     def __init__(self, columns: list[str]):
         pass
@@ -66,7 +66,7 @@ class PrimaryKey(_Constraint):
         return "primary key"
 
 
-class Unique(_Constraint):
+class Unique(_NamedTableAttribute):
     @overload
     def __init__(self, columns: list[str]):
         pass
@@ -86,7 +86,7 @@ class Unique(_Constraint):
         return "unique constraint"
 
 
-class ForeignKey(_Constraint):
+class ForeignKey(_NamedTableAttribute):
     def __init__(
         self,
         target: type[_EntityT],
@@ -103,14 +103,38 @@ class ForeignKey(_Constraint):
         return "foreign key"
 
 
-class ManyToOne(_Constraint):
-    def __init__(self, column: list[str], target: type[Entity] | None = None, /) -> None:
-        self.column = column
-        self.target = target
+class ManyToOne(_NamedTableAttribute):
+    def __init__(
+        self,
+        columns: list[str],
+        /,
+        *,
+        lazy: bool | Literal["subquery"] = True,
+        other_side: str | None = None,
+    ) -> None:
+        self.columns = columns
+        self.lazy = lazy
+        self.other_side = other_side
 
     @property
     def __lower_name__(self) -> str:
-        return "many-to-one constraint"
+        return "many-to-one relationship"
+
+
+class OneToMany(_NamedTableAttribute):
+    def __init__(
+        self,
+        other_side: str,
+        /,
+        *,
+        lazy: bool | Literal["subquery"] = True,
+    ) -> None:
+        self.other_side = other_side
+        self.lazy = lazy
+
+    @property
+    def __lower_name__(self):
+        return "one-to-many relationship"
 
 
 class Format:
