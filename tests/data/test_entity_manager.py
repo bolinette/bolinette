@@ -17,10 +17,10 @@ from bolinette.data import (
 )
 from bolinette.data.exceptions import EntityError
 from bolinette.data.manager import (
+    CollectionReference,
     ForeignKeyConstraint,
     PrimaryKeyConstraint,
     TableReference,
-    CollectionReference,
     UniqueConstraint,
 )
 
@@ -809,9 +809,11 @@ def test_fail_entity_many_to_one_on_collection_reference() -> None:
 
 def test_fail_entity_many_to_one_unknown_backref() -> None:
     cache = Cache()
+
     @entity(cache=cache)
     class Parent:
         id: Annotated[int, PrimaryKey()]
+
     @entity(cache=cache)
     class Child:
         id: Annotated[int, PrimaryKey()]
@@ -828,10 +830,12 @@ def test_fail_entity_many_to_one_unknown_backref() -> None:
         == info.value.message
     )
 
+
 class ParentA:
     id: Annotated[int, PrimaryKey()]
     child_id: "Annotated[int, ForeignKey(ChildA)]"  # type: ignore
     child: "Annotated[ChildA, ManyToOne(['child_id'], other_side='parent')]"
+
 
 class ChildA:
     id: Annotated[int, PrimaryKey()]
@@ -855,14 +859,18 @@ def test_fail_entity_many_to_one_collection_backref() -> None:
         == info.value.message
     )
 
+
 class ParentB:
     id: Annotated[int, PrimaryKey()]
     children: "Annotated[list[ChildB], OneToMany('parent', lazy=False)]"
 
+
 class ChildB:
     id: Annotated[int, PrimaryKey()]
     parent_id: Annotated[int, ForeignKey(ParentB)]
-    parent: Annotated[ParentB, ManyToOne(["parent_id"], other_side="children", lazy=True)]
+    parent: Annotated[
+        ParentB, ManyToOne(["parent_id"], other_side="children", lazy=True)
+    ]
 
 
 def test_entity_one_to_many() -> None:
@@ -891,9 +899,34 @@ def test_entity_one_to_many() -> None:
     assert ref_p.other_side is ref_c
     assert ref_c.other_side is ref_p
 
+
+def test_fail_entity_one_to_many_on_single_reference() -> None:
+    cache = Cache()
+
+    @entity(cache=cache)
+    class Parent:
+        id: Annotated[int, PrimaryKey()]
+
+    @entity(cache=cache)
+    class Child:
+        id: Annotated[int, PrimaryKey()]
+        parents: Annotated[Parent, OneToMany("children")]
+
+    mock = _setup_mock(cache)
+
+    with pytest.raises(EntityError) as info:
+        mock.injection.require(EntityManager)
+
+    assert (
+        f"Entity {Child}, Attribute 'parents', One-to-many relationship must be a collection reference"
+        == info.value.message
+    )
+
+
 class ParentC:
     id: Annotated[int, PrimaryKey()]
     children: "Annotated[list[ChildC], OneToMany('parents')]"
+
 
 class ChildC:
     id: Annotated[int, PrimaryKey()]
@@ -919,13 +952,15 @@ def test_fail_entity_one_to_many_collection_backref() -> None:
 
 def test_fail_entity_one_to_many_unknown_backref() -> None:
     cache = Cache()
+
     @entity(cache=cache)
     class Child:
         id: Annotated[int, PrimaryKey()]
+
     @entity(cache=cache)
     class Parent:
         id: Annotated[int, PrimaryKey()]
-        children: Annotated[list[Child], OneToMany('parent')]
+        children: Annotated[list[Child], OneToMany("parent")]
 
     mock = _setup_mock(cache)
 

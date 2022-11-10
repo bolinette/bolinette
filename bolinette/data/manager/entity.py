@@ -8,7 +8,6 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
-    Protocol,
 )
 
 from sqlalchemy import table
@@ -16,26 +15,27 @@ from sqlalchemy import table
 from bolinette.core import Cache, Logger, init_method, injectable, meta
 from bolinette.core.utils import AttributeUtils
 from bolinette.data import (
-    DataSection,
+    Entity,
     ForeignKey,
     Format,
+    ManyToOne,
+    OneToMany,
     PrimaryKey,
     Unique,
     __data_cache__,
     types,
-    ManyToOne,
-    OneToMany,
-    Entity,
 )
 from bolinette.data.entity import EntityMeta
 from bolinette.data.exceptions import EntityError
-
-
-@injectable(cache=__data_cache__)
-class DatabaseManager:
-    def __init__(self, section: DataSection, entities: "EntityManager") -> None:
-        self._section = section
-        self._entities = entities
+from bolinette.data.manager import (
+    CollectionReference,
+    ForeignKeyConstraint,
+    PrimaryKeyConstraint,
+    TableColumn,
+    TableDefinition,
+    TableReference,
+    UniqueConstraint,
+)
 
 
 @injectable(cache=__data_cache__)
@@ -64,9 +64,9 @@ class EntityManager:
     @init_method
     def init(self) -> None:
         self._init_models()
-        temp_defs: dict[type[Entity], _TempTableDef] = dict(
+        temp_defs: dict[type[Entity], TempTableDef] = dict(
             (
-                (entity, _TempTableDef(table_def.name))
+                (entity, TempTableDef(table_def.name))
                 for entity, table_def in self._table_defs.items()
             )
         )
@@ -84,7 +84,7 @@ class EntityManager:
             self._table_defs[cls] = table_def
 
     @staticmethod
-    def _parse_annotations(temp_defs: "dict[type[Entity], _TempTableDef]") -> None:
+    def _parse_annotations(temp_defs: "dict[type[Entity], TempTableDef]") -> None:
         for entity, tmp_def in temp_defs.items():
             hints: dict[str, type] = get_type_hints(entity, include_extras=True)
             h_type: type
@@ -126,7 +126,7 @@ class EntityManager:
                                 )
                             if isinstance(anno_arg, Unique):
                                 tmp_def.uniques.append(
-                                    _TempTableDef.Unique(
+                                    TempUnique(
                                         h_name,
                                         anno_arg.name or f"{tmp_def.name}_{h_name}_u",
                                         [h_name],
@@ -134,7 +134,7 @@ class EntityManager:
                                 )
                             elif isinstance(anno_arg, PrimaryKey):
                                 tmp_def.primary_keys.append(
-                                    _TempTableDef.PrimaryKey(
+                                    TempPrimaryKey(
                                         h_name,
                                         anno_arg.name or f"{tmp_def.name}_{h_name}_pk",
                                         [h_name],
@@ -142,16 +142,14 @@ class EntityManager:
                                 )
                             elif isinstance(anno_arg, ForeignKey):
                                 tmp_def.foreign_keys.append(
-                                    _TempTableDef.ForeignKey(
+                                    TempForeignKey(
                                         h_name,
                                         anno_arg.name,
                                         [h_name],
                                         anno_arg.target,
                                     )
                                 )
-                    tmp_def.columns.append(
-                        _TempTableDef.Column(h_name, h_type, nullable, format)
-                    )
+                    tmp_def.columns.append(TempColumn(h_name, h_type, nullable, format))
                 elif h_type in temp_defs:
                     for anno_arg in anno_args:
                         if isinstance(anno_arg, ManyToOne):
@@ -162,7 +160,7 @@ class EntityManager:
                                     attribute=h_name,
                                 )
                             tmp_def.many_to_ones.append(
-                                _TempTableDef.ManyToOne(
+                                TempManyToOne(
                                     h_name,
                                     h_name,
                                     h_type,  # type: ignore
@@ -180,7 +178,7 @@ class EntityManager:
                                     attribute=h_name,
                                 )
                             tmp_def.one_to_manies.append(
-                                _TempTableDef.OneToMany(
+                                TempOneToMany(
                                     h_name,
                                     h_name,
                                     h_type,  # type: ignore
@@ -202,9 +200,7 @@ class EntityManager:
                         attribute=h_name,
                     )
 
-    def _parse_constraints(
-        self, temp_defs: "dict[type[Entity], _TempTableDef]"
-    ) -> None:
+    def _parse_constraints(self, temp_defs: "dict[type[Entity], TempTableDef]") -> None:
         for entity, tmp_def in temp_defs.items():
             for c_name, const in self._attrs.get_cls_attrs(
                 entity, of_type=(Unique, PrimaryKey, ForeignKey)
@@ -222,21 +218,17 @@ class EntityManager:
                         attribute=c_name,
                     )
                 if isinstance(const, Unique):
-                    tmp_def.uniques.append(
-                        _TempTableDef.Unique(c_name, c_name, const.columns)
-                    )
+                    tmp_def.uniques.append(TempUnique(c_name, c_name, const.columns))
                 elif isinstance(const, PrimaryKey):
                     tmp_def.primary_keys.append(
-                        _TempTableDef.PrimaryKey(c_name, c_name, const.columns)
+                        TempPrimaryKey(c_name, c_name, const.columns)
                     )
                 elif isinstance(const, ForeignKey):
                     tmp_def.foreign_keys.append(
-                        _TempTableDef.ForeignKey(
-                            c_name, c_name, const.columns, const.target
-                        )
+                        TempForeignKey(c_name, c_name, const.columns, const.target)
                     )
 
-    def _populate_tables(self, temp_defs: "dict[type[Entity], _TempTableDef]"):
+    def _populate_tables(self, temp_defs: "dict[type[Entity], TempTableDef]"):
         # == Add Table Columns ==
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
@@ -333,7 +325,7 @@ class EntityManager:
                 )
 
     def _populate_references(
-        self, temp_defs: "dict[type[Entity], _TempTableDef]"
+        self, temp_defs: "dict[type[Entity], TempTableDef]"
     ) -> None:
         # == Add Many-To-One Relationships
         for entity, tmp_def in temp_defs.items():
@@ -386,7 +378,7 @@ class EntityManager:
                 table_def.references[collection.name] = collection
 
     def _populate_back_references(
-        self, temp_defs: "dict[type[Entity], _TempTableDef]"
+        self, temp_defs: "dict[type[Entity], TempTableDef]"
     ) -> None:
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
@@ -437,235 +429,95 @@ class EntityManager:
                 column_def.other_side = other_side
 
 
+EntityT = TypeVar("EntityT", bound=Entity)
 
-class TableColumn:
+
+class TempTableDef(Generic[EntityT]):
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.columns: list[TempColumn] = []
+        self.foreign_keys: list[TempForeignKey] = []
+        self.primary_keys: list[TempPrimaryKey] = []
+        self.uniques: list[TempUnique] = []
+        self.many_to_ones: list[TempManyToOne] = []
+        self.one_to_manies: list[TempOneToMany] = []
+
+
+class TempColumn:
     def __init__(
         self,
-        table: "TableDefinition",
         name: str,
-        py_type: type,
-        sql_type,
+        _type: type,
         nullable: bool,
-        format: Literal["password", "email"] | None,
+        format: Literal["email", "password"] | None,
+        /,
     ) -> None:
-        self.table = table
         self.name = name
-        self.py_type = py_type
-        self.sql_type = sql_type
+        self.type = _type
         self.nullable = nullable
         self.format = format
 
-    def __repr__(self) -> str:
-        return f"<Column {self.name}>"
 
-
-class Reference(Protocol):
-    table: "TableDefinition"
-    name: str
-    target: "TableDefinition"
-    lazy: bool | Literal["subquery"]
-    other_side: "CollectionReference | TableReference | None"
-
-
-class TableReference(Reference):
+class TempForeignKey:
     def __init__(
         self,
-        table: "TableDefinition",
+        origin_name: str,
+        name: str | None,
+        source_cols: list[str],
+        target: type[Entity],
+        /,
+    ) -> None:
+        self.origin_name = origin_name
+        self.name = name
+        self.source_cols = source_cols
+        self.target = target
+
+
+class TempPrimaryKey:
+    def __init__(self, origin_name: str, name: str, columns: list[str], /) -> None:
+        self.origin_name = origin_name
+        self.name = name
+        self.columns = columns
+
+
+class TempUnique:
+    def __init__(self, origin_name: str, name: str, columns: list[str], /) -> None:
+        self.origin_name = origin_name
+        self.name = name
+        self.columns = columns
+
+
+class TempManyToOne:
+    def __init__(
+        self,
+        origin_name: str,
         name: str,
-        target: "TableDefinition",
+        _type: type[Entity],
         lazy: bool | Literal["subquery"],
-        constraint: "ForeignKeyConstraint",
+        columns: list[str],
+        other_side: str | None,
+        /,
     ) -> None:
-        self.table = table
+        self.origin_name = origin_name
         self.name = name
-        self.target = target
+        self.type = _type
         self.lazy = lazy
-        self.constraint = constraint
-        self.other_side: CollectionReference | TableReference | None
+        self.columns = columns
+        self.other_side = other_side
 
 
-class CollectionReference(Reference):
+class TempOneToMany:
     def __init__(
         self,
-        table: "TableDefinition",
+        origin_name: str,
         name: str,
-        target: "TableDefinition",
+        _type: type[Entity],
         lazy: bool | Literal["subquery"],
+        other_side: str,
+        /,
     ) -> None:
-        self.table = table
+        self.origin_name = origin_name
         self.name = name
-        self.target = target
+        self.type = _type
         self.lazy = lazy
-        self.other_side: CollectionReference | TableReference
-
-
-class Constraint(Protocol):
-    table: "TableDefinition"
-    name: str
-    columns: list[TableColumn]
-
-
-class PrimaryKeyConstraint(Constraint):
-    def __init__(
-        self, table: "TableDefinition", name: str, columns: list[TableColumn]
-    ) -> None:
-        self.table = table
-        self.name = name
-        self.columns = columns
-
-
-class ForeignKeyConstraint(Constraint):
-    def __init__(
-        self,
-        table: "TableDefinition",
-        name: str,
-        columns: list[TableColumn],
-        target: "TableDefinition",
-        target_columns: list[TableColumn],
-    ) -> None:
-        self.table = table
-        self.name = name
-        self.columns = columns
-        self.target = target
-        self.target_columns = target_columns
-        self.reference: TableReference | None = None
-
-
-class UniqueConstraint(Constraint):
-    def __init__(
-        self, table: "TableDefinition", name: str, columns: list[TableColumn]
-    ) -> None:
-        self.table = table
-        self.name = name
-        self.columns = columns
-
-
-EntityT = TypeVar("EntityT", bound=Entity)
-ConstraintType = UniqueConstraint | PrimaryKeyConstraint | ForeignKeyConstraint
-ConstraintT = TypeVar("ConstraintT", bound=ConstraintType)
-
-
-class TableDefinition(Generic[EntityT]):
-    def __init__(self, name: str, entity: type[EntityT]) -> None:
-        self.name = name
-        self.entity = entity
-        self.columns: dict[str, TableColumn] = {}
-        self.references: dict[str, TableReference | CollectionReference] = {}
-        self.constraints: dict[str, ConstraintType] = {}
-
-    def get_constraints(
-        self,
-        of_type: type[ConstraintT],
-    ) -> list[tuple[str, ConstraintT]]:
-        return [(n, a) for n, a in self.constraints.items() if isinstance(a, of_type)]
-
-    def find_constraint(self, columns: list[TableColumn]) -> ConstraintType | None:
-        for const in self.constraints.values():
-            for col in columns:
-                if col not in const.columns:
-                    break
-            else:
-                return const
-        return None
-
-    def get_primary_key(self) -> PrimaryKeyConstraint:
-        return next(
-            c for c in self.constraints.values() if isinstance(c, PrimaryKeyConstraint)
-        )
-
-    def check_unique(self, columns: list[TableColumn]) -> UniqueConstraint | None:
-        for constraint in {a for _, a in self.get_constraints(UniqueConstraint)}:
-            for col_def in constraint.columns:
-                if col_def not in columns:
-                    break
-            else:
-                return constraint
-        return None
-
-    def __repr__(self) -> str:
-        return f"<Table {self.name}>"
-
-
-class _TempTableDef(Generic[EntityT]):
-    class Column:
-        def __init__(
-            self,
-            name: str,
-            _type: type,
-            nullable: bool,
-            format: Literal["email", "password"] | None,
-            /,
-        ) -> None:
-            self.name = name
-            self.type = _type
-            self.nullable = nullable
-            self.format = format
-
-    class ForeignKey:
-        def __init__(
-            self,
-            origin_name: str,
-            name: str | None,
-            source_cols: list[str],
-            target: type[Entity],
-            /,
-        ) -> None:
-            self.origin_name = origin_name
-            self.name = name
-            self.source_cols = source_cols
-            self.target = target
-
-    class PrimaryKey:
-        def __init__(self, origin_name: str, name: str, columns: list[str], /) -> None:
-            self.origin_name = origin_name
-            self.name = name
-            self.columns = columns
-
-    class Unique:
-        def __init__(self, origin_name: str, name: str, columns: list[str], /) -> None:
-            self.origin_name = origin_name
-            self.name = name
-            self.columns = columns
-
-    class ManyToOne:
-        def __init__(
-            self,
-            origin_name: str,
-            name: str,
-            _type: type[Entity],
-            lazy: bool | Literal["subquery"],
-            columns: list[str],
-            other_side: str | None,
-            /,
-        ) -> None:
-            self.origin_name = origin_name
-            self.name = name
-            self.type = _type
-            self.lazy = lazy
-            self.columns = columns
-            self.other_side = other_side
-
-    class OneToMany:
-        def __init__(
-            self,
-            origin_name: str,
-            name: str,
-            _type: type[Entity],
-            lazy: bool | Literal["subquery"],
-            other_side: str,
-            /,
-        ) -> None:
-            self.origin_name = origin_name
-            self.name = name
-            self.type = _type
-            self.lazy = lazy
-            self.other_side = other_side
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.columns: list[_TempTableDef.Column] = []
-        self.foreign_keys: list[_TempTableDef.ForeignKey] = []
-        self.primary_keys: list[_TempTableDef.PrimaryKey] = []
-        self.uniques: list[_TempTableDef.Unique] = []
-        self.many_to_ones: list[_TempTableDef.ManyToOne] = []
-        self.one_to_manies: list[_TempTableDef.OneToMany] = []
+        self.other_side = other_side
