@@ -39,13 +39,12 @@ class TableReference(Reference):
         name: str,
         target: "TableDefinition",
         lazy: bool | Literal["subquery"],
-        constraint: "ForeignKeyConstraint",
     ) -> None:
         self.table = table
         self.name = name
         self.target = target
         self.lazy = lazy
-        self.constraint = constraint
+        self.constraint: ForeignKeyConstraint
         self.other_side: CollectionReference | TableReference | None
 
 
@@ -61,7 +60,8 @@ class CollectionReference(Reference):
         self.name = name
         self.target = target
         self.lazy = lazy
-        self.other_side: CollectionReference | TableReference
+        self.constraint: ForeignKeyConstraint
+        self.other_side: CollectionReference | TableReference | None
 
 
 class Constraint(Protocol):
@@ -94,6 +94,7 @@ class ForeignKeyConstraint(Constraint):
         self.target = target
         self.target_columns = target_columns
         self.reference: TableReference | None = None
+        self.backref: CollectionReference | None = None
 
 
 class UniqueConstraint(Constraint):

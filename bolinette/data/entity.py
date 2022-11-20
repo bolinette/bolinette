@@ -124,17 +124,28 @@ class ManyToOne(_NamedTableAttribute):
 class OneToMany(_NamedTableAttribute):
     def __init__(
         self,
-        other_side: str,
+        columns: list[str],
         /,
         *,
+        other_side: str | None = None,
         lazy: bool | Literal["subquery"] = True,
     ) -> None:
+        self.columns = columns
         self.other_side = other_side
         self.lazy = lazy
 
     @property
     def __lower_name__(self):
         return "one-to-many relationship"
+
+
+class ManyToMany(_NamedTableAttribute):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @property
+    def __lower_name__(self):
+        return "many-to-many relationship"
 
 
 class Format:

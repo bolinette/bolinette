@@ -862,15 +862,12 @@ def test_fail_entity_many_to_one_collection_backref() -> None:
 
 class ParentB:
     id: Annotated[int, PrimaryKey()]
-    children: "Annotated[list[ChildB], OneToMany('parent', lazy=False)]"
+    children: "Annotated[list[ChildB], OneToMany(['parent_id'], lazy=False)]"
 
 
 class ChildB:
     id: Annotated[int, PrimaryKey()]
     parent_id: Annotated[int, ForeignKey(ParentB)]
-    parent: Annotated[
-        ParentB, ManyToOne(["parent_id"], other_side="children", lazy=True)
-    ]
 
 
 def test_entity_one_to_many() -> None:
@@ -882,22 +879,13 @@ def test_entity_one_to_many() -> None:
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "parent" in manager._table_defs[ChildB].references
-    ref_c = manager._table_defs[ChildB].references["parent"]
-    assert isinstance(ref_c, TableReference)
-    assert ref_c.table.entity is ChildB
-    assert ref_c.target.entity is ParentB
-    assert ref_c.lazy is True
-
     assert "children" in manager._table_defs[ParentB].references
-    ref_p = manager._table_defs[ParentB].references["children"]
-    assert isinstance(ref_p, CollectionReference)
-    assert ref_p.table.entity is ParentB
-    assert ref_p.target.entity is ChildB
-    assert ref_p.lazy is False
-
-    assert ref_p.other_side is ref_c
-    assert ref_c.other_side is ref_p
+    ref = manager._table_defs[ParentB].references["children"]
+    assert isinstance(ref, CollectionReference)
+    assert ref.table.entity is ParentB
+    assert ref.target.entity is ChildB
+    assert ref.lazy is False
+    assert ref.other_side is None
 
 
 def test_fail_entity_one_to_many_on_single_reference() -> None:
@@ -910,7 +898,7 @@ def test_fail_entity_one_to_many_on_single_reference() -> None:
     @entity(cache=cache)
     class Child:
         id: Annotated[int, PrimaryKey()]
-        parents: Annotated[Parent, OneToMany("children")]
+        parents: Annotated[Parent, OneToMany([], other_side="children")]
 
     mock = _setup_mock(cache)
 
@@ -925,12 +913,14 @@ def test_fail_entity_one_to_many_on_single_reference() -> None:
 
 class ParentC:
     id: Annotated[int, PrimaryKey()]
-    children: "Annotated[list[ChildC], OneToMany('parents')]"
+    child_id: "Annotated[int, ForeignKey(ChildC)]"  # type: ignore
+    children: "Annotated[list[ChildC], OneToMany(['parent_id'], other_side='parents')]"
 
 
 class ChildC:
     id: Annotated[int, PrimaryKey()]
-    parents: Annotated[list[ParentC], OneToMany("children")]
+    parent_id: Annotated[int, ForeignKey(ParentC)]
+    parents: Annotated[list[ParentC], OneToMany(["child_id"], other_side="children")]
 
 
 def test_fail_entity_one_to_many_collection_backref() -> None:
@@ -950,17 +940,21 @@ def test_fail_entity_one_to_many_collection_backref() -> None:
     )
 
 
+class ChildD:
+    id: Annotated[int, PrimaryKey()]
+    parent_id: "Annotated[int, ForeignKey(ParentD)]"  # type: ignore
+
+
+class ParentD:
+    id: Annotated[int, PrimaryKey()]
+    children: Annotated[list[ChildD], OneToMany(["parent_id"], other_side="parent")]
+
+
 def test_fail_entity_one_to_many_unknown_backref() -> None:
     cache = Cache()
 
-    @entity(cache=cache)
-    class Child:
-        id: Annotated[int, PrimaryKey()]
-
-    @entity(cache=cache)
-    class Parent:
-        id: Annotated[int, PrimaryKey()]
-        children: Annotated[list[Child], OneToMany("parent")]
+    entity(cache=cache)(ParentD)
+    entity(cache=cache)(ChildD)
 
     mock = _setup_mock(cache)
 
@@ -968,6 +962,46 @@ def test_fail_entity_one_to_many_unknown_backref() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Parent}, Attribute 'children', Relationship 'parent' does not exist on type {Child}"
+        f"Entity {ParentD}, Attribute 'children', Relationship 'parent' does not exist on type {ChildD}"
         == info.value.message
     )
+
+
+class ParentE:
+    id: Annotated[int, PrimaryKey()]
+    children: "Annotated[list[ChildE], OneToMany(['parent_id'], other_side='parent', lazy=False)]"
+
+
+class ChildE:
+    id: Annotated[int, PrimaryKey()]
+    parent_id: Annotated[int, ForeignKey(ParentE)]
+    parent: Annotated[
+        ParentE, ManyToOne(["parent_id"], other_side="children", lazy=True)
+    ]
+
+
+def test_entity_one_to_many_and_many_to_one() -> None:
+    cache = Cache()
+
+    entity(cache=cache)(ParentE)
+    entity(cache=cache)(ChildE)
+
+    mock = _setup_mock(cache)
+    manager = mock.injection.require(EntityManager)
+
+    assert "parent" in manager._table_defs[ChildE].references
+    ref_c = manager._table_defs[ChildE].references["parent"]
+    assert isinstance(ref_c, TableReference)
+    assert ref_c.table.entity is ChildE
+    assert ref_c.target.entity is ParentE
+    assert ref_c.lazy is True
+
+    assert "children" in manager._table_defs[ParentE].references
+    ref_p = manager._table_defs[ParentE].references["children"]
+    assert isinstance(ref_p, CollectionReference)
+    assert ref_p.table.entity is ParentE
+    assert ref_p.target.entity is ChildE
+    assert ref_p.lazy is False
+
+    assert ref_p.other_side is ref_c
+    assert ref_c.other_side is ref_p

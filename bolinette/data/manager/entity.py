@@ -74,6 +74,7 @@ class EntityManager:
         self._parse_constraints(temp_defs)
         self._populate_tables(temp_defs)
         self._populate_references(temp_defs)
+        self._populate_constraints(temp_defs)
         self._populate_back_references(temp_defs)
 
     def _init_models(self) -> None:
@@ -183,6 +184,7 @@ class EntityManager:
                                     h_name,
                                     h_type,  # type: ignore
                                     anno_arg.lazy,  # type: ignore
+                                    anno_arg.columns,
                                     anno_arg.other_side,
                                 )
                             )
@@ -327,46 +329,17 @@ class EntityManager:
     def _populate_references(
         self, temp_defs: "dict[type[Entity], TempTableDef]"
     ) -> None:
-        # == Add Many-To-One Relationships
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
             for tmp_mto in tmp_def.many_to_ones:
                 target_def = self._table_defs[tmp_mto.type]
-                columns: list[TableColumn] = []
-                for col_name in tmp_mto.columns:
-                    if col_name not in table_def.columns:
-                        raise EntityError(
-                            f"Column '{col_name}' does not exist in entity",
-                            entity=entity,
-                            attribute=tmp_mto.origin_name,
-                        )
-                    columns.append(table_def.columns[col_name])
-                const = table_def.find_constraint(columns)
-                if const is None or not isinstance(const, ForeignKeyConstraint):
-                    raise EntityError(
-                        f"Columns defined in reference do not match with any foreign key",
-                        entity=entity,
-                        attribute=tmp_mto.origin_name,
-                    )
-                if const.target != target_def:
-                    raise EntityError(
-                        f"Reference type is not the same as foreign key target entity",
-                        entity=entity,
-                        attribute=tmp_mto.origin_name,
-                    )
                 reference = TableReference(
                     table_def,
                     tmp_mto.name,
                     target_def,
                     tmp_mto.lazy,  # type: ignore
-                    const,
                 )
                 table_def.references[reference.name] = reference
-                const.reference = reference
-
-        # == Add One-To-Many Relationships ==
-        for entity, tmp_def in temp_defs.items():
-            table_def = self._table_defs[entity]
             for tmp_otm in tmp_def.one_to_manies:
                 target_def = self._table_defs[tmp_otm.type]
                 collection = CollectionReference(
@@ -376,6 +349,66 @@ class EntityManager:
                     tmp_otm.lazy,  # type: ignore
                 )
                 table_def.references[collection.name] = collection
+
+    def _populate_constraints(
+        self, temp_defs: "dict[type[Entity], TempTableDef]"
+    ) -> None:
+        def _create_const(
+            _origin_name: str,
+            _column_names: list[str],
+            _ref: TableReference | CollectionReference,
+            _from: TableDefinition,
+            _to: TableDefinition,
+        ):
+            columns: list[TableColumn] = []
+            for col_name in _column_names:
+                if col_name not in _from.columns:
+                    raise EntityError(
+                        f"Column '{col_name}' does not exist in entity",
+                        entity=entity,
+                        attribute=_origin_name,
+                    )
+                columns.append(_from.columns[col_name])
+            const = _from.find_constraint(columns)
+            if const is None or not isinstance(const, ForeignKeyConstraint):
+                raise EntityError(
+                    f"Columns defined in reference do not match with any foreign key",
+                    entity=entity,
+                    attribute=_origin_name,
+                )
+            if const.target != _to:
+                raise EntityError(
+                    f"Reference type is not the same as foreign key target entity",
+                    entity=entity,
+                    attribute=_origin_name,
+                )
+            if isinstance(_ref, TableReference):
+                const.reference = _ref
+            else:
+                const.backref = _ref
+
+        for entity, tmp_def in temp_defs.items():
+            table_def = self._table_defs[entity]
+            for tmp_mto in tmp_def.many_to_ones:
+                reference = table_def.references[tmp_mto.name]
+                assert isinstance(reference, TableReference)
+                _create_const(
+                    tmp_mto.origin_name,
+                    tmp_mto.columns,
+                    reference,
+                    table_def,
+                    reference.target,
+                )
+            for tmp_otm in tmp_def.one_to_manies:
+                collection = table_def.references[tmp_otm.name]
+                assert isinstance(collection, CollectionReference)
+                _create_const(
+                    tmp_otm.origin_name,
+                    tmp_otm.columns,
+                    collection,
+                    collection.target,
+                    table_def,
+                )
 
     def _populate_back_references(
         self, temp_defs: "dict[type[Entity], TempTableDef]"
@@ -413,20 +446,23 @@ class EntityManager:
                 assert isinstance(column_def, CollectionReference)
                 target_def = self._table_defs[tmp_otm.type]
                 other_side_name = tmp_otm.other_side
-                if other_side_name not in target_def.references:
-                    raise EntityError(
-                        f"Relationship '{other_side_name}' does not exist on type {target_def.entity}",
-                        entity=entity,
-                        attribute=tmp_otm.origin_name,
-                    )
-                other_side = target_def.references[other_side_name]
-                if not isinstance(other_side, TableReference):
-                    raise EntityError(
-                        f"Relationship '{other_side_name}' must be a single reference",
-                        entity=entity,
-                        attribute=tmp_otm.origin_name,
-                    )
-                column_def.other_side = other_side
+                if other_side_name is not None:
+                    if other_side_name not in target_def.references:
+                        raise EntityError(
+                            f"Relationship '{other_side_name}' does not exist on type {target_def.entity}",
+                            entity=entity,
+                            attribute=tmp_otm.origin_name,
+                        )
+                    other_side = target_def.references[other_side_name]
+                    if not isinstance(other_side, TableReference):
+                        raise EntityError(
+                            f"Relationship '{other_side_name}' must be a single reference",
+                            entity=entity,
+                            attribute=tmp_otm.origin_name,
+                        )
+                    column_def.other_side = other_side
+                else:
+                    column_def.other_side = None
 
 
 EntityT = TypeVar("EntityT", bound=Entity)
@@ -513,11 +549,13 @@ class TempOneToMany:
         name: str,
         _type: type[Entity],
         lazy: bool | Literal["subquery"],
-        other_side: str,
+        columns: list[str],
+        other_side: str | None,
         /,
     ) -> None:
         self.origin_name = origin_name
         self.name = name
         self.type = _type
         self.lazy = lazy
+        self.columns = columns
         self.other_side = other_side
