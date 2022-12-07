@@ -29,7 +29,7 @@ def _setup_mock(cache: Cache) -> Mock:
     mock = Mock(cache=cache)
     mock.injection.add(AttributeUtils, "singleton")
     mock.injection.add(EntityManager, "singleton")
-    mock.mock(Logger).dummy()
+    mock.mock(Logger[EntityManager]).dummy()
     return mock
 
 

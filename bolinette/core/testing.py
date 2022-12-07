@@ -1,8 +1,8 @@
 from collections.abc import Callable
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, get_args, get_origin
 
 from bolinette.core import Cache, Injection, meta
-from bolinette.core.inject import InjectionContext
+from bolinette.core.inject import _InjectionContext
 
 T = TypeVar("T")
 
@@ -75,15 +75,27 @@ class Mock:
     def __init__(
         self, *, inject: Injection | None = None, cache: Cache | None = None
     ) -> None:
-        self._inject = inject or Injection(cache or Cache(), InjectionContext())
+        self._inject = inject or Injection(cache or Cache(), _InjectionContext())
         self._mocked: dict[type[Any], _MockWrapper[Any]] = {}
 
+    @staticmethod
+    def _get_generic_params(
+        _cls: type[T],
+    ) -> tuple[type[T], tuple[Any, ...]]:
+        if origin := get_origin(_cls):
+            params: tuple[Any, ...] = ()
+            for arg in get_args(_cls):
+                params = (*params, arg)
+            return origin, params
+        return _cls, ()
+
     def mock(self, cls: type[T]) -> _MockWrapper[T]:
-        if cls in self._mocked:
-            mocked = self._mocked[cls]
+        origin, params = self._get_generic_params(cls)
+        if origin in self._mocked:
+            mocked = self._mocked[origin]
         else:
-            mocked = _MockWrapper(cls)
-            self._mocked[cls] = mocked
+            mocked = _MockWrapper(origin)
+            self._mocked[origin] = mocked
             self._inject.add(cls, "singleton", instance=mocked.instance)
         return mocked
 

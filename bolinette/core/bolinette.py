@@ -10,7 +10,7 @@ from bolinette.core import (
     require,
 )
 from bolinette.core.command import Parser
-from bolinette.core.inject import InjectionContext
+from bolinette.core.inject import _InjectionContext
 from bolinette.core.utils import FileUtils, PathUtils
 
 
@@ -23,12 +23,10 @@ class Bolinette:
         cache: Cache | None = None
     ) -> None:
         self._cache = cache or __core_cache__
-        self._inject = inject or Injection(self._cache, InjectionContext())
+        self._inject = inject or Injection(self._cache)
         meta.set(self, self._inject)
 
-        self._inject.add(Logger, "transcient")
         self._inject.add(PathUtils, "singleton", args=[PathUtils.dirname(__file__)])
-        self._inject.add(FileUtils, "singleton")
 
         self._logger = self._inject.require(Logger[Bolinette])
         self._paths = self._inject.require(PathUtils)

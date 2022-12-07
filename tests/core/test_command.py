@@ -34,7 +34,7 @@ async def test_launch_command() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     value = 1
 
@@ -84,7 +84,7 @@ async def test_launch_command_not_found() -> None:
         nonlocal error_str
         error_str = s
 
-    mock.mock(Logger).setup("error", _write_error)
+    mock.mock(Logger[Parser]).setup("error", _write_error)
 
     @command("command", "This is a test command", cache=cache)
     async def _() -> None:
@@ -112,7 +112,7 @@ async def test_launch_sub_command() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     value = 1
 
@@ -171,7 +171,7 @@ async def test_launch_sub_command_not_found() -> None:
         nonlocal error_str
         error_str = s
 
-    mock.mock(Logger).setup("error", _write_error)
+    mock.mock(Logger[Parser]).setup("error", _write_error)
 
     @command("command inc", "This is a test command", cache=cache)
     async def _() -> None:
@@ -188,8 +188,8 @@ async def test_launch_sub_command_not_found() -> None:
     _argv = sys.argv
     _exit = sys.exit
     sys.exit = _catch_exit  # type: ignore
-
     sys.argv = ["test", "command", "none"]
+
     await parser.run()
     assert value == 1
 
@@ -204,7 +204,7 @@ async def test_command_argument() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     _argv = sys.argv
 
@@ -230,7 +230,7 @@ async def test_command_option() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     _argv = sys.argv
 
@@ -256,7 +256,7 @@ async def test_command_option_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     _argv = sys.argv
 
@@ -282,7 +282,7 @@ async def test_command_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     _argv = sys.argv
 
@@ -308,7 +308,7 @@ async def test_command_flag_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     _argv = sys.argv
 
@@ -334,7 +334,7 @@ async def test_command_argument_help(capsys: CaptureFixture) -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     exited = False
 
@@ -370,7 +370,7 @@ async def test_command_conflict() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
-    mock.mock(Logger)
+    mock.mock(Logger[Parser])
 
     @command("command sub", "This is a test command", cache=cache)
     async def _() -> None:
