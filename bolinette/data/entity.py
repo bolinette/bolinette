@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Literal, Protocol, TypeVar, overload
 
 from bolinette.core import Cache, meta
@@ -19,24 +20,20 @@ class EntityMeta:
 _EntityT = TypeVar("_EntityT", bound=Entity)
 
 
-class _EntityDecorator:
-    def __call__(self, *, table_name: str | None = None, cache: Cache | None = None):
-        def decorator(cls: type[_EntityT]) -> type[_EntityT]:
-            meta.set(
-                cls,
-                EntityMeta(
-                    table_name
-                    if table_name
-                    else StringUtils.to_snake_case(cls.__name__)
-                ),
-            )
-            (cache or __data_cache__).add(EntityMeta, cls)
-            return cls
+def entity(
+    *, table_name: str | None = None, cache: Cache | None = None
+) -> Callable[[type[_EntityT]], type[_EntityT]]:
+    def decorator(cls: type[_EntityT]) -> type[_EntityT]:
+        meta.set(
+            cls,
+            EntityMeta(
+                table_name if table_name else StringUtils.to_snake_case(cls.__name__)
+            ),
+        )
+        (cache or __data_cache__).add(EntityMeta, cls)
+        return cls
 
-        return decorator
-
-
-entity = _EntityDecorator()
+    return decorator
 
 
 class _NamedTableAttribute(ABC):
@@ -48,11 +45,11 @@ class _NamedTableAttribute(ABC):
 
 class PrimaryKey(_NamedTableAttribute):
     @overload
-    def __init__(self, columns: list[str]):
+    def __init__(self, columns: list[str]) -> None:
         pass
 
     @overload
-    def __init__(self, *, name: str | None = None):
+    def __init__(self, *, name: str | None = None) -> None:
         pass
 
     def __init__(
@@ -68,11 +65,11 @@ class PrimaryKey(_NamedTableAttribute):
 
 class Unique(_NamedTableAttribute):
     @overload
-    def __init__(self, columns: list[str]):
+    def __init__(self, columns: list[str]) -> None:
         pass
 
     @overload
-    def __init__(self, *, name: str | None = None):
+    def __init__(self, *, name: str | None = None) -> None:
         pass
 
     def __init__(

@@ -59,6 +59,7 @@ venv.bak/
 .ropeproject
 /site
 .mypy_cache/
+.ruff_cache/
 # IDE
 .idea/
 .vscode/

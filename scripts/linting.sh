@@ -1,1 +1,1 @@
-mypy --namespace-packages --explicit-package-bases bolinette tests
+mypy --namespace-packages --check-untyped-defs --explicit-package-bases bolinette tests

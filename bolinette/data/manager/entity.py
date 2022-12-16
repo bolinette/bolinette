@@ -10,8 +10,6 @@ from typing import (
     get_type_hints,
 )
 
-from sqlalchemy import table
-
 from bolinette.core import Cache, Logger, init_method, injectable, meta
 from bolinette.core.utils import AttributeUtils
 from bolinette.data import (
@@ -47,6 +45,10 @@ class EntityManager:
         self._attrs = attrs
         self._logger = logger
         self._table_defs: dict[type[Entity], TableDefinition] = {}
+
+    @property
+    def definitions(self) -> dict[type[Entity], TableDefinition]:
+        return {**self._table_defs}
 
     @staticmethod
     def check_columns_match(
@@ -156,7 +158,7 @@ class EntityManager:
                         if isinstance(anno_arg, ManyToOne):
                             if is_collection:
                                 raise EntityError(
-                                    f"Many-to-one relationship must be a single reference",
+                                    "Many-to-one relationship must be a single reference",
                                     entity=entity,
                                     attribute=h_name,
                                 )
@@ -174,7 +176,7 @@ class EntityManager:
                         if isinstance(anno_arg, OneToMany):
                             if not is_collection:
                                 raise EntityError(
-                                    f"One-to-many relationship must be a collection reference",
+                                    "One-to-many relationship must be a collection reference",
                                     entity=entity,
                                     attribute=h_name,
                                 )
@@ -292,10 +294,10 @@ class EntityManager:
             # == Check if there is only one primary key ==
             primary_keys = table_def.get_constraints(PrimaryKeyConstraint)
             if len(primary_keys) == 0:
-                raise EntityError(f"No primary keys have been defined", entity=entity)
+                raise EntityError("No primary keys have been defined", entity=entity)
             elif len(primary_keys) > 1:
                 raise EntityError(
-                    f"Several primary keys have been defined", entity=entity
+                    "Several primary keys have been defined", entity=entity
                 )
 
         # == Add Foreign Key Constraints ==
@@ -318,7 +320,7 @@ class EntityManager:
                 target_cols = list(target_table.get_primary_key().columns)
                 if not self.check_columns_match(source_cols, target_cols):
                     raise EntityError(
-                        f"Source columns in foreign key do not match with target columns",
+                        "Source columns in foreign key do not match with target columns",
                         entity=entity,
                         attribute=tmp_fk.origin_name,
                     )
@@ -372,13 +374,13 @@ class EntityManager:
             const = _from.find_constraint(columns)
             if const is None or not isinstance(const, ForeignKeyConstraint):
                 raise EntityError(
-                    f"Columns defined in reference do not match with any foreign key",
+                    "Columns defined in reference do not match with any foreign key",
                     entity=entity,
                     attribute=_origin_name,
                 )
             if const.target != _to:
                 raise EntityError(
-                    f"Reference type is not the same as foreign key target entity",
+                    "Reference type is not the same as foreign key target entity",
                     entity=entity,
                     attribute=_origin_name,
                 )

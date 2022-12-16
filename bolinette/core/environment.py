@@ -227,12 +227,12 @@ class _EnvParser:
                 f"Section {path} must be binded to a list, {type(value)} found"
             )
         index = 0
-        l = []
+        env_list = []
         for elem in value:
             sub_path = f"{path}[{index}]"
-            l.append(self._parse_value(arg_type, elem, sub_path))
+            env_list.append(self._parse_value(arg_type, elem, sub_path))
             index += 1
-        return l
+        return env_list
 
     def parse(self) -> None:
         self._parse_object(self._object, self._env, str(type(self._object)))

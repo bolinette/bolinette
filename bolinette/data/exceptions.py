@@ -27,3 +27,7 @@ class EntityError(DataError, ParameterError):
                 message, entity=entity, attribute=attribute, constraint=constraint
             ),
         )
+
+
+class DatabaseError(DataError):
+    pass

@@ -45,13 +45,13 @@ def test_define_entity():
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert Test in manager._table_defs
-    assert manager._table_defs[Test].name == "test"
-    assert len(manager._table_defs[Test].columns) == 3
+    assert Test in manager.definitions
+    assert manager.definitions[Test].name == "test"
+    assert len(manager.definitions[Test].columns) == 3
 
-    assert "id" in manager._table_defs[Test].columns
-    assert "name" in manager._table_defs[Test].columns
-    assert "price" in manager._table_defs[Test].columns
+    assert "id" in manager.definitions[Test].columns
+    assert "name" in manager.definitions[Test].columns
+    assert "price" in manager.definitions[Test].columns
 
 
 def test_entity_nullable_attribute():
@@ -65,15 +65,15 @@ def test_entity_nullable_attribute():
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert Test in manager._table_defs
+    assert Test in manager.definitions
 
-    assert "id" in manager._table_defs[Test].columns
-    assert not manager._table_defs[Test].columns["id"].nullable
-    assert manager._table_defs[Test].columns["id"].py_type is int
+    assert "id" in manager.definitions[Test].columns
+    assert not manager.definitions[Test].columns["id"].nullable
+    assert manager.definitions[Test].columns["id"].py_type is int
 
-    assert "name" in manager._table_defs[Test].columns
-    assert manager._table_defs[Test].columns["name"].nullable
-    assert manager._table_defs[Test].columns["name"].py_type is str
+    assert "name" in manager.definitions[Test].columns
+    assert manager.definitions[Test].columns["name"].nullable
+    assert manager.definitions[Test].columns["name"].py_type is str
 
 
 def test_define_entity_column_format():
@@ -88,8 +88,8 @@ def test_define_entity_column_format():
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert manager._table_defs[Test].columns["email"].format == "email"
-    assert manager._table_defs[Test].columns["password"].format == "password"
+    assert manager.definitions[Test].columns["email"].format == "email"
+    assert manager.definitions[Test].columns["password"].format == "password"
 
 
 def test_entity_unique_constraint() -> None:
@@ -104,8 +104,8 @@ def test_entity_unique_constraint() -> None:
 
     manager = mock.injection.require(EntityManager)
 
-    assert "test_name_u" in manager._table_defs[Test].constraints
-    constraint = manager._table_defs[Test].constraints["test_name_u"]
+    assert "test_name_u" in manager.definitions[Test].constraints
+    constraint = manager.definitions[Test].constraints["test_name_u"]
     assert isinstance(constraint, UniqueConstraint)
     assert list(map(lambda c: c.name, constraint.columns)) == ["name"]
 
@@ -122,9 +122,9 @@ def test_entity_unique_constraint_custom_name() -> None:
 
     manager = mock.injection.require(EntityManager)
 
-    assert "custom_name" in manager._table_defs[Test].constraints
-    assert "test_name_u" not in manager._table_defs[Test].constraints
-    constraint = manager._table_defs[Test].constraints["custom_name"]
+    assert "custom_name" in manager.definitions[Test].constraints
+    assert "test_name_u" not in manager.definitions[Test].constraints
+    constraint = manager.definitions[Test].constraints["custom_name"]
     assert isinstance(constraint, UniqueConstraint)
     assert list(map(lambda c: c.name, constraint.columns)) == ["name"]
 
@@ -224,8 +224,8 @@ def test_entity_unique_constraint_class_level() -> None:
 
     manager = mock.injection.require(EntityManager)
 
-    assert "test_fullname_u" in manager._table_defs[Test].constraints
-    constraint = manager._table_defs[Test].constraints["test_fullname_u"]
+    assert "test_fullname_u" in manager.definitions[Test].constraints
+    constraint = manager.definitions[Test].constraints["test_fullname_u"]
     assert isinstance(constraint, UniqueConstraint)
     assert list(map(lambda c: c.name, constraint.columns)) == ["firstname", "lastname"]
 
@@ -282,8 +282,8 @@ def test_entity_primary_key():
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "test_id_pk" in manager._table_defs[Test].constraints
-    constraint = manager._table_defs[Test].constraints["test_id_pk"]
+    assert "test_id_pk" in manager.definitions[Test].constraints
+    constraint = manager.definitions[Test].constraints["test_id_pk"]
     assert isinstance(constraint, PrimaryKeyConstraint)
     assert list(map(lambda c: c.name, constraint.columns)) == ["id"]
 
@@ -316,9 +316,9 @@ def test_entity_primary_key_custom_name():
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "custom_name" in manager._table_defs[Test].constraints
-    assert "test_id_pk" not in manager._table_defs[Test].constraints
-    constraint = manager._table_defs[Test].constraints["custom_name"]
+    assert "custom_name" in manager.definitions[Test].constraints
+    assert "test_id_pk" not in manager.definitions[Test].constraints
+    constraint = manager.definitions[Test].constraints["custom_name"]
     assert isinstance(constraint, PrimaryKeyConstraint)
     assert list(map(lambda c: c.name, constraint.columns)) == ["id"]
 
@@ -475,9 +475,9 @@ def test_entity_foreign_key() -> None:
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "parent" not in manager._table_defs[Child].references
-    assert "child_parent_fk" in manager._table_defs[Child].constraints
-    fk = manager._table_defs[Child].constraints["child_parent_fk"]
+    assert "parent" not in manager.definitions[Child].references
+    assert "child_parent_fk" in manager.definitions[Child].constraints
+    fk = manager.definitions[Child].constraints["child_parent_fk"]
     assert isinstance(fk, ForeignKeyConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.columns)) == ["parent_id"]
@@ -505,9 +505,9 @@ def test_entity_foreign_key_to_composite() -> None:
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "parent" not in manager._table_defs[Child].references
-    assert "custom_name" in manager._table_defs[Child].constraints
-    fk = manager._table_defs[Child].constraints["custom_name"]
+    assert "parent" not in manager.definitions[Child].references
+    assert "custom_name" in manager.definitions[Child].constraints
+    fk = manager.definitions[Child].constraints["custom_name"]
     assert isinstance(fk, ForeignKeyConstraint)
     assert fk.target.entity is Parent
     assert list(map(lambda c: c.name, fk.columns)) == [
@@ -677,8 +677,8 @@ def test_entity_many_to_one() -> None:
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "parent" in manager._table_defs[Child].references
-    ref = manager._table_defs[Child].references["parent"]
+    assert "parent" in manager.definitions[Child].references
+    ref = manager.definitions[Child].references["parent"]
     assert isinstance(ref, TableReference)
     assert ref.table.entity is Child
     assert ref.target.entity is Parent
@@ -879,8 +879,8 @@ def test_entity_one_to_many() -> None:
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "children" in manager._table_defs[ParentB].references
-    ref = manager._table_defs[ParentB].references["children"]
+    assert "children" in manager.definitions[ParentB].references
+    ref = manager.definitions[ParentB].references["children"]
     assert isinstance(ref, CollectionReference)
     assert ref.table.entity is ParentB
     assert ref.target.entity is ChildB
@@ -989,15 +989,15 @@ def test_entity_one_to_many_and_many_to_one() -> None:
     mock = _setup_mock(cache)
     manager = mock.injection.require(EntityManager)
 
-    assert "parent" in manager._table_defs[ChildE].references
-    ref_c = manager._table_defs[ChildE].references["parent"]
+    assert "parent" in manager.definitions[ChildE].references
+    ref_c = manager.definitions[ChildE].references["parent"]
     assert isinstance(ref_c, TableReference)
     assert ref_c.table.entity is ChildE
     assert ref_c.target.entity is ParentE
     assert ref_c.lazy is True
 
-    assert "children" in manager._table_defs[ParentE].references
-    ref_p = manager._table_defs[ParentE].references["children"]
+    assert "children" in manager.definitions[ParentE].references
+    ref_p = manager.definitions[ParentE].references["children"]
     assert isinstance(ref_p, CollectionReference)
     assert ref_p.table.entity is ParentE
     assert ref_p.target.entity is ChildE

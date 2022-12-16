@@ -10,7 +10,6 @@ from bolinette.core import (
     require,
 )
 from bolinette.core.command import Parser
-from bolinette.core.inject import _InjectionContext
 from bolinette.core.utils import FileUtils, PathUtils
 
 
