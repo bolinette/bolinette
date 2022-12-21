@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Literal, Protocol, TypeVar, overload
 
@@ -13,21 +12,26 @@ class Entity(Protocol):
 
 
 class EntityMeta:
-    def __init__(self, table_name: str) -> None:
+    def __init__(self, table_name: str, database: str) -> None:
         self.table_name = table_name
+        self.database = database
 
 
 _EntityT = TypeVar("_EntityT", bound=Entity)
 
 
 def entity(
-    *, table_name: str | None = None, cache: Cache | None = None
+    *,
+    table_name: str | None = None,
+    database: str = "default",
+    cache: Cache | None = None,
 ) -> Callable[[type[_EntityT]], type[_EntityT]]:
     def decorator(cls: type[_EntityT]) -> type[_EntityT]:
         meta.set(
             cls,
             EntityMeta(
-                table_name if table_name else StringUtils.to_snake_case(cls.__name__)
+                table_name if table_name else StringUtils.to_snake_case(cls.__name__),
+                database,
             ),
         )
         (cache or __data_cache__).add(EntityMeta, cls)
@@ -36,14 +40,7 @@ def entity(
     return decorator
 
 
-class _NamedTableAttribute(ABC):
-    @property
-    @abstractmethod
-    def __lower_name__(self) -> str:
-        pass
-
-
-class PrimaryKey(_NamedTableAttribute):
+class PrimaryKey:
     @overload
     def __init__(self, columns: list[str]) -> None:
         pass
@@ -63,7 +60,7 @@ class PrimaryKey(_NamedTableAttribute):
         return "primary key"
 
 
-class Unique(_NamedTableAttribute):
+class Unique:
     @overload
     def __init__(self, columns: list[str]) -> None:
         pass
@@ -83,7 +80,7 @@ class Unique(_NamedTableAttribute):
         return "unique constraint"
 
 
-class ForeignKey(_NamedTableAttribute):
+class ForeignKey:
     def __init__(
         self,
         target: type[_EntityT],
@@ -100,7 +97,7 @@ class ForeignKey(_NamedTableAttribute):
         return "foreign key"
 
 
-class ManyToOne(_NamedTableAttribute):
+class ManyToOne:
     def __init__(
         self,
         columns: list[str],
@@ -118,7 +115,7 @@ class ManyToOne(_NamedTableAttribute):
         return "many-to-one relationship"
 
 
-class OneToMany(_NamedTableAttribute):
+class OneToMany:
     def __init__(
         self,
         columns: list[str],
@@ -136,7 +133,7 @@ class OneToMany(_NamedTableAttribute):
         return "one-to-many relationship"
 
 
-class ManyToMany(_NamedTableAttribute):
+class ManyToMany:
     def __init__(self) -> None:
         super().__init__()
 

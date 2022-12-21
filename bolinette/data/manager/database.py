@@ -25,6 +25,7 @@ class DatabaseManager:
     @init_method
     def init(self) -> None:
         self._init_db_engines()
+        self._init_tables()
 
     def _init_db_engines(self) -> None:
         cached_type = type[DatabaseSystem]
@@ -48,7 +49,7 @@ class DatabaseManager:
                 raise DatabaseError(f"DBMS supporting scheme '{scheme}' was not found")
             if db_system.python_package not in sys.modules:
                 raise DatabaseError(
-                    f"DBMS '{scheme}': Python package '{db_system.python_package}' was not found"
+                    f"Python package '{db_system.python_package}' was not found", dbms=scheme
                 )
             db_manager = db_system.manager(db_config.url, db_config.echo)
             self._engines[db_config.name] = db_manager

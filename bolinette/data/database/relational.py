@@ -26,5 +26,5 @@ class RelationalDatabase:
     def metadata(self) -> MetaData:
         return self._metadata
 
-    def get_session(self) -> AsyncSession:
-        return self._session_maker()
+    def create_session(self) -> RelationalSession:
+        return RelationalSession(self._session_maker())

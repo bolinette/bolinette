@@ -29,5 +29,20 @@ class EntityError(DataError, ParameterError):
         )
 
 
-class DatabaseError(DataError):
-    pass
+class DatabaseError(DataError, ParameterError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        dbms: str | None = None,
+        entity: str | None = None,
+    ) -> None:
+        ParameterError.__init__(
+            self,
+            dbms="DBMS '{}'",
+            entity="Entity '{}'",
+        )
+        BolinetteError.__init__(
+            self,
+            self._format_params(message, dbms=dbms, entity=entity),
+        )
