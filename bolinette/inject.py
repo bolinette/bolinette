@@ -17,7 +17,7 @@ from typing import (
     overload,
 )
 
-from bolinette import Cache, GenericMeta, __core_cache__, meta
+from bolinette import Cache, GenericMeta, __user_cache__, meta
 from bolinette.exceptions import InjectionError
 
 FuncP = ParamSpec("FuncP")
@@ -668,7 +668,7 @@ def injectable(
         meta.set(
             _cls, _InjectionParamsMeta(strategy, args, kwargs, init_methods, match_all)
         )
-        (cache or __core_cache__).add(InjectionSymbol, cls)
+        (cache or __user_cache__).add(InjectionSymbol, cls)
         return cls
 
     return decorator

@@ -2,7 +2,7 @@ import sys
 from datetime import datetime
 from typing import Generic, Protocol, TypeVar
 
-from bolinette import Cache, GenericMeta, init_method, injectable, meta
+from bolinette import Cache, GenericMeta, init_method, injectable, meta, __core_cache__
 
 T_Contra = TypeVar("T_Contra", contravariant=True)
 T = TypeVar("T")
@@ -41,7 +41,7 @@ class ConsoleColorCode:
     BgWhite = "\x1b[47m"
 
 
-@injectable(strategy="transcient", match_all=True)
+@injectable(strategy="transcient", match_all=True, cache=__core_cache__)
 class Logger(Generic[T]):
     def __init__(self, cache: Cache | None = None) -> None:
         self._cache = cache or Cache()

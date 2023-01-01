@@ -9,7 +9,7 @@ from bolinette import (
     CoreSection,
     Injection,
     Logger,
-    __core_cache__,
+    __user_cache__,
     init_method,
     meta,
 )
@@ -124,7 +124,7 @@ def environment(
 ) -> Callable[[type[EnvT]], type[EnvT]]:
     def decorator(cls: type[EnvT]) -> type[EnvT]:
         meta.set(cls, _EnvSectionMeta(name))
-        (cache or __core_cache__).add(EnvironmentSection, cls)
+        (cache or __user_cache__).add(EnvironmentSection, cls)
         return cls
 
     return decorator

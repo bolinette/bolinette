@@ -51,5 +51,27 @@ class Cache:
             raise KeyError(key)
         self._bag[key] = list(filter(lambda i: i is not value, self._bag[key]))
 
+    @staticmethod
+    def _merge(c1: "Cache", c2: "Cache") -> "Cache":
+        c3 = Cache()
+        for key, values in c1._bag.items():
+            for value in values:
+                c3.add(key, value)
+        for key, values in c2._bag.items():
+            for value in values:
+                c3.add(key, value)
+        return c3
+
+    def __or__(self, __t: Any) -> "Cache":
+        if isinstance(__t, Cache):
+            return self._merge(self, __t)
+        raise NotImplemented
+
+    def __ror__(self, __t: Any) -> "Cache":
+        if isinstance(__t, Cache):
+            return self._merge(self, __t)
+        raise NotImplemented
+
 
 __core_cache__ = Cache()
+__user_cache__ = Cache()

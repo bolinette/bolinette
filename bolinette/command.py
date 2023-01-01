@@ -7,6 +7,7 @@ from bolinette import (
     Cache,
     Injection,
     Logger,
+    __user_cache__,
     __core_cache__,
     init_method,
     injectable,
@@ -52,7 +53,7 @@ class _ArgumentMeta(list[_Argument]):
     pass
 
 
-@injectable(strategy="singleton")
+@injectable(strategy="singleton", cache=__core_cache__)
 class Parser:
     def __init__(
         self,
@@ -196,7 +197,7 @@ class _CommandDecorator:
             func: Callable[P_Func, Awaitable[None]]
         ) -> Callable[P_Func, Awaitable[None]]:
             meta.set(func, _CommandMeta(name, summary))
-            (cache or __core_cache__).add(_CommandMeta, func)
+            (cache or __user_cache__).add(_CommandMeta, func)
             return func
 
         return decorator

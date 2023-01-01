@@ -1,10 +1,10 @@
 import yaml
 
-from bolinette import injectable
+from bolinette import injectable, __core_cache__
 from bolinette.utils import paths
 
 
-@injectable(strategy="singleton")
+@injectable(strategy="singleton", cache=__core_cache__)
 class FileUtils:
     def __init__(self, paths: paths.PathUtils) -> None:
         self._paths = paths

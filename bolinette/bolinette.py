@@ -1,13 +1,15 @@
 from typing import Callable
 
 from bolinette import (
-    Cache,
     Environment,
     Injection,
     Logger,
     __core_cache__,
+    __user_cache__,
+    core_ext,
     meta,
     require,
+    Extension,
 )
 from bolinette.command import Parser
 from bolinette.utils import FileUtils, PathUtils
@@ -19,10 +21,19 @@ class Bolinette:
         *,
         profile: str | None = None,
         inject: Injection | None = None,
-        cache: Cache | None = None
+        load_defaults: bool = True,
+        extensions: list[Extension] | None = None,
     ) -> None:
-        self._cache = cache or __core_cache__
-        self._inject = inject or Injection(self._cache)
+        if extensions is None:
+            extensions = []
+        if load_defaults and core_ext not in extensions:
+            extensions = [core_ext, *extensions]
+
+        extensions = Extension.sort_extensions(extensions)
+        cache = Extension.merge_caches(extensions)
+        cache |= __user_cache__
+
+        self._inject = inject or Injection(cache)
         meta.set(self, self._inject)
 
         self._logger = self._inject.require(Logger[Bolinette])

@@ -1,9 +1,12 @@
 import itertools
 from typing import Any, Iterable, TypeVar
 
+from bolinette import injectable, __core_cache__
+
 InstanceT = TypeVar("InstanceT")
 
 
+@injectable(strategy="singleton", cache=__core_cache__)
 class AttributeUtils:
     @staticmethod
     def get_cls_attrs(
