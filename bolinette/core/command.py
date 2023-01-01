@@ -3,7 +3,15 @@ from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import Callable
 from typing import Any, Awaitable, Literal, ParamSpec
 
-from bolinette.core import Cache, Injection, Logger, __core_cache__, init_method, meta
+from bolinette.core import (
+    Cache,
+    Injection,
+    Logger,
+    __core_cache__,
+    init_method,
+    injectable,
+    meta,
+)
 from bolinette.core.exceptions import InitError
 
 P_Func = ParamSpec("P_Func")
@@ -44,6 +52,7 @@ class _ArgumentMeta(list[_Argument]):
     pass
 
 
+@injectable(strategy="singleton")
 class Parser:
     def __init__(
         self,

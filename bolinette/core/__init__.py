@@ -17,3 +17,4 @@ from bolinette.core.logger import Logger, ConsoleColorCode
 from bolinette.core.environment import Environment, environment
 from bolinette.core.command import command
 from bolinette.core.bolinette import Bolinette, main_func
+import bolinette.core.defaults

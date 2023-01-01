@@ -25,8 +25,6 @@ class Bolinette:
         self._inject = inject or Injection(self._cache)
         meta.set(self, self._inject)
 
-        self._inject.add(PathUtils, "singleton", args=[PathUtils.dirname(__file__)])
-
         self._logger = self._inject.require(Logger[Bolinette])
         self._paths = self._inject.require(PathUtils)
         self._files = self._inject.require(FileUtils)
@@ -44,7 +42,7 @@ class Bolinette:
             args=[self._profile],
             instanciate=True,
         )
-        self._inject.add(Parser, "singleton")
+        self._inject._hook_proxies(self)
 
     @property
     def injection(self) -> Injection:

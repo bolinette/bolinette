@@ -2,17 +2,13 @@ import os
 import random
 import string
 
+from bolinette.core import injectable, __core_cache__
 
+
+@injectable(strategy="singleton", cache=__core_cache__)
 class PathUtils:
-    def __init__(self, origin: str) -> None:
-        self._origin = origin
+    def __init__(self) -> None:
         self._cwd = self.cwd()
-
-    def internal_path(self, *path) -> str:
-        return self.join(self._origin, *path)
-
-    def internal_files_path(self, *path) -> str:
-        return self.join(self._origin, "_files", *path)
 
     def root_path(self, *path) -> str:
         return self.join(self._cwd, *path)

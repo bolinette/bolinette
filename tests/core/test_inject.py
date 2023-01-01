@@ -894,6 +894,8 @@ def test_register_match_all() -> None:
 
     assert isinstance(_loggerA, _Logger)
     assert isinstance(_loggerA, _LoggerA)
+    assert meta.get(_loggerA, GenericMeta).args == (_ServiceA,)
 
     assert isinstance(_loggerB, _Logger)
     assert not isinstance(_loggerB, _LoggerA)
+    assert meta.get(_loggerB, GenericMeta).args == (_ServiceB,)

@@ -72,6 +72,10 @@ class Injection:
             safe=True,
         )
 
+    @property
+    def registered_types(self):
+        return dict(self._types)
+
     @staticmethod
     def _pickup_types(cache: Cache) -> "dict[type[Any], _RegisteredTypeBag[Any]]":
         if InjectionSymbol not in cache:
@@ -230,7 +234,7 @@ class Injection:
                 f_args[p_name] = self._get_instance(r_type)
                 continue
             if immediate:
-                f_args[p_name] = self._instanciate(r_type)
+                f_args[p_name] = self._instanciate(r_type, gen_params)
                 continue
             f_args[p_name] = _InjectionHook(hint, gen_params)
             continue
@@ -258,7 +262,7 @@ class Injection:
                 hooks.append((name, attr.cls, attr.params))
         for name, _cls, params in hooks:
             r_type = self._types[_cls].get_type(params)
-            setattr(cls, name, _InjectionProxy(name, r_type))
+            setattr(cls, name, _InjectionProxy(name, r_type, params))
 
     def _run_init_recursive(self, cls: type[InstanceT], instance: InstanceT) -> None:
         for base in cls.__bases__:
@@ -290,12 +294,14 @@ class Injection:
             return origin, params
         return _cls, ()
 
-    def _instanciate(self, r_type: "_RegisteredType[InstanceT]") -> InstanceT:
+    def _instanciate(
+        self, r_type: "_RegisteredType[InstanceT]", params: tuple[Any, ...]
+    ) -> InstanceT:
         func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.kwargs)
         instance = r_type.cls(**func_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
-        meta.set(instance, GenericMeta(r_type.params))
+        meta.set(instance, GenericMeta(params))
         self._run_init_methods(r_type, instance)
         self._set_instance(r_type, instance)
         return instance
@@ -379,8 +385,6 @@ class Injection:
         init_methods: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
-        *,
-        instanciate: Literal[False] = False,
     ) -> None:
         pass
 
@@ -443,7 +447,7 @@ class Injection:
         r_type = self._types[cls].get_type(params)
         if self._has_instance(r_type):
             return self._get_instance(r_type)
-        return self._instanciate(r_type)
+        return self._instanciate(r_type, params)
 
     def get_scoped_session(self) -> "_ScopedInjection":
         return _ScopedInjection(
@@ -473,16 +477,18 @@ class _InjectionProxy:
         self,
         name: str,
         r_type: "_RegisteredType[Any]",
+        params: tuple[Any, ...],
     ) -> None:
         self.name = name
         self.r_type = r_type
+        self.params = params
 
     def __get__(self, instance: Any, _) -> Any:
         inject = meta.get(instance, Injection)
         if inject._has_instance(self.r_type):
             obj = inject._get_instance(self.r_type)
         else:
-            obj = inject._instanciate(self.r_type)
+            obj = inject._instanciate(self.r_type, self.params)
         setattr(instance, self.name, obj)
         return obj
 
