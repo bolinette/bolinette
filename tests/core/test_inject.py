@@ -2,7 +2,7 @@ from typing import Generic, Optional, TypeVar
 
 import pytest
 
-from bolinette.core import (
+from bolinette import (
     Cache,
     GenericMeta,
     Injection,
@@ -11,8 +11,8 @@ from bolinette.core import (
     meta,
     require,
 )
-from bolinette.core.exceptions import InjectionError
-from bolinette.core.inject import _InjectionContext, _InjectionProxy
+from bolinette.exceptions import InjectionError
+from bolinette.inject import _InjectionContext, _InjectionProxy
 
 
 class InjectableClassB:

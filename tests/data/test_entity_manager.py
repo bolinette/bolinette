@@ -2,10 +2,8 @@ from typing import Annotated
 
 import pytest
 
-from bolinette.core import Cache, Logger
-from bolinette.core.testing import Mock
-from bolinette.core.utils import AttributeUtils
-from bolinette.data import (
+from bolinette import Cache, Logger
+from bolinette.ext.data import (
     EntityManager,
     ForeignKey,
     Format,
@@ -15,14 +13,16 @@ from bolinette.data import (
     Unique,
     entity,
 )
-from bolinette.data.exceptions import EntityError
-from bolinette.data.manager import (
+from bolinette.ext.data.exceptions import EntityError
+from bolinette.ext.data.manager import (
     CollectionReference,
     ForeignKeyConstraint,
     PrimaryKeyConstraint,
     TableReference,
     UniqueConstraint,
 )
+from bolinette.testing import Mock
+from bolinette.utils import AttributeUtils
 
 
 def _setup_mock(cache: Cache) -> Mock:

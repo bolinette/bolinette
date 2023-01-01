@@ -3,10 +3,10 @@ import sys
 import pytest
 from pytest import CaptureFixture
 
-from bolinette.core import Cache, Logger, command, meta
-from bolinette.core.command import Parser, _ArgumentMeta, _CommandMeta
-from bolinette.core.exceptions import InitError
-from bolinette.core.testing import Mock
+from bolinette import Cache, Logger, command, meta
+from bolinette.command import Parser, _ArgumentMeta, _CommandMeta
+from bolinette.exceptions import InitError
+from bolinette.testing import Mock
 
 
 def test_decorate_command() -> None:

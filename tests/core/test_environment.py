@@ -4,10 +4,10 @@ from typing import Any, Optional, Union
 
 import pytest
 
-from bolinette.core import Cache, Environment, Logger, environment
-from bolinette.core.exceptions import EnvironmentError
-from bolinette.core.testing import Mock
-from bolinette.core.utils import FileUtils, PathUtils
+from bolinette import Cache, Environment, Logger, environment
+from bolinette.exceptions import EnvironmentError
+from bolinette.testing import Mock
+from bolinette.utils import FileUtils, PathUtils
 
 
 def _setup_test(cache: Cache | None = None) -> Mock:

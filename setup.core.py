@@ -1,10 +1,10 @@
 from setuptools import setup, find_namespace_packages
 
-from bolinette.core import __version__
-from bolinette.core.utils import PathUtils, FileUtils
+from bolinette import __version__
+from bolinette.utils import PathUtils, FileUtils
 
 
-paths = PathUtils(PathUtils.dirname(__file__))
+paths = PathUtils()
 files = FileUtils(paths)
 
 
@@ -14,7 +14,7 @@ def project_packages(module) -> list[str]:
 
 setup(
     name="bolinette",
-    packages=project_packages("bolinette.core"),
+    packages=project_packages("bolinette"),
     include_package_data=True,
     version=__version__,
     license="MIT",
@@ -37,6 +37,6 @@ setup(
     ],
     setup_requires=["wheel"],
     entry_points={
-        "console_scripts": ["blnt=bolinette.core.__main__:main"],
+        "console_scripts": ["blnt=bolinette.__main__:main"],
     },
 )

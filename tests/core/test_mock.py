@@ -1,6 +1,6 @@
 import pytest
 
-from bolinette.core.testing import Mock
+from bolinette.testing import Mock
 
 
 class _TestInjectedClass:

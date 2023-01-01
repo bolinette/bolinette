@@ -1,6 +1,6 @@
 import pytest
 
-from bolinette.core import Cache
+from bolinette import Cache
 
 
 def test_cache_use() -> None:
