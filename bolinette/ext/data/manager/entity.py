@@ -67,10 +67,8 @@ class EntityManager:
     def init(self) -> None:
         self._init_models()
         temp_defs: dict[type[Entity], TempTableDef] = dict(
-            (
-                (entity, TempTableDef(table_def.name))
-                for entity, table_def in self._table_defs.items()
-            )
+            (entity, TempTableDef(table_def.name))
+            for entity, table_def in self._table_defs.items()
         )
         self._parse_annotations(temp_defs)
         self._parse_constraints(temp_defs)
@@ -83,7 +81,9 @@ class EntityManager:
         _type = type[Entity]
         for cls in self._cache[EntityMeta, _type]:
             entity_meta = meta.get(cls, EntityMeta)
-            table_def = TableDefinition(entity_meta.table_name, cls)
+            table_def = TableDefinition(
+                entity_meta.table_name, cls, entity_meta.database
+            )
             self._table_defs[cls] = table_def
 
     @staticmethod

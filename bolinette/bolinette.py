@@ -2,6 +2,7 @@ from typing import Callable
 
 from bolinette import (
     Environment,
+    Extension,
     Injection,
     Logger,
     __core_cache__,
@@ -9,7 +10,6 @@ from bolinette import (
     core_ext,
     meta,
     require,
-    Extension,
 )
 from bolinette.command import Parser
 from bolinette.utils import FileUtils, PathUtils

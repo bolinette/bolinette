@@ -1,7 +1,7 @@
 import itertools
 from typing import Any, Iterable, TypeVar
 
-from bolinette import injectable, __core_cache__
+from bolinette import __core_cache__, injectable
 
 InstanceT = TypeVar("InstanceT")
 

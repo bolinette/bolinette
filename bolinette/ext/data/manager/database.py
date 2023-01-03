@@ -7,7 +7,7 @@ from bolinette import Cache, init_method, injectable
 from bolinette.ext.data import DataSection, __data_cache__
 from bolinette.ext.data.database import RelationalDatabase
 from bolinette.ext.data.exceptions import DatabaseError
-from bolinette.ext.data.manager import EntityManager
+from bolinette.ext.data.manager import EntityManager, TableDefinition
 
 
 @injectable(cache=__data_cache__)
@@ -32,7 +32,7 @@ class DatabaseManager:
         systems = [t() for t in self._cache[DatabaseSystem, cached_type]]
         if not systems:
             raise DatabaseError(
-                f"No DBMS was registered with @{database_system.__name__}"
+                f"No system was registered with @{database_system.__name__}"
             )
         for db_config in self._section.databases:
             re_match = DatabaseManager.DBMS_RE.match(db_config.url)
@@ -46,17 +46,30 @@ class DatabaseManager:
                     db_system = system
                     break
             else:
-                raise DatabaseError(f"DBMS supporting scheme '{scheme}' was not found")
+                raise DatabaseError(
+                    f"Database system supporting scheme '{scheme}' was not found"
+                )
             if db_system.python_package not in sys.modules:
                 raise DatabaseError(
                     f"Python package '{db_system.python_package}' was not found",
-                    dbms=scheme,
+                    connection=scheme,
                 )
             db_manager = db_system.manager(db_config.url, db_config.echo)
             self._engines[db_config.name] = db_manager
 
     def _init_tables(self) -> None:
-        pass
+        table_per_engine: dict[RelationalDatabase, dict[str, TableDefinition]] = {}
+        for entity, table_def in self._entities.definitions.items():
+            if table_def.database not in self._engines:
+                raise DatabaseError(
+                    f"No '{table_def.database}' database registered", entity=entity
+                )
+            engine = self._engines[table_def.database]
+            if engine not in table_per_engine:
+                table_per_engine[engine] = {}
+            table_per_engine[engine][table_def.name] = table_def
+        for engine, table_defs in table_per_engine.items():
+            engine.init_tables(table_defs)
 
 
 class DatabaseSystem(Protocol):

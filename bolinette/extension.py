@@ -3,7 +3,9 @@ from bolinette.exceptions import InitError
 
 
 class Extension:
-    def __init__(self, cache: Cache, dependencies: "list[Extension] | None" = None) -> None:
+    def __init__(
+        self, cache: Cache, dependencies: "list[Extension] | None" = None
+    ) -> None:
         self.cache = cache
         self.dependencies = dependencies or []
 
@@ -19,7 +21,9 @@ class Extension:
                 if not deps:
                     no_dependencies.append(extension)
             if len(no_dependencies) == 0:
-                raise InitError("A circular dependency was detected in the loaded extensions")
+                raise InitError(
+                    "A circular dependency was detected in the loaded extensions"
+                )
             for extension in no_dependencies:
                 sorted_extensions.append(extension)
                 del dependencies[extension]

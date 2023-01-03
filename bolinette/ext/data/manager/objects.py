@@ -112,9 +112,10 @@ ConstraintT = TypeVar("ConstraintT", bound=ConstraintType)
 
 
 class TableDefinition(Generic[EntityT]):
-    def __init__(self, name: str, entity: type[EntityT]) -> None:
+    def __init__(self, name: str, entity: type[EntityT], database: str) -> None:
         self.name = name
         self.entity = entity
+        self.database = database
         self.columns: dict[str, TableColumn] = {}
         self.references: dict[str, TableReference | CollectionReference] = {}
         self.constraints: dict[str, ConstraintType] = {}
