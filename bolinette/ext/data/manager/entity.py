@@ -78,8 +78,7 @@ class EntityManager:
         self._populate_back_references(temp_defs)
 
     def _init_models(self) -> None:
-        _type = type[Entity]
-        for cls in self._cache[EntityMeta, _type]:
+        for cls in self._cache.get(EntityMeta, hint=type[Entity], raises=False):
             entity_meta = meta.get(cls, EntityMeta)
             table_def = TableDefinition(
                 entity_meta.table_name, cls, entity_meta.database
@@ -388,6 +387,7 @@ class EntityManager:
                 const.reference = _ref
             else:
                 const.backref = _ref
+            _ref.constraint = const
 
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]

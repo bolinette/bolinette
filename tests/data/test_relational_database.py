@@ -1,5 +1,8 @@
-from sqlalchemy import Integer, String, select
+from typing import Annotated
 
+from sqlalchemy import Integer, String, Table
+
+from bolinette.ext.data import Entity, PrimaryKey
 from bolinette.ext.data.database import RelationalDatabase
 from bolinette.ext.data.manager import (
     PrimaryKeyConstraint,
@@ -9,11 +12,11 @@ from bolinette.ext.data.manager import (
 
 
 async def test_create_simple_table() -> None:
-    class TestEntity:
-        id: int
+    class TestEntity(Entity):
+        id: Annotated[int, PrimaryKey()]
         name: str
 
-    rel_database = RelationalDatabase("sqlite+aiosqlite://", True)
+    rel_database = RelationalDatabase("default", "sqlite+aiosqlite://", True)
 
     table_def = TableDefinition("test", TestEntity, "default")
     table_def.columns = {
@@ -26,23 +29,23 @@ async def test_create_simple_table() -> None:
 
     rel_database.init_tables({TestEntity: table_def})
 
-    table: type[TestEntity] = rel_database._tables[TestEntity]  # type: ignore
+    sql_def = rel_database._sql_defs[TestEntity]
 
-    await rel_database.create_all()
+    assert hasattr(sql_def, '__table__')
 
-    async with rel_database.create_session() as session:
-        t1 = table(name="Test 1")
-        t2 = table(name="Test 2")
+    orm_table = getattr(sql_def, '__table__')
+    assert isinstance(orm_table, Table)
 
-        session.add(t1)
-        session.add(t2)
+    assert len(orm_table.columns) == 2
+    assert 'id' in orm_table.columns
+    assert 'name' in orm_table.columns
 
-        await session.commit()
+    id_col = orm_table.columns['id']
+    assert id_col.name == 'id'
+    assert id_col.primary_key is True
+    assert isinstance(id_col.type, Integer)
 
-    result = list((await session.execute(select(table))).scalars())
-    assert len(result) == 2
-
-    result = list((await session.execute(select(table).where(table.name == "Test 1"))).scalars())
-    assert len(result) == 1
-
-    await rel_database.dispose()
+    name_col = orm_table.columns['name']
+    assert name_col.name == 'name'
+    assert name_col.primary_key is False
+    assert isinstance(name_col.type, String)

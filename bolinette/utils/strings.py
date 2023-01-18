@@ -16,3 +16,9 @@ class StringUtils:
         string = StringUtils.__regex__["snake"][1].sub(r"_\1", string)
         string = StringUtils.__regex__["snake"][2].sub(r"\1_\2", string)
         return string.lower()
+
+    @staticmethod
+    def capitalize(string: str):
+        if not string:
+            return string
+        return f"{string[0]}{string[1:]}"

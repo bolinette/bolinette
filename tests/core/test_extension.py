@@ -63,6 +63,6 @@ def test_merge_caches() -> None:
     assert "key1" in cache
     assert "key2" in cache
     assert "key3" in cache
-    assert cache["key1"] == [1, 2, 2, 3]
-    assert cache["key2"] == [1]
-    assert cache["key3"] == [1]
+    assert cache.get("key1") == [1, 2, 2, 3]
+    assert cache.get("key2") == [1]
+    assert cache.get("key3") == [1]

@@ -7,8 +7,7 @@ from bolinette.utils import StringUtils
 
 
 class Entity(Protocol):
-    def __init__(self) -> None:
-        pass
+    ...
 
 
 class EntityMeta:

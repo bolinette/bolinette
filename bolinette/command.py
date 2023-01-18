@@ -76,7 +76,7 @@ class Parser:
     @init_method
     def init(self):
         if _CommandMeta in self._cache:
-            self._functions = self._cache[_CommandMeta, Callable[..., Awaitable[None]]]
+            self._functions = self._cache.get(_CommandMeta)
 
     async def run(self) -> None:
         tree = self._parse_commands()

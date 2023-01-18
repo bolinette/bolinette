@@ -81,7 +81,7 @@ class Injection:
         if InjectionSymbol not in cache:
             return {}
         types: dict[type[Any], _RegisteredTypeBag[Any]] = {}
-        for cls in cache[InjectionSymbol, type]:
+        for cls in cache.get(InjectionSymbol, hint=type):
             cls, params = Injection._get_generic_params(cls)
             if cls not in types:
                 types[cls] = _RegisteredTypeBag(cls)

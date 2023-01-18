@@ -12,28 +12,16 @@ class Cache:
     def __contains__(self, key: Any) -> bool:
         return key in self._bag
 
-    @overload
-    def __getitem__(self, args: tuple[Any, type[InstanceT]], /) -> list[InstanceT]:
-        pass
-
-    @overload
-    def __getitem__(self, key: Any, /) -> list[Any]:
-        pass
-
-    def __getitem__(
-        self, args: tuple[Any, type[InstanceT]] | Any, /
-    ) -> list[InstanceT] | list[Any]:
-        key = None
-        match args:
-            case (_k, _):
-                key = _k
-            case _k:
-                key = _k
+    def get(
+        self, key: Any, /, *, hint: type[InstanceT] | None = None, raises: bool = True
+    ) -> list[InstanceT]:
         if key not in self:
-            raise KeyError(key)
+            if raises:
+                raise KeyError(key)
+            return []
         return self._bag[key]
 
-    def __delitem__(self, key: Any) -> None:
+    def delete(self, key: Any) -> None:
         if key not in self:
             raise KeyError(key)
         del self._bag[key]

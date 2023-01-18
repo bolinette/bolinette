@@ -11,6 +11,7 @@ from bolinette.ext.data import (
     OneToMany,
     PrimaryKey,
     Unique,
+    Entity,
     entity,
 )
 from bolinette.ext.data.exceptions import EntityError
@@ -683,6 +684,7 @@ def test_entity_many_to_one() -> None:
     assert ref.table.entity is Child
     assert ref.target.entity is Parent
     assert ref.lazy is False
+    assert isinstance(ref.constraint, ForeignKeyConstraint)
 
 
 def test_fail_entity_many_to_one_unknown_column() -> None:

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeVar
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import (
@@ -6,20 +6,32 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, relationship
 
+from bolinette.utils import StringUtils
 from bolinette.ext.data import Entity
-from bolinette.ext.data.manager import PrimaryKeyConstraint, TableDefinition, UniqueConstraint
+from bolinette.ext.data.manager import (
+    PrimaryKeyConstraint,
+    TableDefinition,
+    UniqueConstraint,
+    ForeignKeyConstraint,
+    TableReference,
+)
+
+EntityT = TypeVar("EntityT", bound=Entity)
 
 
 class RelationalDatabase:
-    def __init__(self, uri: str, echo: bool):
+    def __init__(self, name: str, uri: str, echo: bool):
         self._engine = create_async_engine(uri, echo=echo)
         self._session_maker = async_sessionmaker(self._engine)
         self._declarative_base: type[DeclarativeBase] = type(
-            "RelationalBase", (DeclarativeBase,), {}
+            f"{StringUtils.capitalize(name)}Database", (DeclarativeBase,), {}
         )
-        self._tables: dict[type[Entity], type[DeclarativeBase]] = {}
+        self._sql_defs: dict[type[Entity], type[DeclarativeBase]] = {}
+
+    def get_definition(self, entity: type[EntityT]) -> type[Any]:
+        return self._sql_defs[entity]
 
     def create_session(self) -> AsyncSession:
         return self._session_maker()
@@ -38,26 +50,45 @@ class RelationalDatabase:
             sql_table = sa.Table(
                 table_def.name,
                 self._declarative_base.metadata,
-                *mapped_cols[entity].values()
+                *mapped_cols[entity].values(),
             )
             sql_tables[entity] = sql_table
 
-        for table_name, sql_table in sql_tables.items():
+        for entity, sql_table in sql_tables.items():
             model_defs: dict[str, Any] = {}
-            model_defs["__table__"] = sql_tables[table_name]
+            model_defs["__table__"] = sql_tables[entity]
 
-            table_def = table_defs[table_name]
+            table_def = table_defs[entity]
             for const_name, constraint in table_def.constraints.items():
                 const_cols = [
-                    mapped_cols[table_name][col.name] for col in constraint.columns
+                    mapped_cols[entity][col.name] for col in constraint.columns
                 ]
                 if isinstance(constraint, PrimaryKeyConstraint):
-                    model_defs[const_name] = sa.PrimaryKeyConstraint(*const_cols, name=const_name)
+                    model_defs[const_name] = sa.PrimaryKeyConstraint(
+                        *const_cols, name=const_name
+                    )
                 if isinstance(constraint, UniqueConstraint):
-                    model_defs[const_name] = sa.UniqueConstraint(*const_cols, name=const_name)
+                    model_defs[const_name] = sa.UniqueConstraint(
+                        *const_cols, name=const_name
+                    )
+                if isinstance(constraint, ForeignKeyConstraint):
+                    target_cols = [
+                        mapped_cols[constraint.target.entity][col.name]
+                        for col in constraint.target_columns
+                    ]
+                    model_defs[const_name] = sa.ForeignKeyConstraint(
+                        const_cols, target_cols, name=const_name
+                    )
+            for ref_name, reference in table_def.references.items():
+                if isinstance(reference, TableReference):
+                    model_defs[ref_name] = relationship(
+                        reference.target.name,
+                        foreign_keys=model_defs[reference.constraint.name],
+                        lazy='raise_on_sql'
+                    )
 
             sql_model = type(table_def.name, (self._declarative_base,), model_defs)
-            self._tables[table_def.entity] = sql_model
+            self._sql_defs[table_def.entity] = sql_model
 
     async def create_all(self) -> None:
         async with self._engine.begin() as connection:

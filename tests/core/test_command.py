@@ -17,7 +17,7 @@ def test_decorate_command() -> None:
         pass
 
     assert _CommandMeta in cache
-    assert cache[_CommandMeta] == [_command]
+    assert cache.get(_CommandMeta) == [_command]
 
 
 def test_decorate_argument() -> None:

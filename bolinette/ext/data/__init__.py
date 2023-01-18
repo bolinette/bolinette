@@ -11,4 +11,6 @@ from bolinette.ext.data.entity import (
     OneToMany,
     Entity,
 )
+from bolinette.ext.data.repository import Repository
 from bolinette.ext.data.manager import DatabaseManager, EntityManager
+import bolinette.ext.data.defaults

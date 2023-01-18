@@ -58,7 +58,7 @@ class Environment:
     @init_method
     def init(self) -> None:
         if EnvironmentSection in self._cache:
-            for cls in self._cache[EnvironmentSection, type]:
+            for cls in self._cache.get(EnvironmentSection, hint=type):
                 self._inject.add(cls, "singleton", init_methods=[self._init_section])
 
         stack = [
