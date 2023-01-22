@@ -325,7 +325,7 @@ def test_arg_resolve_fail_wilcard() -> None:
     inject = Injection(Cache(), _InjectionContext())
 
     with pytest.raises(InjectionError) as info:
-        inject.call(_test_func, kwargs={"a": "a", "b": "b"})
+        inject.call(_test_func, named_args={"a": "a", "b": "b"})
 
     assert (
         f"Callable {_test_func}, Positional only parameters and positional wildcards are not allowed"
@@ -340,7 +340,7 @@ def test_arg_resolve_fail_positional_only() -> None:
     inject = Injection(Cache(), _InjectionContext())
 
     with pytest.raises(InjectionError) as info:
-        inject.call(_test_func, kwargs={"a": "a", "b": "b"})
+        inject.call(_test_func, named_args={"a": "a", "b": "b"})
 
     assert (
         f"Callable {_test_func}, Positional only parameters and positional wildcards are not allowed"
@@ -371,7 +371,7 @@ def test_arg_resolve() -> None:
     inject = Injection(Cache(), _InjectionContext())
     inject.add(InjectableClassC, "singleton")
 
-    inject.call(_test_func, args=["a"], kwargs={"b": "b", "e": "e", "f": "f"})
+    inject.call(_test_func, args=["a"], named_args={"b": "b", "e": "e", "f": "f"})
 
 
 def test_two_injections() -> None:

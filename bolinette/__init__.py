@@ -11,8 +11,6 @@ from bolinette.inject import (
     init_method,
     require,
     injectable,
-    ArgumentResolver,
-    ArgResolverOptions,
 )
 from bolinette.logger import Logger, ConsoleColorCode
 from bolinette.environment import Environment, environment

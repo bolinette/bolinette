@@ -99,7 +99,7 @@ class Parser:
             sys.exit(1)
 
     async def _run_command(self, cmd: str, args: dict[str, Any]):
-        await self._inject.call(self._commands[cmd], kwargs=args)
+        await self._inject.call(self._commands[cmd], named_args=args)
 
     def _parse_commands(self):
         command_tree = {}

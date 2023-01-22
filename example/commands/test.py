@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from bolinette import command, Injection
 from bolinette.ext.data import DatabaseManager, Repository
@@ -31,6 +31,7 @@ async def test_command(inject: Injection) -> None:
 
     async with engine.create_session() as session:
         s_inject = inject.get_scoped_session()
+        s_inject.add(AsyncSession, "singleton", instance=session)
         user_repo = s_inject.require(Repository[User])
         async for res in user_repo.find_all():
             print(res.username)

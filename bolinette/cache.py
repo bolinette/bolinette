@@ -1,4 +1,4 @@
-from typing import Any, ParamSpec, TypeVar, overload
+from typing import Any, ParamSpec, TypeVar
 
 P = ParamSpec("P")
 InstanceT = TypeVar("InstanceT")

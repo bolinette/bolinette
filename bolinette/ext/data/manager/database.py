@@ -1,10 +1,10 @@
+import importlib
 import re
 from collections.abc import Callable
 from typing import Protocol, TypeVar
-import importlib
 
-from bolinette import Cache, init_method, injectable, meta, Injection
-from bolinette.ext.data import DataSection, __data_cache__, Entity, Repository
+from bolinette import Cache, Injection, init_method, injectable, meta
+from bolinette.ext.data import DataSection, Entity, Repository, __data_cache__
 from bolinette.ext.data.database import RelationalDatabase
 from bolinette.ext.data.exceptions import DatabaseError
 from bolinette.ext.data.manager import EntityManager, TableDefinition
@@ -15,7 +15,11 @@ class DatabaseManager:
     DBMS_RE = re.compile(r"^([^:]*://).*$")
 
     def __init__(
-        self, cache: Cache, section: DataSection, entities: EntityManager, inject: Injection
+        self,
+        cache: Cache,
+        section: DataSection,
+        entities: EntityManager,
+        inject: Injection,
     ) -> None:
         self._cache = cache
         self._section = section
@@ -91,7 +95,11 @@ class DatabaseManager:
         for entity in self._entities.definitions:
             engine = meta.get(entity, DatabaseMeta).engine
             orm_def = engine.get_definition(entity)
-            self._inject.add(Repository[entity], "scoped", kwargs={'orm_def': orm_def})
+            self._inject.add(
+                Repository[entity],
+                "scoped",
+                named_args={"orm_def": orm_def, "entity": entity},
+            )
 
 
 class DatabaseSystem(Protocol):

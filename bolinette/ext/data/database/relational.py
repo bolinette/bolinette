@@ -1,22 +1,18 @@
 from typing import Any, TypeVar
 
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship
 
-from bolinette.utils import StringUtils
 from bolinette.ext.data import Entity
 from bolinette.ext.data.manager import (
+    ForeignKeyConstraint,
     PrimaryKeyConstraint,
     TableDefinition,
-    UniqueConstraint,
-    ForeignKeyConstraint,
     TableReference,
+    UniqueConstraint,
 )
+from bolinette.utils import StringUtils
 
 EntityT = TypeVar("EntityT", bound=Entity)
 
@@ -84,7 +80,7 @@ class RelationalDatabase:
                     model_defs[ref_name] = relationship(
                         reference.target.name,
                         foreign_keys=model_defs[reference.constraint.name],
-                        lazy='raise_on_sql'
+                        lazy="raise_on_sql",
                     )
 
             sql_model = type(table_def.name, (self._declarative_base,), model_defs)

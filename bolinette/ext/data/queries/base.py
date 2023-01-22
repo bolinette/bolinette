@@ -1,9 +1,8 @@
-from abc import abstractmethod, ABC
-from collections.abc import Callable, AsyncIterable
-from typing import Any, Generic, TypeVar, Self
+from abc import ABC, abstractmethod
+from collections.abc import AsyncIterable, Callable
+from typing import Any, Generic, Self, TypeVar
 
 from bolinette.ext.data import Entity
-
 
 EntityT = TypeVar("EntityT", bound=Entity)
 
@@ -64,7 +63,6 @@ class BaseQuery(ABC, Generic[EntityT]):
 
     def include(self, function: Callable[[EntityT], Any]) -> Self:
         return self._clone()._include_func(function)
-
 
     @abstractmethod
     def all(self) -> AsyncIterable[EntityT]:

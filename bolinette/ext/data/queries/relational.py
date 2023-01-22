@@ -1,9 +1,9 @@
-from typing import Generic, TypeVar, Self
 from collections.abc import AsyncIterable
+from typing import Generic, Self, TypeVar
 
-from sqlalchemy import select, Select, desc
-from sqlalchemy.orm import DeclarativeBase, selectinload
+from sqlalchemy import Select, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase, selectinload
 
 from bolinette.ext.data import Entity
 from bolinette.ext.data.queries import BaseQuery
@@ -12,7 +12,12 @@ EntityT = TypeVar("EntityT", bound=Entity)
 
 
 class RelationalQueryBuilder(Generic[EntityT]):
-    def __init__(self, entity: type[EntityT], orm_def: type[DeclarativeBase], session: AsyncSession) -> None:
+    def __init__(
+        self,
+        entity: type[EntityT],
+        orm_def: type[DeclarativeBase],
+        session: AsyncSession,
+    ) -> None:
         self._entity = entity
         self._orm_def = orm_def
         self._session = session

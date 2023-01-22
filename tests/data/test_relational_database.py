@@ -31,21 +31,21 @@ async def test_create_simple_table() -> None:
 
     sql_def = rel_database._sql_defs[TestEntity]
 
-    assert hasattr(sql_def, '__table__')
+    assert hasattr(sql_def, "__table__")
 
-    orm_table = getattr(sql_def, '__table__')
+    orm_table = getattr(sql_def, "__table__")
     assert isinstance(orm_table, Table)
 
     assert len(orm_table.columns) == 2
-    assert 'id' in orm_table.columns
-    assert 'name' in orm_table.columns
+    assert "id" in orm_table.columns
+    assert "name" in orm_table.columns
 
-    id_col = orm_table.columns['id']
-    assert id_col.name == 'id'
+    id_col = orm_table.columns["id"]
+    assert id_col.name == "id"
     assert id_col.primary_key is True
     assert isinstance(id_col.type, Integer)
 
-    name_col = orm_table.columns['name']
-    assert name_col.name == 'name'
+    name_col = orm_table.columns["name"]
+    assert name_col.name == "name"
     assert name_col.primary_key is False
     assert isinstance(name_col.type, String)

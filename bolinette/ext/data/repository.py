@@ -1,18 +1,21 @@
-from typing import Generic, TypeVar
 from collections.abc import AsyncIterable
+from typing import Generic, TypeVar
 
-from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase
 
 from bolinette.ext.data import Entity
-from bolinette.ext.data.queries import RelationalQueryBuilder, BaseQuery
+from bolinette.ext.data.queries import BaseQuery, RelationalQueryBuilder
 
 EntityT = TypeVar("EntityT", bound=Entity)
 
 
 class Repository(Generic[EntityT]):
     def __init__(
-        self, entity: type[EntityT], orm_def: type[DeclarativeBase], session: AsyncSession
+        self,
+        entity: type[EntityT],
+        orm_def: type[DeclarativeBase],
+        session: AsyncSession,
     ) -> None:
         self._entity = entity
         self._orm_def = orm_def

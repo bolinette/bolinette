@@ -4,6 +4,7 @@ import pytest
 
 from bolinette import Cache, Logger
 from bolinette.ext.data import (
+    Entity,
     EntityManager,
     ForeignKey,
     Format,
@@ -11,7 +12,6 @@ from bolinette.ext.data import (
     OneToMany,
     PrimaryKey,
     Unique,
-    Entity,
     entity,
 )
 from bolinette.ext.data.exceptions import EntityError

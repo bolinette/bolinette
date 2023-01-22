@@ -1,5 +1,5 @@
-from bolinette.ext.data.manager import database_system
 from bolinette.ext.data.database import RelationalDatabase
+from bolinette.ext.data.manager import database_system
 
 
 @database_system()

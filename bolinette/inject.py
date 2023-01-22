@@ -1,5 +1,4 @@
 import inspect
-from abc import ABC, abstractmethod
 from collections.abc import Callable
 from types import NoneType, UnionType
 from typing import (
@@ -9,6 +8,7 @@ from typing import (
     Generic,
     Literal,
     ParamSpec,
+    Protocol,
     TypeVar,
     Union,
     get_args,
@@ -71,6 +71,7 @@ class Injection:
             self,
             safe=True,
         )
+        self._arg_resolvers = self._pickup_resolvers(cache)
 
     @property
     def registered_types(self):
@@ -108,6 +109,21 @@ class Injection:
                 )
         return types
 
+    @staticmethod
+    def _pickup_resolvers(cache: Cache) -> "list[ArgumentResolver]":
+        return [
+            *map(
+                lambda t: t(),
+                sorted(
+                    cache.get(
+                        ArgumentResolver, hint=type[ArgumentResolver], raises=False
+                    ),
+                    key=lambda t: meta.get(t, _ArgResolverMeta).priority,
+                ),
+            ),
+            _DefaultArgResolver(),
+        ]
+
     def _has_instance(
         self,
         r_type: "_RegisteredType[Any]",
@@ -144,7 +160,7 @@ class Injection:
         func: Callable,
         immediate: bool,
         args: list[Any],
-        kwargs: dict[str, Any],
+        named_args: dict[str, Any],
     ) -> dict[str, Any]:
         func_params = dict(inspect.signature(func).parameters)
         if any(
@@ -159,7 +175,7 @@ class Injection:
 
         f_args: dict[str, Any] = {}
         _args = [*args]
-        _kwargs = {**kwargs}
+        _named_args = {**named_args}
 
         try:
             if inspect.isclass(func):
@@ -173,16 +189,16 @@ class Injection:
 
         for p_name, param in func_params.items():
             if param.kind == param.VAR_KEYWORD:
-                for kw_name, kw_value in _kwargs.items():
+                for kw_name, kw_value in _named_args.items():
                     f_args[kw_name] = kw_value
-                _kwargs = {}
+                _named_args = {}
                 break
 
             if _args:
                 f_args[p_name] = _args.pop(0)
                 continue
-            if p_name in _kwargs:
-                f_args[p_name] = _kwargs.pop(p_name)
+            if p_name in _named_args:
+                f_args[p_name] = _named_args.pop(p_name)
                 continue
 
             default_set = False
@@ -211,37 +227,25 @@ class Injection:
 
             hint, gen_params = self._get_generic_params(hint)
 
-            if not self.is_registered(hint, gen_params):
-                if nullable:
-                    f_args[p_name] = None
-                    continue
-                if default_set:
-                    f_args[p_name] = default
-                    continue
-                if len(gen_params):
-                    error_txt = f"{hint}[{gen_params}]"
-                else:
-                    error_txt = f"{hint}"
-                raise InjectionError(
-                    f"Type {error_txt} is not a registered type in the injection system",
-                    func=func,
-                    param=p_name,
+            for resolver in self._arg_resolvers:
+                options = ArgResolverOptions(
+                    self,
+                    func,
+                    p_name,
+                    hint,
+                    gen_params,
+                    nullable,
+                    default_set,
+                    default,
+                    immediate,
                 )
+                if resolver.supports(options):
+                    arg_name, arg_value = resolver.resolve(options)
+                    f_args[arg_name] = arg_value
 
-            r_type = self._types[hint].get_type(gen_params)
-
-            if self._has_instance(r_type, origin=func, name=p_name):
-                f_args[p_name] = self._get_instance(r_type)
-                continue
-            if immediate:
-                f_args[p_name] = self._instanciate(r_type, gen_params)
-                continue
-            f_args[p_name] = _InjectionHook(hint, gen_params)
-            continue
-
-        if _args or _kwargs:
+        if _args or _named_args:
             raise InjectionError(
-                f"Expected {len(func_params)} arguments, {len(args) + len(kwargs)} given",
+                f"Expected {len(func_params)} arguments, {len(args) + len(named_args)} given",
                 func=func,
             )
 
@@ -318,9 +322,9 @@ class Injection:
         func: Callable[..., FuncT],
         *,
         args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
+        named_args: dict[str, Any] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, True, args or [], kwargs or {})
+        func_args = self._resolve_args(func, True, args or [], named_args or {})
         return func(**func_args)
 
     def _add_type_instance(
@@ -332,7 +336,7 @@ class Injection:
         match_all: bool,
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
-        kwargs: dict[str, Any],
+        named_args: dict[str, Any],
         init_methods: list[Callable[[InstanceT], None]],
         instance: InstanceT | None,
         *,
@@ -345,12 +349,12 @@ class Injection:
         if match_all:
             if not safe or not type_bag.has_match_all():
                 r_type = type_bag.set_match_all(
-                    cls, params, strategy, args, kwargs, init_methods
+                    cls, params, strategy, args, named_args, init_methods
                 )
         else:
             if not safe or not type_bag.has_type(super_params):
                 r_type = type_bag.add_type(
-                    super_params, cls, params, strategy, args, kwargs, init_methods
+                    super_params, cls, params, strategy, args, named_args, init_methods
                 )
         if instance is not None:
             if r_type is None:
@@ -364,7 +368,7 @@ class Injection:
         cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
+        named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
         init_methods: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
@@ -380,7 +384,7 @@ class Injection:
         cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
+        named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
         init_methods: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
@@ -393,7 +397,7 @@ class Injection:
         cls: type[InstanceT],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
+        named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
         init_methods: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
@@ -426,7 +430,7 @@ class Injection:
             match_all,
             strategy,
             args or [],
-            kwargs or {},
+            named_args or {},
             init_methods or [],
             instance,
         )
@@ -453,6 +457,40 @@ class Injection:
         return _ScopedInjection(
             self, self._cache, self._global_ctx, _InjectionContext(), self._types
         )
+
+
+class _DefaultArgResolver:
+    def supports(self, options: "ArgResolverOptions") -> bool:
+        return True
+
+    def resolve(self, options: "ArgResolverOptions") -> tuple[str, Any]:
+        if not options.injection.is_registered(options.cls, options.generic_params):
+            if options.nullable:
+                return (options.name, None)
+            if options.default_set:
+                return (options.name, options.default)
+            if len(options.generic_params):
+                error_txt = f"{options.cls}[{options.generic_params}]"
+            else:
+                error_txt = f"{options.cls}"
+            raise InjectionError(
+                f"Type {error_txt} is not a registered type in the injection system",
+                func=options.caller,
+                param=options.name,
+            )
+
+        r_type = options.injection._types[options.cls].get_type(options.generic_params)
+
+        if options.injection._has_instance(
+            r_type, origin=options.caller, name=options.name
+        ):
+            return (options.name, options.injection._get_instance(r_type))
+        if options.immediate:
+            return (
+                options.name,
+                options.injection._instanciate(r_type, options.generic_params),
+            )
+        return (options.name, _InjectionHook(options.cls, options.generic_params))
 
 
 class _InjectionHook(Generic[InstanceT]):
@@ -538,14 +576,14 @@ class _RegisteredType(Generic[InstanceT]):
         params: tuple[Any, ...],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
-        kwargs: dict[str, Any],
+        named_args: dict[str, Any],
         init_methods: list[Callable[[Any], None]],
     ) -> None:
         self.cls = cls
         self.params = params
         self.strategy = strategy
         self.args = args
-        self.kwargs = kwargs
+        self.kwargs = named_args
         self.init_methods = init_methods
 
     def __repr__(self) -> str:
@@ -582,10 +620,10 @@ class _RegisteredTypeBag(Generic[InstanceT]):
         params: tuple[Any, ...],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
-        kwargs: dict[str, Any],
+        named_args: dict[str, Any],
         init_methods: list[Callable[[Any], None]],
     ) -> _RegisteredType[InstanceT]:
-        r_type = _RegisteredType(cls, params, strategy, args, kwargs, init_methods)
+        r_type = _RegisteredType(cls, params, strategy, args, named_args, init_methods)
         self._match_all = r_type
         return r_type
 
@@ -596,35 +634,15 @@ class _RegisteredTypeBag(Generic[InstanceT]):
         params: tuple[Any, ...],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
-        kwargs: dict[str, Any],
+        named_args: dict[str, Any],
         init_methods: list[Callable[[Any], None]],
     ) -> _RegisteredType[InstanceT]:
-        r_type = _RegisteredType(cls, params, strategy, args, kwargs, init_methods)
+        r_type = _RegisteredType(cls, params, strategy, args, named_args, init_methods)
         self._types[hash(super_params)] = r_type
         return r_type
 
     def __repr__(self) -> str:
         return f"<RegisteredTypeBag {self._cls}: [{self._match_all}], [{len(self._types)}]>"
-
-
-class ArgResolverOptions:
-    def __init__(
-        self, name: str, cls: type[Any], default_set: bool, default: Any | None
-    ) -> None:
-        self.name = name
-        self.cls = cls
-        self.default_set = default_set
-        self.default = default
-
-
-class ArgumentResolver(ABC):
-    @abstractmethod
-    def supports(self, options: ArgResolverOptions) -> bool:
-        pass
-
-    @abstractmethod
-    def resolve(self, options: ArgResolverOptions) -> Any:
-        pass
 
 
 class _InitMethodMeta:
@@ -643,13 +661,13 @@ class _InjectionParamsMeta:
         self,
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any] | None,
-        kwargs: dict[str, Any] | None,
+        named_args: dict[str, Any] | None,
         init_methods: list[Callable[[Any], None]] | None,
         match_all: bool,
     ) -> None:
         self.strategy = strategy
         self.args = args or []
-        self.kwargs = kwargs or {}
+        self.kwargs = named_args or {}
         self.init_methods = init_methods or []
         self.match_all = match_all
 
@@ -658,7 +676,7 @@ def injectable(
     *,
     strategy: Literal["singleton", "scoped", "transcient"] = "singleton",
     args: list[Any] | None = None,
-    kwargs: dict[str, Any] | None = None,
+    named_args: dict[str, Any] | None = None,
     cache: Cache | None = None,
     init_methods: list[Callable[[InstanceT], None]] | None = None,
     match_all: bool = False,
@@ -666,7 +684,8 @@ def injectable(
     def decorator(cls: type[InstanceT]) -> type[InstanceT]:
         _cls, _ = Injection._get_generic_params(cls)
         meta.set(
-            _cls, _InjectionParamsMeta(strategy, args, kwargs, init_methods, match_all)
+            _cls,
+            _InjectionParamsMeta(strategy, args, named_args, init_methods, match_all),
         )
         (cache or __user_cache__).add(InjectionSymbol, cls)
         return cls
@@ -678,5 +697,59 @@ def require(cls: type[InstanceT]) -> Callable[[Callable], _InjectionHook[Instanc
     def decorator(func: Callable) -> _InjectionHook[InstanceT]:
         _cls, params = Injection._get_generic_params(cls)
         return _InjectionHook(_cls, params)
+
+    return decorator
+
+
+class ArgResolverOptions:
+    def __init__(
+        self,
+        injection: Injection,
+        caller: Callable,
+        name: str,
+        cls: type[Any],
+        generic_params: tuple[Any, ...],
+        nullable: bool,
+        default_set: bool,
+        default: Any | None,
+        immediate: bool,
+    ) -> None:
+        self.injection = injection
+        self.caller = caller
+        self.name = name
+        self.cls = cls
+        self.generic_params = generic_params
+        self.nullable = nullable
+        self.default_set = default_set
+        self.default = default
+        self.immediate = immediate
+
+
+class ArgumentResolver(Protocol):
+    def __init__(self) -> None:
+        ...
+
+    def supports(self, options: ArgResolverOptions) -> bool:
+        ...
+
+    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+        ...
+
+
+class _ArgResolverMeta:
+    def __init__(self, priority: int) -> None:
+        self.priority = priority
+
+
+ArgResolverT = TypeVar("ArgResolverT", bound=ArgumentResolver)
+
+
+def injection_arg_resolver(
+    *, priority: int = 0, cache: Cache | None = None
+) -> Callable[[type[ArgResolverT]], type[ArgResolverT]]:
+    def decorator(cls: type[ArgResolverT]) -> type[ArgResolverT]:
+        (cache or __user_cache__).add(ArgumentResolver, cls)
+        meta.set(cls, _ArgResolverMeta(priority))
+        return cls
 
     return decorator
