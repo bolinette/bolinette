@@ -23,9 +23,7 @@ class EntityError(DataError, ParameterError):
         )
         BolinetteError.__init__(
             self,
-            self._format_params(
-                message, entity=entity, attribute=attribute, constraint=constraint
-            ),
+            self._format_params(message, entity=entity, attribute=attribute, constraint=constraint),
         )
 
 

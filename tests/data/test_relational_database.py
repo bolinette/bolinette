@@ -4,11 +4,7 @@ from sqlalchemy import Integer, String, Table
 
 from bolinette.ext.data import Entity, PrimaryKey
 from bolinette.ext.data.database import RelationalDatabase
-from bolinette.ext.data.manager import (
-    PrimaryKeyConstraint,
-    TableColumn,
-    TableDefinition,
-)
+from bolinette.ext.data.manager import PrimaryKeyConstraint, TableColumn, TableDefinition
 
 
 async def test_create_simple_table() -> None:
@@ -23,9 +19,7 @@ async def test_create_simple_table() -> None:
         "id": TableColumn(table_def, "id", int, Integer, False, None),
         "name": TableColumn(table_def, "name", str, String, False, None),
     }
-    table_def.constraints = {
-        "test_pk": PrimaryKeyConstraint(table_def, "test_pk", [table_def.columns["id"]])
-    }
+    table_def.constraints = {"test_pk": PrimaryKeyConstraint(table_def, "test_pk", [table_def.columns["id"]])}
 
     rel_database.init_tables({TestEntity: table_def})
 

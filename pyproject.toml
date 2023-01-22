@@ -41,3 +41,7 @@ seaborn = "sns"
 
 [tool.ruff.mccabe]
 max-complexity = 10
+
+[tool.black]
+line-length = 120
+target-version = ['py311']

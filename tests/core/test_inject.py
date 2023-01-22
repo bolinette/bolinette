@@ -2,15 +2,7 @@ from typing import Generic, Optional, TypeVar
 
 import pytest
 
-from bolinette import (
-    Cache,
-    GenericMeta,
-    Injection,
-    init_method,
-    injectable,
-    meta,
-    require,
-)
+from bolinette import Cache, GenericMeta, Injection, init_method, injectable, meta, require
 from bolinette.exceptions import InjectionError
 from bolinette.inject import _InjectionContext, _InjectionProxy
 
@@ -118,10 +110,7 @@ async def test_fail_injection() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(InjectableClassC)
 
-    assert (
-        f"Type {InjectableClassC} is not a registered type in the injection system"
-        == info.value.message
-    )
+    assert f"Type {InjectableClassC} is not a registered type in the injection system" == info.value.message
 
 
 async def test_fail_injection_generic() -> None:
@@ -138,10 +127,7 @@ async def test_fail_injection_generic() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_Service[_Param])
 
-    assert (
-        f"Type {_Service}[({_Param},)] is not a registered type in the injection system"
-        == info.value.message
-    )
+    assert f"Type {_Service}[({_Param},)] is not a registered type in the injection system" == info.value.message
 
 
 async def test_fail_subinjection() -> None:
@@ -214,10 +200,7 @@ def test_add_instance_no_singleton() -> None:
     with pytest.raises(InjectionError) as info:
         inject.add(InjectableClassB, "transcient", instance=b)
 
-    assert (
-        f"Type {InjectableClassB} must be a singleton if an instance is provided"
-        == info.value.message
-    )
+    assert f"Type {InjectableClassB} must be a singleton if an instance is provided" == info.value.message
 
 
 def test_add_instance_wrong_type() -> None:
@@ -228,10 +211,7 @@ def test_add_instance_wrong_type() -> None:
     with pytest.raises(InjectionError) as info:
         inject.add(InjectableClassA, "singleton", instance=b)
 
-    assert (
-        f"Object provided must an instance of type {InjectableClassA}"
-        == info.value.message
-    )
+    assert f"Object provided must an instance of type {InjectableClassA}" == info.value.message
 
 
 def test_add_instance() -> None:
@@ -261,10 +241,7 @@ def test_forward_ref_local_class_not_resolved() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert (
-        f"Callable {_TestClass}, Type hint '_Value' could not be resolved"
-        == info.value.message
-    )
+    assert f"Callable {_TestClass}, Type hint '_Value' could not be resolved" == info.value.message
 
 
 def test_no_annotation() -> None:
@@ -278,10 +255,7 @@ def test_no_annotation() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert (
-        f"Callable {_TestClass}, Parameter '_1', Annotation is required"
-        == info.value.message
-    )
+    assert f"Callable {_TestClass}, Parameter '_1', Annotation is required" == info.value.message
 
 
 def test_use_init_method() -> None:
@@ -437,10 +411,7 @@ def test_scoped_injection_fail_no_scope() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_C1)
 
-    assert (
-        f"Type {_C1}, Cannot instanciate a scoped service outside of a scoped session"
-        == info.value.message
-    )
+    assert f"Type {_C1}, Cannot instanciate a scoped service outside of a scoped session" == info.value.message
 
 
 def test_scoped_injection_fail_no_scope_in_singleton() -> None:
@@ -459,8 +430,7 @@ def test_scoped_injection_fail_no_scope_in_singleton() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one"
-        == info.value.message
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one" == info.value.message
     )
 
 
@@ -480,8 +450,7 @@ def test_scoped_injection_fail_no_scope_in_transcient() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one"
-        == info.value.message
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one" == info.value.message
     )
 
 
@@ -614,10 +583,7 @@ def test_inject_no_union() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert (
-        f"Callable {_TestClass}, Parameter 'v', Type unions are not allowed"
-        == info.value.message
-    )
+    assert f"Callable {_TestClass}, Parameter 'v', Type unions are not allowed" == info.value.message
 
 
 def test_optional_type_literal_right() -> None:
@@ -712,8 +678,7 @@ def test_generic_no_direct_injection_literal() -> None:
 
     assert (
         f"Type {_GenericTest}, Generic parameter ForwardRef('_SubTestClass'), "
-        "literal type hints are not allowed in direct require calls"
-        == info.value.message
+        "literal type hints are not allowed in direct require calls" == info.value.message
     )
 
 
@@ -796,10 +761,7 @@ def test_fail_immediate_instanciate() -> None:
             instanciate=True,
         )
 
-    assert (
-        f"Cannot instanciate {_TestClass} if an instance is provided"
-        == info.value.message
-    )
+    assert f"Cannot instanciate {_TestClass} if an instance is provided" == info.value.message
 
 
 def test_register_with_super_type() -> None:
@@ -899,3 +861,35 @@ def test_register_match_all() -> None:
     assert isinstance(_loggerB, _Logger)
     assert not isinstance(_loggerB, _LoggerA)
     assert meta.get(_loggerB, GenericMeta).args == (_ServiceB,)
+
+
+def test_require_from_typevar() -> None:
+    class _Resource:
+        pass
+
+    class _SpecificResource(_Resource):
+        pass
+
+    _T = TypeVar("_T", bound=_Resource)
+
+    class _Service(Generic[_T]):
+        pass
+
+    class _SpecificService(_Service[_SpecificResource]):
+        pass
+
+    class _Controller(Generic[_T]):
+        def __init__(self, sub: _Service[_T]) -> None:
+            self.sub = sub
+
+    inject = Injection(Cache(), _InjectionContext())
+    inject.add(_Service[_Resource], "singleton")
+    inject.add(_SpecificService, "singleton", super_cls=_Service[_SpecificResource])
+
+    inject.add(_Controller, "singleton", match_all=True)
+
+    ctrl = inject.require(_Controller[_Resource])
+    assert isinstance(ctrl.sub, _Service)
+
+    ctrl2 = inject.require(_Controller[_SpecificResource])
+    assert isinstance(ctrl2.sub, _SpecificService)

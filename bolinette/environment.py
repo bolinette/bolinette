@@ -4,15 +4,7 @@ from collections.abc import Callable
 from types import UnionType
 from typing import Any, Protocol, TypeVar, Union, get_args, get_origin
 
-from bolinette import (
-    Cache,
-    CoreSection,
-    Injection,
-    Logger,
-    __user_cache__,
-    init_method,
-    meta,
-)
+from bolinette import Cache, CoreSection, Injection, Logger, __user_cache__, init_method, meta
 from bolinette.exceptions import EnvironmentError
 from bolinette.utils import FileUtils, PathUtils
 
@@ -50,9 +42,7 @@ class Environment:
     def _init_section(self, section: object) -> None:
         section_name = meta.get(type(section), _EnvSectionMeta).name
         if section_name not in self._raw_env:
-            raise EnvironmentError(
-                f"No '{section_name}' section was found in the environment files"
-            )
+            raise EnvironmentError(f"No '{section_name}' section was found in the environment files")
         _EnvParser(self._raw_env[section_name], section).parse()
 
     @init_method
@@ -119,9 +109,7 @@ class EnvironmentSection(Protocol):
 EnvT = TypeVar("EnvT", bound=EnvironmentSection)
 
 
-def environment(
-    name: str, *, cache: Cache | None = None
-) -> Callable[[type[EnvT]], type[EnvT]]:
+def environment(name: str, *, cache: Cache | None = None) -> Callable[[type[EnvT]], type[EnvT]]:
     def decorator(cls: type[EnvT]) -> type[EnvT]:
         meta.set(cls, _EnvSectionMeta(name))
         (cache or __user_cache__).add(EnvironmentSection, cls)
@@ -146,8 +134,7 @@ class _EnvParser:
         if name not in node:
             if not default_set:
                 raise EnvironmentError(
-                    f"Section {path}: "
-                    "no value to bind found in environment and no default value set"
+                    f"Section {path}: " "no value to bind found in environment and no default value set"
                 )
             return default
         return node[name]
@@ -160,9 +147,7 @@ class _EnvParser:
             if hasattr(obj, att_name):
                 default_set = True
                 default = getattr(obj, att_name)
-            env_value = _EnvParser._get_value(
-                path, att_name, node, default_set, default
-            )
+            env_value = _EnvParser._get_value(path, att_name, node, default_set, default)
             value = self._parse_value(annotation, env_value, sub_path)
             setattr(obj, att_name, value)
 
@@ -177,21 +162,15 @@ class _EnvParser:
             if origin in (UnionType, Union):
                 nullable = type(None) in type_args
                 if (nullable and len(type_args) >= 3) or not nullable:
-                    raise EnvironmentError(
-                        f"Section {path}: type unions are not allowed"
-                    )
+                    raise EnvironmentError(f"Section {path}: type unions are not allowed")
                 annotation = next(filter(lambda t: t is not type(None), type_args))
             elif origin is list:
                 return self._parse_list(value, type_args[0], path)
             else:
-                raise EnvironmentError(
-                    f"Section {path}: unsupported generic type {origin}"
-                )
+                raise EnvironmentError(f"Section {path}: unsupported generic type {origin}")
         if value is None:
             if not nullable:
-                raise EnvironmentError(
-                    f"Section {path}: attemting to bind None value to a non-nullable attribute"
-                )
+                raise EnvironmentError(f"Section {path}: attemting to bind None value to a non-nullable attribute")
             value = None
         elif annotation is list:
             return self._parse_list(value, _NoAnnotation, path)
@@ -199,33 +178,24 @@ class _EnvParser:
             try:
                 value = annotation(value)
             except (ValueError) as exp:
-                raise EnvironmentError(
-                    f"Section {path}: unable to bind value {value} to type {annotation}"
-                ) from exp
+                raise EnvironmentError(f"Section {path}: unable to bind value {value} to type {annotation}") from exp
         elif isinstance(annotation, type):
             if len(inspect.signature(annotation).parameters) != 0:
-                raise EnvironmentError(
-                    f"Section {annotation} must have an empty __init__ method"
-                )
+                raise EnvironmentError(f"Section {annotation} must have an empty __init__ method")
             if not isinstance(value, dict):
-                raise EnvironmentError(
-                    f"Section {path} is typed has a class and can only be mapped from a dictionnary"
-                )
+                raise EnvironmentError(f"Section {path} is typed has a class and can only be mapped from a dictionnary")
             sub_obj = annotation()
             self._parse_object(sub_obj, value, path)
             value = sub_obj
         else:
             raise EnvironmentError(
-                f"Unable to bind value to section {path}, "
-                "be sure to type hint with only classes and buit-in types"
+                f"Unable to bind value to section {path}, " "be sure to type hint with only classes and buit-in types"
             )
         return value
 
     def _parse_list(self, value: Any, arg_type: type | None, path: str) -> list[Any]:
         if not isinstance(value, list):
-            raise EnvironmentError(
-                f"Section {path} must be binded to a list, {type(value)} found"
-            )
+            raise EnvironmentError(f"Section {path} must be binded to a list, {type(value)} found")
         index = 0
         env_list = []
         for elem in value:

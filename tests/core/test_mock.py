@@ -82,9 +82,7 @@ def test_mock_fail_not_mocked() -> None:
     with pytest.raises(KeyError) as info:
         t.i.get_v3()
 
-    assert f"'get_v3' attribute has not been mocked in {_TestInjectedClass}" in str(
-        info.value
-    )
+    assert f"'get_v3' attribute has not been mocked in {_TestInjectedClass}" in str(info.value)
 
 
 def test_mock_dummy_mode() -> None:

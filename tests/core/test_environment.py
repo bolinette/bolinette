@@ -91,8 +91,7 @@ def test_fail_missing_attribute() -> None:
         mock.injection.require(TestSection)
 
     assert (
-        f"Section {TestSection}: "
-        "no value to bind found in environment and no default value set"
+        f"Section {TestSection}: " "no value to bind found in environment and no default value set"
     ) in info.value.message
 
 
@@ -144,10 +143,7 @@ def test_non_empty_sub_init() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"Section {SubTestSection} must have an empty __init__ method"
-        in info.value.message
-    )
+    assert f"Section {SubTestSection} must have an empty __init__ method" in info.value.message
 
 
 def test_no_dict_to_map() -> None:
@@ -190,10 +186,7 @@ def test_no_literal() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"Section {TestSection}.sub: no literal allowed in type hints"
-        in info.value.message
-    )
+    assert f"Section {TestSection}.sub: no literal allowed in type hints" in info.value.message
 
 
 def test_os_env_conflict() -> None:
@@ -204,10 +197,7 @@ def test_os_env_conflict() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(Environment)
 
-    assert (
-        f"OS variable 'BLNT_TEST__A' conflicts with other variables"
-        in info.value.message
-    )
+    assert f"OS variable 'BLNT_TEST__A' conflicts with other variables" in info.value.message
 
     del os.environ["BLNT_TEST__A__A"]
     del os.environ["BLNT_TEST__A"]
@@ -242,10 +232,7 @@ def test_fail_wrong_type() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"Section {TestSection}.a: unable to bind value test to type {int}"
-        in info.value.message
-    )
+    assert f"Section {TestSection}.a: unable to bind value test to type {int}" in info.value.message
 
 
 def test_optional_value() -> None:
@@ -307,10 +294,7 @@ def test_fail_not_optional() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"Section {TestSection}.a: attemting to bind None value to a non-nullable attribute"
-        in info.value.message
-    )
+    assert f"Section {TestSection}.a: attemting to bind None value to a non-nullable attribute" in info.value.message
 
 
 def test_hint_any() -> None:
@@ -378,9 +362,7 @@ def test_fail_unknow_type() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"Section {TestSection}.a: unsupported generic type {Callable}"
-    ) in info.value.message
+    assert (f"Section {TestSection}.a: unsupported generic type {Callable}") in info.value.message
 
 
 def test_fail_no_section() -> None:
@@ -397,9 +379,7 @@ def test_fail_no_section() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"No 'test' section was found in the environment files"
-    ) in info.value.message
+    assert (f"No 'test' section was found in the environment files") in info.value.message
 
 
 def test_builtin_list_attribute() -> None:
@@ -415,9 +395,7 @@ def test_builtin_list_attribute() -> None:
     mock = _setup_test(cache)
     mock.mock(FileUtils).setup(
         "read_yaml",
-        lambda *_: {
-            "test": {"a": [1, 2], "b": ["a", "b"], "c": [1.1, 2.2], "d": [True, False]}
-        },
+        lambda *_: {"test": {"a": [1, 2], "b": ["a", "b"], "c": [1.1, 2.2], "d": [True, False]}},
     )
     mock.injection.require(Environment)
 
@@ -446,10 +424,7 @@ def test_list_attribute_bad_cast() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (
-        f"Section {TestSection}.a[1]: unable to bind value b to type {int}"
-        in info.value.message
-    )
+    assert f"Section {TestSection}.a[1]: unable to bind value b to type {int}" in info.value.message
 
 
 def test_sub_object_in_list() -> None:

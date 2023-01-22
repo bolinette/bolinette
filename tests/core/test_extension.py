@@ -38,10 +38,7 @@ def test_fail_circular_dependencies() -> None:
     with pytest.raises(InitError) as info:
         Extension.sort_extensions([e2, e1])
 
-    assert (
-        "A circular dependency was detected in the loaded extensions"
-        == info.value.message
-    )
+    assert "A circular dependency was detected in the loaded extensions" == info.value.message
 
 
 def test_merge_caches() -> None:

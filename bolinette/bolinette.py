@@ -1,16 +1,6 @@
 from typing import Callable
 
-from bolinette import (
-    Environment,
-    Extension,
-    Injection,
-    Logger,
-    __core_cache__,
-    __user_cache__,
-    core_ext,
-    meta,
-    require,
-)
+from bolinette import Environment, Extension, Injection, Logger, __core_cache__, __user_cache__, core_ext, meta, require
 from bolinette.command import Parser
 from bolinette.utils import FileUtils, PathUtils
 
@@ -40,11 +30,7 @@ class Bolinette:
         self._paths = self._inject.require(PathUtils)
         self._files = self._inject.require(FileUtils)
 
-        self._profile = (
-            profile
-            or self._files.read_profile(self._paths.env_path())
-            or self._set_default_profile()
-        )
+        self._profile = profile or self._files.read_profile(self._paths.env_path()) or self._set_default_profile()
 
         self._inject.add(Bolinette, "singleton", instance=self)
         self._inject.add(

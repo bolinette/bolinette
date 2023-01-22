@@ -72,9 +72,7 @@ class _MockWrapper(Generic[T]):
 
 
 class Mock:
-    def __init__(
-        self, *, inject: Injection | None = None, cache: Cache | None = None
-    ) -> None:
+    def __init__(self, *, inject: Injection | None = None, cache: Cache | None = None) -> None:
         self._inject = inject or Injection(cache or Cache(), _InjectionContext())
         self._mocked: dict[type[Any], _MockWrapper[Any]] = {}
 

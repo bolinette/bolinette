@@ -39,9 +39,7 @@ class RelationalDatabase:
         for entity, table_def in table_defs.items():
             mapped_cols[entity] = {}
             for col_name, column in table_def.columns.items():
-                sql_column: sa.Column = sa.Column(
-                    col_name, column.sql_type, nullable=column.nullable
-                )
+                sql_column: sa.Column = sa.Column(col_name, column.sql_type, nullable=column.nullable)
                 mapped_cols[entity][col_name] = sql_column
             sql_table = sa.Table(
                 table_def.name,
@@ -56,25 +54,14 @@ class RelationalDatabase:
 
             table_def = table_defs[entity]
             for const_name, constraint in table_def.constraints.items():
-                const_cols = [
-                    mapped_cols[entity][col.name] for col in constraint.columns
-                ]
+                const_cols = [mapped_cols[entity][col.name] for col in constraint.columns]
                 if isinstance(constraint, PrimaryKeyConstraint):
-                    model_defs[const_name] = sa.PrimaryKeyConstraint(
-                        *const_cols, name=const_name
-                    )
+                    model_defs[const_name] = sa.PrimaryKeyConstraint(*const_cols, name=const_name)
                 if isinstance(constraint, UniqueConstraint):
-                    model_defs[const_name] = sa.UniqueConstraint(
-                        *const_cols, name=const_name
-                    )
+                    model_defs[const_name] = sa.UniqueConstraint(*const_cols, name=const_name)
                 if isinstance(constraint, ForeignKeyConstraint):
-                    target_cols = [
-                        mapped_cols[constraint.target.entity][col.name]
-                        for col in constraint.target_columns
-                    ]
-                    model_defs[const_name] = sa.ForeignKeyConstraint(
-                        const_cols, target_cols, name=const_name
-                    )
+                    target_cols = [mapped_cols[constraint.target.entity][col.name] for col in constraint.target_columns]
+                    model_defs[const_name] = sa.ForeignKeyConstraint(const_cols, target_cols, name=const_name)
             for ref_name, reference in table_def.references.items():
                 if isinstance(reference, TableReference):
                     model_defs[ref_name] = relationship(

@@ -144,8 +144,7 @@ def test_fail_entity_unique_constraint_custom_columns() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Test}, Attribute 'name', Annotated unique constraint must not provide columns"
-        == info.value.message
+        f"Entity {Test}, Attribute 'name', Annotated unique constraint must not provide columns" == info.value.message
     )
 
 
@@ -185,10 +184,7 @@ def test_fail_entity_unique_constraint_no_custom_columns() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Test}, Attribute 'u', Class level unique constraint must provide columns"
-        == info.value.message
-    )
+    assert f"Entity {Test}, Attribute 'u', Class level unique constraint must provide columns" == info.value.message
 
 
 def test_fail_entity_column_union_type() -> None:
@@ -204,10 +200,7 @@ def test_fail_entity_column_union_type() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Test}, Attribute 'name', Union types are not allowed"
-        == info.value.message
-    )
+    assert f"Entity {Test}, Attribute 'name', Union types are not allowed" == info.value.message
 
 
 def test_entity_unique_constraint_class_level() -> None:
@@ -302,9 +295,7 @@ def test_fail_entity_two_primary_keys():
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Test}, Several primary keys have been defined" == info.value.message
-    )
+    assert f"Entity {Test}, Several primary keys have been defined" == info.value.message
 
 
 def test_entity_primary_key_custom_name():
@@ -351,10 +342,7 @@ def test_fail_entity_primary_key_custom_columns() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Test}, Attribute 'id', Annotated primary key must not provide columns"
-        == info.value.message
-    )
+    assert f"Entity {Test}, Attribute 'id', Annotated primary key must not provide columns" == info.value.message
 
 
 def test_fail_entity_primary_key_no_custom_name() -> None:
@@ -371,10 +359,7 @@ def test_fail_entity_primary_key_no_custom_name() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Test}, Attribute 'pk', Class level primary key must not define a custom name"
-        == info.value.message
-    )
+    assert f"Entity {Test}, Attribute 'pk', Class level primary key must not define a custom name" == info.value.message
 
 
 def test_fail_entity_primary_key_no_custom_columns() -> None:
@@ -391,10 +376,7 @@ def test_fail_entity_primary_key_no_custom_columns() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Test}, Attribute 'pk', Class level primary key must provide columns"
-        == info.value.message
-    )
+    assert f"Entity {Test}, Attribute 'pk', Class level primary key must provide columns" == info.value.message
 
 
 def test_fail_entity_primary_key_invalid_column() -> None:
@@ -455,10 +437,7 @@ def test_fail_entity_reference_not_registered() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Child}, Attribute 'parent', Type {Parent} is not supported"
-        == info.value.message
-    )
+    assert f"Entity {Child}, Attribute 'parent', Type {Parent} is not supported" == info.value.message
 
 
 def test_entity_foreign_key() -> None:
@@ -585,8 +564,7 @@ def test_fail_entity_foreign_key_custom_columns() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Child}, Attribute 'parent_id', Annotated foreign key must not provide columns"
-        == info.value.message
+        f"Entity {Child}, Attribute 'parent_id', Annotated foreign key must not provide columns" == info.value.message
     )
 
 
@@ -610,8 +588,7 @@ def test_fail_entity_foreign_key_no_custom_name() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Child}, Attribute 'fk', Class level foreign key must not define a custom name"
-        == info.value.message
+        f"Entity {Child}, Attribute 'fk', Class level foreign key must not define a custom name" == info.value.message
     )
 
 
@@ -634,10 +611,7 @@ def test_fail_entity_foreign_key_no_custom_columns() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Child}, Attribute 'fk', Class level foreign key must provide columns"
-        == info.value.message
-    )
+    assert f"Entity {Child}, Attribute 'fk', Class level foreign key must provide columns" == info.value.message
 
 
 def test_fail_entity_foreign_key_not_an_entity() -> None:
@@ -656,10 +630,7 @@ def test_fail_entity_foreign_key_not_an_entity() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Child}, Attribute 'parent_id', Type {Parent} is not a registered entity"
-        == info.value.message
-    )
+    assert f"Entity {Child}, Attribute 'parent_id', Type {Parent} is not a registered entity" == info.value.message
 
 
 def test_entity_many_to_one() -> None:
@@ -704,10 +675,7 @@ def test_fail_entity_many_to_one_unknown_column() -> None:
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
 
-    assert (
-        f"Entity {Child}, Attribute 'parent', Column 'parent_id' does not exist in entity"
-        == info.value.message
-    )
+    assert f"Entity {Child}, Attribute 'parent', Column 'parent_id' does not exist in entity" == info.value.message
 
 
 def test_fail_entity_many_to_one_not_a_foreign_key() -> None:
@@ -804,8 +772,7 @@ def test_fail_entity_many_to_one_on_collection_reference() -> None:
         mock.injection.require(EntityManager)
 
     assert (
-        f"Entity {Child}, Attribute 'parent', Many-to-one relationship must be a single reference"
-        == info.value.message
+        f"Entity {Child}, Attribute 'parent', Many-to-one relationship must be a single reference" == info.value.message
     )
 
 
@@ -977,9 +944,7 @@ class ParentE:
 class ChildE:
     id: Annotated[int, PrimaryKey()]
     parent_id: Annotated[int, ForeignKey(ParentE)]
-    parent: Annotated[
-        ParentE, ManyToOne(["parent_id"], other_side="children", lazy=True)
-    ]
+    parent: Annotated[ParentE, ManyToOne(["parent_id"], other_side="children", lazy=True)]
 
 
 def test_entity_one_to_many_and_many_to_one() -> None:

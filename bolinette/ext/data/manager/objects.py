@@ -71,9 +71,7 @@ class Constraint(Protocol):
 
 
 class PrimaryKeyConstraint(Constraint):
-    def __init__(
-        self, table: "TableDefinition", name: str, columns: list[TableColumn]
-    ) -> None:
+    def __init__(self, table: "TableDefinition", name: str, columns: list[TableColumn]) -> None:
         self.table = table
         self.name = name
         self.columns = columns
@@ -98,9 +96,7 @@ class ForeignKeyConstraint(Constraint):
 
 
 class UniqueConstraint(Constraint):
-    def __init__(
-        self, table: "TableDefinition", name: str, columns: list[TableColumn]
-    ) -> None:
+    def __init__(self, table: "TableDefinition", name: str, columns: list[TableColumn]) -> None:
         self.table = table
         self.name = name
         self.columns = columns
@@ -136,9 +132,7 @@ class TableDefinition(Generic[EntityT]):
         return None
 
     def get_primary_key(self) -> PrimaryKeyConstraint:
-        return next(
-            c for c in self.constraints.values() if isinstance(c, PrimaryKeyConstraint)
-        )
+        return next(c for c in self.constraints.values() if isinstance(c, PrimaryKeyConstraint))
 
     def check_unique(self, columns: list[TableColumn]) -> UniqueConstraint | None:
         for constraint in {a for _, a in self.get_constraints(UniqueConstraint)}:

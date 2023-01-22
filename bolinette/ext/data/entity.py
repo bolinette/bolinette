@@ -48,9 +48,7 @@ class PrimaryKey:
     def __init__(self, *, name: str | None = None) -> None:
         pass
 
-    def __init__(
-        self, columns: list[str] | None = None, *, name: str | None = None
-    ) -> None:
+    def __init__(self, columns: list[str] | None = None, *, name: str | None = None) -> None:
         self.name = name
         self.columns = columns
 
@@ -68,9 +66,7 @@ class Unique:
     def __init__(self, *, name: str | None = None) -> None:
         pass
 
-    def __init__(
-        self, columns: list[str] | None = None, *, name: str | None = None
-    ) -> None:
+    def __init__(self, columns: list[str] | None = None, *, name: str | None = None) -> None:
         self.name = name
         self.columns = columns
 

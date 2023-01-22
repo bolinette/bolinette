@@ -63,12 +63,8 @@ class Logger(Generic[T]):
     ):
         strs: list[str] = []
         strs.append(f"{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')}")
-        strs.append(
-            f"{ConsoleColorCode.Bright}{color}{prefix.ljust(5)}{ConsoleColorCode.Reset}"
-        )
-        strs.append(
-            f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]"
-        )
+        strs.append(f"{ConsoleColorCode.Bright}{color}{prefix.ljust(5)}{ConsoleColorCode.Reset}")
+        strs.append(f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]")
         strs.append(text)
         print(*strs, file=file)
 

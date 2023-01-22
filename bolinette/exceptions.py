@@ -54,12 +54,8 @@ class InjectionError(InternalError, ParameterError):
         func: Callable | None = None,
         param: str | None = None,
     ) -> None:
-        ParameterError.__init__(
-            self, cls="Type {}", func="Callable {}", param="Parameter '{}'"
-        )
-        InternalError.__init__(
-            self, self._format_params(message, cls=cls, func=func, param=param)
-        )
+        ParameterError.__init__(self, cls="Type {}", func="Callable {}", param="Parameter '{}'")
+        InternalError.__init__(self, self._format_params(message, cls=cls, func=func, param=param))
 
 
 class EnvironmentError(BolinetteError):
@@ -67,9 +63,7 @@ class EnvironmentError(BolinetteError):
 
 
 class InitError(Exception):
-    def __init__(
-        self, message: str | None = None, *, inner: Exception | None = None
-    ) -> None:
+    def __init__(self, message: str | None = None, *, inner: Exception | None = None) -> None:
         Exception.__init__(self, message)
         self.message = message
         self.inner = inner

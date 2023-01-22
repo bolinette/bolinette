@@ -343,9 +343,7 @@ async def test_command_argument_help(capsys: CaptureFixture) -> None:
         exited = True
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument(
-        "flag", "param", flag="p", summary="This a help text for param arg"
-    )
+    @command.argument("flag", "param", flag="p", summary="This a help text for param arg")
     async def _(param: bool):
         pass
 

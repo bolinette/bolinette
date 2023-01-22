@@ -19,9 +19,7 @@ class FileUtils:
         with open(path) as f:
             return yaml.safe_load(f)
 
-    def read_requirements(
-        self, path: str, *, name: str = "requirements.txt"
-    ) -> list[str]:
+    def read_requirements(self, path: str, *, name: str = "requirements.txt") -> list[str]:
         return list(
             filter(
                 lambda r: len(r),

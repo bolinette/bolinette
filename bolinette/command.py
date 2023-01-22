@@ -3,16 +3,7 @@ from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import Callable
 from typing import Any, Awaitable, Literal, ParamSpec
 
-from bolinette import (
-    Cache,
-    Injection,
-    Logger,
-    __core_cache__,
-    __user_cache__,
-    init_method,
-    injectable,
-    meta,
-)
+from bolinette import Cache, Injection, Logger, __core_cache__, __user_cache__, init_method, injectable, meta
 from bolinette.exceptions import InitError
 
 P_Func = ParamSpec("P_Func")
@@ -90,9 +81,7 @@ class Parser:
                 del parsed["__blnt_path__"]
             await self._run_command(cmd, parsed)
         elif "__blnt_path__" in parsed:
-            self._logger.error(
-                self._sub_commands[parsed["__blnt_path__"]].format_help()
-            )
+            self._logger.error(self._sub_commands[parsed["__blnt_path__"]].format_help())
             sys.exit(1)
         else:
             self._logger.error(parser.format_help())
@@ -133,9 +122,7 @@ class Parser:
                         self._factories[arg.arg_type](arg, sub_parser)
                 sub_parser.set_defaults(__blnt_cmd__=_cmd.path)
             else:
-                sub_parser = sub_parsers.add_parser(
-                    name, help=self._build_help(elem, path + [name])
-                )
+                sub_parser = sub_parsers.add_parser(name, help=self._build_help(elem, path + [name]))
                 sub_parser.set_defaults(__blnt_path__=name)
                 self._sub_commands[name] = sub_parser
                 self._build_parsers(elem, sub_parser.add_subparsers(), path + [name])
@@ -171,31 +158,23 @@ class Parser:
 
     @staticmethod
     def _create_argument(arg: _Argument, parser: ArgumentParser):
-        args, kwargs = Parser._create_parser_arg(
-            arg, optional=False, use_flag=False, action=None
-        )
+        args, kwargs = Parser._create_parser_arg(arg, optional=False, use_flag=False, action=None)
         parser.add_argument(*args, **kwargs)
 
     @staticmethod
     def _create_option(arg: _Argument, parser: ArgumentParser):
-        args, kwargs = Parser._create_parser_arg(
-            arg, optional=True, use_flag=True, action=None
-        )
+        args, kwargs = Parser._create_parser_arg(arg, optional=True, use_flag=True, action=None)
         parser.add_argument(*args, **kwargs)
 
     @staticmethod
     def _create_flag(arg: _Argument, parser: ArgumentParser):
-        args, kwargs = Parser._create_parser_arg(
-            arg, optional=True, use_flag=True, action="store_true"
-        )
+        args, kwargs = Parser._create_parser_arg(arg, optional=True, use_flag=True, action="store_true")
         parser.add_argument(*args, **kwargs)
 
 
 class _CommandDecorator:
     def __call__(self, name: str, summary: str, *, cache: Cache | None = None):
-        def decorator(
-            func: Callable[P_Func, Awaitable[None]]
-        ) -> Callable[P_Func, Awaitable[None]]:
+        def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
             meta.set(func, _CommandMeta(name, summary))
             (cache or __user_cache__).add(_CommandMeta, func)
             return func
@@ -213,9 +192,7 @@ class _CommandDecorator:
         default=None,
         choices: list | None = None,
     ):
-        def decorator(
-            func: Callable[P_Func, Awaitable[None]]
-        ) -> Callable[P_Func, Awaitable[None]]:
+        def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
             if not meta.has(func, _ArgumentMeta):
                 meta.set(func, _ArgumentMeta())
             meta.get(func, _ArgumentMeta).append(

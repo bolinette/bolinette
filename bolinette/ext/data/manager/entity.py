@@ -1,14 +1,5 @@
 from types import NoneType, UnionType
-from typing import (
-    Annotated,
-    Any,
-    Generic,
-    Literal,
-    TypeVar,
-    get_args,
-    get_origin,
-    get_type_hints,
-)
+from typing import Annotated, Any, Generic, Literal, TypeVar, get_args, get_origin, get_type_hints
 
 from bolinette import Cache, Logger, init_method, injectable, meta
 from bolinette.ext.data import (
@@ -38,9 +29,7 @@ from bolinette.utils import AttributeUtils
 
 @injectable(cache=__data_cache__)
 class EntityManager:
-    def __init__(
-        self, cache: Cache, attrs: AttributeUtils, logger: "Logger[EntityManager]"
-    ) -> None:
+    def __init__(self, cache: Cache, attrs: AttributeUtils, logger: "Logger[EntityManager]") -> None:
         self._cache = cache
         self._attrs = attrs
         self._logger = logger
@@ -51,9 +40,7 @@ class EntityManager:
         return {**self._table_defs}
 
     @staticmethod
-    def check_columns_match(
-        cols1: "list[TableColumn]", cols2: "list[TableColumn]"
-    ) -> bool:
+    def check_columns_match(cols1: "list[TableColumn]", cols2: "list[TableColumn]") -> bool:
         if len(cols1) != len(cols2):
             return False
         for i in range(len(cols1)):
@@ -67,8 +54,7 @@ class EntityManager:
     def init(self) -> None:
         self._init_models()
         temp_defs: dict[type[Entity], TempTableDef] = dict(
-            (entity, TempTableDef(table_def.name))
-            for entity, table_def in self._table_defs.items()
+            (entity, TempTableDef(table_def.name)) for entity, table_def in self._table_defs.items()
         )
         self._parse_annotations(temp_defs)
         self._parse_constraints(temp_defs)
@@ -80,9 +66,7 @@ class EntityManager:
     def _init_models(self) -> None:
         for cls in self._cache.get(EntityMeta, hint=type[Entity], raises=False):
             entity_meta = meta.get(cls, EntityMeta)
-            table_def = TableDefinition(
-                entity_meta.table_name, cls, entity_meta.database
-            )
+            table_def = TableDefinition(entity_meta.table_name, cls, entity_meta.database)
             self._table_defs[cls] = table_def
 
     @staticmethod
@@ -205,9 +189,7 @@ class EntityManager:
 
     def _parse_constraints(self, temp_defs: "dict[type[Entity], TempTableDef]") -> None:
         for entity, tmp_def in temp_defs.items():
-            for c_name, const in self._attrs.get_cls_attrs(
-                entity, of_type=(Unique, PrimaryKey, ForeignKey)
-            ):
+            for c_name, const in self._attrs.get_cls_attrs(entity, of_type=(Unique, PrimaryKey, ForeignKey)):
                 if const.name is not None:
                     raise EntityError(
                         f"Class level {const.__lower_name__} must not define a custom name",
@@ -223,13 +205,9 @@ class EntityManager:
                 if isinstance(const, Unique):
                     tmp_def.uniques.append(TempUnique(c_name, c_name, const.columns))
                 elif isinstance(const, PrimaryKey):
-                    tmp_def.primary_keys.append(
-                        TempPrimaryKey(c_name, c_name, const.columns)
-                    )
+                    tmp_def.primary_keys.append(TempPrimaryKey(c_name, c_name, const.columns))
                 elif isinstance(const, ForeignKey):
-                    tmp_def.foreign_keys.append(
-                        TempForeignKey(c_name, c_name, const.columns, const.target)
-                    )
+                    tmp_def.foreign_keys.append(TempForeignKey(c_name, c_name, const.columns, const.target))
 
     def _populate_tables(self, temp_defs: "dict[type[Entity], TempTableDef]"):
         # == Add Table Columns ==
@@ -264,9 +242,7 @@ class EntityManager:
                         entity=entity,
                         attribute=tmp_unique.origin_name,
                     )
-                table_def.constraints[tmp_unique.name] = UniqueConstraint(
-                    table_def, tmp_unique.name, u_columns
-                )
+                table_def.constraints[tmp_unique.name] = UniqueConstraint(table_def, tmp_unique.name, u_columns)
 
         # == Add Primary Key Constraints ==
         for entity, tmp_def in temp_defs.items():
@@ -287,17 +263,13 @@ class EntityManager:
                         entity=entity,
                         attribute=tmp_primary.origin_name,
                     )
-                table_def.constraints[tmp_primary.name] = PrimaryKeyConstraint(
-                    table_def, tmp_primary.name, pk_columns
-                )
+                table_def.constraints[tmp_primary.name] = PrimaryKeyConstraint(table_def, tmp_primary.name, pk_columns)
             # == Check if there is only one primary key ==
             primary_keys = table_def.get_constraints(PrimaryKeyConstraint)
             if len(primary_keys) == 0:
                 raise EntityError("No primary keys have been defined", entity=entity)
             elif len(primary_keys) > 1:
-                raise EntityError(
-                    "Several primary keys have been defined", entity=entity
-                )
+                raise EntityError("Several primary keys have been defined", entity=entity)
 
         # == Add Foreign Key Constraints ==
         for entity, tmp_def in temp_defs.items():
@@ -327,9 +299,7 @@ class EntityManager:
                     table_def, fk_name, source_cols, target_table, target_cols
                 )
 
-    def _populate_references(
-        self, temp_defs: "dict[type[Entity], TempTableDef]"
-    ) -> None:
+    def _populate_references(self, temp_defs: "dict[type[Entity], TempTableDef]") -> None:
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
             for tmp_mto in tmp_def.many_to_ones:
@@ -351,9 +321,7 @@ class EntityManager:
                 )
                 table_def.references[collection.name] = collection
 
-    def _populate_constraints(
-        self, temp_defs: "dict[type[Entity], TempTableDef]"
-    ) -> None:
+    def _populate_constraints(self, temp_defs: "dict[type[Entity], TempTableDef]") -> None:
         def _create_const(
             _origin_name: str,
             _column_names: list[str],
@@ -412,9 +380,7 @@ class EntityManager:
                     table_def,
                 )
 
-    def _populate_back_references(
-        self, temp_defs: "dict[type[Entity], TempTableDef]"
-    ) -> None:
+    def _populate_back_references(self, temp_defs: "dict[type[Entity], TempTableDef]") -> None:
         for entity, tmp_def in temp_defs.items():
             table_def = self._table_defs[entity]
             # == Add Many-To-One Back Relationships ==

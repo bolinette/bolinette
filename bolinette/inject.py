@@ -34,9 +34,7 @@ class _InjectionContext:
     def has_instance(self, cls: type[Any], params: tuple[Any, ...]) -> bool:
         return cls in self._instances and hash(params) in self._instances[cls]
 
-    def set_instance(
-        self, cls: type[Any], params: tuple[Any, ...], instance: Any
-    ) -> None:
+    def set_instance(self, cls: type[Any], params: tuple[Any, ...], instance: Any) -> None:
         if cls not in self._instances:
             self._instances[cls] = {}
         self._instances[cls][hash(params)] = instance
@@ -55,9 +53,7 @@ class Injection:
         self._cache = cache
         self._global_ctx = global_ctx or _InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
-        self._add_type_instance(
-            Cache, (), Cache, (), False, "singleton", [], {}, [], cache, safe=True
-        )
+        self._add_type_instance(Cache, (), Cache, (), False, "singleton", [], {}, [], cache, safe=True)
         self._add_type_instance(
             Injection,
             (),
@@ -94,7 +90,7 @@ class Injection:
                     params,
                     _meta.strategy,  # type: ignore
                     _meta.args,
-                    _meta.kwargs,
+                    _meta.named_args,
                     _meta.init_methods,
                 )
             else:
@@ -104,7 +100,7 @@ class Injection:
                     params,
                     _meta.strategy,  # type: ignore
                     _meta.args,
-                    _meta.kwargs,
+                    _meta.named_args,
                     _meta.init_methods,
                 )
         return types
@@ -115,9 +111,7 @@ class Injection:
             *map(
                 lambda t: t(),
                 sorted(
-                    cache.get(
-                        ArgumentResolver, hint=type[ArgumentResolver], raises=False
-                    ),
+                    cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False),
                     key=lambda t: meta.get(t, _ArgResolverMeta).priority,
                 ),
             ),
@@ -142,16 +136,12 @@ class Injection:
                 "Cannot instanciate a scoped service outside of a scoped session",
                 cls=r_type.cls,
             )
-        return r_type.strategy == "singleton" and self._global_ctx.has_instance(
-            r_type.cls, r_type.params
-        )
+        return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.params)
 
     def _get_instance(self, r_type: "_RegisteredType[InstanceT]") -> InstanceT:
         return self._global_ctx.get_instance(r_type.cls, r_type.params)
 
-    def _set_instance(
-        self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT
-    ) -> None:
+    def _set_instance(self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT) -> None:
         if r_type.strategy == "singleton":
             self._global_ctx.set_instance(r_type.cls, r_type.params, instance)
 
@@ -163,11 +153,7 @@ class Injection:
         named_args: dict[str, Any],
     ) -> dict[str, Any]:
         func_params = dict(inspect.signature(func).parameters)
-        if any(
-            (n, p)
-            for n, p in func_params.items()
-            if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)
-        ):
+        if any((n, p) for n, p in func_params.items() if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)):
             raise InjectionError(
                 "Positional only parameters and positional wildcards are not allowed",
                 func=func,
@@ -183,9 +169,7 @@ class Injection:
             else:
                 hints = get_type_hints(func)
         except NameError as exp:
-            raise InjectionError(
-                f"Type hint '{exp.name}' could not be resolved", func=func
-            ) from exp
+            raise InjectionError(f"Type hint '{exp.name}' could not be resolved", func=func) from exp
 
         for p_name, param in func_params.items():
             if param.kind == param.VAR_KEYWORD:
@@ -220,9 +204,7 @@ class Injection:
                 type_args = get_args(hint)
                 nullable = type(None) in type_args
                 if not nullable or (nullable and len(type_args) >= 3):
-                    raise InjectionError(
-                        "Type unions are not allowed", func=func, param=p_name
-                    )
+                    raise InjectionError("Type unions are not allowed", func=func, param=p_name)
                 hint = next(filter(lambda t: t is not NoneType, type_args))
 
             hint, gen_params = self._get_generic_params(hint)
@@ -275,9 +257,7 @@ class Injection:
             if meta.has(attr, _InitMethodMeta):
                 self.call(attr, args=[instance])
 
-    def _run_init_methods(
-        self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT
-    ):
+    def _run_init_methods(self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT):
         self._run_init_recursive(r_type.cls, instance)
         for method in r_type.init_methods:
             self.call(method, args=[instance])
@@ -298,10 +278,8 @@ class Injection:
             return origin, params
         return _cls, ()
 
-    def _instanciate(
-        self, r_type: "_RegisteredType[InstanceT]", params: tuple[Any, ...]
-    ) -> InstanceT:
-        func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.kwargs)
+    def _instanciate(self, r_type: "_RegisteredType[InstanceT]", params: tuple[Any, ...]) -> InstanceT:
+        func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.named_args)
         instance = r_type.cls(**func_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
@@ -310,9 +288,7 @@ class Injection:
         self._set_instance(r_type, instance)
         return instance
 
-    def is_registered(
-        self, cls: type[Any], params: tuple[Any, ...] | None = None
-    ) -> bool:
+    def is_registered(self, cls: type[Any], params: tuple[Any, ...] | None = None) -> bool:
         if params is None:
             params = ()
         return cls in self._types and self._types[cls].is_registered(params)
@@ -348,14 +324,10 @@ class Injection:
         r_type: _RegisteredType[InstanceT] | None = None
         if match_all:
             if not safe or not type_bag.has_match_all():
-                r_type = type_bag.set_match_all(
-                    cls, params, strategy, args, named_args, init_methods
-                )
+                r_type = type_bag.set_match_all(cls, params, strategy, args, named_args, init_methods)
         else:
             if not safe or not type_bag.has_type(super_params):
-                r_type = type_bag.add_type(
-                    super_params, cls, params, strategy, args, named_args, init_methods
-                )
+                r_type = type_bag.add_type(super_params, cls, params, strategy, args, named_args, init_methods)
         if instance is not None:
             if r_type is None:
                 r_type = self._types[cls].get_type(params)
@@ -419,9 +391,7 @@ class Injection:
             if not isinstance(instance, cls):
                 raise InjectionError(f"Object provided must an instance of type {cls}")
             if strategy != "singleton":
-                raise InjectionError(
-                    f"Type {cls} must be a singleton if an instance is provided"
-                )
+                raise InjectionError(f"Type {cls} must be a singleton if an instance is provided")
         self._add_type_instance(
             super_cls,
             super_params,
@@ -445,18 +415,14 @@ class Injection:
                 error_txt = f"{cls}[{params}]"
             else:
                 error_txt = f"{cls}"
-            raise InjectionError(
-                f"Type {error_txt} is not a registered type in the injection system"
-            )
+            raise InjectionError(f"Type {error_txt} is not a registered type in the injection system")
         r_type = self._types[cls].get_type(params)
         if self._has_instance(r_type):
             return self._get_instance(r_type)
         return self._instanciate(r_type, params)
 
     def get_scoped_session(self) -> "_ScopedInjection":
-        return _ScopedInjection(
-            self, self._cache, self._global_ctx, _InjectionContext(), self._types
-        )
+        return _ScopedInjection(self, self._cache, self._global_ctx, _InjectionContext(), self._types)
 
 
 class _DefaultArgResolver:
@@ -481,9 +447,7 @@ class _DefaultArgResolver:
 
         r_type = options.injection._types[options.cls].get_type(options.generic_params)
 
-        if options.injection._has_instance(
-            r_type, origin=options.caller, name=options.name
-        ):
+        if options.injection._has_instance(r_type, origin=options.caller, name=options.name):
             return (options.name, options.injection._get_instance(r_type))
         if options.immediate:
             return (
@@ -546,12 +510,8 @@ class _ScopedInjection(Injection):
         self._scoped_ctx.set_instance(Injection, (), self)
 
     def _has_instance(self, r_type: "_RegisteredType[Any]", **_) -> bool:
-        return (
-            r_type.strategy == "scoped"
-            and self._scoped_ctx.has_instance(r_type.cls, r_type.params)
-        ) or (
-            r_type.strategy == "singleton"
-            and self._global_ctx.has_instance(r_type.cls, r_type.params)
+        return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.cls, r_type.params)) or (
+            r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.params)
         )
 
     def _get_instance(self, r_type: "_RegisteredType[InstanceT]") -> InstanceT:
@@ -559,9 +519,7 @@ class _ScopedInjection(Injection):
             return self._scoped_ctx.get_instance(r_type.cls, r_type.params)
         return self._global_ctx.get_instance(r_type.cls, r_type.params)
 
-    def _set_instance(
-        self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT
-    ) -> None:
+    def _set_instance(self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT) -> None:
         strategy = r_type.strategy
         if strategy == "scoped":
             self._scoped_ctx.set_instance(r_type.cls, r_type.params, instance)
@@ -583,7 +541,7 @@ class _RegisteredType(Generic[InstanceT]):
         self.params = params
         self.strategy = strategy
         self.args = args
-        self.kwargs = named_args
+        self.named_args = named_args
         self.init_methods = init_methods
 
     def __repr__(self) -> str:
@@ -610,9 +568,7 @@ class _RegisteredTypeBag(Generic[InstanceT]):
             return self._types[h]
         if self._match_all is not None:
             return self._match_all
-        raise InjectionError(
-            f"Type {self._cls} has not been registered with parameters {params}"
-        )
+        raise InjectionError(f"Type {self._cls} has not been registered with parameters {params}")
 
     def set_match_all(
         self,
@@ -649,9 +605,7 @@ class _InitMethodMeta:
     pass
 
 
-def init_method(
-    func: Callable[Concatenate[InstanceT, FuncP], None]
-) -> Callable[Concatenate[InstanceT, FuncP], None]:
+def init_method(func: Callable[Concatenate[InstanceT, FuncP], None]) -> Callable[Concatenate[InstanceT, FuncP], None]:
     meta.set(func, _InitMethodMeta())
     return func
 
@@ -667,7 +621,7 @@ class _InjectionParamsMeta:
     ) -> None:
         self.strategy = strategy
         self.args = args or []
-        self.kwargs = named_args or {}
+        self.named_args = named_args or {}
         self.init_methods = init_methods or []
         self.match_all = match_all
 
