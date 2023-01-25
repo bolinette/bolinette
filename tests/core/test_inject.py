@@ -1,11 +1,10 @@
-from typing import Generic, Optional, TypeVar, Any
+from typing import Any, Generic, Optional, TypeVar
 
 import pytest
 
 from bolinette import Cache, GenericMeta, Injection, init_method, injectable, meta, require
-from bolinette.inject import injection_arg_resolver, ArgResolverOptions
 from bolinette.exceptions import InjectionError
-from bolinette.inject import _InjectionContext
+from bolinette.inject import ArgResolverOptions, _InjectionContext, injection_arg_resolver
 
 
 class InjectableClassB:
@@ -201,7 +200,7 @@ def test_add_instance_no_singleton() -> None:
     with pytest.raises(InjectionError) as info:
         inject.add(InjectableClassB, "transcient", instance=b)
 
-    assert f"Type {InjectableClassB} must be a singleton if an instance is provided" == info.value.message
+    assert f"Injection strategy for {InjectableClassB} must be singleton if an instance is provided" == info.value.message
 
 
 def test_add_instance_wrong_type() -> None:
@@ -946,7 +945,10 @@ def test_fail_require_from_typevar_different_names() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_Controller[_Entity2])
 
-    assert f"Type {_Controller}, Parameter 's', TypeVar ~_T1 could not be found in calling declaration" == info.value.message
+    assert (
+        f"Type {_Controller}, Parameter 's', TypeVar ~_T1 could not be found in calling declaration"
+        == info.value.message
+    )
 
 
 def test_arg_resolver() -> None:

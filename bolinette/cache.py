@@ -51,12 +51,12 @@ class Cache:
     def __or__(self, __t: Any) -> "Cache":
         if isinstance(__t, Cache):
             return self._merge(self, __t)
-        raise NotImplemented
+        raise NotImplementedError()
 
     def __ror__(self, __t: Any) -> "Cache":
         if isinstance(__t, Cache):
             return self._merge(self, __t)
-        raise NotImplemented
+        raise NotImplementedError()
 
 
 __core_cache__ = Cache()

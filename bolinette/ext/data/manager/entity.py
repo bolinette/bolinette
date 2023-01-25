@@ -39,6 +39,12 @@ class EntityManager:
     def definitions(self) -> dict[type[Entity], TableDefinition]:
         return {**self._table_defs}
 
+    def is_entity_type(self, cls: type[Any]) -> bool:
+        return isinstance(cls, type) and cls in self._table_defs
+
+    def is_entity(self, obj: Any) -> bool:
+        return any(e for e in self._table_defs if isinstance(obj, e))  # type: ignore
+
     @staticmethod
     def check_columns_match(cols1: "list[TableColumn]", cols2: "list[TableColumn]") -> bool:
         if len(cols1) != len(cols2):

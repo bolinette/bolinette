@@ -1,5 +1,5 @@
 import inspect
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from types import NoneType, UnionType
 from typing import (
     TYPE_CHECKING,
@@ -45,6 +45,8 @@ class _InjectionContext:
 
 
 class Injection:
+    _ADD_INSTANCE_STRATEGIES = ("singleton",)
+
     def __init__(
         self,
         cache: Cache,
@@ -70,6 +72,7 @@ class Injection:
             self,
             safe=True,
         )
+        self._arg_resolvers = [_DefaultArgResolver()]
         self._arg_resolvers = self._pickup_resolvers(cache)
 
     @property
@@ -108,18 +111,19 @@ class Injection:
                 )
         return types
 
-    @staticmethod
-    def _pickup_resolvers(cache: Cache) -> "list[ArgumentResolver]":
-        return [
-            *map(
-                lambda t: t(),
-                sorted(
-                    cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False),
-                    key=lambda t: meta.get(t, _ArgResolverMeta).priority,
-                ),
-            ),
-            _DefaultArgResolver(),
-        ]
+    def _pickup_resolvers(self, cache: Cache) -> "list[ArgumentResolver]":
+        resolver_types = sorted(
+            cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False),
+            key=lambda t: meta.get(t, _ArgResolverMeta).priority,
+        )
+        resolvers: list[ArgumentResolver] = []
+        for t in resolver_types:
+            bag = _RegisteredTypeBag(t)
+            bag.add_type((), t, (), "singleton", [], {}, [])
+            self._types[t] = bag
+        for t in resolver_types:
+            resolvers.append(self._instanciate(self._types[t].get_type(()), ()))
+        return [*resolvers, _DefaultArgResolver()]
 
     def _has_instance(
         self,
@@ -287,7 +291,7 @@ class Injection:
                         assert isinstance(parent, type)
                     if parent_lookup is None:
                         raise InjectionError(
-                            f"TypeVar cannot be used from a non generic class", cls=parent, param=param_name
+                            "TypeVar cannot be used from a non generic class", cls=parent, param=param_name
                         )
                     if arg not in parent_lookup:
                         raise InjectionError(
@@ -419,8 +423,9 @@ class Injection:
                 )
             if not isinstance(instance, cls):
                 raise InjectionError(f"Object provided must an instance of type {cls}")
-            if strategy != "singleton":
-                raise InjectionError(f"Type {cls} must be a singleton if an instance is provided")
+            if strategy not in self._ADD_INSTANCE_STRATEGIES:
+                formatted_strategies = _format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
+                raise InjectionError(f"Injection strategy for {cls} must be {formatted_strategies} if an instance is provided")
         self._add_type_instance(
             super_cls,
             super_params,
@@ -451,7 +456,7 @@ class Injection:
         return self._instanciate(r_type, type_vars)
 
     def get_scoped_session(self) -> "_ScopedInjection":
-        return _ScopedInjection(self, self._cache, self._global_ctx, _InjectionContext(), self._types)
+        return _ScopedInjection(self._cache, self._global_ctx, _InjectionContext(), self._types)
 
 
 class _DefaultArgResolver:
@@ -525,18 +530,18 @@ class _InjectionProxy:
 
 
 class _ScopedInjection(Injection):
+    _ADD_INSTANCE_STRATEGIES = ("singleton", "scoped")
+
     def __init__(
         self,
-        global_inject: Injection,
         cache: Cache,
         global_ctx: _InjectionContext,
         scoped_ctx: _InjectionContext,
         types: "dict[type[Any], _RegisteredTypeBag[Any]]",
     ) -> None:
-        super().__init__(cache, global_ctx, types)
-        self._global_inject = global_inject
         self._scoped_ctx = scoped_ctx
-        self._scoped_ctx.set_instance(Injection, tuple[Any, ...](), self)
+        super().__init__(cache, global_ctx, types)
+        self._scoped_ctx.set_instance(Injection, (), self)
 
     def _has_instance(self, r_type: "_RegisteredType[Any]", **_) -> bool:
         return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.cls, r_type.type_vars)) or (
@@ -709,9 +714,6 @@ class ArgResolverOptions:
 
 
 class ArgumentResolver(Protocol):
-    def __init__(self) -> None:
-        ...
-
     def supports(self, options: ArgResolverOptions) -> bool:
         ...
 
@@ -740,3 +742,17 @@ def injection_arg_resolver(
 
 class _GenericOrigin(Protocol):
     __parameters__: tuple[TypeVar, ...]
+
+
+def _format_list(l: Collection[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
+    """TODO: move this into StringUtils and rework import flow"""
+    formatted = []
+    cnt = len(l)
+    for i, e in enumerate(l):
+        formatted.append(str(e))
+        if i != cnt - 1:
+            if i == cnt - 2:
+                formatted.append(final_sep)
+            else:
+                formatted.append(sep)
+    return "".join(formatted)

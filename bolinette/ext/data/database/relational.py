@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship
 
+from bolinette import Injection
 from bolinette.ext.data import Entity
 from bolinette.ext.data.manager import (
     ForeignKeyConstraint,
@@ -29,8 +30,10 @@ class RelationalDatabase:
     def get_definition(self, entity: type[EntityT]) -> type[Any]:
         return self._sql_defs[entity]
 
-    def create_session(self) -> AsyncSession:
-        return self._session_maker()
+    def create_session(self, inject: Injection) -> AsyncSession:
+        session = self._session_maker()
+        inject.add(AsyncSession, "scoped", instance=session)
+        return session
 
     def init_tables(self, table_defs: dict[type[Entity], TableDefinition]) -> None:
         mapped_cols: dict[type[Entity], dict[str, sa.Column]] = {}

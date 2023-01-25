@@ -1,6 +1,6 @@
 from typing import Callable
 
-from bolinette import Environment, Extension, Injection, Logger, __core_cache__, __user_cache__, core_ext, meta, require
+from bolinette import Environment, Extension, Injection, Logger, __user_cache__, core_ext, meta, require
 from bolinette.command import Parser
 from bolinette.utils import FileUtils, PathUtils
 
