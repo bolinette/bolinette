@@ -2,6 +2,7 @@ import inspect
 from collections.abc import Callable
 from types import NoneType, UnionType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Concatenate,
     ForwardRef,
@@ -31,16 +32,16 @@ class _InjectionContext:
     def __init__(self) -> None:
         self._instances: dict[type[Any], dict[int, Any]] = {}
 
-    def has_instance(self, cls: type[Any], params: tuple[Any, ...]) -> bool:
-        return cls in self._instances and hash(params) in self._instances[cls]
+    def has_instance(self, cls: type[Any], type_vars: tuple[Any, ...]) -> bool:
+        return cls in self._instances and hash(type_vars) in self._instances[cls]
 
-    def set_instance(self, cls: type[Any], params: tuple[Any, ...], instance: Any) -> None:
+    def set_instance(self, cls: type[Any], type_vars: tuple[Any, ...], instance: Any) -> None:
         if cls not in self._instances:
             self._instances[cls] = {}
-        self._instances[cls][hash(params)] = instance
+        self._instances[cls][hash(type_vars)] = instance
 
-    def get_instance(self, cls: type[InstanceT], params: tuple[Any, ...]) -> InstanceT:
-        return self._instances[cls][hash(params)]
+    def get_instance(self, cls: type[InstanceT], type_vars: tuple[Any, ...]) -> InstanceT:
+        return self._instances[cls][hash(type_vars)]
 
 
 class Injection:
@@ -53,12 +54,14 @@ class Injection:
         self._cache = cache
         self._global_ctx = global_ctx or _InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
-        self._add_type_instance(Cache, (), Cache, (), False, "singleton", [], {}, [], cache, safe=True)
+        self._add_type_instance(
+            Cache, tuple[Any, ...](), Cache, tuple[Any, ...](), False, "singleton", [], {}, [], cache, safe=True
+        )
         self._add_type_instance(
             Injection,
-            (),
+            tuple[Any, ...](),
             Injection,
-            (),
+            tuple[Any, ...](),
             False,
             "singleton",
             [],
@@ -79,7 +82,7 @@ class Injection:
             return {}
         types: dict[type[Any], _RegisteredTypeBag[Any]] = {}
         for cls in cache.get(InjectionSymbol, hint=type):
-            cls, params = Injection._get_generic_params(cls)
+            cls, type_vars = Injection._get_generic_params(cls)
             if cls not in types:
                 types[cls] = _RegisteredTypeBag(cls)
             type_bag = types[cls]
@@ -87,7 +90,7 @@ class Injection:
             if _meta.match_all:
                 type_bag.set_match_all(
                     cls,
-                    params,
+                    type_vars,
                     _meta.strategy,  # type: ignore
                     _meta.args,
                     _meta.named_args,
@@ -95,9 +98,9 @@ class Injection:
                 )
             else:
                 type_bag.add_type(
-                    params,
+                    type_vars,
                     cls,
-                    params,
+                    type_vars,
                     _meta.strategy,  # type: ignore
                     _meta.args,
                     _meta.named_args,
@@ -136,18 +139,19 @@ class Injection:
                 "Cannot instanciate a scoped service outside of a scoped session",
                 cls=r_type.cls,
             )
-        return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.params)
+        return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.type_vars)
 
     def _get_instance(self, r_type: "_RegisteredType[InstanceT]") -> InstanceT:
-        return self._global_ctx.get_instance(r_type.cls, r_type.params)
+        return self._global_ctx.get_instance(r_type.cls, r_type.type_vars)
 
     def _set_instance(self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT) -> None:
         if r_type.strategy == "singleton":
-            self._global_ctx.set_instance(r_type.cls, r_type.params, instance)
+            self._global_ctx.set_instance(r_type.cls, r_type.type_vars, instance)
 
     def _resolve_args(
         self,
         func: Callable,
+        vars_lookup: dict[TypeVar, type[Any]] | None,
         immediate: bool,
         args: list[Any],
         named_args: dict[str, Any],
@@ -207,7 +211,7 @@ class Injection:
                     raise InjectionError("Type unions are not allowed", func=func, param=p_name)
                 hint = next(filter(lambda t: t is not NoneType, type_args))
 
-            hint, gen_params = self._get_generic_params(hint)
+            hint, type_vars = self._get_generic_params(hint, vars_lookup, func, p_name)
 
             for resolver in self._arg_resolvers:
                 options = ArgResolverOptions(
@@ -215,7 +219,7 @@ class Injection:
                     func,
                     p_name,
                     hint,
-                    gen_params,
+                    type_vars,
                     nullable,
                     default_set,
                     default,
@@ -224,6 +228,7 @@ class Injection:
                 if resolver.supports(options):
                     arg_name, arg_value = resolver.resolve(options)
                     f_args[arg_name] = arg_value
+                    break
 
         if _args or _named_args:
             raise InjectionError(
@@ -240,15 +245,15 @@ class Injection:
         for name, attr in cls_attrs.items():
             if isinstance(attr, _InjectionHook):
                 delattr(cls, name)
-                hooks.append((name, attr.cls, attr.params))
+                hooks.append((name, attr.cls, attr.type_vars))
         instance_attrs = dict(vars(instance))
         for name, attr in instance_attrs.items():
             if isinstance(attr, _InjectionHook):
                 delattr(instance, name)
-                hooks.append((name, attr.cls, attr.params))
-        for name, _cls, params in hooks:
-            r_type = self._types[_cls].get_type(params)
-            setattr(cls, name, _InjectionProxy(name, r_type, params))
+                hooks.append((name, attr.cls, attr.type_vars))
+        for name, _cls, type_vars in hooks:
+            r_type = self._types[_cls].get_type(type_vars)
+            setattr(cls, name, _InjectionProxy(name, r_type, type_vars))
 
     def _run_init_recursive(self, cls: type[InstanceT], instance: InstanceT) -> None:
         for base in cls.__bases__:
@@ -265,33 +270,57 @@ class Injection:
     @staticmethod
     def _get_generic_params(
         _cls: type[InstanceT],
+        parent_lookup: dict[TypeVar, type[Any]] | None = None,
+        parent: Callable | None = None,
+        param_name: str | None = None,
     ) -> tuple[type[InstanceT], tuple[Any, ...]]:
         if origin := get_origin(_cls):
-            params: tuple[Any, ...] = ()
+            type_vars: tuple[Any, ...] = ()
             for arg in get_args(_cls):
                 if isinstance(arg, ForwardRef):
                     raise InjectionError(
                         f"Generic parameter {arg}, literal type hints are not allowed in direct require calls",
                         cls=origin,
                     )
-                params = (*params, arg)
-            return origin, params
-        return _cls, ()
+                if isinstance(arg, TypeVar):
+                    if TYPE_CHECKING:
+                        assert isinstance(parent, type)
+                    if parent_lookup is None:
+                        raise InjectionError(
+                            f"TypeVar cannot be used from a non generic class", cls=parent, param=param_name
+                        )
+                    if arg not in parent_lookup:
+                        raise InjectionError(
+                            f"TypeVar {arg} could not be found in calling declaration", cls=parent, param=param_name
+                        )
+                    arg = parent_lookup[arg]
+                type_vars = (*type_vars, arg)
+            return origin, type_vars
+        return _cls, tuple[Any, ...]()
 
-    def _instanciate(self, r_type: "_RegisteredType[InstanceT]", params: tuple[Any, ...]) -> InstanceT:
-        func_args = self._resolve_args(r_type.cls, False, r_type.args, r_type.named_args)
+    @staticmethod
+    def _get_generic_lookup(_cls: type[Any], type_vars: tuple[Any, ...]) -> dict[TypeVar, type[Any]] | None:
+        if not hasattr(_cls, "__parameters__"):
+            return None
+        if TYPE_CHECKING:
+            assert isinstance(_cls, _GenericOrigin)
+        return {n: type_vars[i] for i, n in enumerate(_cls.__parameters__)}
+
+    def _instanciate(self, r_type: "_RegisteredType[InstanceT]", type_vars: tuple[Any, ...]) -> InstanceT:
+        vars_lookup = self._get_generic_lookup(r_type.cls, type_vars)
+        func_args = self._resolve_args(r_type.cls, vars_lookup, False, r_type.args, r_type.named_args)
         instance = r_type.cls(**func_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
-        meta.set(instance, GenericMeta(params))
+        meta.set(instance, GenericMeta(type_vars))
         self._run_init_methods(r_type, instance)
         self._set_instance(r_type, instance)
         return instance
 
-    def is_registered(self, cls: type[Any], params: tuple[Any, ...] | None = None) -> bool:
-        if params is None:
-            params = ()
-        return cls in self._types and self._types[cls].is_registered(params)
+    def is_registered(self, cls: type[Any], type_vars: tuple[Any, ...] | None = None) -> bool:
+        if type_vars is None:
+            type_vars = tuple[Any, ...]()
+        return cls in self._types and self._types[cls].is_registered(type_vars)
 
     def call(
         self,
@@ -300,7 +329,7 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, True, args or [], named_args or {})
+        func_args = self._resolve_args(func, None, True, args or [], named_args or {})
         return func(**func_args)
 
     def _add_type_instance(
@@ -308,7 +337,7 @@ class Injection:
         super_cls: type[InstanceT],
         super_params: tuple[Any, ...],
         cls: type[InstanceT],
-        params: tuple[Any, ...],
+        type_vars: tuple[Any, ...],
         match_all: bool,
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
@@ -324,13 +353,13 @@ class Injection:
         r_type: _RegisteredType[InstanceT] | None = None
         if match_all:
             if not safe or not type_bag.has_match_all():
-                r_type = type_bag.set_match_all(cls, params, strategy, args, named_args, init_methods)
+                r_type = type_bag.set_match_all(cls, type_vars, strategy, args, named_args, init_methods)
         else:
             if not safe or not type_bag.has_type(super_params):
-                r_type = type_bag.add_type(super_params, cls, params, strategy, args, named_args, init_methods)
+                r_type = type_bag.add_type(super_params, cls, type_vars, strategy, args, named_args, init_methods)
         if instance is not None:
             if r_type is None:
-                r_type = self._types[cls].get_type(params)
+                r_type = self._types[cls].get_type(type_vars)
             if not safe or not self._has_instance(r_type):
                 self._set_instance(r_type, instance)
 
@@ -379,7 +408,7 @@ class Injection:
     ) -> InstanceT | None:
         if super_cls is None:
             super_cls = cls
-        cls, params = self._get_generic_params(cls)
+        cls, type_vars = self._get_generic_params(cls)
         super_cls, super_params = self._get_generic_params(super_cls)
         if not issubclass(cls, super_cls):
             raise InjectionError(f"Type {cls} does not inherit from type {super_cls}")
@@ -396,7 +425,7 @@ class Injection:
             super_cls,
             super_params,
             cls,
-            params,
+            type_vars,
             match_all,
             strategy,
             args or [],
@@ -409,17 +438,17 @@ class Injection:
         return None
 
     def require(self, cls: type[InstanceT]) -> InstanceT:
-        cls, params = self._get_generic_params(cls)
-        if not self.is_registered(cls, params):
-            if len(params):
-                error_txt = f"{cls}[{params}]"
+        cls, type_vars = self._get_generic_params(cls)
+        if not self.is_registered(cls, type_vars):
+            if len(type_vars):
+                error_txt = f"{cls}[{type_vars}]"
             else:
                 error_txt = f"{cls}"
             raise InjectionError(f"Type {error_txt} is not a registered type in the injection system")
-        r_type = self._types[cls].get_type(params)
+        r_type = self._types[cls].get_type(type_vars)
         if self._has_instance(r_type):
             return self._get_instance(r_type)
-        return self._instanciate(r_type, params)
+        return self._instanciate(r_type, type_vars)
 
     def get_scoped_session(self) -> "_ScopedInjection":
         return _ScopedInjection(self, self._cache, self._global_ctx, _InjectionContext(), self._types)
@@ -430,13 +459,13 @@ class _DefaultArgResolver:
         return True
 
     def resolve(self, options: "ArgResolverOptions") -> tuple[str, Any]:
-        if not options.injection.is_registered(options.cls, options.generic_params):
+        if not options.injection.is_registered(options.cls, options.type_vars):
             if options.nullable:
                 return (options.name, None)
             if options.default_set:
                 return (options.name, options.default)
-            if len(options.generic_params):
-                error_txt = f"{options.cls}[{options.generic_params}]"
+            if len(options.type_vars):
+                error_txt = f"{options.cls}[{options.type_vars}]"
             else:
                 error_txt = f"{options.cls}"
             raise InjectionError(
@@ -445,25 +474,25 @@ class _DefaultArgResolver:
                 param=options.name,
             )
 
-        r_type = options.injection._types[options.cls].get_type(options.generic_params)
+        r_type = options.injection._types[options.cls].get_type(options.type_vars)
 
         if options.injection._has_instance(r_type, origin=options.caller, name=options.name):
             return (options.name, options.injection._get_instance(r_type))
         if options.immediate:
             return (
                 options.name,
-                options.injection._instanciate(r_type, options.generic_params),
+                options.injection._instanciate(r_type, options.type_vars),
             )
-        return (options.name, _InjectionHook(options.cls, options.generic_params))
+        return (options.name, _InjectionHook(options.cls, options.type_vars))
 
 
 class _InjectionHook(Generic[InstanceT]):
-    def __init__(self, cls: type[Any], params: tuple[Any, ...]) -> None:
+    def __init__(self, cls: type[Any], type_vars: tuple[Any, ...]) -> None:
         self.cls = cls
-        self.params = params
+        self.type_vars = type_vars
 
     def __getattribute__(self, __name: str) -> Any:
-        if __name in ("cls", "params", "__class__"):
+        if __name in ("cls", "type_vars", "__class__"):
             return object.__getattribute__(self, __name)
         raise InjectionError(
             f"Tried accessing member '{__name  }' of an injected instance inside the __init__ method. "
@@ -479,18 +508,18 @@ class _InjectionProxy:
         self,
         name: str,
         r_type: "_RegisteredType[Any]",
-        params: tuple[Any, ...],
+        type_vars: tuple[Any, ...],
     ) -> None:
         self.name = name
         self.r_type = r_type
-        self.params = params
+        self.type_vars = type_vars
 
     def __get__(self, instance: Any, _) -> Any:
         inject = meta.get(instance, Injection)
         if inject._has_instance(self.r_type):
             obj = inject._get_instance(self.r_type)
         else:
-            obj = inject._instanciate(self.r_type, self.params)
+            obj = inject._instanciate(self.r_type, self.type_vars)
         setattr(instance, self.name, obj)
         return obj
 
@@ -507,38 +536,38 @@ class _ScopedInjection(Injection):
         super().__init__(cache, global_ctx, types)
         self._global_inject = global_inject
         self._scoped_ctx = scoped_ctx
-        self._scoped_ctx.set_instance(Injection, (), self)
+        self._scoped_ctx.set_instance(Injection, tuple[Any, ...](), self)
 
     def _has_instance(self, r_type: "_RegisteredType[Any]", **_) -> bool:
-        return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.cls, r_type.params)) or (
-            r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.params)
+        return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.cls, r_type.type_vars)) or (
+            r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.type_vars)
         )
 
     def _get_instance(self, r_type: "_RegisteredType[InstanceT]") -> InstanceT:
-        if self._scoped_ctx.has_instance(r_type.cls, r_type.params):
-            return self._scoped_ctx.get_instance(r_type.cls, r_type.params)
-        return self._global_ctx.get_instance(r_type.cls, r_type.params)
+        if self._scoped_ctx.has_instance(r_type.cls, r_type.type_vars):
+            return self._scoped_ctx.get_instance(r_type.cls, r_type.type_vars)
+        return self._global_ctx.get_instance(r_type.cls, r_type.type_vars)
 
     def _set_instance(self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT) -> None:
         strategy = r_type.strategy
         if strategy == "scoped":
-            self._scoped_ctx.set_instance(r_type.cls, r_type.params, instance)
+            self._scoped_ctx.set_instance(r_type.cls, r_type.type_vars, instance)
         if strategy == "singleton":
-            self._global_ctx.set_instance(r_type.cls, r_type.params, instance)
+            self._global_ctx.set_instance(r_type.cls, r_type.type_vars, instance)
 
 
 class _RegisteredType(Generic[InstanceT]):
     def __init__(
         self,
         cls: type[InstanceT],
-        params: tuple[Any, ...],
+        type_vars: tuple[Any, ...],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
         init_methods: list[Callable[[Any], None]],
     ) -> None:
         self.cls = cls
-        self.params = params
+        self.type_vars = type_vars
         self.strategy = strategy
         self.args = args
         self.named_args = named_args
@@ -554,32 +583,32 @@ class _RegisteredTypeBag(Generic[InstanceT]):
         self._match_all: _RegisteredType[InstanceT] | None = None
         self._types: dict[int, _RegisteredType[InstanceT]] = {}
 
-    def has_type(self, params) -> bool:
-        return hash(params) in self._types
+    def has_type(self, type_vars) -> bool:
+        return hash(type_vars) in self._types
 
     def has_match_all(self) -> bool:
         return self._match_all is not None
 
-    def is_registered(self, params: tuple[Any, ...]) -> bool:
-        return self.has_type(params) or self.has_match_all()
+    def is_registered(self, type_vars: tuple[Any, ...]) -> bool:
+        return self.has_type(type_vars) or self.has_match_all()
 
-    def get_type(self, params: tuple[Any, ...]) -> _RegisteredType[InstanceT]:
-        if (h := hash(params)) in self._types:
+    def get_type(self, type_vars: tuple[Any, ...]) -> _RegisteredType[InstanceT]:
+        if (h := hash(type_vars)) in self._types:
             return self._types[h]
         if self._match_all is not None:
             return self._match_all
-        raise InjectionError(f"Type {self._cls} has not been registered with parameters {params}")
+        raise InjectionError(f"Type {self._cls} has not been registered with parameters {type_vars}")
 
     def set_match_all(
         self,
         cls: type[InstanceT],
-        params: tuple[Any, ...],
+        type_vars: tuple[Any, ...],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
         init_methods: list[Callable[[Any], None]],
     ) -> _RegisteredType[InstanceT]:
-        r_type = _RegisteredType(cls, params, strategy, args, named_args, init_methods)
+        r_type = _RegisteredType(cls, type_vars, strategy, args, named_args, init_methods)
         self._match_all = r_type
         return r_type
 
@@ -587,13 +616,13 @@ class _RegisteredTypeBag(Generic[InstanceT]):
         self,
         super_params: tuple[Any, ...],
         cls: type[InstanceT],
-        params: tuple[Any, ...],
+        type_vars: tuple[Any, ...],
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
         init_methods: list[Callable[[Any], None]],
     ) -> _RegisteredType[InstanceT]:
-        r_type = _RegisteredType(cls, params, strategy, args, named_args, init_methods)
+        r_type = _RegisteredType(cls, type_vars, strategy, args, named_args, init_methods)
         self._types[hash(super_params)] = r_type
         return r_type
 
@@ -649,8 +678,8 @@ def injectable(
 
 def require(cls: type[InstanceT]) -> Callable[[Callable], _InjectionHook[InstanceT]]:
     def decorator(func: Callable) -> _InjectionHook[InstanceT]:
-        _cls, params = Injection._get_generic_params(cls)
-        return _InjectionHook(_cls, params)
+        _cls, type_vars = Injection._get_generic_params(cls)
+        return _InjectionHook(_cls, type_vars)
 
     return decorator
 
@@ -662,7 +691,7 @@ class ArgResolverOptions:
         caller: Callable,
         name: str,
         cls: type[Any],
-        generic_params: tuple[Any, ...],
+        type_vars: tuple[Any, ...],
         nullable: bool,
         default_set: bool,
         default: Any | None,
@@ -672,7 +701,7 @@ class ArgResolverOptions:
         self.caller = caller
         self.name = name
         self.cls = cls
-        self.generic_params = generic_params
+        self.type_vars = type_vars
         self.nullable = nullable
         self.default_set = default_set
         self.default = default
@@ -707,3 +736,7 @@ def injection_arg_resolver(
         return cls
 
     return decorator
+
+
+class _GenericOrigin(Protocol):
+    __parameters__: tuple[TypeVar, ...]

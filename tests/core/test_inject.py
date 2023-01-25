@@ -1,10 +1,11 @@
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar, Any
 
 import pytest
 
 from bolinette import Cache, GenericMeta, Injection, init_method, injectable, meta, require
+from bolinette.inject import injection_arg_resolver, ArgResolverOptions
 from bolinette.exceptions import InjectionError
-from bolinette.inject import _InjectionContext, _InjectionProxy
+from bolinette.inject import _InjectionContext
 
 
 class InjectableClassB:
@@ -870,26 +871,122 @@ def test_require_from_typevar() -> None:
     class _SpecificResource(_Resource):
         pass
 
-    _T = TypeVar("_T", bound=_Resource)
+    _TS = TypeVar("_TS", bound=_Resource)
 
-    class _Service(Generic[_T]):
+    class _Service(Generic[_TS]):
         pass
 
     class _SpecificService(_Service[_SpecificResource]):
         pass
 
-    class _Controller(Generic[_T]):
-        def __init__(self, sub: _Service[_T]) -> None:
+    _TC = TypeVar("_TC", bound=_Resource)
+
+    class _Controller(Generic[_TC]):
+        def __init__(self, sub: _Service[_TC]) -> None:
             self.sub = sub
 
     inject = Injection(Cache(), _InjectionContext())
     inject.add(_Service[_Resource], "singleton")
     inject.add(_SpecificService, "singleton", super_cls=_Service[_SpecificResource])
 
-    inject.add(_Controller, "singleton", match_all=True)
+    inject.add(_Controller[_Resource], "singleton")
+    inject.add(_Controller[_SpecificResource], "singleton")
 
     ctrl = inject.require(_Controller[_Resource])
     assert isinstance(ctrl.sub, _Service)
 
     ctrl2 = inject.require(_Controller[_SpecificResource])
     assert isinstance(ctrl2.sub, _SpecificService)
+
+
+def test_fail_require_from_typevar_non_generic_parent() -> None:
+    class _Entity:
+        pass
+
+    _T = TypeVar("_T", bound=_Entity)
+
+    class _Service(Generic[_T]):
+        pass
+
+    class _Controller:
+        def __init__(self, s: _Service[_T]) -> None:
+            pass
+
+    inject = Injection(Cache())
+    inject.add(_Service[_Entity], "singleton")
+    inject.add(_Controller, "singleton")
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(_Controller)
+
+    assert f"Type {_Controller}, Parameter 's', TypeVar cannot be used from a non generic class" == info.value.message
+
+
+def test_fail_require_from_typevar_different_names() -> None:
+    class _Entity1:
+        pass
+
+    class _Entity2:
+        pass
+
+    _T1 = TypeVar("_T1", bound=_Entity1)
+    _T2 = TypeVar("_T2", bound=_Entity2)
+
+    class _Service(Generic[_T1]):
+        pass
+
+    class _Controller(Generic[_T2]):
+        def __init__(self, s: _Service[_T1]) -> None:
+            pass
+
+    inject = Injection(Cache())
+    inject.add(_Service[_Entity1], "singleton")
+    inject.add(_Controller[_Entity2], "singleton")
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(_Controller[_Entity2])
+
+    assert f"Type {_Controller}, Parameter 's', TypeVar ~_T1 could not be found in calling declaration" == info.value.message
+
+
+def test_arg_resolver() -> None:
+    cache = Cache()
+
+    order = []
+
+    class _Service:
+        pass
+
+    class _Controller:
+        def __init__(self, s: _Service) -> None:
+            self.s = s
+
+    _s = _Service()
+
+    @injection_arg_resolver(priority=2, cache=cache)
+    class _Resolver2:
+        def supports(self, options: ArgResolverOptions):
+            order.append(3)
+            return True
+
+        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+            order.append(4)
+            return (options.name, _s)
+
+    @injection_arg_resolver(priority=1, cache=cache)
+    class _Resolver1:
+        def supports(self, options: ArgResolverOptions):
+            order.append(1)
+            return False
+
+        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+            order.append(2)
+            return ("", 0)
+
+    inject = Injection(cache)
+    inject.add(_Controller, "singleton")
+
+    ctrl = inject.require(_Controller)
+
+    assert order == [1, 3, 4]
+    assert ctrl.s is _s
