@@ -4,7 +4,7 @@ import pytest
 
 from bolinette import Cache, GenericMeta, Injection, init_method, injectable, meta, require
 from bolinette.exceptions import InjectionError
-from bolinette.inject import ArgResolverOptions, _InjectionContext, injection_arg_resolver
+from bolinette.inject import ArgResolverOptions, injection_arg_resolver
 
 
 class InjectableClassB:
@@ -45,7 +45,7 @@ class _SubTestClass:
 
 
 def test_class_injection() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassA, "singleton")
     inject.add(InjectableClassB, "singleton")
     inject.add(InjectableClassC, "singleton")
@@ -67,7 +67,7 @@ def test_class_injection_from_cache() -> None:
     injectable(cache=cache)(InjectableClassC)
     injectable(cache=cache)(InjectableClassD)
 
-    inject = Injection(cache, _InjectionContext())
+    inject = Injection(cache)
 
     a = inject.require(InjectableClassA)
 
@@ -84,7 +84,7 @@ def test_inject_call_sync() -> None:
         assert a.d_attr.func() == "d"
         assert a.d_attr.c.func() == "c"
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassA, "singleton")
     inject.add(InjectableClassB, "singleton")
     inject.add(InjectableClassC, "singleton")
@@ -97,14 +97,14 @@ async def test_inject_call_async() -> None:
     async def _test_func(b: InjectableClassB) -> None:
         assert b.func() == "b"
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassB, "singleton")
 
     await inject.call(_test_func)
 
 
 async def test_fail_injection() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassB, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -122,7 +122,7 @@ async def test_fail_injection_generic() -> None:
     class _Service(Generic[_T]):
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     with pytest.raises(InjectionError) as info:
         inject.require(_Service[_Param])
@@ -131,7 +131,7 @@ async def test_fail_injection_generic() -> None:
 
 
 async def test_fail_subinjection() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassD, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -156,7 +156,7 @@ async def test_fail_subinjection_generic() -> None:
         def __init__(self, sub: _SubService[_Param]) -> None:
             pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_Service, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -172,7 +172,7 @@ def test_fail_call_injection() -> None:
     def _test_func(b: InjectableClassC) -> None:
         assert b.func() == "b"
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     with pytest.raises(InjectionError) as info:
         inject.call(_test_func)
 
@@ -183,7 +183,7 @@ def test_fail_call_injection() -> None:
 
 
 def test_require_twice() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassB, "singleton")
 
     b1 = inject.require(InjectableClassB)
@@ -193,7 +193,7 @@ def test_require_twice() -> None:
 
 
 def test_add_instance_no_singleton() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     b = InjectableClassB()
 
@@ -206,7 +206,7 @@ def test_add_instance_no_singleton() -> None:
 
 
 def test_add_instance_wrong_type() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     b = InjectableClassB()
 
@@ -217,7 +217,7 @@ def test_add_instance_wrong_type() -> None:
 
 
 def test_add_instance() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     b = InjectableClassB()
 
@@ -237,7 +237,7 @@ def test_forward_ref_local_class_not_resolved() -> None:
         def __init__(self, value: "_Value") -> None:
             pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -251,7 +251,7 @@ def test_no_annotation() -> None:
         def __init__(self, _1, _2) -> None:
             pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -279,7 +279,7 @@ def test_use_init_method() -> None:
     class _ChildClass2(_TestClass):
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassB, "singleton")
     inject.add(InjectableClassC, "singleton")
     inject.add(_ChildClass1, "singleton")
@@ -298,7 +298,7 @@ def test_arg_resolve_fail_wilcard() -> None:
     def _test_func(a, *args) -> None:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     with pytest.raises(InjectionError) as info:
         inject.call(_test_func, named_args={"a": "a", "b": "b"})
@@ -313,7 +313,7 @@ def test_arg_resolve_fail_positional_only() -> None:
     def _test_func(a, /, b) -> None:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     with pytest.raises(InjectionError) as info:
         inject.call(_test_func, named_args={"a": "a", "b": "b"})
@@ -328,7 +328,7 @@ def test_arg_resolve_fail_too_many_args() -> None:
     def _test_func(a, b) -> None:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     with pytest.raises(InjectionError) as info:
         inject.call(_test_func, args=["a", "b", "c"])
@@ -344,7 +344,7 @@ def test_arg_resolve() -> None:
         assert d == "d"
         assert kwargs == {"e": "e", "f": "f"}
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(InjectableClassC, "singleton")
 
     inject.call(_test_func, args=["a"], named_args={"b": "b", "e": "e", "f": "f"})
@@ -362,7 +362,7 @@ def test_two_injections() -> None:
         def __init__(self, c1: _C1) -> None:
             self.c1 = c1
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "singleton")
     inject.add(_C2, "singleton")
     inject.add(_C3, "singleton")
@@ -390,7 +390,7 @@ def test_transcient_injection() -> None:
             self.c1 = c1
             self.c2 = c2
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "transcient")
     inject.add(_C2, "singleton")
     inject.add(_C3, "singleton")
@@ -407,13 +407,35 @@ def test_scoped_injection_fail_no_scope() -> None:
     class _C1:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "scoped")
 
     with pytest.raises(InjectionError) as info:
         inject.require(_C1)
 
-    assert f"Type {_C1}, Cannot instanciate a scoped service outside of a scoped session" == info.value.message
+    assert (
+        f"Injection strategy for {_C1} must be singleton or transcient to be required in this context"
+        == info.value.message
+    )
+
+
+def test_scoped_injection_fail_no_scope_in_func() -> None:
+    class _C1:
+        pass
+
+    def _func(c1: _C1) -> None:
+        pass
+
+    inject = Injection(Cache())
+    inject.add(_C1, "scoped")
+
+    with pytest.raises(InjectionError) as info:
+        inject.call(_func)
+
+    assert (
+        f"Callable {_func}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped context"
+        == info.value.message
+    )
 
 
 def test_scoped_injection_fail_no_scope_in_singleton() -> None:
@@ -424,7 +446,7 @@ def test_scoped_injection_fail_no_scope_in_singleton() -> None:
         def __init__(self, c1: _C1) -> None:
             pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "scoped")
     inject.add(_C2, "singleton")
 
@@ -432,7 +454,8 @@ def test_scoped_injection_fail_no_scope_in_singleton() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one" == info.value.message
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a singleton service"
+        == info.value.message
     )
 
 
@@ -444,7 +467,7 @@ def test_scoped_injection_fail_no_scope_in_transcient() -> None:
         def __init__(self, c1: _C1) -> None:
             pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "scoped")
     inject.add(_C2, "transcient")
 
@@ -452,7 +475,54 @@ def test_scoped_injection_fail_no_scope_in_transcient() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped one" == info.value.message
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a transcient service"
+        == info.value.message
+    )
+
+
+def test_fail_get_scoped_from_singleton_in_scope() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        def __init__(self, c1: _C1) -> None:
+            pass
+
+    inject = Injection(Cache())
+    inject.add(_C1, "scoped")
+    inject.add(_C2, "singleton")
+
+    sub_inject = inject.get_scoped_session()
+
+    with pytest.raises(InjectionError) as info:
+        sub_inject.require(_C2)
+
+    assert (
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a singleton service"
+        == info.value.message
+    )
+
+
+def test_fail_get_scoped_from_transcient_in_scope() -> None:
+    class _C1:
+        pass
+
+    class _C2:
+        def __init__(self, c1: _C1) -> None:
+            pass
+
+    inject = Injection(Cache())
+    inject.add(_C1, "scoped")
+    inject.add(_C2, "transcient")
+
+    sub_inject = inject.get_scoped_session()
+
+    with pytest.raises(InjectionError) as info:
+        sub_inject.require(_C2)
+
+    assert (
+        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a transcient service"
+        == info.value.message
     )
 
 
@@ -478,7 +548,7 @@ def test_scoped_injection() -> None:
             self.c2 = c2
             self.c3 = c3
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "transcient")
     inject.add(_C2, "singleton")
     inject.add(_C3, "scoped")
@@ -505,7 +575,7 @@ def test_scoped_injection() -> None:
 
 
 def test_get_injection_scoped_context() -> None:
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     sub_inject1 = inject.get_scoped_session()
     sub_inject2 = inject.get_scoped_session()
 
@@ -521,7 +591,7 @@ def test_require_transcient_service() -> None:
     class _C2:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_C1, "transcient")
     inject.add(_C2, "singleton")
 
@@ -535,7 +605,7 @@ def test_inject_nullable() -> None:
             self.sub = sub
             self.i = i
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     t = inject.require(_TestClass)
@@ -549,7 +619,7 @@ def test_inject_nullable_bis() -> None:
         def __init__(self, sub: Optional[_SubTestClass]) -> None:
             self.sub = sub
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     t = inject.require(_TestClass)
@@ -565,7 +635,7 @@ def test_inject_with_default() -> None:
             self.sub = sub
             self.i = i
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     t = inject.require(_TestClass)
@@ -579,7 +649,7 @@ def test_inject_no_union() -> None:
         def __init__(self, v: int | bool) -> None:
             self.v = v
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -593,7 +663,7 @@ def test_optional_type_literal_right() -> None:
         def __init__(self, sub: "_SubTestClass | None") -> None:
             self.sub = sub
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     t = inject.require(_TestClass)
@@ -606,7 +676,7 @@ def test_optional_type_literal_left() -> None:
         def __init__(self, sub: "None | _SubTestClass") -> None:
             self.sub = sub
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     t = inject.require(_TestClass)
@@ -619,7 +689,7 @@ def test_optional_type_literal_bis() -> None:
         def __init__(self, sub: "Optional[_SubTestClass]") -> None:
             self.sub = sub
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_TestClass, "singleton")
 
     t = inject.require(_TestClass)
@@ -636,7 +706,7 @@ def test_generic_injection() -> None:
     class _ParamClass:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_GenericTest[_ParamClass], "singleton")
 
     g = inject.require(_GenericTest[_ParamClass])
@@ -658,7 +728,7 @@ def test_generic_injection_from_cache() -> None:
 
     injectable(cache=cache)(_GenericTest[_ParamClass])
 
-    inject = Injection(cache, _InjectionContext())
+    inject = Injection(cache)
 
     g = inject.require(_GenericTest[_ParamClass])
 
@@ -672,7 +742,7 @@ def test_generic_no_direct_injection_literal() -> None:
     class _GenericTest(Generic[_T]):
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_GenericTest, "singleton")
 
     with pytest.raises(InjectionError) as info:
@@ -697,7 +767,7 @@ def test_generic_sub_injection() -> None:
         def __init__(self, g: _GenericTest[_ParamClass]) -> None:
             self.g = g
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_GenericTest[_ParamClass], "singleton")
     inject.add(_TestClass, "singleton")
 
@@ -717,7 +787,7 @@ def test_generic_sub_injection_literal() -> None:
         def __init__(self, g: _GenericTest["_SubTestClass"]) -> None:
             self.g = g
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_GenericTest[_SubTestClass], "singleton")
     inject.add(_TestClass, "singleton")
 
@@ -740,7 +810,7 @@ def test_require_decorator() -> None:
         def param(self):
             pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_ParamClass, "singleton")
     inject.add(_TestClass, "singleton")
 
@@ -753,7 +823,7 @@ def test_fail_immediate_instanciate() -> None:
     class _TestClass:
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
 
     with pytest.raises(InjectionError) as info:
         inject.add(
@@ -784,7 +854,7 @@ def test_register_with_super_type() -> None:
     class _RoleService(_Service[_Role]):
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_UserService, "singleton", super_cls=_Service[_User])
     inject.add(_RoleService, "singleton", super_cls=_Service[_Role])
 
@@ -813,7 +883,7 @@ def test_register_with_super_type_complete() -> None:
     class _RoleService(_Service[_Role]):
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_UserService, "singleton")
     inject.add(_RoleService, "singleton")
     inject.add(_UserService, "singleton", super_cls=_Service[_User])
@@ -849,7 +919,7 @@ def test_register_match_all() -> None:
     class _LoggerA(_Logger[_ServiceA]):
         pass
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_Logger, "singleton", match_all=True)
     inject.add(_LoggerA, "singleton", super_cls=_Logger[_ServiceA])
 
@@ -886,7 +956,7 @@ def test_require_from_typevar() -> None:
         def __init__(self, sub: _Service[_TC]) -> None:
             self.sub = sub
 
-    inject = Injection(Cache(), _InjectionContext())
+    inject = Injection(Cache())
     inject.add(_Service[_Resource], "singleton")
     inject.add(_SpecificService, "singleton", super_cls=_Service[_SpecificResource])
 

@@ -46,6 +46,7 @@ class _InjectionContext:
 
 class Injection:
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
+    _REQUIREABLE_STRATEGIES = ("singleton", "transcient")
 
     def __init__(
         self,
@@ -132,24 +133,7 @@ class Injection:
 
         return [*resolvers, _DefaultArgResolver()]
 
-    def _has_instance(
-        self,
-        r_type: "_RegisteredType[Any]",
-        *,
-        origin: Callable | None = None,
-        name: str | None = None,
-    ) -> bool:
-        if r_type.strategy == "scoped":
-            if origin:
-                raise InjectionError(
-                    "Cannot instanciate a scoped service in a non-scoped one",
-                    func=origin,
-                    param=name,
-                )
-            raise InjectionError(
-                "Cannot instanciate a scoped service outside of a scoped session",
-                cls=r_type.cls,
-            )
+    def _has_instance(self, r_type: "_RegisteredType[Any]") -> bool:
         return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.type_vars)
 
     def _get_instance(self, r_type: "_RegisteredType[InstanceT]") -> InstanceT:
@@ -163,6 +147,7 @@ class Injection:
         self,
         func: Callable,
         func_type_vars: tuple[Any, ...] | None,
+        strategy: Literal["singleton", "scoped", "transcient"] | None,
         vars_lookup: dict[TypeVar, type[Any]] | None,
         immediate: bool,
         args: list[Any],
@@ -230,6 +215,7 @@ class Injection:
                     self,
                     func,
                     func_type_vars,
+                    strategy,
                     p_name,
                     hint,
                     type_vars,
@@ -321,7 +307,9 @@ class Injection:
 
     def _instanciate(self, r_type: "_RegisteredType[InstanceT]", type_vars: tuple[Any, ...]) -> InstanceT:
         vars_lookup = self._get_generic_lookup(r_type.cls, type_vars)
-        func_args = self._resolve_args(r_type.cls, type_vars, vars_lookup, False, r_type.args, r_type.named_args)
+        func_args = self._resolve_args(
+            r_type.cls, type_vars, r_type.strategy, vars_lookup, False, r_type.args, r_type.named_args
+        )
         instance = r_type.cls(**func_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
@@ -342,7 +330,7 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, None, None, True, args or [], named_args or {})
+        func_args = self._resolve_args(func, None, None, None, True, args or [], named_args or {})
         return func(**func_args)
 
     def _add_type_instance(
@@ -462,6 +450,11 @@ class Injection:
                 error_txt = f"{cls}"
             raise InjectionError(f"Type {error_txt} is not a registered type in the injection system")
         r_type = self._types[cls].get_type(type_vars)
+        if r_type.strategy not in self._REQUIREABLE_STRATEGIES:
+            formatted_strategies = _format_list(self._REQUIREABLE_STRATEGIES, final_sep=" or ")
+            raise InjectionError(
+                f"Injection strategy for {cls} must be {formatted_strategies} to be required in this context"
+            )
         if self._has_instance(r_type):
             return self._get_instance(r_type)
         return self._instanciate(r_type, type_vars)
@@ -492,7 +485,21 @@ class _DefaultArgResolver:
 
         r_type = options.injection._types[options.cls].get_type(options.type_vars)
 
-        if options.injection._has_instance(r_type, origin=options.caller, name=options.name):
+        if r_type.strategy == "scoped":
+            if options.caller_strategy is None:
+                raise InjectionError(
+                    "Cannot instanciate a scoped service in a non-scoped context",
+                    func=options.caller,
+                    param=options.name,
+                )
+            if options.caller_strategy in ["singleton", "transcient"]:
+                raise InjectionError(
+                    f"Cannot instanciate a scoped service in a {options.caller_strategy} service",
+                    func=options.caller,
+                    param=options.name,
+                )
+
+        if options.injection._has_instance(r_type):
             return (options.name, options.injection._get_instance(r_type))
         if options.immediate:
             return (
@@ -542,6 +549,7 @@ class _InjectionProxy:
 
 class _ScopedInjection(Injection):
     _ADD_INSTANCE_STRATEGIES = ("singleton", "scoped")
+    _REQUIREABLE_STRATEGIES = ("singleton", "scoped", "transcient")
 
     def __init__(
         self,
@@ -554,7 +562,7 @@ class _ScopedInjection(Injection):
         super().__init__(cache, global_ctx, types)
         self._scoped_ctx.set_instance(Injection, (), self)
 
-    def _has_instance(self, r_type: "_RegisteredType[Any]", **_) -> bool:
+    def _has_instance(self, r_type: "_RegisteredType[Any]") -> bool:
         return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.cls, r_type.type_vars)) or (
             r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.cls, r_type.type_vars)
         )
@@ -726,6 +734,7 @@ class ArgResolverOptions:
         injection: Injection,
         caller: Callable,
         caller_type_vars: tuple[Any, ...] | None,
+        caller_strategy: Literal["singleton", "scoped", "transcient"] | None,
         name: str,
         cls: type[Any],
         type_vars: tuple[Any, ...],
@@ -737,6 +746,7 @@ class ArgResolverOptions:
         self.injection = injection
         self.caller = caller
         self.caller_type_vars = caller_type_vars
+        self.caller_strategy = caller_strategy
         self.name = name
         self.cls = cls
         self.type_vars = type_vars
