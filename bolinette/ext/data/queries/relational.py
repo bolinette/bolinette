@@ -2,10 +2,10 @@ from collections.abc import AsyncIterable
 from typing import Generic, Self, TypeVar
 
 from sqlalchemy import Select, desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, selectinload
 
 from bolinette.ext.data import Entity
+from bolinette.ext.data.sessions import ScopedSession
 from bolinette.ext.data.queries import BaseQuery
 
 EntityT = TypeVar("EntityT", bound=Entity)
@@ -16,7 +16,7 @@ class RelationalQueryBuilder(Generic[EntityT]):
         self,
         entity: type[EntityT],
         orm_def: type[DeclarativeBase],
-        session: AsyncSession,
+        session: ScopedSession[EntityT],
     ) -> None:
         self._entity = entity
         self._orm_def = orm_def
@@ -27,7 +27,7 @@ class RelationalQueryBuilder(Generic[EntityT]):
 
 
 class RelationalQuery(BaseQuery[EntityT], Generic[EntityT]):
-    def __init__(self, orm_def: type[DeclarativeBase], session: AsyncSession):
+    def __init__(self, orm_def: type[DeclarativeBase], session: ScopedSession[EntityT]):
         super().__init__()
         self._orm_def = orm_def
         self._session = session
@@ -36,7 +36,8 @@ class RelationalQuery(BaseQuery[EntityT], Generic[EntityT]):
         return self._base_clone(RelationalQuery(self._orm_def, self._session))
 
     async def all(self) -> AsyncIterable[EntityT]:
-        for scalar in (await self._session.execute(self._build_query())).scalars():  # type: ignore
+        result = await self._session.execute(self._build_query())
+        for scalar in result.scalars():
             yield scalar
 
     def _query(self) -> Select:

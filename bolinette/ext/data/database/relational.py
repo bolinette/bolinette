@@ -1,11 +1,12 @@
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Generic
 
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship
 
-from bolinette import Injection
-from bolinette.ext.data import Entity
+from bolinette import injectable
+from bolinette.ext.data import Entity, __data_cache__
+from bolinette.ext.data.sessions import SessionManager, ScopedSession
 from bolinette.ext.data.manager import (
     ForeignKeyConstraint,
     PrimaryKeyConstraint,
@@ -20,6 +21,7 @@ EntityT = TypeVar("EntityT", bound=Entity)
 
 class RelationalDatabase:
     def __init__(self, name: str, uri: str, echo: bool):
+        self._name = name
         self._engine = create_async_engine(uri, echo=echo)
         self._session_maker = async_sessionmaker(self._engine)
         self._declarative_base: type[DeclarativeBase] = type(
@@ -30,10 +32,9 @@ class RelationalDatabase:
     def get_definition(self, entity: type[EntityT]) -> type[Any]:
         return self._sql_defs[entity]
 
-    def create_session(self, inject: Injection) -> AsyncSession:
+    def open_session(self, sessions: SessionManager) -> None:
         session = self._session_maker()
-        inject.add(AsyncSession, "scoped", instance=session)
-        return session
+        sessions.add(self._name, ScopedSession(session))
 
     def init_tables(self, table_defs: dict[type[Entity], TableDefinition]) -> None:
         mapped_cols: dict[type[Entity], dict[str, sa.Column]] = {}

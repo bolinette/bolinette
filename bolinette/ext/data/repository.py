@@ -1,10 +1,10 @@
 from collections.abc import AsyncIterable
 from typing import Generic, TypeVar
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
 from bolinette.ext.data import Entity
+from bolinette.ext.data.sessions import ScopedSession
 from bolinette.ext.data.queries import BaseQuery, RelationalQueryBuilder
 
 EntityT = TypeVar("EntityT", bound=Entity)
@@ -15,7 +15,7 @@ class Repository(Generic[EntityT]):
         self,
         entity: type[EntityT],
         orm_def: type[DeclarativeBase],
-        session: AsyncSession,
+        session: ScopedSession[EntityT],
     ) -> None:
         self._entity = entity
         self._orm_def = orm_def

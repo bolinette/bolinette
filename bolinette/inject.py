@@ -112,17 +112,24 @@ class Injection:
         return types
 
     def _pickup_resolvers(self, cache: Cache) -> "list[ArgumentResolver]":
-        resolver_types = sorted(
-            cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False),
-            key=lambda t: meta.get(t, _ArgResolverMeta).priority,
-        )
+        resolver_scoped: dict[type, bool] = {}
+        resolver_priority: dict[type, int] = {}
+        resolver_types: list[type[ArgumentResolver]] = []
+
+        for t in cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False):
+            _meta = meta.get(t, _ArgResolverMeta)
+            resolver_priority[t] = _meta.priority
+            resolver_scoped[t] = _meta.scoped
+            resolver_types.append(t)
+        resolver_types = sorted(resolver_types, key=lambda t: resolver_priority[t])
+
         resolvers: list[ArgumentResolver] = []
         for t in resolver_types:
-            bag = _RegisteredTypeBag(t)
-            bag.add_type((), t, (), "singleton", [], {}, [])
-            self._types[t] = bag
-        for t in resolver_types:
-            resolvers.append(self._instanciate(self._types[t].get_type(()), ()))
+            if resolver_scoped[t]:
+                continue
+            r_type = _RegisteredType(t, (), "singleton", [], {}, [])
+            resolvers.append(self._instanciate(r_type, ()))
+
         return [*resolvers, _DefaultArgResolver()]
 
     def _has_instance(
@@ -155,6 +162,7 @@ class Injection:
     def _resolve_args(
         self,
         func: Callable,
+        func_type_vars: tuple[Any, ...] | None,
         vars_lookup: dict[TypeVar, type[Any]] | None,
         immediate: bool,
         args: list[Any],
@@ -221,6 +229,7 @@ class Injection:
                 options = ArgResolverOptions(
                     self,
                     func,
+                    func_type_vars,
                     p_name,
                     hint,
                     type_vars,
@@ -312,7 +321,7 @@ class Injection:
 
     def _instanciate(self, r_type: "_RegisteredType[InstanceT]", type_vars: tuple[Any, ...]) -> InstanceT:
         vars_lookup = self._get_generic_lookup(r_type.cls, type_vars)
-        func_args = self._resolve_args(r_type.cls, vars_lookup, False, r_type.args, r_type.named_args)
+        func_args = self._resolve_args(r_type.cls, type_vars, vars_lookup, False, r_type.args, r_type.named_args)
         instance = r_type.cls(**func_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
@@ -333,7 +342,7 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, None, True, args or [], named_args or {})
+        func_args = self._resolve_args(func, None, None, True, args or [], named_args or {})
         return func(**func_args)
 
     def _add_type_instance(
@@ -425,7 +434,9 @@ class Injection:
                 raise InjectionError(f"Object provided must an instance of type {cls}")
             if strategy not in self._ADD_INSTANCE_STRATEGIES:
                 formatted_strategies = _format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
-                raise InjectionError(f"Injection strategy for {cls} must be {formatted_strategies} if an instance is provided")
+                raise InjectionError(
+                    f"Injection strategy for {cls} must be {formatted_strategies} if an instance is provided"
+                )
         self._add_type_instance(
             super_cls,
             super_params,
@@ -559,6 +570,26 @@ class _ScopedInjection(Injection):
             self._scoped_ctx.set_instance(r_type.cls, r_type.type_vars, instance)
         if strategy == "singleton":
             self._global_ctx.set_instance(r_type.cls, r_type.type_vars, instance)
+
+    def _pickup_resolvers(self, cache: Cache) -> "list[ArgumentResolver]":
+        resolver_scoped: dict[type, bool] = {}
+        resolver_priority: dict[type, int] = {}
+        resolver_types: list[type[ArgumentResolver]] = []
+
+        for t in cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False):
+            _meta = meta.get(t, _ArgResolverMeta)
+            resolver_priority[t] = _meta.priority
+            resolver_scoped[t] = _meta.scoped
+            resolver_types.append(t)
+        resolver_types = sorted(resolver_types, key=lambda t: resolver_priority[t])
+
+        resolvers: list[ArgumentResolver] = []
+        for t in resolver_types:
+            strategy = "scoped" if resolver_scoped[t] else "singleton"
+            r_type = _RegisteredType(t, (), strategy, [], {}, [])
+            resolvers.append(self._instanciate(r_type, ()))
+
+        return [*resolvers, _DefaultArgResolver()]
 
 
 class _RegisteredType(Generic[InstanceT]):
@@ -694,6 +725,7 @@ class ArgResolverOptions:
         self,
         injection: Injection,
         caller: Callable,
+        caller_type_vars: tuple[Any, ...] | None,
         name: str,
         cls: type[Any],
         type_vars: tuple[Any, ...],
@@ -704,6 +736,7 @@ class ArgResolverOptions:
     ) -> None:
         self.injection = injection
         self.caller = caller
+        self.caller_type_vars = caller_type_vars
         self.name = name
         self.cls = cls
         self.type_vars = type_vars
@@ -722,19 +755,20 @@ class ArgumentResolver(Protocol):
 
 
 class _ArgResolverMeta:
-    def __init__(self, priority: int) -> None:
+    def __init__(self, priority: int, scoped: bool) -> None:
         self.priority = priority
+        self.scoped = scoped
 
 
 ArgResolverT = TypeVar("ArgResolverT", bound=ArgumentResolver)
 
 
 def injection_arg_resolver(
-    *, priority: int = 0, cache: Cache | None = None
+    *, priority: int = 0, scoped: bool = False, cache: Cache | None = None
 ) -> Callable[[type[ArgResolverT]], type[ArgResolverT]]:
     def decorator(cls: type[ArgResolverT]) -> type[ArgResolverT]:
         (cache or __user_cache__).add(ArgumentResolver, cls)
-        meta.set(cls, _ArgResolverMeta(priority))
+        meta.set(cls, _ArgResolverMeta(priority, scoped))
         return cls
 
     return decorator
@@ -744,11 +778,11 @@ class _GenericOrigin(Protocol):
     __parameters__: tuple[TypeVar, ...]
 
 
-def _format_list(l: Collection[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
+def _format_list(collection: Collection[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
     """TODO: move this into StringUtils and rework import flow"""
     formatted = []
-    cnt = len(l)
-    for i, e in enumerate(l):
+    cnt = len(collection)
+    for i, e in enumerate(collection):
         formatted.append(str(e))
         if i != cnt - 1:
             if i == cnt - 2:

@@ -200,7 +200,9 @@ def test_add_instance_no_singleton() -> None:
     with pytest.raises(InjectionError) as info:
         inject.add(InjectableClassB, "transcient", instance=b)
 
-    assert f"Injection strategy for {InjectableClassB} must be singleton if an instance is provided" == info.value.message
+    assert (
+        f"Injection strategy for {InjectableClassB} must be singleton if an instance is provided" == info.value.message
+    )
 
 
 def test_add_instance_wrong_type() -> None:
