@@ -1,12 +1,10 @@
-from typing import Any, TypeVar, Generic
+from typing import Any, TypeVar
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship
 
-from bolinette import injectable
-from bolinette.ext.data import Entity, __data_cache__
-from bolinette.ext.data.sessions import SessionManager, ScopedSession
+from bolinette.ext.data import Entity
 from bolinette.ext.data.manager import (
     ForeignKeyConstraint,
     PrimaryKeyConstraint,
@@ -14,6 +12,7 @@ from bolinette.ext.data.manager import (
     TableReference,
     UniqueConstraint,
 )
+from bolinette.ext.data.sessions import ScopedSession, SessionManager
 from bolinette.utils import StringUtils
 
 EntityT = TypeVar("EntityT", bound=Entity)

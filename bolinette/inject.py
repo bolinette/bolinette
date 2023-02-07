@@ -254,17 +254,32 @@ class Injection:
             r_type = self._types[_cls].get_type(type_vars)
             setattr(cls, name, _InjectionProxy(name, r_type, type_vars))
 
-    def _run_init_recursive(self, cls: type[InstanceT], instance: InstanceT) -> None:
+    def _run_init_recursive(
+        self,
+        cls: type[InstanceT],
+        instance: InstanceT,
+        vars_lookup: dict[TypeVar, type[Any]] | None,
+    ) -> None:
         for base in cls.__bases__:
-            self._run_init_recursive(base, instance)
+            self._run_init_recursive(base, instance, vars_lookup)
         for _, attr in vars(cls).items():
             if meta.has(attr, _InitMethodMeta):
-                self.call(attr, args=[instance])
+                self.call(attr, args=[instance], vars_lookup=vars_lookup)
 
-    def _run_init_methods(self, r_type: "_RegisteredType[InstanceT]", instance: InstanceT):
-        self._run_init_recursive(r_type.cls, instance)
-        for method in r_type.init_methods:
-            self.call(method, args=[instance])
+    def _run_init_methods(
+        self,
+        r_type: "_RegisteredType[InstanceT]",
+        instance: InstanceT,
+        vars_lookup: dict[TypeVar, type[Any]] | None,
+    ):
+        try:
+            self._run_init_recursive(r_type.cls, instance, vars_lookup)
+            for method in r_type.init_methods:
+                self.call(method, args=[instance])
+        except RecursionError as exp:
+            raise InjectionError(
+                "Maximum recursion reached while running init method, possible circular dependence", cls=r_type.cls
+            ) from exp
 
     @staticmethod
     def _get_generic_params(
@@ -314,7 +329,7 @@ class Injection:
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(type_vars))
-        self._run_init_methods(r_type, instance)
+        self._run_init_methods(r_type, instance, vars_lookup)
         self._set_instance(r_type, instance)
         return instance
 
@@ -329,8 +344,9 @@ class Injection:
         *,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
+        vars_lookup: dict[TypeVar, type[Any]] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, None, None, None, True, args or [], named_args or {})
+        func_args = self._resolve_args(func, None, None, vars_lookup, True, args or [], named_args or {})
         return func(**func_args)
 
     def _add_type_instance(

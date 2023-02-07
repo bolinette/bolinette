@@ -1,4 +1,4 @@
-from typing import Any, TypeVar, Generic
+from typing import Any, Generic, TypeVar
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession

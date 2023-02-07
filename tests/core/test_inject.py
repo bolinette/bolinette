@@ -294,6 +294,72 @@ def test_use_init_method() -> None:
     assert t2.cls_name == _ChildClass2.__name__
 
 
+class Service1:
+    def __init__(self, s2: "Service2") -> None:
+        self.s2 = s2
+
+
+class Service2:
+    def __init__(self, s1: Service1) -> None:
+        self.s1 = s1
+
+
+def test_circular_init_reference() -> None:
+    inject = Injection(Cache())
+    inject.add(Service1, "singleton")
+    inject.add(Service2, "singleton")
+
+    s1 = inject.require(Service1)
+    s2 = inject.require(Service2)
+
+    assert s1.s2 is s2
+    assert s2.s1 is s1
+
+
+class Service3:
+    def __init__(self, s: "Service3") -> None:
+        self.s = s
+
+
+def test_self_circular_init_reference() -> None:
+
+    inject = Injection(Cache())
+    inject.add(Service3, "singleton")
+
+    s = inject.require(Service3)
+
+    assert s.s is s
+    assert s.s.s is s
+
+
+class Service4:
+    @init_method
+    def init(self, s5: "Service5") -> None:
+        pass
+
+
+class Service5:
+    @init_method
+    def init(self, s4: Service4) -> None:
+        pass
+
+
+def test_fail_circular_init_method_reference() -> None:
+    inject = Injection(Cache())
+    inject.add(Service4, "singleton")
+    inject.add(Service5, "singleton")
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(Service4)
+
+    assert (
+        f"Type {Service4}, Maximum recursion reached while running init method, possible circular dependence"
+        == info.value.message
+        or f"Type {Service5}, Maximum recursion reached while running init method, possible circular dependence"
+        == info.value.message
+    )
+
+
 def test_arg_resolve_fail_wilcard() -> None:
     def _test_func(a, *args) -> None:
         pass

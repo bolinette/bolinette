@@ -76,13 +76,7 @@ class DatabaseManager:
 
     def _init_repositories(self) -> None:
         for entity in self._entities.definitions:
-            engine = meta.get(entity, DatabaseMeta).engine
-            orm_def = engine.get_definition(entity)
-            self._inject.add(
-                Repository[entity],
-                "scoped",
-                named_args={"orm_def": orm_def},
-            )
+            self._inject.add(Repository[entity], "scoped")
 
 
 class DatabaseSystem(Protocol):

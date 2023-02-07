@@ -1,10 +1,12 @@
 from typing import Any
 
-from bolinette.ext.data import EntityManager
-from bolinette.ext.data.entity import EntityMeta
-from bolinette.ext.data.sessions import SessionManager, ScopedSession
 from bolinette import meta
 from bolinette.exceptions import InjectionError
+from bolinette.ext.data import EntityManager
+from bolinette.ext.data.entity import EntityMeta
+from bolinette.ext.data.manager import DatabaseMeta
+from bolinette.ext.data.queries import RelationalDefinition
+from bolinette.ext.data.sessions import ScopedSession, SessionManager
 from bolinette.inject import ArgResolverOptions, injection_arg_resolver
 
 
@@ -41,3 +43,21 @@ class AsyncSessionArgResolver:
                 f"No session has been started for database '{_meta.database}'", func=options.caller, param=options.name
             )
         return options.name, self.sessions.get(_meta.database)
+
+
+@injection_arg_resolver(priority=110, scoped=True)
+class RelationalDefinitionArgResolver:
+    def __init__(self, entities: EntityManager) -> None:
+        self.entities = entities
+
+    def supports(self, options: ArgResolverOptions) -> bool:
+        return options.cls is RelationalDefinition
+
+    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+        entity_type = options.type_vars[0]
+        if not self.entities.is_entity_type(entity_type):
+            raise InjectionError(
+                f"Type {entity_type} is not registered as an entity", func=options.caller, param=options.name
+            )
+        _meta = meta.get(entity_type, DatabaseMeta)
+        return options.name, _meta.engine.get_definition(entity_type)
