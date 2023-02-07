@@ -426,6 +426,13 @@ class Injection:
         if super_cls is None:
             super_cls = cls
         cls, type_vars = self._get_generic_params(cls)
+        if hasattr(cls, "__parameters__"):
+            if TYPE_CHECKING:
+                assert isinstance(cls, _GenericOrigin)
+            if len(cls.__parameters__) != len(type_vars) and not match_all:
+                raise InjectionError(
+                    f"Type {cls} requires {len(cls.__parameters__)} generic parameters and {len(type_vars)} were given"
+                )
         super_cls, super_params = self._get_generic_params(super_cls)
         if not issubclass(cls, super_cls):
             raise InjectionError(f"Type {cls} does not inherit from type {super_cls}")

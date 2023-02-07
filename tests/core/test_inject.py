@@ -294,6 +294,53 @@ def test_use_init_method() -> None:
     assert t2.cls_name == _ChildClass2.__name__
 
 
+def test_init_method_call_order() -> None:
+    order = []
+
+    class _S1:
+        @init_method
+        def init(self) -> None:
+            order.append("s1")
+
+    class _S21:
+        @init_method
+        def init(self) -> None:
+            order.append("s21")
+
+    class _S22:
+        @init_method
+        def init(self) -> None:
+            order.append("s22")
+
+    class _S2(_S21, _S22):
+        @init_method
+        def init(self) -> None:
+            order.append("s2")
+
+    class _Service1(_S1, _S2):
+        @init_method
+        def init(self) -> None:
+            order.append("s")
+
+    class _Service2(_S2, _S1):
+        @init_method
+        def init(self) -> None:
+            order.append("s")
+
+
+    inject = Injection(Cache())
+    inject.add(_Service1, "singleton")
+    inject.add(_Service2, "singleton")
+
+    inject.require(_Service1)
+    assert order == ["s1", "s21", "s22", "s2", "s"]
+
+    order.clear()
+
+    inject.require(_Service2)
+    assert order == ["s21", "s22", "s2", "s1", "s"]
+
+
 class Service1:
     def __init__(self, s2: "Service2") -> None:
         self.s2 = s2
@@ -809,10 +856,9 @@ def test_generic_no_direct_injection_literal() -> None:
         pass
 
     inject = Injection(Cache())
-    inject.add(_GenericTest, "singleton")
 
     with pytest.raises(InjectionError) as info:
-        inject.require(_GenericTest["_SubTestClass"])
+        inject.add(_GenericTest["_SubTestClass"], "singleton")
 
     assert (
         f"Type {_GenericTest}, Generic parameter ForwardRef('_SubTestClass'), "
@@ -1031,9 +1077,36 @@ def test_require_from_typevar() -> None:
 
     ctrl = inject.require(_Controller[_Resource])
     assert isinstance(ctrl.sub, _Service)
+    assert meta.get(ctrl.sub, GenericMeta).args == (_Resource,)
 
     ctrl2 = inject.require(_Controller[_SpecificResource])
     assert isinstance(ctrl2.sub, _SpecificService)
+    assert meta.get(ctrl2.sub, GenericMeta).args == (_SpecificResource,)
+
+
+def test_init_method_with_typevar() -> None:
+    class _Entity:
+        pass
+
+    _T = TypeVar("_T", bound=_Entity)
+
+    class _Service(Generic[_T]):
+        pass
+
+    class _Controller(Generic[_T]):
+        @init_method
+        def init(self, s: _Service[_T]) -> None:
+            self.s = s
+
+    inject = Injection(Cache())
+    inject.add(_Service[_Entity], "singleton")
+    inject.add(_Controller[_Entity], "singleton")
+
+    ctrl = inject.require(_Controller[_Entity])
+
+    assert isinstance(ctrl.s, _Service)
+    assert meta.get(ctrl.s, GenericMeta).args == (_Entity,)
+
 
 
 def test_fail_require_from_typevar_non_generic_parent() -> None:
@@ -1087,6 +1160,23 @@ def test_fail_require_from_typevar_different_names() -> None:
         f"Type {_Controller}, Parameter 's', TypeVar ~_T1 could not be found in calling declaration"
         == info.value.message
     )
+
+
+def test_add_generic_with_no_vars() -> None:
+    class _Entity:
+        pass
+
+    _T = TypeVar("_T", bound=_Entity)
+
+    class _Service(Generic[_T]):
+        pass
+
+    inject = Injection(Cache())
+
+    with pytest.raises(InjectionError) as info:
+        inject.add(_Service, "singleton")
+
+    assert f"Type {_Service} requires 1 generic parameters and 0 were given" == info.value.message
 
 
 def test_arg_resolver() -> None:

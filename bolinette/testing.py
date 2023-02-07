@@ -87,14 +87,14 @@ class Mock:
             return origin, params
         return _cls, ()
 
-    def mock(self, cls: type[T]) -> _MockWrapper[T]:
-        origin, params = self._get_generic_params(cls)
+    def mock(self, cls: type[T], *, match_all: bool = False) -> _MockWrapper[T]:
+        origin, _ = self._get_generic_params(cls)
         if origin in self._mocked:
             mocked = self._mocked[origin]
         else:
             mocked = _MockWrapper(origin)
             self._mocked[origin] = mocked
-            self._inject.add(cls, "singleton", instance=mocked.instance)
+            self._inject.add(cls, "singleton", instance=mocked.instance, match_all=match_all)
         return mocked
 
     @property

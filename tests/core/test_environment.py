@@ -12,7 +12,7 @@ from bolinette.utils import FileUtils, PathUtils
 
 def _setup_test(cache: Cache | None = None) -> Mock:
     mock = Mock(cache=cache)
-    mock.mock(Logger)
+    mock.mock(Logger, match_all=True)
     mock.mock(PathUtils).setup("env_path", lambda *values: "".join(values))
     mock.mock(FileUtils).setup("read_yaml", lambda *_: {})
     mock.injection.add(Environment, "singleton", args=["test"])
