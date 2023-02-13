@@ -1,3 +1,4 @@
 [report]
 exclude_lines =
     pass
+    if TYPE_CHECKING:

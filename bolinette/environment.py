@@ -22,7 +22,7 @@ class Environment:
     def __init__(
         self,
         profile: str,
-        logger: Logger,
+        logger: "Logger[Environment]",
         cache: Cache,
         inject: Injection,
         paths: PathUtils,

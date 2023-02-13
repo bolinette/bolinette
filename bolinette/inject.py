@@ -323,7 +323,13 @@ class Injection:
     def _instanciate(self, r_type: "_RegisteredType[InstanceT]", type_vars: tuple[Any, ...]) -> InstanceT:
         vars_lookup = self._get_generic_lookup(r_type.cls, type_vars)
         func_args = self._resolve_args(
-            r_type.cls, type_vars, r_type.strategy, vars_lookup, False, r_type.args, r_type.named_args
+            r_type.cls,
+            type_vars,
+            r_type.strategy,  # type: ignore
+            vars_lookup,
+            False,
+            r_type.args,
+            r_type.named_args,
         )
         instance = r_type.cls(**func_args)
         self._hook_proxies(instance)

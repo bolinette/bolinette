@@ -24,6 +24,7 @@ class DatabaseManager:
         self._cache = cache
         self._section = section
         self._entities = entities
+        self._systems: list[DatabaseSystem] = []
         self._engines: dict[str, RelationalDatabase] = {}
         self._inject = inject
 
@@ -32,31 +33,39 @@ class DatabaseManager:
 
     @init_method
     def init(self) -> None:
+        self._init_systems()
         self._init_db_engines()
         self._init_tables()
         self._init_repositories()
 
-    def _init_db_engines(self) -> None:
+    def _init_systems(self) -> None:
         systems = [t() for t in self._cache.get(DatabaseSystem, hint=type[DatabaseSystem], raises=False)]
         if not systems:
             raise DatabaseError(f"No system was registered with @{database_system.__name__}")
+        for system in systems:
+            try:
+                importlib.import_module(system.python_package)
+            except ModuleNotFoundError:
+                raise DatabaseError(
+                    f"Python package '{system.python_package}' was not found",
+                    system=system.scheme,
+                )
+            self._systems.append(system)
+
+    def _init_db_engines(self) -> None:
         for db_config in self._section.databases:
             re_match = DatabaseManager.DBMS_RE.match(db_config.url)
             if re_match is None:
                 raise DatabaseError(f"Database connection '{db_config.name}': Invalid URL '{db_config.url}'")
             scheme = re_match.group(1)
-            for system in systems:
+            for system in self._systems:
                 if scheme == system.scheme:
                     db_system = system
                     break
             else:
-                raise DatabaseError(f"Database system supporting scheme '{scheme}' was not found")
-            try:
-                importlib.import_module(db_system.python_package)
-            except ModuleNotFoundError:
                 raise DatabaseError(
-                    f"Python package '{db_system.python_package}' was not found",
-                    connection=scheme,
+                    f"Database system supporting scheme '{scheme}' was not found",
+                    connection=db_config.name
                 )
             db_manager = db_system.manager(db_config.name, db_config.url, db_config.echo)
             self._engines[db_config.name] = db_manager
@@ -65,7 +74,7 @@ class DatabaseManager:
         sorted_tables: dict[RelationalDatabase, dict[type[Entity], TableDefinition]] = {}
         for entity, table_def in self._entities.definitions.items():
             if table_def.database not in self._engines:
-                raise DatabaseError(f"No '{table_def.database}' database registered", entity=entity)
+                raise DatabaseError(f"No '{table_def.database}' database is registered in environment", entity=entity)
             engine = self._engines[table_def.database]
             if engine not in sorted_tables:
                 sorted_tables[engine] = {}

@@ -32,15 +32,17 @@ class DatabaseError(DataError, ParameterError):
         self,
         message: str,
         *,
+        system: str | None = None,
         connection: str | None = None,
         entity: type[Entity] | None = None,
     ) -> None:
         ParameterError.__init__(
             self,
-            connection="Connection '{}'",
-            entity="Entity '{}'",
+            system="Database system '{}'",
+            connection="Database connection '{}'",
+            entity="Entity {}",
         )
         BolinetteError.__init__(
             self,
-            self._format_params(message, connection=connection, entity=entity),
+            self._format_params(message, system=system, connection=connection, entity=entity),
         )
