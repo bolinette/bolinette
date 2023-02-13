@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterable
-from typing import Generic, Self, TypeVar
+from typing import Generic, Self, TypeVar, Callable, Any
 
-from sqlalchemy import Select, desc, select
+from sqlalchemy import Select, desc as sql_desc, select
 from sqlalchemy.orm import selectinload
 
 from bolinette.ext.data import Entity
@@ -31,35 +31,43 @@ class RelationalQueryBuilder(Generic[EntityT]):
 
 
 class RelationalQuery(BaseQuery[EntityT], Generic[EntityT]):
-    def __init__(self, rel_def: RelationalDefinition[EntityT], session: ScopedSession[EntityT]):
-        super().__init__()
+    def __init__(
+        self,
+        rel_def: RelationalDefinition[EntityT],
+        session: ScopedSession[EntityT],
+        query: Select | None = None,
+    ):
         self._rel_def = rel_def
         self._session = session
+        self._query = query if query is not None else select(self._rel_def)
 
-    def _clone(self) -> Self:
-        return self._base_clone(RelationalQuery(self._rel_def, self._session))
+    def where(self, function: Callable[[EntityT], bool]) -> Self:
+        return RelationalQuery(
+            self._rel_def,
+            self._session,
+            self._query.where(function(self._rel_def)),  # type: ignore
+        )
+
+    def order_by(self, column: str, *, desc: bool = False) -> Self:
+        col = getattr(self._rel_def, column)
+        if desc:
+            col = sql_desc(col)
+        return RelationalQuery(self._rel_def, self._session, self._query.order_by(col))
+
+    def offset(self, offset: int) -> Self:
+        return RelationalQuery(self._rel_def, self._session, self._query.offset(offset))
+
+    def limit(self, limit: int) -> Self:
+        return RelationalQuery(self._rel_def, self._session, self._query.limit(limit))
+
+    def include(self, function: Callable[[EntityT], Any]) -> Self:
+        return RelationalQuery(
+            self._rel_def,
+            self._session,
+            self._query.options(selectinload(function(self._rel_def))),  # type: ignore
+        )
 
     async def all(self) -> AsyncIterable[EntityT]:
-        result = await self._session.execute(self._build_query())
+        result = await self._session.execute(self._query)
         for scalar in result.scalars():
             yield scalar
-
-    def _query(self) -> Select:
-        return select(self._rel_def)
-
-    def _build_query(self):
-        query = self._query()
-        for function in self._wheres:
-            query = query.where(function(self._rel_def))  # type: ignore
-        for column, order in self._order_by:
-            if hasattr(self._rel_def, column):
-                col = getattr(self._rel_def, column)
-                if order:
-                    col = desc(col)
-                query = query.order_by(col)
-        query = query.offset(self._offset)
-        if self._limit is not None:
-            query = query.limit(self._limit)
-        for include in self._includes:
-            query = query.options(selectinload(include(self._rel_def)))  # type: ignore
-        return query

@@ -21,14 +21,14 @@ async def test_command(inject: Injection, database: DatabaseManager) -> None:
         session.add(role_cls(name="admin"))
         await session.commit()
 
+    sessions = s_inject.require(SessionManager)
+    engine.open_session(sessions)
+
     async with engine._session_maker() as session:
         r = (await session.execute(select(role_cls).where(role_cls.name == "admin"))).scalar_one()
         session.add(usr_cls(username="Bob", role_id=r.id))
         session.add(usr_cls(username="Jacques", role_id=r.id))
         await session.commit()
-
-    sessions = s_inject.require(SessionManager)
-    engine.open_session(sessions)
 
     user_repo = s_inject.require(Repository[User])
     async for res in user_repo.find_all():
