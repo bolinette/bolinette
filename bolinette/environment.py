@@ -177,7 +177,7 @@ class _EnvParser:
         elif annotation in (str, int, float, bool):
             try:
                 value = annotation(value)
-            except (ValueError) as exp:
+            except ValueError as exp:
                 raise EnvironmentError(f"Section {path}: unable to bind value {value} to type {annotation}") from exp
         elif isinstance(annotation, type):
             if len(inspect.signature(annotation).parameters) != 0:

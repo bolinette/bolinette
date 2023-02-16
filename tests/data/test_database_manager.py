@@ -1,78 +1,41 @@
-from typing import Annotated
-
-from sqlalchemy import Integer, String
-from sqlalchemy.orm import DeclarativeBase
 import pytest
 
 from bolinette.testing import Mock
 from bolinette import Cache
-from bolinette.ext.data import PrimaryKey
+from bolinette.ext.data import database_system, DatabaseManager, DataSection
 from bolinette.ext.data.exceptions import DatabaseError
-from bolinette.ext.data.database import RelationalDatabase
-from bolinette.ext.data.objects import DataSection, _DatabaseSection
-from bolinette.ext.data.manager import (
-    DatabaseManager,
-    EntityManager,
-    TableDefinition,
-    TableColumn,
-    database_system,
-    PrimaryKeyConstraint,
-)
+from bolinette.ext.data.relational import RelationalDatabase
+from bolinette.ext.data.objects import _DatabaseSection
 
 
-def _setup_test(cache: Cache, env: DataSection) -> Mock:
-    mock = Mock(cache=cache)
-    mock.injection.add(DataSection, "singleton", instance=env)
-    mock.mock(EntityManager)
-    mock.injection.add(DatabaseManager, "singleton")
-    return mock
-
-class SQLite:
-    scheme = "sqlite+aiosqlite://"
-    python_package = "aiosqlite"
-    manager = RelationalDatabase
-
-
-def create_env_section(name: str = "default", url: str = "sqlite+aiosqlite://") -> DataSection:
-    db = _DatabaseSection()
-    db.echo = True
-    db.name = name
-    db.url = url
-    env = DataSection()
-    env.databases = [db]
-    return env
-
-
-def test_init_db_engines() -> None:
+def test_init_systems() -> None:
     cache = Cache()
 
-    database_system(cache=cache)(SQLite)
+    @database_system(cache=cache)
+    class _SQLite:
+        scheme = "sqlite+aiosqlite://"
+        python_package = "aiosqlite"
+        manager = RelationalDatabase
 
-    class _User:
-        id: Annotated[int, PrimaryKey()]
-        name: str
-
-    def _get_entities() -> dict[type, TableDefinition]:
-        user_table = TableDefinition("user", _User, "default")
-        user_table.columns["id"] = TableColumn(user_table, "id", int, Integer, False, None)
-        user_table.columns["name"] = TableColumn(user_table, "name", str, String, False, None)
-        user_table.constraints["user_pk"] = PrimaryKeyConstraint(user_table, "user_pk", [user_table.columns["id"]])
-        return {_User: user_table}
-
-    mock = _setup_test(cache, create_env_section())
-    mock.mock(EntityManager).setup("definitions", _get_entities())
+    mock = Mock(cache=cache)
+    mock.mock(DataSection).setup('databases', [])
+    mock.injection.add(DatabaseManager, "singleton")
 
     manager = mock.injection.require(DatabaseManager)
 
-    engine = manager.get_engine("default")
-    assert isinstance(engine, RelationalDatabase)
+    assert manager.has_system("sqlite+aiosqlite://")
+    assert not manager.has_system("some-scheme://")
 
-    definition = engine.get_definition(_User)
-    assert issubclass(definition, DeclarativeBase)
+    system = manager.get_system("sqlite+aiosqlite://")
+    assert system.scheme == "sqlite+aiosqlite://"
+    assert system.python_package == "aiosqlite"
+    assert system.manager is RelationalDatabase
 
 
-def test_fail_no_db_system_registered() -> None:
-    mock = _setup_test(Cache(), create_env_section())
+def test_fail_init_systems_no_system() -> None:
+    mock = Mock(cache=Cache())
+    mock.mock(DataSection).setup('databases', [])
+    mock.injection.add(DatabaseManager, "singleton")
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)
@@ -80,81 +43,95 @@ def test_fail_no_db_system_registered() -> None:
     assert "No system was registered with @database_system" == info.value.message
 
 
-def test_fail_env_db_url_unknown() -> None:
-    cache = Cache()
-
-    database_system(cache=cache)(SQLite)
-
-    mock = _setup_test(cache, create_env_section("some-db", "invalid url"))
-
-    with pytest.raises(DatabaseError) as info:
-        mock.injection.require(DatabaseManager)
-
-    assert (
-        "Database connection 'some-db': Invalid URL 'invalid url'"
-        == info.value.message
-    )
-
-
-def test_fail_unsupported_scheme() -> None:
+def test_fail_init_systems_python_package_not_found() -> None:
     cache = Cache()
 
     @database_system(cache=cache)
-    class SQLite:
+    class _SQLite:
         scheme = "sqlite+aiosqlite://"
-        python_package = "aiosqlite"
+        python_package = "some-package"
         manager = RelationalDatabase
 
-    mock = _setup_test(cache, create_env_section("some-db", "some-protocol://some-user:some-pwd@some-url:1234"))
+    mock = Mock(cache=cache)
+    mock.mock(DataSection).setup('databases', [])
+    mock.injection.add(DatabaseManager, "singleton")
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)
 
-    assert (
-        "Database connection 'some-db', Database system supporting scheme 'some-protocol://' was not found"
-        == info.value.message
-    )
+    assert "Database system 'sqlite+aiosqlite://', Python package 'some-package' was not found" == info.value.message
 
 
-def test_fail_python_package_not_found() -> None:
+class SQLite:
+    scheme = "sqlite+aiosqlite://"
+    python_package = "aiosqlite"
+    manager = RelationalDatabase
+
+
+def test_init_connections() -> None:
     cache = Cache()
-
-    @database_system(cache=cache)
-    class SQLite:
-        scheme = "sqlite+aiosqlite://"
-        python_package = "some-python-package"
-        manager = RelationalDatabase
-
-    mock = _setup_test(cache, create_env_section())
-
-    with pytest.raises(DatabaseError) as info:
-        mock.injection.require(DatabaseManager)
-
-    assert (
-        "Database system 'sqlite+aiosqlite://', Python package 'some-python-package' was not found"
-        == info.value.message
-    )
-
-
-def test_fail_database_connection_not_found() -> None:
-    cache = Cache()
-
     database_system(cache=cache)(SQLite)
 
-    class _User:
-        pass
+    def get_sections() -> list[_DatabaseSection]:
+        conn = _DatabaseSection()
+        conn.name = "test-connection"
+        conn.url = "sqlite+aiosqlite://"
+        conn.echo = False
+        return [conn]
 
-    def _get_entities() -> dict[type, TableDefinition]:
-        user_table = TableDefinition("user", _User, "some-db")
-        return {_User: user_table}
+    mock = Mock(cache=cache)
+    mock.mock(DataSection).setup('databases', get_sections())
+    mock.injection.add(DatabaseManager, "singleton")
 
-    mock = _setup_test(cache, create_env_section())
-    mock.mock(EntityManager).setup("definitions", _get_entities())
+    manager = mock.injection.require(DatabaseManager)
+
+    assert manager.has_connection("test-connection")
+    assert not manager.has_connection("some-connection")
+
+    conn = manager.get_connection("test-connection")
+    assert conn.name == "test-connection"
+    assert conn.url == "sqlite+aiosqlite://"
+    assert conn.echo is False
+    assert conn.manager is RelationalDatabase
+
+
+def test_fail_init_connections_invalid_url() -> None:
+    cache = Cache()
+    database_system(cache=cache)(SQLite)
+
+    def get_sections() -> list[_DatabaseSection]:
+        conn = _DatabaseSection()
+        conn.name = "test-connection"
+        conn.url = "invalid url!"
+        conn.echo = False
+        return [conn]
+
+    mock = Mock(cache=cache)
+    mock.mock(DataSection).setup('databases', get_sections())
+    mock.injection.add(DatabaseManager, "singleton")
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)
 
-    assert (
-        f"Entity {_User}, No 'some-db' database is registered in environment"
-        == info.value.message
-    )
+    assert "Database connection 'test-connection', Invalid URL 'invalid url!'" == info.value.message
+
+
+def test_fail_init_connections_system_not_found() -> None:
+    cache = Cache()
+    database_system(cache=cache)(SQLite)
+
+    def get_sections() -> list[_DatabaseSection]:
+        conn = _DatabaseSection()
+        conn.name = "test-connection"
+        conn.url = "protocol://"
+        conn.echo = False
+        return [conn]
+
+    mock = Mock(cache=cache)
+    mock.mock(DataSection).setup('databases', get_sections())
+    mock.injection.add(DatabaseManager, "singleton")
+
+    with pytest.raises(DatabaseError) as info:
+        mock.injection.require(DatabaseManager)
+
+    assert "Database connection 'test-connection', Database system supporting scheme 'protocol://' was not found" == info.value.message

@@ -1,5 +1,6 @@
+from typing import Any
+
 from bolinette.exceptions import BolinetteError, ParameterError
-from bolinette.ext.data.entity import Entity
 
 
 class DataError(BolinetteError):
@@ -11,7 +12,7 @@ class EntityError(DataError, ParameterError):
         self,
         message: str,
         *,
-        entity: type[Entity] | None = None,
+        entity: type[Any] | None = None,
         attribute: str | None = None,
         constraint: str | None = None,
     ) -> None:
@@ -34,7 +35,7 @@ class DatabaseError(DataError, ParameterError):
         *,
         system: str | None = None,
         connection: str | None = None,
-        entity: type[Entity] | None = None,
+        entity: type[Any] | None = None,
     ) -> None:
         ParameterError.__init__(
             self,
@@ -46,3 +47,8 @@ class DatabaseError(DataError, ParameterError):
             self,
             self._format_params(message, system=system, connection=connection, entity=entity),
         )
+
+
+class EntityNotFoundError(BolinetteError):
+    def __init__(self, entity: type[Any]) -> None:
+        self.entity = entity

@@ -1,12 +1,10 @@
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from bolinette import meta
 from bolinette.exceptions import InjectionError
-from bolinette.ext.data import EntityManager
-from bolinette.ext.data.entity import EntityMeta
-from bolinette.ext.data.manager import DatabaseMeta
-from bolinette.ext.data.queries import RelationalDefinition
-from bolinette.ext.data.sessions import ScopedSession, SessionManager
+from bolinette.ext.data.relational import EntityManager, RelationalDatabase, SessionManager
 from bolinette.inject import ArgResolverOptions, injection_arg_resolver
 
 
@@ -29,35 +27,17 @@ class AsyncSessionArgResolver:
         self.sessions = sessions
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return options.cls is ScopedSession
+        return options.cls is AsyncSession
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        entity_type = options.type_vars[0]
+        if options.caller_type_vars is None:
+            raise InjectionError(
+                "Cannot inject session in non generic context", func=options.caller, param=options.name
+            )
+        entity_type = options.caller_type_vars[0]
         if not self.entities.is_entity_type(entity_type):
             raise InjectionError(
                 f"Type {entity_type} is not registered as an entity", func=options.caller, param=options.name
             )
-        _meta = meta.get(entity_type, EntityMeta)
-        if _meta.database not in self.sessions:
-            raise InjectionError(
-                f"No session has been started for database '{_meta.database}'", func=options.caller, param=options.name
-            )
-        return options.name, self.sessions.get(_meta.database)
-
-
-@injection_arg_resolver(priority=110, scoped=True)
-class RelationalDefinitionArgResolver:
-    def __init__(self, entities: EntityManager) -> None:
-        self.entities = entities
-
-    def supports(self, options: ArgResolverOptions) -> bool:
-        return options.cls is RelationalDefinition
-
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        entity_type = options.type_vars[0]
-        if not self.entities.is_entity_type(entity_type):
-            raise InjectionError(
-                f"Type {entity_type} is not registered as an entity", func=options.caller, param=options.name
-            )
-        _meta = meta.get(entity_type, DatabaseMeta)
-        return options.name, _meta.engine.get_definition(entity_type)
+        engine = meta.get(entity_type, RelationalDatabase)
+        return options.name, self.sessions.get(engine._name)

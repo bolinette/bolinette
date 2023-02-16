@@ -34,7 +34,7 @@ def test_set_get_meta() -> None:
 
     assert isinstance(m, _Meta)
     assert m is _m
-    assert m.value is 4
+    assert m.value == 4
 
 
 def test_set_get_meta_class() -> None:
@@ -51,7 +51,7 @@ def test_set_get_meta_class() -> None:
 
     assert isinstance(m, _Meta)
     assert m is _m
-    assert m.value is 4
+    assert m.value == 4
 
 
 def test_set_get_meta_obj_class() -> None:
@@ -71,10 +71,10 @@ def test_set_get_meta_obj_class() -> None:
     assert meta.get(type(t1), _Meta) is meta.get(_TestClass, _Meta)
     assert meta.get(type(t2), _Meta) is meta.get(_TestClass, _Meta)
 
-    assert meta.get(type(t1), _Meta).value is 0
-    assert meta.get(type(t2), _Meta).value is 0
-    assert meta.get(t1, _Meta).value is 1
-    assert meta.get(t2, _Meta).value is 2
+    assert meta.get(type(t1), _Meta).value == 0
+    assert meta.get(type(t2), _Meta).value == 0
+    assert meta.get(t1, _Meta).value == 1
+    assert meta.get(t2, _Meta).value == 2
 
 
 def test_set_meta_fail_type() -> None:

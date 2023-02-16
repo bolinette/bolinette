@@ -138,8 +138,8 @@ async def test_fail_subinjection() -> None:
         inject.require(InjectableClassD)
 
     assert (
-        f"Callable {InjectableClassD}, Parameter 'c', Type {InjectableClassC} is not a registered type in the injection system"
-        == info.value.message
+        f"Callable {InjectableClassD}, Parameter 'c', "
+        f"Type {InjectableClassC} is not a registered type in the injection system" == info.value.message
     )
 
 
@@ -163,8 +163,8 @@ async def test_fail_subinjection_generic() -> None:
         inject.require(_Service)
 
     assert (
-        f"Callable {_Service}, Parameter 'sub', Type {_SubService}[({_Param},)] is not a registered type in the injection system"
-        == info.value.message
+        f"Callable {_Service}, Parameter 'sub', "
+        f"Type {_SubService}[({_Param},)] is not a registered type in the injection system" == info.value.message
     )
 
 
@@ -177,8 +177,8 @@ def test_fail_call_injection() -> None:
         inject.call(_test_func)
 
     assert (
-        f"Callable {_test_func}, Parameter 'b', Type {InjectableClassC} is not a registered type in the injection system"
-        == info.value.message
+        f"Callable {_test_func}, Parameter 'b', "
+        f"Type {InjectableClassC} is not a registered type in the injection system" == info.value.message
     )
 
 
@@ -327,7 +327,6 @@ def test_init_method_call_order() -> None:
         def init(self) -> None:
             order.append("s")
 
-
     inject = Injection(Cache())
     inject.add(_Service1, "singleton")
     inject.add(_Service2, "singleton")
@@ -369,7 +368,6 @@ class Service3:
 
 
 def test_self_circular_init_reference() -> None:
-
     inject = Injection(Cache())
     inject.add(Service3, "singleton")
 
@@ -1106,7 +1104,6 @@ def test_init_method_with_typevar() -> None:
 
     assert isinstance(ctrl.s, _Service)
     assert meta.get(ctrl.s, GenericMeta).args == (_Entity,)
-
 
 
 def test_fail_require_from_typevar_non_generic_parent() -> None:

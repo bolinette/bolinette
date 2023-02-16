@@ -1,8 +1,8 @@
-from bolinette.ext.data.database import RelationalDatabase
-from bolinette.ext.data.manager import database_system
+from bolinette.ext.data import __data_cache__, database_system
+from bolinette.ext.data.relational import RelationalDatabase
 
 
-@database_system()
+@database_system(cache=__data_cache__)
 class SQLite:
     scheme = "sqlite+aiosqlite://"
     python_package = "aiosqlite"

@@ -386,6 +386,6 @@ async def test_command_conflict() -> None:
     with pytest.raises(InitError) as info:
         await parser.run()
 
-    assert f"Conflict with 'command sub' command" in info.value.message  # type: ignore
+    assert "Conflict with 'command sub' command" in info.value.message  # type: ignore
 
     sys.argv = _argv
