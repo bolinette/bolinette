@@ -1,4 +1,4 @@
 from bolinette import Bolinette
-from bolinette.ext.data.extension import data_ext
+from bolinette.ext import data
 
-blnt = Bolinette(extensions=[data_ext])
+blnt = Bolinette(extensions=[data])

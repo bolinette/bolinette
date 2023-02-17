@@ -1,8 +1,12 @@
-from typing import Callable
+from typing import Callable, Protocol
 
 from bolinette import Environment, Extension, Injection, Logger, __user_cache__, core_ext, meta, require
 from bolinette.command import Parser
 from bolinette.utils import FileUtils, PathUtils
+
+
+class _ExtensionModule(Protocol):
+    __blnt_ext__: Extension
 
 
 class Bolinette:
@@ -12,15 +16,17 @@ class Bolinette:
         profile: str | None = None,
         inject: Injection | None = None,
         load_defaults: bool = True,
-        extensions: list[Extension] | None = None,
+        extensions: list[_ExtensionModule] | None = None,
     ) -> None:
         if extensions is None:
-            extensions = []
-        if load_defaults and core_ext not in extensions:
-            extensions = [core_ext, *extensions]
+            _extensions = []
+        else:
+            _extensions = [m.__blnt_ext__ for m in extensions]
+        if load_defaults and core_ext not in _extensions:
+            _extensions = [core_ext, *_extensions]
 
-        extensions = Extension.sort_extensions(extensions)
-        cache = Extension.merge_caches(extensions)
+        _extensions = Extension.sort_extensions(_extensions)
+        cache = Extension.merge_caches(_extensions)
         cache |= __user_cache__
 
         self._inject = inject or Injection(cache)
