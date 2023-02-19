@@ -147,7 +147,7 @@ class Injection:
         self,
         func: Callable,
         func_type_vars: tuple[Any, ...] | None,
-        strategy: Literal["singleton", "scoped", "transcient"] | None,
+        strategy: Literal["singleton", "scoped", "transcient"],
         vars_lookup: dict[TypeVar, type[Any]] | None,
         immediate: bool,
         args: list[Any],
@@ -352,7 +352,7 @@ class Injection:
         named_args: dict[str, Any] | None = None,
         vars_lookup: dict[TypeVar, type[Any]] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, None, None, vars_lookup, True, args or [], named_args or {})
+        func_args = self._resolve_args(func, None, "singleton", vars_lookup, True, args or [], named_args or {})
         return func(**func_args)
 
     def _add_type_instance(
@@ -627,6 +627,17 @@ class _ScopedInjection(Injection):
             resolvers.append(self._instanciate(r_type, ()))
 
         return [*resolvers, _DefaultArgResolver()]
+
+    def call(
+        self,
+        func: Callable[..., FuncT],
+        *,
+        args: list[Any] | None = None,
+        named_args: dict[str, Any] | None = None,
+        vars_lookup: dict[TypeVar, type[Any]] | None = None,
+    ) -> FuncT:
+        func_args = self._resolve_args(func, None, "scoped", vars_lookup, True, args or [], named_args or {})
+        return func(**func_args)
 
 
 class _RegisteredType(Generic[InstanceT]):

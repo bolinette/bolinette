@@ -544,7 +544,7 @@ def test_scoped_injection_fail_no_scope_in_func() -> None:
         inject.call(_func)
 
     assert (
-        f"Callable {_func}, Parameter 'c1', Cannot instanciate a scoped service in a non-scoped context"
+        f"Callable {_func}, Parameter 'c1', Cannot instanciate a scoped service in a singleton service"
         == info.value.message
     )
 

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 @entity()
 class Role(get_base("default")):
     __tablename__ = "roles"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
 

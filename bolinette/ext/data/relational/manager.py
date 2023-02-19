@@ -3,7 +3,7 @@ from typing import Any
 from bolinette import Cache, Injection, init_method, injectable, meta
 from bolinette.ext.data import DatabaseManager, __data_cache__
 from bolinette.ext.data.exceptions import EntityError
-from bolinette.ext.data.relational import DeclarativeBase, DeclarativeMeta, EntityMeta, RelationalDatabase, Repository
+from bolinette.ext.data.relational import DeclarativeBase, DeclarativeMeta, EntityMeta, RelationalDatabase, Repository, SessionManager
 
 
 @injectable(cache=__data_cache__, strategy="singleton")
@@ -43,3 +43,7 @@ class EntityManager:
     async def create_all(self) -> None:
         for engine in self._engines.values():
             await engine.create_all()
+
+    def open_sessions(self, sessions: SessionManager) -> None:
+        for engine in self._engines.values():
+            engine.open_session(sessions)
