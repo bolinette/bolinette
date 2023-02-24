@@ -51,4 +51,5 @@ class DatabaseError(DataError, ParameterError):
 
 class EntityNotFoundError(BolinetteError):
     def __init__(self, entity: type[Any]) -> None:
+        super().__init__(f"Entity {entity} not found")
         self.entity = entity

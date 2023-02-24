@@ -3,7 +3,7 @@ import re
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
-from bolinette import Cache, Injection, init_method, injectable
+from bolinette import Cache, Injection, __user_cache__, init_method, injectable
 from bolinette.ext.data import DataSection, __data_cache__
 from bolinette.ext.data.exceptions import DatabaseError
 
@@ -80,7 +80,7 @@ SystemT = TypeVar("SystemT", bound=DatabaseSystem)
 
 def database_system(*, cache: Cache | None = None) -> Callable[[type[SystemT]], type[SystemT]]:
     def decorator(cls: type[SystemT]) -> type[SystemT]:
-        (cache or __data_cache__).add(DatabaseSystem, cls)
+        (cache or __user_cache__).add(DatabaseSystem, cls)
         return cls
 
     return decorator

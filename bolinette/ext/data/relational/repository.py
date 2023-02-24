@@ -1,13 +1,13 @@
 from collections.abc import AsyncIterable
-from typing import Generic, TypeVar, overload, Literal, Any
+from typing import Any, Callable, Generic, Literal, TypeVar, overload
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.selectable import TypedReturnsRows
-from sqlalchemy.sql.elements import NamedColumn
 
+from bolinette import Cache, __user_cache__, meta
+from bolinette.ext.data.exceptions import DataError, EntityNotFoundError
 from bolinette.ext.data.relational import DeclarativeBase
-from bolinette.ext.data.exceptions import EntityNotFoundError
 
 EntityT = TypeVar("EntityT", bound=DeclarativeBase)
 
@@ -18,7 +18,6 @@ class Repository(Generic[EntityT]):
         self._session = session
         self._primary_key = entity.__table__.primary_key
 
-
     async def iterate(self, statement: TypedReturnsRows[tuple[EntityT]]) -> AsyncIterable[EntityT]:
         result = await self._session.execute(statement)
         for row in result.scalars():
@@ -26,11 +25,11 @@ class Repository(Generic[EntityT]):
 
     @overload
     async def first(self, statement: TypedReturnsRows[tuple[EntityT]], *, raises: Literal[True] = True) -> EntityT:
-        ...
+        pass
 
     @overload
     async def first(self, statement: TypedReturnsRows[tuple[EntityT]], *, raises: Literal[False]) -> EntityT | None:
-        ...
+        pass
 
     async def first(self, statement: TypedReturnsRows[tuple[EntityT]], *, raises: bool = True) -> EntityT | None:
         result = await self._session.execute(statement)
@@ -44,13 +43,15 @@ class Repository(Generic[EntityT]):
 
     @overload
     async def get_by_primary(self, *values: Any, raises: Literal[True] = True) -> EntityT:
-        ...
+        pass
 
     @overload
     async def get_by_primary(self, *values: Any, raises: Literal[False]) -> EntityT | None:
-        ...
+        pass
 
     async def get_by_primary(self, *values: Any, raises: bool = True) -> EntityT | None:
+        if (val_l := len(values)) != (prim_l := len(list(self._primary_key))):
+            raise DataError(f"Primary key of {self._entity} has {prim_l} columns, but {val_l} values were provided")
         query = select(self._entity)
         for col, value in zip(self._primary_key, values):
             query = query.where(col == value)
@@ -64,3 +65,20 @@ class Repository(Generic[EntityT]):
 
     async def commit(self) -> None:
         await self._session.commit()
+
+
+RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # type: ignore
+
+
+class _RepositoryMeta(Generic[EntityT]):
+    def __init__(self, entity: type[EntityT]) -> None:
+        self.entity = entity
+
+
+def repository(entity: type[EntityT], *, cache: Cache | None = None) -> Callable[[type[RepoT]], type[RepoT]]:
+    def decorator(cls: type[RepoT]) -> type[RepoT]:
+        meta.set(cls, _RepositoryMeta(entity))
+        (cache or __user_cache__).add(_RepositoryMeta, cls)
+        return cls
+
+    return decorator

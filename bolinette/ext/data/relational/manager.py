@@ -2,40 +2,63 @@ from typing import Any
 
 from bolinette import Cache, Injection, init_method, injectable, meta
 from bolinette.ext.data import DatabaseManager, __data_cache__
-from bolinette.ext.data.exceptions import EntityError
-from bolinette.ext.data.relational import DeclarativeBase, DeclarativeMeta, EntityMeta, RelationalDatabase, Repository, SessionManager
+from bolinette.ext.data.exceptions import DataError, EntityError
+from bolinette.ext.data.relational import (
+    DeclarativeBase,
+    DeclarativeMeta,
+    EntityMeta,
+    RelationalDatabase,
+    Repository,
+    SessionManager,
+)
+from bolinette.ext.data.relational.repository import _RepositoryMeta
 
 
 @injectable(cache=__data_cache__, strategy="singleton")
 class EntityManager:
-    def __init__(self, databases: DatabaseManager) -> None:
-        self._databases = databases
+    def __init__(self) -> None:
         self._entities: list[type[DeclarativeBase]] = []
         self._engines: dict[type[DeclarativeBase], RelationalDatabase] = {}
 
     @init_method
-    def _init_bases(self, cache: Cache) -> None:
-        for base in cache.get(DeclarativeMeta, hint=type[DeclarativeBase]):
+    def _init_engines(self, cache: Cache, databases: DatabaseManager) -> None:
+        for base in cache.get(DeclarativeMeta, hint=type[DeclarativeBase], raises=False):
             _m = meta.get(base, DeclarativeMeta)
-            if not self._databases.has_connection(_m.name):
+            if not databases.has_connection(_m.name):
                 raise EntityError(f"No '{_m.name}' database connection defined in environment")
-            conn = self._databases.get_connection(_m.name)
-            if conn.manager is not RelationalDatabase:
+            conn = databases.get_connection(_m.name)
+            if not issubclass(conn.manager, RelationalDatabase):
                 raise EntityError(f"Database connection '{_m.name}' is not a relational system")
-            self._engines[base] = RelationalDatabase(base, conn.name, conn.url, conn.echo)
+            self._engines[base] = conn.manager(base, conn.name, conn.url, conn.echo)
 
     @init_method
     def _init_entities(self, cache: Cache) -> None:
-        for entity in cache.get(EntityMeta, hint=type[DeclarativeBase]):
+        for entity in cache.get(EntityMeta, hint=type[DeclarativeBase], raises=False):
             self._entities.append(entity)
+            found = False
             for base, engine in self._engines.items():
                 if issubclass(entity, base):
+                    if found:
+                        raise EntityError(f"Entity {entity} cannot inherit from multiple declarative bases")
                     meta.set(entity, engine, cls=RelationalDatabase)
+                    found = True
+            if not found:
+                raise EntityError(f"Entity {entity} has no known bases as its parents")
 
     @init_method
-    def _init_repositories(self, inject: Injection) -> None:
+    def _init_repositories(self, cache: Cache, inject: Injection) -> None:
+        repo_classes = cache.get(_RepositoryMeta, hint=type[Repository[Any]], raises=False)
+        used_classes: set[type[Repository[Any]]] = set()
         for entity in self._entities:
-            inject.add(Repository[entity], "scoped")
+            for repo_class in repo_classes:
+                if meta.get(repo_class, _RepositoryMeta).entity is entity:
+                    inject.add(repo_class, "scoped")
+                    inject.add(repo_class, "scoped", super_cls=Repository[entity])
+                    used_classes.add(repo_class)
+            else:
+                inject.add(Repository[entity], "scoped")
+        if len(used_classes) != len(repo_classes):
+            raise DataError(f"Repository {repo_classes[0]} was not used with any registered entity")
 
     def is_entity_type(self, cls: type[Any]) -> bool:
         return cls in self._entities

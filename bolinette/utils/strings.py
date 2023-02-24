@@ -21,4 +21,4 @@ class StringUtils:
     def capitalize(string: str):
         if not string:
             return string
-        return f"{string[0]}{string[1:]}"
+        return f"{string[0].upper()}{string[1:]}"

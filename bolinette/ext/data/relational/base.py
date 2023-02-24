@@ -1,12 +1,11 @@
 from sqlalchemy.orm import DeclarativeBase
 
-from bolinette import Cache, meta
-from bolinette.ext.data import __data_cache__
+from bolinette import Cache, __user_cache__, meta
 from bolinette.utils import StringUtils
 
 
 def get_base(name: str, *, cache: Cache | None = None) -> type[DeclarativeBase]:
-    cache = cache or __data_cache__
+    cache = cache or __user_cache__
     if DeclarativeMeta not in cache:
         cache.init(DeclarativeMeta)
     bases = cache.get(DeclarativeMeta, hint=type[DeclarativeBase])
