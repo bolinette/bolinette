@@ -7,7 +7,7 @@ from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette import Cache, __user_cache__, meta
 from bolinette.ext.data.exceptions import DataError, EntityNotFoundError
-from bolinette.ext.data.relational import DeclarativeBase
+from bolinette.ext.data.relational import DeclarativeBase, EntityMeta
 
 EntityT = TypeVar("EntityT", bound=DeclarativeBase)
 
@@ -17,6 +17,7 @@ class Repository(Generic[EntityT]):
         self._entity = entity
         self._session = session
         self._primary_key = entity.__table__.primary_key
+        self._entity_key = meta.get(entity, EntityMeta).entity_key
 
     async def iterate(self, statement: TypedReturnsRows[tuple[EntityT]]) -> AsyncIterable[EntityT]:
         result = await self._session.execute(statement)
@@ -54,6 +55,22 @@ class Repository(Generic[EntityT]):
             raise DataError(f"Primary key of {self._entity} has {prim_l} columns, but {val_l} values were provided")
         query = select(self._entity)
         for col, value in zip(self._primary_key, values):
+            query = query.where(col == value)
+        return await self.first(query, raises=raises)  # type: ignore
+
+    @overload
+    async def get_by_key(self, *values: Any, raises: Literal[True] = True) -> EntityT:
+        pass
+
+    @overload
+    async def get_by_key(self, *values: Any, raises: Literal[False]) -> EntityT | None:
+        pass
+
+    async def get_by_key(self, *values: Any, raises: bool = True) -> EntityT | None:
+        if (val_l := len(values)) != (key_l := len(list(self._entity_key))):
+            raise DataError(f"Entity key of {self._entity} has {key_l} columns, but {val_l} values were provided")
+        query = select(self._entity)
+        for col, value in zip(self._entity_key, values):
             query = query.where(col == value)
         return await self.first(query, raises=raises)  # type: ignore
 

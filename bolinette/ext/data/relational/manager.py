@@ -1,5 +1,7 @@
 from typing import Any
 
+from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, Table
+
 from bolinette import Cache, Injection, init_method, injectable, meta
 from bolinette.ext.data import DatabaseManager, __data_cache__
 from bolinette.ext.data.exceptions import DataError, EntityError
@@ -44,6 +46,16 @@ class EntityManager:
                     found = True
             if not found:
                 raise EntityError(f"Entity {entity} has no known bases as its parents")
+            entity_key = meta.get(entity, EntityMeta).entity_key
+            if not isinstance(entity.__table__, Table):
+                raise EntityError("Could not determine entity key", entity=entity)
+            for constraint in entity.__table__.constraints:
+                if not isinstance(constraint, (UniqueConstraint, PrimaryKeyConstraint)):
+                    continue
+                if entity_key == list(constraint):
+                    break
+            else:
+                raise EntityError("Entity key does not match with any unique constraint", entity=entity)
 
     @init_method
     def _init_repositories(self, cache: Cache, inject: Injection) -> None:

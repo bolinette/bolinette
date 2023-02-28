@@ -13,26 +13,28 @@ from bolinette.inject import ArgResolverOptions, injection_arg_resolver
 from bolinette.testing import Mock
 
 
-test_cache = Cache()
+def setup_test():
+    cache = Cache()
 
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
 
-@entity(cache=test_cache)
-class Entity(get_base("tests", cache=test_cache)):
-    __tablename__ = "entities"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    @injection_arg_resolver(cache=cache)
+    class EntityArgResolver:
+        def supports(self, options: ArgResolverOptions) -> bool:
+            return options.cls is type and options.type_vars == (Entity,)
 
+        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+            return options.name, Entity
 
-@injection_arg_resolver(cache=test_cache)
-class EntityArgResolver:
-    def supports(self, options: ArgResolverOptions) -> bool:
-        return options.cls is type and options.type_vars == (Entity,)
-
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        return options.name, Entity
+    return cache, Entity
 
 
 def test_init_repo() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     mock.mock(AsyncSession)
     mock.injection.add(Repository[Entity], "singleton")
@@ -43,7 +45,8 @@ def test_init_repo() -> None:
 
 
 async def test_iterate() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     e1 = Entity()
     e2 = Entity()
@@ -68,7 +71,8 @@ async def test_iterate() -> None:
 
 
 async def test_find_all() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     e1 = Entity()
     e2 = Entity()
@@ -93,7 +97,8 @@ async def test_find_all() -> None:
 
 
 async def test_first() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     e1 = Entity()
 
@@ -115,7 +120,8 @@ async def test_first() -> None:
 
 
 async def test_first_none() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     class _MockedResult:
         def scalar_one_or_none(self):
@@ -135,7 +141,8 @@ async def test_first_none() -> None:
 
 
 async def test_fail_first_none() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     class _MockedResult:
         def scalar_one_or_none(self):
@@ -156,7 +163,8 @@ async def test_fail_first_none() -> None:
 
 
 async def test_get_by_primary() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     e1 = Entity()
 
@@ -178,7 +186,8 @@ async def test_get_by_primary() -> None:
 
 
 async def test_get_by_primary_none() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     class _MockedResult:
         def scalar_one_or_none(self):
@@ -198,7 +207,8 @@ async def test_get_by_primary_none() -> None:
 
 
 async def test_fail_get_by_primary_none() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     class _MockedResult:
         def scalar_one_or_none(self):
@@ -219,7 +229,8 @@ async def test_fail_get_by_primary_none() -> None:
 
 
 async def test_fail_get_by_primary_values_mismatch() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     mock.mock(AsyncSession)
     mock.injection.add(Repository[Entity], "singleton")
@@ -232,8 +243,90 @@ async def test_fail_get_by_primary_values_mismatch() -> None:
     assert f"Primary key of {Entity} has 1 columns, but 2 values were provided" == info.value.message
 
 
+async def test_get_by_key() -> None:
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
+
+    e1 = Entity()
+
+    class _MockedResult:
+        def scalar_one_or_none(self):
+            return e1
+
+    async def _execute(*_):
+        return _MockedResult()
+
+    mock.mock(AsyncSession).setup("execute", _execute)
+    mock.injection.add(Repository[Entity], "singleton")
+
+    repo = mock.injection.require(Repository[Entity])
+
+    res = await repo.get_by_key(1)
+
+    assert res == e1
+
+
+async def test_get_by_key_none() -> None:
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
+
+    class _MockedResult:
+        def scalar_one_or_none(self):
+            return None
+
+    async def _execute(*_):
+        return _MockedResult()
+
+    mock.mock(AsyncSession).setup("execute", _execute)
+    mock.injection.add(Repository[Entity], "singleton")
+
+    repo = mock.injection.require(Repository[Entity])
+
+    res = await repo.get_by_key(1, raises=False)
+
+    assert res is None
+
+
+async def test_fail_get_by_key_none() -> None:
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
+
+    class _MockedResult:
+        def scalar_one_or_none(self):
+            return None
+
+    async def _execute(*_):
+        return _MockedResult()
+
+    mock.mock(AsyncSession).setup("execute", _execute)
+    mock.injection.add(Repository[Entity], "singleton")
+
+    repo = mock.injection.require(Repository[Entity])
+
+    with pytest.raises(EntityNotFoundError) as info:
+        await repo.get_by_key(1)
+
+    assert f"Entity {Entity} not found" == info.value.message
+
+
+async def test_fail_get_by_key_values_mismatch() -> None:
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
+
+    mock.mock(AsyncSession)
+    mock.injection.add(Repository[Entity], "singleton")
+
+    repo = mock.injection.require(Repository[Entity])
+
+    with pytest.raises(DataError) as info:
+        await repo.get_by_key(1, "test")
+
+    assert f"Entity key of {Entity} has 1 columns, but 2 values were provided" == info.value.message
+
+
 async def test_add() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     e1 = Entity()
     entities = []
@@ -252,7 +345,8 @@ async def test_add() -> None:
 
 
 async def test_delete() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     e1 = Entity()
     entities = [e1]
@@ -271,7 +365,8 @@ async def test_delete() -> None:
 
 
 async def test_commit() -> None:
-    mock = Mock(cache=test_cache)
+    cache, Entity = setup_test()
+    mock = Mock(cache=cache)
 
     commit = False
 
@@ -290,6 +385,7 @@ async def test_commit() -> None:
 
 
 def test_custom_repo() -> None:
+    cache, Entity = setup_test()
     cache = Cache()
 
     @repository(Entity, cache=cache)

@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from bolinette import command, Injection
-from bolinette.ext.data.relational import Repository, EntityManager, SessionManager, get_base
+from bolinette.ext.data.relational import Repository, EntityManager, SessionManager
 
 from example.entities import User, Role
 
