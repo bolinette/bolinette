@@ -1,24 +1,24 @@
-from sqlalchemy import Integer, ForeignKey, String, Table, UniqueConstraint
-from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 import pytest
+from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from bolinette import Cache, meta
-from bolinette.utils import StringUtils
-from bolinette.testing import Mock
 from bolinette.ext.data import DatabaseManager
+from bolinette.ext.data.databases import _DatabaseConnection
+from bolinette.ext.data.exceptions import DataError, EntityError
 from bolinette.ext.data.relational import (
-    EntityManager,
     DeclarativeMeta,
-    RelationalDatabase,
+    EntityManager,
     EntityMeta,
-    SessionManager,
+    RelationalDatabase,
     Repository,
-    repository,
+    SessionManager,
     entity,
     get_base,
+    repository,
 )
-from bolinette.ext.data.databases import _DatabaseConnection
-from bolinette.ext.data.exceptions import EntityError, DataError
+from bolinette.testing import Mock
+from bolinette.utils import StringUtils
 
 
 class _MockedRelationalDatabase(RelationalDatabase):

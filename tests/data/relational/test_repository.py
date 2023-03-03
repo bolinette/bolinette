@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from bolinette import Cache, meta
 from bolinette.ext.data.exceptions import DataError, EntityNotFoundError
-from bolinette.ext.data.relational import Repository, get_base, repository, entity
+from bolinette.ext.data.relational import Repository, entity, get_base, repository
 from bolinette.ext.data.relational.repository import _RepositoryMeta
 from bolinette.inject import ArgResolverOptions, injection_arg_resolver
 from bolinette.testing import Mock

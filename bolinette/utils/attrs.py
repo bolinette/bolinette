@@ -23,7 +23,7 @@ class AttributeUtils:
         )
 
     @staticmethod
-    def get_instance_attrs(obj: Any, *, of_type: type[Any] | None = None):
+    def get_instance_attrs(obj: object, *, of_type: type[InstanceT] | None = None) -> Iterable[tuple[str, InstanceT]]:
         return (
             (name, attribute)
             for name, attribute in vars(obj).items()

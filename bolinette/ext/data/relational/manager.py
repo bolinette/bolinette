@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, Table
+from sqlalchemy import PrimaryKeyConstraint, Table, UniqueConstraint
 
 from bolinette import Cache, Injection, init_method, injectable, meta
 from bolinette.ext.data import DatabaseManager, __data_cache__

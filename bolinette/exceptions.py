@@ -8,6 +8,19 @@ class BolinetteError(Exception):
         self.message = message
 
 
+class InitError(BolinetteError):
+    def __init__(self, message: str) -> None:
+        BolinetteError.__init__(self, message)
+        self.message = message
+
+    def __str__(self) -> str:
+        return self.message
+
+
+class InternalError(BolinetteError):
+    pass
+
+
 class ParameterError:
     def __init__(self, **params: str) -> None:
         self._error_params = params
@@ -41,11 +54,7 @@ class ErrorCollection(Exception):
         return f'<BolinetteErrors [{",".join([repr(err) for err in self._errors])}]>'
 
 
-class InternalError(BolinetteError):
-    pass
-
-
-class InjectionError(InternalError, ParameterError):
+class InjectionError(BolinetteError, ParameterError):
     def __init__(
         self,
         message: str,
@@ -55,20 +64,20 @@ class InjectionError(InternalError, ParameterError):
         param: str | None = None,
     ) -> None:
         ParameterError.__init__(self, cls="Type {}", func="Callable {}", param="Parameter '{}'")
-        InternalError.__init__(self, self._format_params(message, cls=cls, func=func, param=param))
+        BolinetteError.__init__(self, self._format_params(message, cls=cls, func=func, param=param))
 
 
 class EnvironmentError(BolinetteError):
     pass
 
 
-class InitError(Exception):
-    def __init__(self, message: str | None = None, *, inner: Exception | None = None) -> None:
-        Exception.__init__(self, message)
-        self.message = message
-        self.inner = inner
-
-    def __str__(self) -> str:
-        if self.message is None:
-            return str(self.inner)
-        return self.message
+class MappingError(BolinetteError, ParameterError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        cls: type[Any] | None = None,
+        param: str | None = None,
+    ) -> None:
+        ParameterError.__init__(self, cls="Type {}", param="Parameter '{}'")
+        BolinetteError.__init__(self, self._format_params(message, cls=cls, param=param))

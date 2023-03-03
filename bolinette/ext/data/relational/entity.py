@@ -1,7 +1,7 @@
 from collections.abc import Callable
-from typing import TypeVar, Any
+from typing import Any, TypeVar
 
-from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, ColumnProperty
+from sqlalchemy.orm import ColumnProperty, DeclarativeBase, InstrumentedAttribute
 
 from bolinette import Cache, __user_cache__, meta
 from bolinette.ext.data.exceptions import EntityError

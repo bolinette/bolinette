@@ -1,7 +1,7 @@
 from sqlalchemy.orm import DeclarativeBase
 
 from bolinette import Cache, meta
-from bolinette.ext.data.relational import get_base, DeclarativeMeta
+from bolinette.ext.data.relational import DeclarativeMeta, get_base
 
 
 def test_get_one_base() -> None:
