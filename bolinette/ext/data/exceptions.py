@@ -1,6 +1,6 @@
 from typing import Any
 
-from bolinette.exceptions import BolinetteError, ParameterError
+from bolinette.exceptions import BolinetteError, ParameterError, InitError
 
 
 class DataError(BolinetteError):
@@ -53,3 +53,8 @@ class EntityNotFoundError(BolinetteError):
     def __init__(self, entity: type[Any]) -> None:
         super().__init__(f"Entity {entity} not found")
         self.entity = entity
+
+
+class MappingInitError(InitError):
+    def __init__(self, message: str) -> None:
+        super().__init__(f"Mapper Initialization: {message}")

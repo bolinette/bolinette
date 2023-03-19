@@ -1,29 +1,44 @@
 import pytest
+from typing import TypeVar, Generic
 
-from bolinette.exceptions import InitError
-from bolinette.mapping import mapFrom
-
-
-def test_fail_mapping_prop_no_return_type() -> None:
-    with pytest.raises(InitError) as info:
-
-        class _:
-            @mapFrom
-            def test(self):
-                pass
-
-    assert "Property 'test' must specify a return type hint when decorated by @mapFrom" == info.value.message
+from bolinette import Cache
+from bolinette.testing import Mock
+from bolinette.utils import AttributeUtils
+from bolinette.mapping import Mapper, Profile, mapping
 
 
-def test_fail_call_prop_before_mapping() -> None:
-    class _TestMapping:
-        @mapFrom
-        def attr(self) -> str:
-            return str(self)
+def test_register_sequence() -> None:
+    class _ParentSource:
+        id: int
 
-    _test = _TestMapping()
+    class _Source(_ParentSource):
+        name: str
 
-    with pytest.raises(AttributeError) as info:
-        _test.attr
+    class _Destination:
+        id: int
+        value: str
 
-    assert "'_TestMapping' object has no attribute 'attr'" == str(info.value)
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class DestinationProfile(Profile):
+        def __init__(self) -> None:
+            Profile.__init__(self)
+            e = self.register(_Source, _Destination).for_attr(
+                lambda d: d.value,
+                lambda opt: opt.map_from(lambda src: src.name),
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(AttributeUtils, "singleton")
+    mock.injection.add(Mapper, "singleton")
+
+    mapper = mock.injection.require(Mapper)
+
+    src = _Source()
+    src.id = 0
+    src.name = "test"
+
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest.value == src.name

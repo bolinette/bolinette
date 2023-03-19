@@ -1,11 +1,6 @@
 import os
-import random
-import string
-
-from bolinette import __core_cache__, injectable
 
 
-@injectable(strategy="singleton", cache=__core_cache__)
 class PathUtils:
     def __init__(self) -> None:
         self._cwd = self.cwd()
@@ -28,10 +23,6 @@ class PathUtils:
     @staticmethod
     def cwd() -> str:
         return os.getcwd()
-
-    @staticmethod
-    def random_string(length) -> str:
-        return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
     @staticmethod
     def mkdir(path) -> None:

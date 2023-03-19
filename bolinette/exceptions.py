@@ -71,6 +71,11 @@ class EnvironmentError(BolinetteError):
     pass
 
 
+class ExpressionError(BolinetteError):
+    def __init__(self, message: str) -> None:
+        super().__init__(f"Expression error: {message}")
+
+
 class MappingError(BolinetteError, ParameterError):
     def __init__(
         self,

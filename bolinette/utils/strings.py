@@ -1,4 +1,6 @@
 import re
+import random
+import string
 
 
 class StringUtils:
@@ -22,3 +24,7 @@ class StringUtils:
         if not string:
             return string
         return f"{string[0].upper()}{string[1:]}"
+
+    @staticmethod
+    def random_string(length) -> str:
+        return "".join(random.choices(string.ascii_letters + string.digits, k=length))
