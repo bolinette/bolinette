@@ -929,6 +929,24 @@ def test_require_decorator() -> None:
     assert t.param.v == 1
 
 
+def test_instanciate_type() -> None:
+    calls = []
+    class _Service:
+        def __init__(self) -> None:
+            calls.append('__init__')
+
+        @init_method
+        def _init(self) -> None:
+            calls.append('_init')
+
+    inject = Injection(Cache())
+
+    service = inject.instanciate(_Service)
+
+    assert isinstance(service, _Service)
+    assert calls == ["__init__", "_init"]
+
+
 def test_fail_immediate_instanciate() -> None:
     class _TestClass:
         pass

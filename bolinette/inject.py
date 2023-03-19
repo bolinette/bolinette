@@ -355,6 +355,27 @@ class Injection:
         func_args = self._resolve_args(func, None, "singleton", vars_lookup, True, args or [], named_args or {})
         return func(**func_args)
 
+    def instanciate(
+            self,
+            cls: type[InstanceT],
+            *,
+            args: list[Any] | None = None,
+            named_args: dict[str, Any] | None = None,
+    ) -> InstanceT:
+        cls, type_vars = self._get_generic_params(cls)
+        init_args = self._resolve_args(cls, type_vars, "transcient", None, True, args or [], named_args or {})
+        instance = cls(**init_args)
+        self._hook_proxies(instance)
+        meta.set(instance, self, cls=Injection)
+        meta.set(instance, GenericMeta(type_vars))
+        try:
+            self._run_init_recursive(cls, instance, None)
+        except RecursionError as exp:
+            raise InjectionError(
+                "Maximum recursion reached while running init method, possible circular dependence", cls=cls
+            ) from exp
+        return instance
+
     def _add_type_instance(
         self,
         super_cls: type[InstanceT],
