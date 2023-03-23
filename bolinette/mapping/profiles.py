@@ -3,7 +3,7 @@ from abc import ABC
 
 from bolinette import Cache, __user_cache__
 from bolinette.expressions import ExpressionTree, AttributeNode
-from bolinette.mapping.sequence import MappingSequence, MappingStep, AttributeMappingStep
+from bolinette.mapping.sequence import MappingSequence, FromSrcMappingStep, IgnoreMappingStep, FunctionMappingStep, ToDestMappingStep
 
 
 SrcT = TypeVar("SrcT", bound=object)
@@ -11,22 +11,24 @@ DestT = TypeVar("DestT", bound=object)
 
 
 class _MappingOptions(Generic[SrcT, DestT]):
-    def __init__(self, expr: AttributeNode) -> None:
-        self.expr = expr
+    def __init__(self, dest_expr: AttributeNode) -> None:
+        self.dest_expr = dest_expr
+        self.step: ToDestMappingStep | None = None
 
-    def map_from(self, func: Callable[[SrcT], Any]) -> AttributeMappingStep[SrcT, DestT]:
+    def map_from(self, func: Callable[[SrcT], Any]) -> None:
         src_expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        attr: str = ExpressionTree.get_attribute_name(self.expr)
+        src_attr: str = ExpressionTree.get_attribute_name(src_expr)
+        dest_attr: str = ExpressionTree.get_attribute_name(self.dest_expr)
 
         def mapping_func(src: SrcT, dest: DestT) -> None:
             value = ExpressionTree.get_value(src_expr, src)
-            ExpressionTree.set_value(self.expr, dest, value)
+            ExpressionTree.set_value(self.dest_expr, dest, value)
 
-        return AttributeMappingStep(attr, mapping_func)
+        self.step = FromSrcMappingStep(src_attr, dest_attr, mapping_func)
 
-    def ignore(self) -> AttributeMappingStep[SrcT, DestT]:
-        attr: str = ExpressionTree.get_attribute_name(self.expr)
-        return AttributeMappingStep(attr, lambda *_: None)
+    def ignore(self) -> None:
+        attr: str = ExpressionTree.get_attribute_name(self.dest_expr)
+        self.step = IgnoreMappingStep(attr)
 
 
 class _SequenceBuilder(Generic[SrcT, DestT]):
@@ -36,18 +38,20 @@ class _SequenceBuilder(Generic[SrcT, DestT]):
     def for_attr(
         self,
         func: Callable[[DestT], Any],
-        options: Callable[[_MappingOptions[SrcT, DestT]], AttributeMappingStep[SrcT, DestT]],
+        options: Callable[[_MappingOptions[SrcT, DestT]], None],
     ) -> Self:
         expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        step = options(_MappingOptions(expr))
-        self.sequence.add_step(step)
+        opt = _MappingOptions(expr)
+        options(opt)
+        if opt.step is not None:
+            self.sequence.add_step(opt.step)
         return self
 
     def before_mapping(
         self,
         func: Callable[[SrcT, DestT], None],
     ) -> Self:
-        step = MappingStep(func)
+        step = FunctionMappingStep(func)
         self.sequence.add_head_step(step)
         return self
 
@@ -55,7 +59,7 @@ class _SequenceBuilder(Generic[SrcT, DestT]):
         self,
         func: Callable[[SrcT, DestT], None],
     ) -> Self:
-        step = MappingStep(func)
+        step = FunctionMappingStep(func)
         self.sequence.add_tail_step(step)
         return self
 

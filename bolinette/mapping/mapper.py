@@ -23,6 +23,7 @@ class Mapper:
             for sequence in profile.sequences:
                 src, src_type_vars = self._attrs.get_generics(sequence.src)
                 dest, dest_type_vars = self._attrs.get_generics(sequence.dest)
+                sequence.complete(self._attrs)
                 self._add_sequence(src, src_type_vars, dest, dest_type_vars, sequence)
 
     def map(self, src_cls: type[SrcT], dest_cls: type[DestT], src: SrcT, dest: DestT | None = None) -> DestT:

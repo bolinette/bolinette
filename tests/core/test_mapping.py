@@ -14,8 +14,13 @@ def test_register_sequence() -> None:
     class _Source(_ParentSource):
         name: str
 
-    class _Destination:
+    class _ParentDestination1:
         id: int
+
+    class _ParentDestination2:
+        attr: str
+
+    class _Destination(_ParentDestination1, _ParentDestination2):
         value: str
 
     cache = Cache()
@@ -26,7 +31,7 @@ def test_register_sequence() -> None:
             Profile.__init__(self)
             e = self.register(_Source, _Destination).for_attr(
                 lambda d: d.value,
-                lambda opt: opt.map_from(lambda src: src.name),
+                lambda opt: opt.map_from(lambda s: s.name),
             )
 
     mock = Mock(cache=cache)
@@ -41,4 +46,6 @@ def test_register_sequence() -> None:
 
     dest = mapper.map(_Source, _Destination, src)
 
+    assert dest.id == src.id
+    assert dest.attr is None
     assert dest.value == src.name

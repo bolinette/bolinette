@@ -70,7 +70,7 @@ def test_logger_generic(capsys: CaptureFixture) -> None:
         pass
 
     logger: Logger[Any] = Logger(Cache(debug=True))
-    meta.set(logger, GenericMeta([_TestClass]))
+    meta.set(logger, GenericMeta([_TestClass]))  # type: ignore
     logger._init()
 
     d1 = datetime.utcnow()
