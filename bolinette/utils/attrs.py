@@ -1,4 +1,5 @@
-from typing import Any, TypeVar, get_type_hints, get_origin, get_args, ForwardRef, TYPE_CHECKING, Protocol
+from types import UnionType
+from typing import TYPE_CHECKING, Any, ForwardRef, Protocol, TypeVar, Union, get_args, get_origin, get_type_hints
 
 from bolinette.exceptions import InternalError
 
@@ -14,9 +15,9 @@ class AttributeUtils:
         for parent in obj.__bases__:
             parent_attrs |= AttributeUtils.get_cls_attrs(parent, of_type=of_type)
         return parent_attrs | {
-                name: attribute
-                for name, attribute in vars(obj).items()
-                if of_type is None or isinstance(attribute, of_type)
+            name: attribute
+            for name, attribute in vars(obj).items()
+            if of_type is None or isinstance(attribute, of_type)
         }
 
     @staticmethod
@@ -28,11 +29,16 @@ class AttributeUtils:
         }
 
     @staticmethod
-    def get_all_annotations(__cls: type[Any]) -> dict[str, type[Any]]:
-        annotations = {}
+    def get_all_annotations(__cls: type[Any]) -> dict[str, tuple[type[Any] | None]]:
+        annotations: dict[str, tuple[type[Any] | None]] = {}
         for base in __cls.__bases__:
             annotations |= AttributeUtils.get_all_annotations(base)
-        annotations |= get_type_hints(__cls)
+        hints: dict[str, type[Any]] = get_type_hints(__cls)
+        for attr_name, hint in hints.items():
+            if get_origin(hint) in (UnionType, Union):
+                annotations[attr_name] = tuple(h if h is not type(None) else None for h in get_args(hint))
+            else:
+                annotations[attr_name] = (hint,)
         return annotations
 
     @staticmethod

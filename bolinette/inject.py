@@ -356,11 +356,11 @@ class Injection:
         return func(**func_args)
 
     def instanciate(
-            self,
-            cls: type[InstanceT],
-            *,
-            args: list[Any] | None = None,
-            named_args: dict[str, Any] | None = None,
+        self,
+        cls: type[InstanceT],
+        *,
+        args: list[Any] | None = None,
+        named_args: dict[str, Any] | None = None,
     ) -> InstanceT:
         cls, type_vars = self._get_generic_params(cls)
         init_args = self._resolve_args(cls, type_vars, "transcient", None, True, args or [], named_args or {})

@@ -25,6 +25,6 @@ async def print_injection_debug_info(inject: Injection):
         for index, r_type in enumerate(types):
             print(
                 f"{'╠' if index < last_index else '╚'}═",
-                f"[{','.join(map(format_type, r_type.params))}]:",
+                f"[{','.join(map(format_type, r_type.type_vars))}]:",
                 f"{format_type(r_type.cls)}",
             )

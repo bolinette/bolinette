@@ -1,18 +1,24 @@
-from typing import Any, Callable, Generic, TypeVar, Self
 from abc import ABC
+from typing import Any, Callable, Generic, Self, TypeVar
 
 from bolinette import Cache, __user_cache__
-from bolinette.expressions import ExpressionTree, AttributeNode
-from bolinette.mapping.sequence import MappingSequence, FromSrcMappingStep, IgnoreMappingStep, FunctionMappingStep, ToDestMappingStep
-
+from bolinette.expressions import AttributeNode, ExpressionTree
+from bolinette.mapping.sequence import (
+    FromSrcMappingStep,
+    FunctionMappingStep,
+    IgnoreMappingStep,
+    MappingSequence,
+    ToDestMappingStep,
+)
 
 SrcT = TypeVar("SrcT", bound=object)
 DestT = TypeVar("DestT", bound=object)
 
 
 class _MappingOptions(Generic[SrcT, DestT]):
-    def __init__(self, dest_expr: AttributeNode) -> None:
+    def __init__(self, dest_expr: AttributeNode, sequence: MappingSequence[SrcT, DestT]) -> None:
         self.dest_expr = dest_expr
+        self.sequence = sequence
         self.step: ToDestMappingStep | None = None
 
     def map_from(self, func: Callable[[SrcT], Any]) -> None:
@@ -24,11 +30,11 @@ class _MappingOptions(Generic[SrcT, DestT]):
             value = ExpressionTree.get_value(src_expr, src)
             ExpressionTree.set_value(self.dest_expr, dest, value)
 
-        self.step = FromSrcMappingStep(src_attr, dest_attr, mapping_func)
+        self.step = FromSrcMappingStep(self.sequence.src_cls, src_attr, self.sequence.dest_cls, dest_attr, mapping_func)
 
     def ignore(self) -> None:
         attr: str = ExpressionTree.get_attribute_name(self.dest_expr)
-        self.step = IgnoreMappingStep(attr)
+        self.step = IgnoreMappingStep(self.sequence.dest_cls, attr, self.sequence.dest_hints[attr])
 
 
 class _SequenceBuilder(Generic[SrcT, DestT]):
@@ -41,7 +47,7 @@ class _SequenceBuilder(Generic[SrcT, DestT]):
         options: Callable[[_MappingOptions[SrcT, DestT]], None],
     ) -> Self:
         expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        opt = _MappingOptions(expr)
+        opt = _MappingOptions(expr, self.sequence)
         options(opt)
         if opt.step is not None:
             self.sequence.add_step(opt.step)

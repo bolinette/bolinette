@@ -82,7 +82,7 @@ class MappingError(BolinetteError, ParameterError):
         message: str,
         *,
         cls: type[Any] | None = None,
-        param: str | None = None,
+        attr: str | None = None,
     ) -> None:
-        ParameterError.__init__(self, cls="Type {}", param="Parameter '{}'")
-        BolinetteError.__init__(self, self._format_params(message, cls=cls, param=param))
+        ParameterError.__init__(self, cls="Type {}", attr="Attribute '{}'")
+        BolinetteError.__init__(self, self._format_params(message, cls=cls, attr=attr))

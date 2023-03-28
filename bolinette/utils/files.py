@@ -2,6 +2,7 @@ import yaml
 
 from bolinette.utils import paths
 
+
 class FileUtils:
     def __init__(self, paths: paths.PathUtils) -> None:
         self._paths = paths

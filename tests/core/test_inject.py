@@ -931,13 +931,14 @@ def test_require_decorator() -> None:
 
 def test_instanciate_type() -> None:
     calls = []
+
     class _Service:
         def __init__(self) -> None:
-            calls.append('__init__')
+            calls.append("__init__")
 
         @init_method
         def _init(self) -> None:
-            calls.append('_init')
+            calls.append("_init")
 
     inject = Injection(Cache())
 

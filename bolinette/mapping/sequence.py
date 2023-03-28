@@ -1,9 +1,9 @@
-from typing import Any, Callable, Generic, TypeVar
-from collections.abc import Iterator
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
+from typing import Any, Callable, Generic, TypeVar
 
+from bolinette.exceptions import InitError, MappingError
 from bolinette.utils import AttributeUtils
-
 
 SrcT = TypeVar("SrcT", bound=object)
 DestT = TypeVar("DestT", bound=object)
@@ -16,23 +16,45 @@ class MappingStep(Generic[SrcT, DestT], ABC):
 
 
 class ToDestMappingStep(Generic[SrcT, DestT], MappingStep[SrcT, DestT], ABC):
-    def __init__(self, dest: str) -> None:
-        self.dest = dest
+    def __init__(self, dest_cls: type[Any], dest_attr: str) -> None:
+        self.dest_cls = dest_cls
+        self.dest_attr = dest_attr
 
 
 class IgnoreMappingStep(Generic[SrcT, DestT], ToDestMappingStep[SrcT, DestT]):
-    def __init__(self, dest: str, default: Any) -> None:
-        ToDestMappingStep.__init__(self, dest)
-        self.default = default
+    def __init__(self, dest_cls: type[Any], dest_attr: str, hints: tuple[type[Any] | None]) -> None:
+        ToDestMappingStep.__init__(self, dest_cls, dest_attr)
+        if None in hints:
+            self.default = None
+        else:
+            for hint in hints:
+                if hint is None:
+                    continue
+                self.default = hint()
+                break
+            else:
+                raise MappingError(
+                    "Default value for attribute could not be determined",
+                    cls=self.dest_cls,
+                    attr=self.dest_attr,
+                )
 
     def apply(self, src: SrcT, dest: DestT) -> None:
-        setattr(dest, self.dest, self.default)
+        setattr(dest, self.dest_attr, self.default)
 
 
 class FromSrcMappingStep(Generic[SrcT, DestT], ToDestMappingStep[SrcT, DestT]):
-    def __init__(self, src: str, dest: str, func: Callable[[SrcT, DestT], None]) -> None:
-        ToDestMappingStep.__init__(self, dest)
-        self.src = src
+    def __init__(
+        self,
+        src_cls: type[Any],
+        src_attr: str,
+        dest_cls: type[Any],
+        dest_attr: str,
+        func: Callable[[SrcT, DestT], None],
+    ) -> None:
+        ToDestMappingStep.__init__(self, dest_cls, dest_attr)
+        self.src_cls = src_cls
+        self.src_attr = src_attr
         self._func = func
 
     def apply(self, src: SrcT, dest: DestT) -> None:
@@ -49,11 +71,16 @@ class FunctionMappingStep(Generic[SrcT, DestT], MappingStep[SrcT, DestT]):
 
 class MappingSequence(Generic[SrcT, DestT]):
     def __init__(self, src: type[SrcT], dest: type[DestT]) -> None:
-        self.src = src
-        self.dest = dest
+        self.src_cls, self.src_type_vars = AttributeUtils.get_generics(src)
+        self.dest_cls, self.dest_type_vars = AttributeUtils.get_generics(dest)
+        self.src_hints = AttributeUtils.get_all_annotations(self.src_cls)
+        self.dest_hints = AttributeUtils.get_all_annotations(self.dest_cls)
         self._head: list[MappingStep[SrcT, DestT]] = []
         self._steps: dict[str, MappingStep[SrcT, DestT]] = {}
         self._tail: list[MappingStep[SrcT, DestT]] = []
+
+    def __hash__(self) -> int:
+        return hash((self.src_cls, self.src_type_vars, self.dest_cls, self.dest_type_vars))
 
     def __len__(self) -> int:
         return len(self._head) + len(self._steps) + len(self._tail)
@@ -68,21 +95,20 @@ class MappingSequence(Generic[SrcT, DestT]):
         self._head.append(step)
 
     def add_step(self, step: ToDestMappingStep[Any, Any]) -> None:
-        self._steps[step.dest] = step
+        self._steps[step.dest_attr] = step
 
     def add_tail_step(self, step: FunctionMappingStep[Any, Any]) -> None:
         self._tail.append(step)
 
-    def complete(self, attrs: AttributeUtils) -> None:
+    def complete(self) -> None:
         defined_steps = self._steps
         all_steps: dict[str, MappingStep[SrcT, DestT]] = {}
-        src_attrs = attrs.get_all_annotations(self.src)
-        for dest_attr, dest_hint in attrs.get_all_annotations(self.dest).items():
+        for dest_attr, dest_hint in self.dest_hints.items():
             if dest_attr in defined_steps:
                 all_steps[dest_attr] = defined_steps[dest_attr]
                 continue
-            if dest_attr not in src_attrs:
-                all_steps[dest_attr] = IgnoreMappingStep(dest_attr, None)
+            if dest_attr not in self.src_hints:
+                all_steps[dest_attr] = IgnoreMappingStep(self.dest_cls, dest_attr, dest_hint)
                 continue
 
             def inner_scope(_attr: str) -> FunctionMappingStep[Any, Any]:

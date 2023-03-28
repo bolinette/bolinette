@@ -1,6 +1,6 @@
 from typing import Any
 
-from bolinette.exceptions import BolinetteError, ParameterError, InitError
+from bolinette.exceptions import BolinetteError, InitError, ParameterError
 
 
 class DataError(BolinetteError):

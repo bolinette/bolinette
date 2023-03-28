@@ -1,13 +1,107 @@
 import pytest
-from typing import TypeVar, Generic
 
 from bolinette import Cache
+from bolinette.mapping import Mapper, Profile, mapping
 from bolinette.testing import Mock
 from bolinette.utils import AttributeUtils
-from bolinette.mapping import Mapper, Profile, mapping
 
 
-def test_register_sequence() -> None:
+def test_map_simple_attr() -> None:
+    class _Source:
+        value: str
+
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    class _Destination:
+        value: str
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination)
+
+    mock = Mock(cache=cache)
+    mock.injection.add(AttributeUtils, "singleton")
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+
+    s = _Source("test")
+
+    d = mapper.map(_Source, _Destination, s)
+
+    assert isinstance(s, _Source)
+    assert isinstance(d, _Destination)
+    assert d.value == s.value
+    assert d is not s
+
+
+def test_map_implicit_ignore() -> None:
+    class _Source:
+        name: str
+
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class _Destination:
+        value: str
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination)
+
+    mock = Mock(cache=cache)
+    mock.injection.add(AttributeUtils, "singleton")
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+
+    s = _Source("test")
+
+    d = mapper.map(_Source, _Destination, s)
+
+    assert s.name == "test"
+    assert d.value == ""
+
+
+def test_map_explicit_ignore() -> None:
+    class _Source:
+        name: str
+
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class _Destination:
+        name: str
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(lambda dest: dest.name, lambda opt: opt.ignore())
+
+    mock = Mock(cache=cache)
+    mock.injection.add(AttributeUtils, "singleton")
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+
+    s = _Source("test")
+
+    d = mapper.map(_Source, _Destination, s)
+
+    assert s.name == "test"
+    assert d.name == ""
+
+
+def test_map_with_bases() -> None:
     class _ParentSource:
         id: int
 
@@ -21,23 +115,19 @@ def test_register_sequence() -> None:
         attr: str
 
     class _Destination(_ParentDestination1, _ParentDestination2):
-        value: str
+        name: str
 
     cache = Cache()
 
     @mapping(cache=cache)
-    class DestinationProfile(Profile):
+    class _(Profile):
         def __init__(self) -> None:
             Profile.__init__(self)
-            e = self.register(_Source, _Destination).for_attr(
-                lambda d: d.value,
-                lambda opt: opt.map_from(lambda s: s.name),
-            )
+            self.register(_Source, _Destination)
 
     mock = Mock(cache=cache)
     mock.injection.add(AttributeUtils, "singleton")
     mock.injection.add(Mapper, "singleton")
-
     mapper = mock.injection.require(Mapper)
 
     src = _Source()
@@ -47,5 +137,5 @@ def test_register_sequence() -> None:
     dest = mapper.map(_Source, _Destination, src)
 
     assert dest.id == src.id
-    assert dest.attr is None
-    assert dest.value == src.name
+    assert dest.attr == ""
+    assert dest.name == src.name
