@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Any, Callable, Generic, Self, TypeVar
 
 from bolinette import Cache, __user_cache__
@@ -9,6 +8,7 @@ from bolinette.mapping.sequence import (
     IgnoreMappingStep,
     MappingSequence,
     ToDestMappingStep,
+    IncludeFromBase,
 )
 
 SrcT = TypeVar("SrcT", bound=object)
@@ -69,8 +69,12 @@ class _SequenceBuilder(Generic[SrcT, DestT]):
         self.sequence.add_tail_step(step)
         return self
 
+    def include(self, src_cls: type[Any], dest_cls: type[Any]) -> Self:
+        self.sequence.add_include(IncludeFromBase(src_cls, dest_cls))
+        return self
 
-class Profile(ABC):
+
+class Profile:
     def __init__(self) -> None:
         self._sequences: list[MappingSequence] = []
 

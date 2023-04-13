@@ -86,3 +86,7 @@ class MappingError(BolinetteError, ParameterError):
     ) -> None:
         ParameterError.__init__(self, cls="Type {}", attr="Attribute '{}'")
         BolinetteError.__init__(self, self._format_params(message, cls=cls, attr=attr))
+
+
+class InitMappingError(InitError):
+    pass
