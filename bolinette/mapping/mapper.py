@@ -49,8 +49,5 @@ class Mapper:
             step.apply(src, dest)
         return dest
 
-    def _add_sequence(self, sequence: MappingSequence[Any, Any]) -> None:
-        self._sequences[hash(sequence)] = sequence
-
     def _get_sequence(self, h: int) -> MappingSequence[Any, Any]:
         return self._sequences[h]

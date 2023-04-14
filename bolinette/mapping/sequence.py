@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from typing import Any, Callable, Generic, Protocol, TypeVar
 
 from bolinette.exceptions import InitMappingError, MappingError
-from bolinette.utils import AttributeUtils
+from bolinette.utils import AttributeUtils, StringUtils
 
 SrcT = TypeVar("SrcT", bound=object)
 SrcT_contra = TypeVar("SrcT_contra", bound=object, contravariant=True)
@@ -27,20 +27,35 @@ class IgnoreMappingStep(Generic[SrcT, DestT], ToDestMappingStep[SrcT, DestT]):
         if None in hints:
             self.default = None
         else:
-            for hint in hints:
-                if hint is None:
-                    continue
-                self.default = hint()
-                break
-            else:
+            try:
+                for hint in hints:
+                    self.default = hint()  # type: ignore
+                    break
+            except TypeError as err:
                 raise MappingError(
                     "Default value for attribute could not be determined",
                     cls=self.dest_cls,
                     attr=self.dest_attr,
-                )
+                ) from err
 
     def apply(self, src: SrcT, dest: DestT) -> None:
         setattr(dest, self.dest_attr, self.default)
+
+
+class TryMappingStep(Generic[SrcT, DestT], IgnoreMappingStep[SrcT, DestT]):
+    def __init__(
+        self,
+        dest_cls: type,
+        dest_attr: str,
+        hints: tuple[type | None],
+    ) -> None:
+        super().__init__(dest_cls, dest_attr, hints)
+
+    def apply(self, src: SrcT, dest: DestT) -> None:
+        if hasattr(src, self.dest_attr):
+            setattr(dest, self.dest_attr, getattr(src, self.dest_attr))
+        else:
+            super().apply(src, dest)
 
 
 class FromSrcMappingStep(Generic[SrcT, DestT], ToDestMappingStep[SrcT, DestT]):
@@ -99,14 +114,8 @@ class MappingSequence(Generic[SrcT, DestT]):
     def __hash__(self) -> int:
         return MappingSequence.get_hash(self.src_cls, self.src_type_vars, self.dest_cls, self.dest_type_vars)
 
-    def __len__(self) -> int:
-        return len(self.head) + len(self.steps) + len(self.tail)
-
     def __iter__(self) -> Iterator[MappingStep[Any, Any]]:
         return (s for s in [*self.head, *self.steps.values(), *self.tail])
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.steps
 
     def add_head_step(self, step: FunctionMappingStep[Any, Any]) -> None:
         self.head.append(step)
@@ -132,8 +141,10 @@ class MappingSequence(Generic[SrcT, DestT]):
             incl_hash = MappingSequence.get_hash(incl_src_cls, incl_src_type_vars, incl_dest_cls, incl_dest_type_vars)
             if incl_hash not in completed_sequences:
                 raise InitMappingError(
-                    f"Mapping {self.src_cls} -> {self.dest_cls}: "
-                    f"Could not find base mapping {incl_src_cls} -> {incl_dest_cls}. "
+                    f"Mapping {StringUtils.format_type(self.src_cls, self.src_type_vars)} "
+                    f"-> {StringUtils.format_type(self.dest_cls, self.dest_type_vars)}: "
+                    f"Could not find base mapping {StringUtils.format_type(incl_src_cls, incl_src_type_vars)} "
+                    f"-> {StringUtils.format_type(incl_dest_cls, incl_dest_type_vars)}. "
                     f"Make sure the mappings are declared in the right order."
                 )
             incl_sequence = completed_sequences[incl_hash]
@@ -152,7 +163,7 @@ class MappingSequence(Generic[SrcT, DestT]):
                 all_steps[dest_attr] = incl_steps[dest_attr]
                 continue
             if dest_attr not in self.src_hints:
-                all_steps[dest_attr] = IgnoreMappingStep(self.dest_cls, dest_attr, dest_hint)
+                all_steps[dest_attr] = TryMappingStep(self.dest_cls, dest_attr, dest_hint)
                 continue
 
             def inner_scope(_attr: str) -> FunctionMappingStep[Any, Any]:
