@@ -24,7 +24,7 @@ def setup_test():
     @injection_arg_resolver(cache=cache)
     class EntityArgResolver:
         def supports(self, options: ArgResolverOptions) -> bool:
-            return options.cls is type and options.type_vars == (Entity,)
+            return options.t.cls is type and options.t.vars == (Entity,)
 
         def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
             return options.name, Entity

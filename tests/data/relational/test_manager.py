@@ -326,8 +326,8 @@ def test_init_repositories() -> None:
 
     mock.injection.require(EntityManager)
 
-    assert mock.injection.is_registered(Repository, (entity_type1,))
-    assert mock.injection.is_registered(Repository, (entity_type2,))
+    assert mock.injection.is_registered(Repository[entity_type1])
+    assert mock.injection.is_registered(Repository[entity_type2])
     assert mock.injection.is_registered(_Entity2Repository)
 
 

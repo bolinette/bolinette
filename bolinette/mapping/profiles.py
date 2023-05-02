@@ -6,9 +6,9 @@ from bolinette.mapping.sequence import (
     FromSrcMappingStep,
     FunctionMappingStep,
     IgnoreMappingStep,
+    IncludeFromBase,
     MappingSequence,
     ToDestMappingStep,
-    IncludeFromBase,
 )
 
 SrcT = TypeVar("SrcT", bound=object)
@@ -30,11 +30,13 @@ class _MappingOptions(Generic[SrcT, DestT]):
             value = ExpressionTree.get_value(src_expr, src)
             ExpressionTree.set_value(self.dest_expr, dest, value)
 
-        self.step = FromSrcMappingStep(self.sequence.src_cls, src_attr, self.sequence.dest_cls, dest_attr, mapping_func)
+        self.step = FromSrcMappingStep(
+            self.sequence.src_t.cls, src_attr, self.sequence.dest_t.cls, dest_attr, mapping_func
+        )
 
     def ignore(self) -> None:
         attr: str = ExpressionTree.get_attribute_name(self.dest_expr)
-        self.step = IgnoreMappingStep(self.sequence.dest_cls, attr, self.sequence.dest_hints[attr])
+        self.step = IgnoreMappingStep(self.sequence.dest_t.cls, attr, self.sequence.dest_hints[attr])
 
 
 class _SequenceBuilder(Generic[SrcT, DestT]):

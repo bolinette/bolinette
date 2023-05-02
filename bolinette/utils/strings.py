@@ -1,7 +1,6 @@
 import random
 import re
 import string
-from typing import Any
 
 
 class StringUtils:
@@ -29,9 +28,3 @@ class StringUtils:
     @staticmethod
     def random_string(length) -> str:
         return "".join(random.choices(string.ascii_letters + string.digits, k=length))
-
-    @staticmethod
-    def format_type(__cls: type[Any], __type_vars: tuple[Any, ...]) -> str:
-        if len(__type_vars) == 0:
-            return str(__cls)
-        return f"{__cls}[{','.join(str(t) for t in __type_vars)}]"

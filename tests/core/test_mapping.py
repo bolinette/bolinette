@@ -38,6 +38,38 @@ def test_map_simple_attr() -> None:
     assert d is not s
 
 
+def test_map_with_map_from() -> None:
+    class _Source:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    class _Destination:
+        content: str
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+
+    s = _Source("test")
+
+    d = mapper.map(_Source, _Destination, s)
+
+    assert isinstance(s, _Source)
+    assert isinstance(d, _Destination)
+    assert d.content == s.value
+    assert d is not s
+
+
 def test_map_source_no_hint() -> None:
     class _Source:
         def __init__(self, value: str) -> None:
@@ -332,9 +364,11 @@ def test_fail_included_base_not_found() -> None:
         mock.injection.require(Mapper)
 
     assert (
-        f"Mapping {_Source} -> {_Destination}: "
-        f"Could not find base mapping {_ParentSource} -> {_ParentDestination}. "
-        f"Make sure the mappings are declared in the right order."
+        "Mapping (test_fail_included_base_not_found.<locals>._Source -> "
+        "test_fail_included_base_not_found.<locals>._Destination): "
+        "Could not find base mapping (test_fail_included_base_not_found.<locals>._ParentSource -> "
+        "test_fail_included_base_not_found.<locals>._ParentDestination). "
+        "Make sure the mappings are declared in the right order."
     ) == info.value.message
 
 
@@ -348,12 +382,54 @@ def test_map_before_after() -> None:
 
     cache = Cache()
 
+    order: list[str] = []
+
     def before_map(src: _Source, dest: _Destination) -> None:
         assert src.value == 1
         assert not hasattr(dest, "value")
+        order.append("before")
 
     def after_map(src: _Source, dest: _Destination) -> None:
         assert src.value == dest.value
+        order.append("after")
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            Profile.__init__(self)
+            self.register(_Source, _Destination).before_mapping(before_map).after_mapping(after_map)
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+
+    src = _Source(1)
+
+    mapper.map(_Source, _Destination, src)
+
+    assert order == ["before", "after"]
+
+
+def test_fail_map_before_after() -> None:
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Destination:
+        value: int
+
+    cache = Cache()
+
+    order: list[str] = []
+
+    def before_map(src: _Source, dest: _Destination) -> None:
+        assert src.value == 1
+        assert not hasattr(dest, "value")
+        order.append("before")
+
+    def after_map(src: _Source, dest: _Destination) -> None:
+        assert src.value == dest.value
+        order.append("after")
 
     @mapping(cache=cache)
     class _(Profile):

@@ -3,7 +3,7 @@ from typing import Any, Protocol, TypeVar, overload
 from bolinette import Cache, Injection, __core_cache__, init_method, injectable
 from bolinette.mapping.profiles import Profile
 from bolinette.mapping.sequence import MappingSequence
-from bolinette.utils import AttributeUtils
+from bolinette.types import Type
 
 
 class NoInitDestination(Protocol):
@@ -40,11 +40,11 @@ class Mapper:
         pass
 
     def map(self, src_cls: type[SrcT], dest_cls: type[DestT], src: SrcT, dest: DestT | None = None) -> DestT:
-        src_cls, src_type_vars = AttributeUtils.get_generics(src_cls)
-        dest_cls, dest_type_vars = AttributeUtils.get_generics(dest_cls)
+        src_t = Type(src_cls)
+        dest_t = Type(dest_cls)
         if dest is None:
             dest = dest_cls()
-        sequence = self._get_sequence(MappingSequence.get_hash(src_cls, src_type_vars, dest_cls, dest_type_vars))
+        sequence = self._get_sequence(MappingSequence.get_hash(src_t, dest_t))
         for step in sequence:
             step.apply(src, dest)
         return dest

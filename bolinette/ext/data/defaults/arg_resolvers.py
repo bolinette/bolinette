@@ -14,10 +14,10 @@ class EntityTypeArgResolver:
         self.entities = entities
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return options.cls is type and self.entities.is_entity_type(options.type_vars[0])
+        return options.t.cls is type and self.entities.is_entity_type(options.t.vars[0])
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        return options.name, options.type_vars[0]
+        return options.name, options.t.vars[0]
 
 
 @injection_arg_resolver(priority=110, scoped=True)
@@ -27,7 +27,7 @@ class AsyncSessionArgResolver:
         self.sessions = sessions
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return options.cls is AsyncSession
+        return options.t.cls is AsyncSession
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
         if options.caller_type_vars is None:

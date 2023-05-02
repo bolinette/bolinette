@@ -3,7 +3,7 @@ from typing import Any, Generic, Optional, TypeVar
 import pytest
 
 from bolinette import Cache, GenericMeta, Injection, init_method, injectable, meta, require
-from bolinette.exceptions import InjectionError
+from bolinette.exceptions import InjectionError, TypingError
 from bolinette.inject import ArgResolverOptions, injection_arg_resolver
 
 
@@ -110,7 +110,7 @@ async def test_fail_injection() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(InjectableClassC)
 
-    assert f"Type {InjectableClassC} is not a registered type in the injection system" == info.value.message
+    assert f"Type InjectableClassC is not a registered type in the injection system" == info.value.message
 
 
 async def test_fail_injection_generic() -> None:
@@ -127,7 +127,10 @@ async def test_fail_injection_generic() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_Service[_Param])
 
-    assert f"Type {_Service}[({_Param},)] is not a registered type in the injection system" == info.value.message
+    assert (
+        f"Type test_fail_injection_generic.<locals>._Service[test_fail_injection_generic.<locals>._Param] "
+        "is not a registered type in the injection system" == info.value.message
+    )
 
 
 async def test_fail_subinjection() -> None:
@@ -138,8 +141,8 @@ async def test_fail_subinjection() -> None:
         inject.require(InjectableClassD)
 
     assert (
-        f"Callable {InjectableClassD}, Parameter 'c', "
-        f"Type {InjectableClassC} is not a registered type in the injection system" == info.value.message
+        "Callable InjectableClassD, Parameter 'c', "
+        "Type InjectableClassC is not a registered type in the injection system" == info.value.message
     )
 
 
@@ -163,8 +166,9 @@ async def test_fail_subinjection_generic() -> None:
         inject.require(_Service)
 
     assert (
-        f"Callable {_Service}, Parameter 'sub', "
-        f"Type {_SubService}[({_Param},)] is not a registered type in the injection system" == info.value.message
+        "Callable test_fail_subinjection_generic.<locals>._Service, Parameter 'sub', "
+        "Type test_fail_subinjection_generic.<locals>._SubService[test_fail_subinjection_generic.<locals>._Param] "
+        "is not a registered type in the injection system" == info.value.message
     )
 
 
@@ -177,8 +181,8 @@ def test_fail_call_injection() -> None:
         inject.call(_test_func)
 
     assert (
-        f"Callable {_test_func}, Parameter 'b', "
-        f"Type {InjectableClassC} is not a registered type in the injection system" == info.value.message
+        "Callable test_fail_call_injection.<locals>._test_func, Parameter 'b', "
+        "Type InjectableClassC is not a registered type in the injection system" == info.value.message
     )
 
 
@@ -243,7 +247,10 @@ def test_forward_ref_local_class_not_resolved() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert f"Callable {_TestClass}, Type hint '_Value' could not be resolved" == info.value.message
+    assert (
+        "Callable test_forward_ref_local_class_not_resolved.<locals>._TestClass, "
+        "Type hint '_Value' could not be resolved" == info.value.message
+    )
 
 
 def test_no_annotation() -> None:
@@ -257,7 +264,9 @@ def test_no_annotation() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert f"Callable {_TestClass}, Parameter '_1', Annotation is required" == info.value.message
+    assert (
+        "Callable test_no_annotation.<locals>._TestClass, Parameter '_1', Annotation is required" == info.value.message
+    )
 
 
 def test_use_init_method() -> None:
@@ -415,8 +424,8 @@ def test_arg_resolve_fail_wilcard() -> None:
         inject.call(_test_func, named_args={"a": "a", "b": "b"})
 
     assert (
-        f"Callable {_test_func}, Positional only parameters and positional wildcards are not allowed"
-        == info.value.message
+        "Callable test_arg_resolve_fail_wilcard.<locals>._test_func, "
+        "Positional only parameters and positional wildcards are not allowed" == info.value.message
     )
 
 
@@ -430,8 +439,8 @@ def test_arg_resolve_fail_positional_only() -> None:
         inject.call(_test_func, named_args={"a": "a", "b": "b"})
 
     assert (
-        f"Callable {_test_func}, Positional only parameters and positional wildcards are not allowed"
-        == info.value.message
+        "Callable test_arg_resolve_fail_positional_only.<locals>._test_func, "
+        "Positional only parameters and positional wildcards are not allowed" == info.value.message
     )
 
 
@@ -444,7 +453,10 @@ def test_arg_resolve_fail_too_many_args() -> None:
     with pytest.raises(InjectionError) as info:
         inject.call(_test_func, args=["a", "b", "c"])
 
-    assert f"Callable {_test_func}, Expected 2 arguments, 3 given" == info.value.message
+    assert (
+        "Callable test_arg_resolve_fail_too_many_args.<locals>._test_func, "
+        "Expected 2 arguments, 3 given" == info.value.message
+    )
 
 
 def test_arg_resolve() -> None:
@@ -525,8 +537,8 @@ def test_scoped_injection_fail_no_scope() -> None:
         inject.require(_C1)
 
     assert (
-        f"Injection strategy for {_C1} must be singleton or transcient to be required in this context"
-        == info.value.message
+        "Injection strategy for test_scoped_injection_fail_no_scope.<locals>._C1 "
+        "must be singleton or transcient to be required in this context" == info.value.message
     )
 
 
@@ -544,8 +556,8 @@ def test_scoped_injection_fail_no_scope_in_func() -> None:
         inject.call(_func)
 
     assert (
-        f"Callable {_func}, Parameter 'c1', Cannot instanciate a scoped service in a singleton service"
-        == info.value.message
+        "Callable test_scoped_injection_fail_no_scope_in_func.<locals>._func, Parameter 'c1', "
+        "Cannot instanciate a scoped service in a singleton service" == info.value.message
     )
 
 
@@ -565,8 +577,8 @@ def test_scoped_injection_fail_no_scope_in_singleton() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a singleton service"
-        == info.value.message
+        f"Callable test_scoped_injection_fail_no_scope_in_singleton.<locals>._C2, Parameter 'c1', "
+        "Cannot instanciate a scoped service in a singleton service" == info.value.message
     )
 
 
@@ -586,8 +598,8 @@ def test_scoped_injection_fail_no_scope_in_transcient() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a transcient service"
-        == info.value.message
+        "Callable test_scoped_injection_fail_no_scope_in_transcient.<locals>._C2, Parameter 'c1', "
+        "Cannot instanciate a scoped service in a transcient service" == info.value.message
     )
 
 
@@ -609,8 +621,8 @@ def test_fail_get_scoped_from_singleton_in_scope() -> None:
         sub_inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a singleton service"
-        == info.value.message
+        "Callable test_fail_get_scoped_from_singleton_in_scope.<locals>._C2, Parameter 'c1', "
+        "Cannot instanciate a scoped service in a singleton service" == info.value.message
     )
 
 
@@ -632,8 +644,8 @@ def test_fail_get_scoped_from_transcient_in_scope() -> None:
         sub_inject.require(_C2)
 
     assert (
-        f"Callable {_C2}, Parameter 'c1', Cannot instanciate a scoped service in a transcient service"
-        == info.value.message
+        "Callable test_fail_get_scoped_from_transcient_in_scope.<locals>._C2, Parameter 'c1', "
+        "Cannot instanciate a scoped service in a transcient service" == info.value.message
     )
 
 
@@ -766,7 +778,10 @@ def test_inject_no_union() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_TestClass)
 
-    assert f"Callable {_TestClass}, Parameter 'v', Type unions are not allowed" == info.value.message
+    assert (
+        "Callable test_inject_no_union.<locals>._TestClass, Parameter 'v', "
+        "Type unions are not allowed" == info.value.message
+    )
 
 
 def test_optional_type_literal_right() -> None:
@@ -855,12 +870,12 @@ def test_generic_no_direct_injection_literal() -> None:
 
     inject = Injection(Cache())
 
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypingError) as info:
         inject.add(_GenericTest["_SubTestClass"], "singleton")
 
     assert (
-        f"Type {_GenericTest}, Generic parameter ForwardRef('_SubTestClass'), "
-        "literal type hints are not allowed in direct require calls" == info.value.message
+        "Type test_generic_no_direct_injection_literal.<locals>._GenericTest, "
+        "Generic parameter '_SubTestClass' cannot be a string" == info.value.message
     )
 
 
@@ -1049,7 +1064,7 @@ def test_register_match_all() -> None:
         pass
 
     inject = Injection(Cache())
-    inject.add(_Logger, "singleton", match_all=True)
+    inject.add(_Logger[Any], "singleton", match_all=True)
     inject.add(_LoggerA, "singleton", super_cls=_Logger[_ServiceA])
 
     _loggerA = inject.require(_Logger[_ServiceA])
@@ -1142,10 +1157,13 @@ def test_fail_require_from_typevar_non_generic_parent() -> None:
     inject.add(_Service[_Entity], "singleton")
     inject.add(_Controller, "singleton")
 
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypingError) as info:
         inject.require(_Controller)
 
-    assert f"Type {_Controller}, Parameter 's', TypeVar cannot be used from a non generic class" == info.value.message
+    assert (
+        "Type test_fail_require_from_typevar_non_generic_parent.<locals>._Service, "
+        "TypeVar ~_T could not be found in lookup" == info.value.message
+    )
 
 
 def test_fail_require_from_typevar_different_names() -> None:
@@ -1169,12 +1187,12 @@ def test_fail_require_from_typevar_different_names() -> None:
     inject.add(_Service[_Entity1], "singleton")
     inject.add(_Controller[_Entity2], "singleton")
 
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypingError) as info:
         inject.require(_Controller[_Entity2])
 
     assert (
-        f"Type {_Controller}, Parameter 's', TypeVar ~_T1 could not be found in calling declaration"
-        == info.value.message
+        "Type test_fail_require_from_typevar_different_names.<locals>._Service, "
+        "TypeVar ~_T1 could not be found in lookup" == info.value.message
     )
 
 
@@ -1189,10 +1207,13 @@ def test_add_generic_with_no_vars() -> None:
 
     inject = Injection(Cache())
 
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(TypingError) as info:
         inject.add(_Service, "singleton")
 
-    assert f"Type {_Service} requires 1 generic parameters and 0 were given" == info.value.message
+    assert (
+        "Type test_add_generic_with_no_vars.<locals>._Service, All generic parameters must be defined"
+        == info.value.message
+    )
 
 
 def test_arg_resolver() -> None:

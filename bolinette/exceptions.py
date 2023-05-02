@@ -54,6 +54,17 @@ class ErrorCollection(Exception):
         return f'<BolinetteErrors [{",".join([repr(err) for err in self._errors])}]>'
 
 
+class TypingError(BolinetteError, ParameterError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        cls: str | None = None,
+    ) -> None:
+        ParameterError.__init__(self, cls="Type {}")
+        BolinetteError.__init__(self, self._format_params(message, cls=cls))
+
+
 class InjectionError(BolinetteError, ParameterError):
     def __init__(
         self,
@@ -64,7 +75,15 @@ class InjectionError(BolinetteError, ParameterError):
         param: str | None = None,
     ) -> None:
         ParameterError.__init__(self, cls="Type {}", func="Callable {}", param="Parameter '{}'")
-        BolinetteError.__init__(self, self._format_params(message, cls=cls, func=func, param=param))
+        BolinetteError.__init__(
+            self,
+            self._format_params(
+                message,
+                cls=cls,
+                func=func.__qualname__ if func is not None else None,
+                param=param,
+            ),
+        )
 
 
 class EnvironmentError(BolinetteError):
