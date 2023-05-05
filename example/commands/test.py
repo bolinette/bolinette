@@ -3,7 +3,8 @@ from typing import Callable, Awaitable
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from bolinette import command, Injection
+from bolinette import command
+from bolinette.injection import Injection
 from bolinette.ext.data.relational import Repository, EntityManager, SessionManager
 
 from example.entities import User, Role

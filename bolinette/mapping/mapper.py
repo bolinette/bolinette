@@ -1,6 +1,7 @@
 from typing import Any, Protocol, TypeVar, overload
 
-from bolinette import Cache, Injection, __core_cache__, init_method, injectable
+from bolinette import Cache, __core_cache__
+from bolinette.injection import Injection, init_method, injectable
 from bolinette.mapping.profiles import Profile
 from bolinette.mapping.sequence import MappingSequence
 from bolinette.types import Type

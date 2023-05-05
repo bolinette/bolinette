@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bolinette import injectable
+from bolinette.injection import injectable
 from bolinette.ext.data import __data_cache__
 
 

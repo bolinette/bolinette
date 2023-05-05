@@ -3,7 +3,8 @@ from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import Callable
 from typing import Any, Awaitable, Literal, ParamSpec
 
-from bolinette import Cache, Injection, Logger, __core_cache__, __user_cache__, init_method, injectable, meta
+from bolinette import Cache, Logger, __core_cache__, __user_cache__, meta
+from bolinette.injection import Injection, init_method, injectable
 from bolinette.exceptions import InitError
 
 P_Func = ParamSpec("P_Func")

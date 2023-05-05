@@ -1,4 +1,5 @@
-from bolinette import Injection, __core_cache__, command
+from bolinette import __core_cache__, command
+from bolinette.injection import Injection
 
 
 @command(

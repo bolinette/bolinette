@@ -4,7 +4,8 @@ from collections.abc import Callable
 from types import UnionType
 from typing import Any, Protocol, TypeVar, Union, get_args, get_origin
 
-from bolinette import Cache, CoreSection, Injection, Logger, __user_cache__, init_method, meta
+from bolinette import Cache, CoreSection, Logger, __user_cache__, meta
+from bolinette.injection import Injection, init_method
 from bolinette.exceptions import EnvironmentError
 from bolinette.utils import FileUtils, PathUtils
 

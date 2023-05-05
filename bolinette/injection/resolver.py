@@ -1,0 +1,119 @@
+from typing import Any, Callable, Literal, Protocol, TypeVar
+
+from bolinette import Cache, injection, meta, __user_cache__
+from bolinette.exceptions import InjectionError
+from bolinette.types import Type
+from bolinette.injection.hook import InjectionHook
+
+
+class ArgResolverOptions:
+    __slots__ = (
+        "injection",
+        "caller",
+        "caller_type_vars",
+        "caller_strategy",
+        "name",
+        "t",
+        "nullable",
+        "default_set",
+        "default",
+        "immediate",
+    )
+
+    def __init__(
+        self,
+        injection: "injection.Injection",
+        caller: Callable,
+        caller_type_vars: tuple[Any, ...] | None,
+        caller_strategy: Literal["singleton", "scoped", "transcient"] | None,
+        name: str,
+        t: Type[Any],
+        nullable: bool,
+        default_set: bool,
+        default: Any | None,
+        immediate: bool,
+    ) -> None:
+        self.injection = injection
+        self.caller = caller
+        self.caller_type_vars = caller_type_vars
+        self.caller_strategy = caller_strategy
+        self.name = name
+        self.t = t
+        self.nullable = nullable
+        self.default_set = default_set
+        self.default = default
+        self.immediate = immediate
+
+
+class ArgumentResolver(Protocol):
+    def supports(self, options: ArgResolverOptions) -> bool:
+        ...
+
+    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+        ...
+
+
+class ArgResolverMeta:
+    __slots__ = ("priority", "scoped")
+
+    def __init__(self, priority: int, scoped: bool) -> None:
+        self.priority = priority
+        self.scoped = scoped
+
+
+ArgResolverT = TypeVar("ArgResolverT", bound=ArgumentResolver)
+
+
+def injection_arg_resolver(
+    *, priority: int = 0, scoped: bool = False, cache: Cache | None = None
+) -> Callable[[type[ArgResolverT]], type[ArgResolverT]]:
+    def decorator(cls: type[ArgResolverT]) -> type[ArgResolverT]:
+        (cache or __user_cache__).add(ArgumentResolver, cls)
+        meta.set(cls, ArgResolverMeta(priority, scoped))
+        return cls
+
+    return decorator
+
+
+class DefaultArgResolver:
+    __slots__ = ()
+
+    def supports(self, options: "ArgResolverOptions") -> bool:
+        return True
+
+    def resolve(self, options: "ArgResolverOptions") -> tuple[str, Any]:
+        if not options.injection.is_registered(options.t):
+            if options.nullable:
+                return (options.name, None)
+            if options.default_set:
+                return (options.name, options.default)
+            raise InjectionError(
+                f"Type {options.t} is not a registered type in the injection system",
+                func=options.caller,
+                param=options.name,
+            )
+
+        r_type = options.injection._types[options.t.cls].get_type(options.t)
+
+        if r_type.strategy == "scoped":
+            if options.caller_strategy is None:
+                raise InjectionError(
+                    "Cannot instanciate a scoped service in a non-scoped context",
+                    func=options.caller,
+                    param=options.name,
+                )
+            if options.caller_strategy in ["singleton", "transcient"]:
+                raise InjectionError(
+                    f"Cannot instanciate a scoped service in a {options.caller_strategy} service",
+                    func=options.caller,
+                    param=options.name,
+                )
+
+        if options.injection._has_instance(r_type):
+            return (options.name, options.injection._get_instance(r_type))
+        if options.immediate:
+            return (
+                options.name,
+                options.injection._instanciate(r_type, options.t),
+            )
+        return (options.name, InjectionHook(options.t))

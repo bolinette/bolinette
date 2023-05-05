@@ -6,12 +6,6 @@ from bolinette.cache import (
     __core_cache__,
     __user_cache__,
 )
-from bolinette.inject import (
-    Injection,
-    init_method,
-    require,
-    injectable,
-)
 from bolinette.logger import Logger, ConsoleColorCode
 from bolinette.environment import Environment, environment
 from bolinette.command import command

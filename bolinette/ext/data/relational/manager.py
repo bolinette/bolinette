@@ -2,7 +2,8 @@ from typing import Any
 
 from sqlalchemy import PrimaryKeyConstraint, Table, UniqueConstraint
 
-from bolinette import Cache, Injection, init_method, injectable, meta
+from bolinette import Cache, meta
+from bolinette.injection import Injection, init_method, injectable
 from bolinette.ext.data import DatabaseManager, __data_cache__
 from bolinette.ext.data.exceptions import DataError, EntityError
 from bolinette.ext.data.relational import (

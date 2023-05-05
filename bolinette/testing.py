@@ -1,8 +1,9 @@
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar, get_args, get_origin
 
-from bolinette import Cache, Injection, meta
-from bolinette.inject import _InjectionContext
+from bolinette import Cache, meta
+from bolinette.injection import Injection
+from bolinette.injection.context import InjectionContext
 
 T = TypeVar("T")
 
@@ -73,7 +74,7 @@ class _MockWrapper(Generic[T]):
 
 class Mock:
     def __init__(self, *, inject: Injection | None = None, cache: Cache | None = None) -> None:
-        self._inject = inject or Injection(cache or Cache(), _InjectionContext())
+        self._inject = inject or Injection(cache or Cache(), InjectionContext())
         self._mocked: dict[type[Any], _MockWrapper[Any]] = {}
 
     @staticmethod
