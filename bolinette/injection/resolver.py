@@ -1,9 +1,9 @@
 from typing import Any, Callable, Literal, Protocol, TypeVar
 
-from bolinette import Cache, injection, meta, __user_cache__
+from bolinette import Cache, __user_cache__, injection, meta
 from bolinette.exceptions import InjectionError
-from bolinette.types import Type
 from bolinette.injection.hook import InjectionHook
+from bolinette.types import Type
 
 
 class ArgResolverOptions:

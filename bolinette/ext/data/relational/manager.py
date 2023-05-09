@@ -3,7 +3,6 @@ from typing import Any
 from sqlalchemy import PrimaryKeyConstraint, Table, UniqueConstraint
 
 from bolinette import Cache, meta
-from bolinette.injection import Injection, init_method, injectable
 from bolinette.ext.data import DatabaseManager, __data_cache__
 from bolinette.ext.data.exceptions import DataError, EntityError
 from bolinette.ext.data.relational import (
@@ -15,6 +14,7 @@ from bolinette.ext.data.relational import (
     SessionManager,
 )
 from bolinette.ext.data.relational.repository import _RepositoryMeta
+from bolinette.injection import Injection, init_method, injectable
 
 
 @injectable(cache=__data_cache__, strategy="singleton")

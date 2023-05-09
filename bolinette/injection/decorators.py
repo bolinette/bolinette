@@ -1,9 +1,8 @@
 from typing import Any, Callable, Concatenate, Literal, ParamSpec, TypeVar, get_origin
 
-from bolinette import meta, Cache, __user_cache__
-from bolinette.types import Type
+from bolinette import Cache, __user_cache__, meta
 from bolinette.injection.hook import InjectionHook
-
+from bolinette.types import Type
 
 FuncP = ParamSpec("FuncP")
 InstanceT = TypeVar("InstanceT")

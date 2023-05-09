@@ -1,10 +1,9 @@
 from typing import Any, Generic, TypeVar
 
-from bolinette import meta, injection
+from bolinette import injection, meta
 from bolinette.exceptions import InjectionError
 from bolinette.injection.registration import RegisteredType
 from bolinette.types import Type
-
 
 InstanceT = TypeVar("InstanceT")
 

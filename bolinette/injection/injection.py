@@ -4,7 +4,6 @@ from types import NoneType, UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Concatenate,
     Literal,
     ParamSpec,
     Protocol,
@@ -16,15 +15,14 @@ from typing import (
     overload,
 )
 
-from bolinette import Cache, GenericMeta, __user_cache__, meta
-from bolinette.injection.context import InjectionContext
-from bolinette.injection.resolver import ArgumentResolver, ArgResolverMeta, ArgResolverOptions, DefaultArgResolver
-from bolinette.injection.registration import RegisteredType, RegisteredTypeBag
-from bolinette.injection.hook import InjectionHook, InjectionProxy
+from bolinette import Cache, GenericMeta, meta
 from bolinette.exceptions import InjectionError
+from bolinette.injection.context import InjectionContext
+from bolinette.injection.decorators import InitMethodMeta, InjectionParamsMeta, InjectionSymbol
+from bolinette.injection.hook import InjectionHook, InjectionProxy
+from bolinette.injection.registration import RegisteredType, RegisteredTypeBag
+from bolinette.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
 from bolinette.types import Type, TypeVarLookup
-from bolinette.injection.decorators import InitMethodMeta, InjectionSymbol, InjectionParamsMeta
-
 
 FuncP = ParamSpec("FuncP")
 FuncT = TypeVar("FuncT")

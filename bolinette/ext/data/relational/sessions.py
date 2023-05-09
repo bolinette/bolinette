@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bolinette.injection import injectable
 from bolinette.ext.data import __data_cache__
+from bolinette.injection import injectable
 
 
 @injectable(strategy="scoped", cache=__data_cache__)

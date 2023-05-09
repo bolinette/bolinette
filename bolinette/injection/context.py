@@ -2,7 +2,6 @@ from typing import Any, TypeVar
 
 from bolinette.types import Type
 
-
 InstanceT = TypeVar("InstanceT")
 
 

@@ -1,8 +1,7 @@
 from typing import Any, Callable, Generic, Literal, TypeVar
+
 from bolinette.exceptions import InjectionError
-
 from bolinette.types import Type
-
 
 InstanceT = TypeVar("InstanceT")
 
