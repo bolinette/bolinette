@@ -3,7 +3,15 @@ import pytest
 from bolinette import Cache
 from bolinette.exceptions import InitMappingError, MappingError
 from bolinette.mapping import Mapper, Profile, mapping
+from bolinette.mapping.mapper import DefaultTypeMapper, IntegerTypeMapper, StringTypeMapper
 from bolinette.testing import Mock
+from bolinette.types import Type
+
+
+def load_default_mappers(mapper: Mapper) -> None:
+    mapper.set_default_type_mapper(DefaultTypeMapper)
+    mapper.add_type_mapper(Type(int), IntegerTypeMapper)
+    mapper.add_type_mapper(Type(str), StringTypeMapper)
 
 
 def test_map_simple_attr() -> None:
@@ -27,6 +35,7 @@ def test_map_simple_attr() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     s = _Source("test")
 
@@ -59,6 +68,7 @@ def test_map_with_map_from() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     s = _Source("test")
 
@@ -89,6 +99,7 @@ def test_map_source_no_hint() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     s = _Source("test")
 
@@ -98,36 +109,6 @@ def test_map_source_no_hint() -> None:
     assert isinstance(d, _Destination)
     assert d.value == s.value
     assert d is not s
-
-
-def test_map_implicit_ignore() -> None:
-    class _Source:
-        name: str
-
-        def __init__(self, name: str) -> None:
-            self.name = name
-
-    class _Destination:
-        value: str
-
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination)
-
-    mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
-    mapper = mock.injection.require(Mapper)
-
-    s = _Source("test")
-
-    d = mapper.map(_Source, _Destination, s)
-
-    assert s.name == "test"
-    assert d.value == ""
 
 
 def test_map_default_value_none() -> None:
@@ -148,6 +129,7 @@ def test_map_default_value_none() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     d = mapper.map(_Source, _Destination, _Source())
 
@@ -175,16 +157,50 @@ def test_fail_no_default_value() -> None:
 
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
     with pytest.raises(MappingError) as info:
-        mock.injection.require(Mapper)
+        mapper.map(_Source, _Destination, _Source())
 
     assert (
-        f"Type {_Destination}, Attribute 'value', Default value for attribute could not be determined"
-        == info.value.message
+        "Attribute '$.value', Not found in source, could not bind a None "
+        "value to non nullable type test_fail_no_default_value.<locals>._Value" == info.value.message
     )
 
 
 def test_map_explicit_ignore() -> None:
+    class _Source:
+        name: str
+
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class _Destination:
+        name: str | None
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(lambda dest: dest.name, lambda opt: opt.ignore())
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s = _Source("test")
+
+    d = mapper.map(_Source, _Destination, s)
+
+    assert s.name == "test"
+    assert d.name == None
+
+
+def test_fail_map_ignore_non_nullable() -> None:
     class _Source:
         name: str
 
@@ -205,52 +221,14 @@ def test_map_explicit_ignore() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     s = _Source("test")
 
-    d = mapper.map(_Source, _Destination, s)
+    with pytest.raises(MappingError) as info:
+        mapper.map(_Source, _Destination, s)
 
-    assert s.name == "test"
-    assert d.name == ""
-
-
-def test_map_with_bases() -> None:
-    class _ParentSource:
-        id: int
-
-    class _Source(_ParentSource):
-        name: str
-
-    class _ParentDestination1:
-        id: int
-
-    class _ParentDestination2:
-        attr: str
-
-    class _Destination(_ParentDestination1, _ParentDestination2):
-        name: str
-
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
-        def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_Source, _Destination)
-
-    mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
-    mapper = mock.injection.require(Mapper)
-
-    src = _Source()
-    src.id = 0
-    src.name = "test"
-
-    dest = mapper.map(_Source, _Destination, src)
-
-    assert dest.id == src.id
-    assert dest.attr == ""
-    assert dest.name == src.name
+    assert "Attribute '$.name', Could not ignore attribute, type str is not nullable" == info.value.message
 
 
 def test_map_with_custom_dest() -> None:
@@ -274,6 +252,7 @@ def test_map_with_custom_dest() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     src = _Source("test")
     dest = _Destination()
@@ -321,6 +300,7 @@ def test_map_include_base() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     src = _Source("test", 42)
 
@@ -360,7 +340,7 @@ def test_fail_included_base_not_found() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
 
-    with pytest.raises(InitMappingError) as info:
+    with pytest.raises(MappingError) as info:
         mock.injection.require(Mapper)
 
     assert (
@@ -402,6 +382,7 @@ def test_map_before_after() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
     src = _Source(1)
 
@@ -410,37 +391,49 @@ def test_map_before_after() -> None:
     assert order == ["before", "after"]
 
 
-def test_fail_map_before_after() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
+def test_nested_mapping() -> None:
+    class _NestedSource:
+        def __init__(self, value: str) -> None:
             self.value = value
 
-    class _Destination:
-        value: int
+    class _NestedDestination:
+        content: str
 
     cache = Cache()
-
-    order: list[str] = []
-
-    def before_map(src: _Source, dest: _Destination) -> None:
-        assert src.value == 1
-        assert not hasattr(dest, "value")
-        order.append("before")
-
-    def after_map(src: _Source, dest: _Destination) -> None:
-        assert src.value == dest.value
-        order.append("after")
 
     @mapping(cache=cache)
     class _(Profile):
         def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_Source, _Destination).before_mapping(before_map).after_mapping(after_map)
+            super().__init__()
+            self.register(_NestedSource, _NestedDestination).for_attr(
+                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
+            )
+
+    class _Source:
+        def __init__(self, nested: _NestedSource) -> None:
+            self.nested = nested
+
+    class _Destination:
+        content: _NestedDestination
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.nested)
+            )
 
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
 
-    src = _Source(1)
+    src = _Source(_NestedSource("test"))
 
-    mapper.map(_Source, _Destination, src)
+    d = mapper.map(_Source, _Destination, src)
+
+    assert src is not d
+    assert src.nested is not d.content
+    assert src.nested.value == d.content.content
+    assert isinstance(d.content, _NestedDestination)

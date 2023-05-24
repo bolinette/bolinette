@@ -210,3 +210,29 @@ def test_fail_lookup_key_not_found() -> None:
 
     with pytest.raises(KeyError):
         l[K]
+
+
+def test_nullable_type() -> None:
+    t = Type(None | int)
+
+    assert t.cls is int
+    assert not t.is_union
+    assert t.nullable
+
+
+def test_union() -> None:
+    t = Type(str | int)
+
+    assert t.cls is str
+    assert t.is_union
+    assert t.union == (Type(int),)
+    assert not t.nullable
+
+
+def test_nullable_union() -> None:
+    t = Type(str | None | int)
+
+    assert t.cls is str
+    assert t.is_union
+    assert t.union == (Type(int),)
+    assert t.nullable

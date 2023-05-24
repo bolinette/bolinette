@@ -36,19 +36,17 @@ class ExpressionTree:
             parent = object.__getattribute__(expr, "parent")
             attr = object.__getattribute__(expr, "attr")
             return getattr(ExpressionTree.get_value(parent, obj), attr)
-        raise ValueError()
+        raise ExpressionError(f"Cannot get value from {type(expr).__name__}")
 
     @staticmethod
     def set_value(expr: ExpressionNode, obj: object, value: Any) -> None:
         cls = type(expr)
-        if cls is RootNode:
-            raise ExpressionError("Cannot set value of root expression node")
         if cls is AttributeNode:
             parent = object.__getattribute__(expr, "parent")
             attr = object.__getattribute__(expr, "attr")
             setattr(ExpressionTree.get_value(parent, obj), attr, value)
             return
-        raise ValueError()
+        raise ExpressionError(f"Cannot set value of {type(expr).__name__}")
 
     @staticmethod
     def get_attribute_name(expr: AttributeNode) -> str:

@@ -169,26 +169,6 @@ def test_no_dict_to_map() -> None:
     )
 
 
-def test_no_literal() -> None:
-    cache = Cache()
-
-    class SubTestSection:
-        pass
-
-    @environment("test", cache=cache)
-    class TestSection:
-        sub: "SubTestSection"
-
-    mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"sub": 4}})
-    mock.injection.require(Environment)
-
-    with pytest.raises(EnvironmentError) as info:
-        mock.injection.require(TestSection)
-
-    assert f"Section {TestSection}.sub: no literal allowed in type hints" in info.value.message
-
-
 def test_os_env_conflict() -> None:
     os.environ["BLNT_TEST__A__A"] = "1"
     os.environ["BLNT_TEST__A"] = "2"
