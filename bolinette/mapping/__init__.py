@@ -1,2 +1,2 @@
-from bolinette.mapping.profiles import mapping, Profile
-from bolinette.mapping.mapper import Mapper
+from bolinette.mapping.profiles import mapping as mapping, Profile as Profile
+from bolinette.mapping.mapper import Mapper as Mapper

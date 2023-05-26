@@ -4,7 +4,7 @@ from bolinette import Cache, __core_cache__, __user_cache__, meta
 from bolinette.exceptions import MappingError
 from bolinette.injection import Injection, init_method, injectable
 from bolinette.mapping.profiles import Profile
-from bolinette.mapping.sequence import ForAttributeMapping, IgnoreAttribute, MapFromAttribute, MappingSequence
+from bolinette.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.types import Type
 
 

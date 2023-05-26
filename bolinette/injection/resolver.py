@@ -82,6 +82,11 @@ class DefaultArgResolver:
         return True
 
     def resolve(self, options: "ArgResolverOptions") -> tuple[str, Any]:
+        if options.t.cls is Type:
+            return (options.name, Type(options.t.vars[0]))
+        if options.t.cls is type:
+            return (options.name, options.t.vars[0])
+
         if not options.injection.is_registered(options.t):
             if options.nullable:
                 return (options.name, None)

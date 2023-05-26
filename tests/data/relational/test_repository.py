@@ -1,5 +1,3 @@
-from typing import Any
-
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +7,6 @@ from bolinette import Cache, meta
 from bolinette.ext.data.exceptions import DataError, EntityNotFoundError
 from bolinette.ext.data.relational import Repository, entity, get_base, repository
 from bolinette.ext.data.relational.repository import _RepositoryMeta
-from bolinette.injection.resolver import ArgResolverOptions, injection_arg_resolver
 from bolinette.testing import Mock
 
 
@@ -20,14 +17,6 @@ def setup_test():
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
-
-    @injection_arg_resolver(cache=cache)
-    class EntityArgResolver:
-        def supports(self, options: ArgResolverOptions) -> bool:
-            return options.t.cls is type and options.t.vars == (Entity,)
-
-        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-            return options.name, Entity
 
     return cache, Entity
 

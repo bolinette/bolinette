@@ -16,8 +16,8 @@ class Repository(Generic[EntityT]):
     def __init__(self, entity: type[EntityT], session: AsyncSession) -> None:
         self._entity = entity
         self._session = session
-        self._primary_key = entity.__table__.primary_key
-        self._entity_key = meta.get(entity, EntityMeta).entity_key
+        self._primary_key = self._entity.__table__.primary_key
+        self._entity_key = meta.get(self._entity, EntityMeta).entity_key
 
     async def iterate(self, statement: TypedReturnsRows[tuple[EntityT]]) -> AsyncIterable[EntityT]:
         result = await self._session.execute(statement)

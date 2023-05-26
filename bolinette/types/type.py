@@ -10,6 +10,10 @@ T = TypeVar("T")
 class Type(Generic[T]):
     __slots__ = ("cls", "vars", "annotations", "nullable", "union")
 
+    @staticmethod
+    def from_instance(__instance: T) -> "Type[T]":
+        return Type(type(__instance))
+
     def __init__(
         self,
         __cls: type[T],
