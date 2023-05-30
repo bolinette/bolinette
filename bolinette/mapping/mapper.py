@@ -190,7 +190,7 @@ class IntegerTypeMapper:
         try:
             return int(src)  # type: ignore
         except ValueError:
-            raise MappingError(f"Could not convert value to int", attr=path)
+            raise MappingError("Could not convert value to int", attr=path)
 
 
 @type_mapper(str, cache=__core_cache__)
