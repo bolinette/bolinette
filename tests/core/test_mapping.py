@@ -1,8 +1,9 @@
+from typing import Any
 import pytest
 
 from bolinette import Cache
-from bolinette.exceptions import InitMappingError, MappingError
-from bolinette.mapping import Mapper, Profile, mapping
+from bolinette.exceptions import MappingError
+from bolinette.mapping import Mapper, Profile, mapping, type_mapper
 from bolinette.mapping.mapper import DefaultTypeMapper, IntegerTypeMapper, StringTypeMapper
 from bolinette.testing import Mock
 from bolinette.types import Type
@@ -12,6 +13,45 @@ def load_default_mappers(mapper: Mapper) -> None:
     mapper.set_default_type_mapper(DefaultTypeMapper)
     mapper.add_type_mapper(Type(int), IntegerTypeMapper)
     mapper.add_type_mapper(Type(str), StringTypeMapper)
+
+
+def test_init_type_mappers_from_cache() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Destination:
+        value: int
+
+    @type_mapper(_Destination, cache=cache)
+    class _:
+        def __init__(self, runner) -> None:
+            self.runner = runner
+
+        def map(
+            self,
+            path: str,
+            src_t: Type[Any],
+            dest_t: Type[_Destination],
+            src: Any,
+            dest: _Destination | None,
+        ) -> _Destination:
+            assert isinstance(src, _Source)
+            if dest is None:
+                dest = _Destination()
+            dest.value = src.value + 1
+            return dest
+
+    mapper = mock.injection.require(Mapper)
+
+    src = _Source(1)
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest.value == 2
 
 
 def test_map_simple_attr() -> None:
@@ -231,6 +271,28 @@ def test_fail_map_ignore_non_nullable() -> None:
     assert "Attribute '$.name', Could not ignore attribute, type str is not nullable" == info.value.message
 
 
+def test_fail_invalid_int_cast() -> None:
+    class _Source:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    class _Destination:
+        value: int
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source("test")
+
+    with pytest.raises(MappingError) as info:
+        mapper.map(_Source, _Destination, src)
+
+    assert "Attribute '$.value', Could not convert value 'test' to int" == info.value.message
+
+
 def test_map_with_custom_dest() -> None:
     class _Source:
         name: str
@@ -437,3 +499,24 @@ def test_nested_mapping() -> None:
     assert src.nested is not d.content
     assert src.nested.value == d.content.content
     assert isinstance(d.content, _NestedDestination)
+
+
+def test_mapping_list() -> None:
+    class _Source:
+        def __init__(self, values: list[int]) -> None:
+            self.values = values
+
+    class _Destination:
+        values: list[int]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source([1, 2, 3])
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest.values == src.values
+    assert dest.values is not src.values

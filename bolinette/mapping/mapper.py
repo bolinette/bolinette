@@ -121,7 +121,6 @@ def type_mapper(
     return decorator
 
 
-@type_mapper(object, cache=__core_cache__)
 class DefaultTypeMapper:
     __slots__ = "runner"
 
@@ -132,10 +131,22 @@ class DefaultTypeMapper:
         self,
         path: str,
         src_t: Type[SrcT],
-        dest_t: Type[object],
+        dest_t: Type[Any],
         src: SrcT,
-        dest: object | None,
-    ) -> object:
+        dest: Any | None,
+    ) -> Any:
+        if dest_t.cls is list:
+            return self._map_list(path, src_t, dest_t, src, dest)
+        return self._map_object(path, src_t, dest_t, src, dest)
+
+    def _map_object(
+        self,
+        path: str,
+        src_t: Type[SrcT],
+        dest_t: Type[Any],
+        src: SrcT,
+        dest: Any | None,
+    ) -> Any:
         if dest is None:
             dest = dest_t.new()
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
@@ -171,6 +182,22 @@ class DefaultTypeMapper:
                 func.func(src, dest)
         return dest
 
+    def _map_list(
+        self,
+        path: str,
+        src_t: Type[SrcT],
+        dest_t: Type[list],
+        src: SrcT,
+        dest: list | None,
+    ) -> list:
+        assert isinstance(src, list)
+        dest = []
+        for index, elem in enumerate(src):
+            dest.append(
+                self.runner.map(f"{path}.[{index}]", Type.from_instance(elem), Type(dest_t.vars[0]), elem, None)
+            )
+        return dest
+
 
 @type_mapper(int, cache=__core_cache__)
 class IntegerTypeMapper:
@@ -190,7 +217,7 @@ class IntegerTypeMapper:
         try:
             return int(src)  # type: ignore
         except ValueError:
-            raise MappingError("Could not convert value to int", attr=path)
+            raise MappingError(f"Could not convert value '{src}' to int", attr=path)
 
 
 @type_mapper(str, cache=__core_cache__)
