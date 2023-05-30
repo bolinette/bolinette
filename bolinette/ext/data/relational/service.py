@@ -1,5 +1,8 @@
 from typing import Any, Generic, TypeVar
 
+from sqlalchemy import Table
+from bolinette.ext.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
+
 from bolinette.ext.data.relational import DeclarativeBase, Repository
 from bolinette.mapping import Mapper
 
@@ -24,4 +27,13 @@ class Service(Generic[EntityT]):
         return entity
 
     def validate_entity(self, entity: EntityT) -> None:
-        pass
+        table = entity.__table__
+        assert isinstance(table, Table)
+        for col_name, column in table.columns.items():
+            value = getattr(entity, col_name, None)
+            if not column.nullable and value is None:
+                raise ColumnNotNullableError(self._entity, col_name)
+            if column.nullable and value is None:
+                continue
+            if not issubclass(type(value), column.type.python_type):
+                raise WrongColumnTypeError(self._entity, col_name, value, column.type.python_type)

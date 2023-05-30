@@ -1,6 +1,6 @@
 from typing import Any
 
-from bolinette.exceptions import BolinetteError, InitError, ParameterError
+from bolinette.exceptions import BolinetteError, ParameterError
 
 
 class DataError(BolinetteError):
@@ -49,12 +49,21 @@ class DatabaseError(DataError, ParameterError):
         )
 
 
-class EntityNotFoundError(BolinetteError):
+class EntityNotFoundError(DataError):
     def __init__(self, entity: type[Any]) -> None:
         super().__init__(f"Entity {entity} not found")
         self.entity = entity
 
 
-class MappingInitError(InitError):
-    def __init__(self, message: str) -> None:
-        super().__init__(f"Mapper Initialization: {message}")
+class EntityValidationError(DataError):
+    pass
+
+
+class ColumnNotNullableError(EntityValidationError):
+    def __init__(self, entity: type[Any], column: str) -> None:
+        super().__init__(f"Column '{column}' of entity {entity} must not contain a null value")
+
+
+class WrongColumnTypeError(EntityValidationError):
+    def __init__(self, entity: type[Any], column: str, value: Any, expected: type[Any]) -> None:
+        super().__init__(f"Column '{column}' of entity {entity} must be of type {expected}, got value '{value}'")
