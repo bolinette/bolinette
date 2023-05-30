@@ -28,7 +28,7 @@ class _TestClass:
 
 def test_mock_get_mocked_attr() -> None:
     mock = Mock()
-    mock.mock(_TestInjectedClass).setup("v1", "1")
+    mock.mock(_TestInjectedClass).setup(lambda x: x.v1, "1")
     mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
@@ -37,7 +37,7 @@ def test_mock_get_mocked_attr() -> None:
 
 def test_mock_get_mocked_attr_property() -> None:
     mock = Mock()
-    mock.mock(_TestInjectedClass).setup("v2", "2")
+    mock.mock(_TestInjectedClass).setup(lambda x: x.v2, "2")
     mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
@@ -46,7 +46,7 @@ def test_mock_get_mocked_attr_property() -> None:
 
 def test_mock_get_mocked_attr_callable() -> None:
     mock = Mock()
-    mock.mock(_TestInjectedClass).setup("get_v3", lambda: "3")
+    mock.mock(_TestInjectedClass).setup(lambda x: x.get_v3, lambda: "3")
     mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
@@ -55,7 +55,7 @@ def test_mock_get_mocked_attr_callable() -> None:
 
 def test_mock_get_mocked_attr_callable_args() -> None:
     mock = Mock()
-    mock.mock(_TestInjectedClass).setup("get_v4", lambda value: value)
+    mock.mock(_TestInjectedClass).setup(lambda x: x.get_v4, lambda value: value)
     mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)
@@ -64,8 +64,8 @@ def test_mock_get_mocked_attr_callable_args() -> None:
 
 def test_mock_two_mock_calls() -> None:
     mock = Mock()
-    mock.mock(_TestInjectedClass).setup("v1", "1")
-    mock.mock(_TestInjectedClass).setup("get_v3", lambda: "3")
+    mock.mock(_TestInjectedClass).setup(lambda x: x.v1, "1")
+    mock.mock(_TestInjectedClass).setup(lambda x: x.get_v3, lambda: "3")
     mock.injection.add(_TestClass, "singleton")
 
     t = mock.injection.require(_TestClass)

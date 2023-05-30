@@ -37,7 +37,11 @@ def mock_db_manager(mock: Mock, engine_type: type[RelationalDatabase] | None = N
     def _get_connection(name: str) -> _DatabaseConnection:
         return _DatabaseConnection(name, "protocol://", False, engine_type or _MockedRelationalDatabase)
 
-    mock.mock(DatabaseManager).setup("has_connection", lambda _: True).setup("get_connection", _get_connection)
+    (
+        mock.mock(DatabaseManager)
+        .setup(lambda m: m.has_connection, lambda _: True)
+        .setup(lambda m: m.get_connection, _get_connection)
+    )
 
 
 def mock_entities(cache: Cache, name: str, base: type[DeclarativeBase]) -> type[DeclarativeBase]:
@@ -74,7 +78,7 @@ def test_fail_init_engines_unknown_connection() -> None:
 
     create_entity_base(cache)
 
-    mock.mock(DatabaseManager).setup("has_connection", lambda _: False)
+    mock.mock(DatabaseManager).setup(lambda m: m.has_connection, lambda _: False)
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
@@ -93,7 +97,11 @@ def test_fail_init_engines_non_relational_system() -> None:
     def _get_connection(name: str) -> _DatabaseConnection:
         return _DatabaseConnection(name, "sqlite+aiosqlite://", False, object)
 
-    mock.mock(DatabaseManager).setup("has_connection", lambda _: True).setup("get_connection", _get_connection)
+    (
+        mock.mock(DatabaseManager)
+        .setup(lambda m: m.has_connection, lambda _: True)
+        .setup(lambda m: m.get_connection, _get_connection)
+    )
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)

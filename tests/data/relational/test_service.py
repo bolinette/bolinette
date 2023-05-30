@@ -17,8 +17,8 @@ def test_create() -> None:
         id: Mapped[int] = mapped_column(primary_key=True)
         name: Mapped[str]
 
-    mock.mock(Repository[_Entity]).setup("add", lambda e: e)
-    mock.mock(Mapper).setup("map", lambda cs, cd, s: _Entity(id=1, name="name"))
+    mock.mock(Repository[_Entity]).setup(lambda r: r.add, lambda e: e)
+    mock.mock(Mapper).setup(lambda m: m.map, lambda cs, cd, s: _Entity(id=1, name="name"))
     mock.injection.add(Service[_Entity], "singleton")
 
     service = mock.injection.require(Service[_Entity])
@@ -41,7 +41,7 @@ def test_update() -> None:
         name: Mapped[str]
 
     mock.mock(Repository[_Entity])
-    mock.mock(Mapper).setup("map", lambda cs, cd, s, d: d)
+    mock.mock(Mapper).setup(lambda m: m.map, lambda cs, cd, s, d: d)
     mock.injection.add(Service[_Entity], "singleton")
 
     service = mock.injection.require(Service[_Entity])

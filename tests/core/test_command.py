@@ -84,7 +84,7 @@ async def test_launch_command_not_found() -> None:
         nonlocal error_str
         error_str = s
 
-    mock.mock(Logger[Parser]).setup("error", _write_error)
+    mock.mock(Logger[Parser]).setup(lambda l: l.error, _write_error)
 
     @command("command", "This is a test command", cache=cache)
     async def _() -> None:
@@ -171,7 +171,7 @@ async def test_launch_sub_command_not_found() -> None:
         nonlocal error_str
         error_str = s
 
-    mock.mock(Logger[Parser]).setup("error", _write_error)
+    mock.mock(Logger[Parser]).setup(lambda l: l.error, _write_error)
 
     @command("command inc", "This is a test command", cache=cache)
     async def _() -> None:

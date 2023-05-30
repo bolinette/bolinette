@@ -13,8 +13,8 @@ from bolinette.utils import FileUtils, PathUtils
 def _setup_test(cache: Cache | None = None) -> Mock:
     mock = Mock(cache=cache)
     mock.mock(Logger[Any], match_all=True)
-    mock.mock(PathUtils).setup("env_path", lambda *values: "".join(values))
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {})
+    mock.mock(PathUtils).setup(lambda p: p.env_path, lambda *values: "".join(values))
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {})
     mock.injection.add(Environment, "singleton", args=["test"])
     return mock
 
@@ -66,7 +66,7 @@ def test_parse_yaml_file() -> None:
         b: bool = True
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": False}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": False}})
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -84,7 +84,7 @@ def test_fail_missing_attribute() -> None:
         c: bool
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": False}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": False}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -116,7 +116,7 @@ def test_file_override() -> None:
                 return {}
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", _read_yaml)
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, _read_yaml)
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -137,7 +137,7 @@ def test_non_empty_sub_init() -> None:
         sub: SubTestSection
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"sub": {}}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"sub": {}}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -157,7 +157,7 @@ def test_no_dict_to_map() -> None:
         sub: SubTestSection
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"sub": 4}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"sub": 4}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -191,7 +191,7 @@ def test_fail_cast_type() -> None:
         a: int
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": "1"}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": "1"}})
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -206,7 +206,7 @@ def test_fail_wrong_type() -> None:
         a: int
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": "test"}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": "test"}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -223,7 +223,7 @@ def test_optional_value() -> None:
         a: int | None
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": None}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": None}})
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -238,7 +238,7 @@ def test_optional_value_bis() -> None:
         a: Optional[int]
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": None}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": None}})
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -253,7 +253,7 @@ def test_optional_with_value() -> None:
         a: int | None
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -268,7 +268,7 @@ def test_fail_not_optional() -> None:
         a: int
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": None}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": None}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -286,7 +286,7 @@ def test_hint_any() -> None:
         b: Any
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1, "b": [1, 2]}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": 1, "b": [1, 2]}})
     mock.injection.require(Environment)
     test = mock.injection.require(TestSection)
 
@@ -302,7 +302,7 @@ def test_fail_no_union() -> None:
         a: int | bool
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -319,7 +319,7 @@ def test_fail_no_union_bis() -> None:
         a: Union[int, bool]
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -336,7 +336,7 @@ def test_fail_unknow_type() -> None:
         a: Callable[[], None]
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup("read_yaml", lambda *_: {"test": {"a": 1}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": 1}})
     mock.injection.require(Environment)
 
     with pytest.raises(EnvironmentError) as info:
@@ -374,7 +374,7 @@ def test_builtin_list_attribute() -> None:
 
     mock = _setup_test(cache)
     mock.mock(FileUtils).setup(
-        "read_yaml",
+        lambda f: f.read_yaml,
         lambda *_: {"test": {"a": [1, 2], "b": ["a", "b"], "c": [1.1, 2.2], "d": [True, False]}},
     )
     mock.injection.require(Environment)
@@ -396,7 +396,7 @@ def test_list_attribute_bad_cast() -> None:
 
     mock = _setup_test(cache)
     mock.mock(FileUtils).setup(
-        "read_yaml",
+        lambda f: f.read_yaml,
         lambda *_: {"test": {"a": ["1", "b"]}},
     )
     mock.injection.require(Environment)
@@ -420,7 +420,7 @@ def test_sub_object_in_list() -> None:
 
     mock = _setup_test(cache)
     mock.mock(FileUtils).setup(
-        "read_yaml",
+        lambda f: f.read_yaml,
         lambda *_: {"test": {"subs": [{"a": 1, "b": "a"}, {"a": 2, "b": "b"}]}},
     )
     mock.injection.require(Environment)
@@ -443,7 +443,7 @@ def test_non_generic_list() -> None:
 
     mock = _setup_test(cache)
     mock.mock(FileUtils).setup(
-        "read_yaml",
+        lambda f: f.read_yaml,
         lambda *_: {"test": {"a": [1, "b"]}},
     )
     mock.injection.require(Environment)
