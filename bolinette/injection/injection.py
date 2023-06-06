@@ -45,7 +45,6 @@ class Injection:
         self._types = types if types is not None else self._pickup_types(cache)
         self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], cache, safe=True)
         self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], self, safe=True)
-        self._arg_resolvers = [DefaultArgResolver()]
         self._arg_resolvers = self._pickup_resolvers(cache)
 
     @property
@@ -98,9 +97,7 @@ class Injection:
         for cls in resolver_types:
             if resolver_scoped[cls]:
                 continue
-            t = Type(cls)
-            r_type = RegisteredType(t, "singleton", [], {}, [])
-            resolvers.append(self._instanciate(r_type, t))
+            resolvers.append(self.instanciate(cls, additional_resolvers=[DefaultArgResolver()]))
 
         return [*resolvers, DefaultArgResolver()]
 
@@ -123,6 +120,7 @@ class Injection:
         immediate: bool,
         args: list[Any],
         named_args: dict[str, Any],
+        additional_resolvers: list[ArgumentResolver],
     ) -> dict[str, Any]:
         func_params = dict(inspect.signature(func).parameters)
         if any((n, p) for n, p in func_params.items() if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)):
@@ -181,7 +179,7 @@ class Injection:
 
             hint_t = Type(hint, lookup=vars_lookup)
 
-            for resolver in self._arg_resolvers:
+            for resolver in [*additional_resolvers, *getattr(self, "_arg_resolvers", [])]:
                 options = ArgResolverOptions(
                     self,
                     func,
@@ -261,6 +259,7 @@ class Injection:
             False,
             r_type.args,
             r_type.named_args,
+            [],
         )
         instance = r_type.t.cls(**func_args)
         self._hook_proxies(instance)
@@ -284,8 +283,11 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         vars_lookup: TypeVarLookup[Any] | None = None,
+        additional_resolvers: list[ArgumentResolver] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, None, "singleton", vars_lookup, True, args or [], named_args or {})
+        func_args = self._resolve_args(
+            func, None, "singleton", vars_lookup, True, args or [], named_args or {}, additional_resolvers or []
+        )
         return func(**func_args)
 
     def instanciate(
@@ -294,9 +296,12 @@ class Injection:
         *,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
+        additional_resolvers: list[ArgumentResolver] | None = None,
     ) -> InstanceT:
         t = Type(cls)
-        init_args = self._resolve_args(cls, t.vars, "transcient", None, True, args or [], named_args or {})
+        init_args = self._resolve_args(
+            cls, t.vars, "transcient", None, True, args or [], named_args or {}, additional_resolvers or []
+        )
         instance = cls(**init_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
@@ -479,10 +484,7 @@ class ScopedInjection(Injection):
 
         resolvers: list[ArgumentResolver] = []
         for cls in resolver_types:
-            strategy = "scoped" if resolver_scoped[cls] else "singleton"
-            t = Type(cls)
-            r_type = RegisteredType(t, strategy, [], {}, [])
-            resolvers.append(self._instanciate(r_type, t))
+            resolvers.append(self.instanciate(cls, additional_resolvers=[DefaultArgResolver()]))
 
         return [*resolvers, DefaultArgResolver()]
 
@@ -493,8 +495,11 @@ class ScopedInjection(Injection):
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         vars_lookup: TypeVarLookup | None = None,
+        additional_resolvers: list[ArgumentResolver] | None = None,
     ) -> FuncT:
-        func_args = self._resolve_args(func, None, "scoped", vars_lookup, True, args or [], named_args or {})
+        func_args = self._resolve_args(
+            func, None, "scoped", vars_lookup, True, args or [], named_args or {}, additional_resolvers or []
+        )
         return func(**func_args)
 
 

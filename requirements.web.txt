@@ -1,1 +1,2 @@
-bolinette-data==0.15.0
+aiohttp==3.8.4
+bolinette==0.15.0

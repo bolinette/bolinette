@@ -12,15 +12,15 @@ from bolinette.ext.web import version as web_version
 def update_version(module: Any, major: int, minor: int, patch: int) -> None:
     version = f"{major}.{minor}.{patch}"
     file = inspect.getfile(module)
-    with open(file, 'w') as stream:
+    with open(file, "w") as stream:
         stream.write(f'__version__ = "{version}"\n')
 
 
 def update_requirements(file: str, name: str, version: str) -> None:
-    with open(file, 'r') as stream:
+    with open(file, "r") as stream:
         content = stream.read()
     content = re.sub(rf"{name}==(\d+)\.(\d+).(\d+)", f"{name}=={version}", content, 1)
-    with open(file, 'w') as stream:
+    with open(file, "w") as stream:
         stream.write(content)
 
 
@@ -35,7 +35,7 @@ def update_data(major: int, minor: int, patch: int) -> None:
 
 def update_web(major: int, minor: int, patch: int) -> None:
     update_version(web_version, major, minor, patch)
-    update_requirements("requirements.web.txt", "bolinette-data", data_version.__version__)
+    update_requirements("requirements.web.txt", "bolinette", core_version.__version__)
 
 
 if __name__ == "__main__":

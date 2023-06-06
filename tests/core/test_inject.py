@@ -1258,3 +1258,37 @@ def test_arg_resolver() -> None:
 
     assert order == [1, 3, 4]
     assert ctrl.s is _s
+
+
+def test_service_in_arg_resolver() -> None:
+    cache = Cache()
+
+    order = []
+
+    class _Service:
+        pass
+
+    class _Controller:
+        pass
+
+    @injection_arg_resolver(priority=1, cache=cache, scoped=True)
+    class _Resolver:
+        def __init__(self, s: _Service) -> None:
+            order.append(s)
+
+        def supports(self, options: ArgResolverOptions):
+            return False
+
+        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+            ...
+
+    inject = Injection(cache)
+    inject.add(_Service, "singleton")
+    inject.add(_Controller, "singleton")
+
+    scoped = inject.get_scoped_session()
+
+    scoped.require(_Controller)
+
+    assert len(order) == 1
+    assert isinstance(order[0], _Service)
