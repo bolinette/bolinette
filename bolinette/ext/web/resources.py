@@ -1,14 +1,15 @@
 from typing import Any, Callable
+
 from aiohttp import web
 
 from bolinette import Cache, meta
-from bolinette.injection import injectable, init_method, Injection
-from bolinette.injection.resolver import ArgResolverOptions
-from bolinette.utils import AttributeUtils
 from bolinette.ext.web import Controller, __web_cache__
 from bolinette.ext.web.controller import ControllerMeta
 from bolinette.ext.web.route import RouteBucket, RouteProps
+from bolinette.injection import Injection, init_method, injectable
+from bolinette.injection.resolver import ArgResolverOptions
 from bolinette.types import Type
+from bolinette.utils import AttributeUtils
 
 
 @injectable(strategy="singleton", cache=__web_cache__)
@@ -74,7 +75,7 @@ class RouteHandler:
                 args=[ctrl],
                 additional_resolvers=[RouteParamArgResolver(request, self.props)],
             )
-        except BaseException as e:
+        except BaseException:
             pass
 
 

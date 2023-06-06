@@ -1,6 +1,6 @@
 from typing import Callable, TypeVar
 
-from bolinette import meta, Cache, __user_cache__
+from bolinette import Cache, __user_cache__, meta
 
 
 class Controller:

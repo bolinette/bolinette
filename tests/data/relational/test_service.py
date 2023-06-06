@@ -1,4 +1,3 @@
-from calendar import c
 import pytest
 from sqlalchemy.orm import Mapped, mapped_column
 

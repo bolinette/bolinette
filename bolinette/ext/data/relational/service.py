@@ -1,8 +1,8 @@
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy import Table
-from bolinette.ext.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
 
+from bolinette.ext.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
 from bolinette.ext.data.relational import DeclarativeBase, Repository
 from bolinette.mapping import Mapper
 

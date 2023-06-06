@@ -3,7 +3,6 @@ from typing import Callable, Literal, ParamSpec, TypeVar
 
 from bolinette import meta
 
-
 FuncP = ParamSpec("FuncP")
 FuncT = TypeVar("FuncT")
 HttpMethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE"]

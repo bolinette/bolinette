@@ -1,5 +1,5 @@
 from bolinette import meta
-from bolinette.ext.web import route, get, post, put, patch, delete
+from bolinette.ext.web import delete, get, patch, post, put, route
 from bolinette.ext.web.route import RouteBucket, RouteProps
 
 
