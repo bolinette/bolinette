@@ -45,8 +45,15 @@ class Type(Generic[T]):
             return f"'{str(v.__forward_arg__)}'"
 
         if not self.vars:
-            return _format_v(self.cls)
-        return f"{_format_v(self.cls)}[{', '.join(map(_format_v, self.vars))}]"
+            repr_str = _format_v(self.cls)
+        else:
+            repr_str = f"{_format_v(self.cls)}[{', '.join(map(_format_v, self.vars))}]"
+
+        if self.is_union:
+            for t in self.union:
+                repr_str = f"{repr_str} | {str(t)}"
+
+        return repr_str
 
     def __repr__(self) -> str:
         return f"<Type {str(self)}>"
@@ -63,6 +70,10 @@ class Type(Generic[T]):
     @property
     def is_union(self) -> bool:
         return len(self.union) > 0
+
+    @property
+    def is_any(self) -> bool:
+        return self.cls is Any
 
     @staticmethod
     def _get_recursive_annotations(_cls: type[Any]) -> "dict[str, Type[Any]]":

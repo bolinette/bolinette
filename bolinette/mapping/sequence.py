@@ -15,11 +15,12 @@ class ForAttributeMapping:
 
 
 class MapFromAttribute(ForAttributeMapping):
-    __slots__ = "src_attr"
+    __slots__ = ("src_attr", "use_type")
 
     def __init__(self, src_attr: str, dest_attr: str) -> None:
         ForAttributeMapping.__init__(self, dest_attr)
         self.src_attr = src_attr
+        self.use_type: Type[Any] | None = None
 
 
 class IgnoreAttribute(ForAttributeMapping):

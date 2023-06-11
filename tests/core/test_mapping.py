@@ -5,7 +5,13 @@ import pytest
 from bolinette import Cache
 from bolinette.exceptions import MappingError
 from bolinette.mapping import Mapper, Profile, mapping, type_mapper
-from bolinette.mapping.mapper import DefaultTypeMapper, IntegerTypeMapper, StringTypeMapper
+from bolinette.mapping.mapper import (
+    DefaultTypeMapper,
+    IntegerTypeMapper,
+    StringTypeMapper,
+    FloatTypeMapper,
+    BoolTypeMapper,
+)
 from bolinette.testing import Mock
 from bolinette.types import Type
 
@@ -14,6 +20,8 @@ def load_default_mappers(mapper: Mapper) -> None:
     mapper.set_default_type_mapper(DefaultTypeMapper)
     mapper.add_type_mapper(Type(int), IntegerTypeMapper)
     mapper.add_type_mapper(Type(str), StringTypeMapper)
+    mapper.add_type_mapper(Type(float), FloatTypeMapper)
+    mapper.add_type_mapper(Type(bool), BoolTypeMapper)
 
 
 def test_init_type_mappers_from_cache() -> None:
@@ -294,6 +302,51 @@ def test_fail_invalid_int_cast() -> None:
     assert "Attribute '$.value', Could not convert value 'test' to int" == info.value.message
 
 
+def test_fail_invalid_float_cast() -> None:
+    class _Source:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    class _Destination:
+        value: float
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source("test")
+
+    with pytest.raises(MappingError) as info:
+        mapper.map(_Source, _Destination, src)
+
+    assert "Attribute '$.value', Could not convert value 'test' to float" == info.value.message
+
+
+def test_cast_to_bool() -> None:
+    class _Source:
+        def __init__(self, value1: str, value2: int) -> None:
+            self.value1 = value1
+            self.value2 = value2
+
+    class _Destination:
+        value1: bool
+        value2: bool
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source("test", 0)
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest.value1 is True
+    assert dest.value2 is False
+
+
 def test_map_with_custom_dest() -> None:
     class _Source:
         name: str
@@ -521,3 +574,313 @@ def test_mapping_list() -> None:
 
     assert dest.values == src.values
     assert dest.values is not src.values
+
+
+def test_mapping_iterables() -> None:
+    class _Source:
+        def __init__(self, values: list[int]) -> None:
+            self.values = values
+
+    class _Destination:
+        v1: list[int]
+        v2: set[int]
+        v3: tuple[int]
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            (
+                self.register(_Source, _Destination)
+                .for_attr(lambda dest: dest.v1, lambda opt: opt.map_from(lambda src: src.values))
+                .for_attr(lambda dest: dest.v2, lambda opt: opt.map_from(lambda src: src.values))
+                .for_attr(lambda dest: dest.v3, lambda opt: opt.map_from(lambda src: src.values))
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source([1, 2, 3])
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert isinstance(dest.v1, list)
+    assert dest.v1 == [1, 2, 3]
+    assert isinstance(dest.v2, set)
+    assert dest.v2 == {1, 2, 3}
+    assert isinstance(dest.v3, tuple)
+    assert dest.v3 == (1, 2, 3)
+
+
+def test_map_to_str_dict() -> None:
+    class _Source:
+        def __init__(self, values: tuple[int, str, float]) -> None:
+            self.a = values[0]
+            self.b = values[1]
+            self.c = values[2]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source((1, "2", 3.3))
+    dest = mapper.map(_Source, dict[str, str], src)
+
+    assert len(dest) == 3
+    assert dest["a"] == "1"
+    assert dest["b"] == "2"
+    assert dest["c"] == "3.3"
+
+
+def test_map_to_dict_mixed() -> None:
+    class _Source:
+        def __init__(self, values: tuple[int, str, float]) -> None:
+            self.a = values[0]
+            self.b = values[1]
+            self.c = values[2]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source((1, "2", 3.3))
+    dest = mapper.map(_Source, dict[str, Any], src)
+
+    assert len(dest) == 3
+    assert dest["a"] == 1
+    assert dest["b"] == "2"
+    assert dest["c"] == 3.3
+
+
+def test_map_to_any() -> None:
+    class _Nested1:
+        pass
+
+    class _Source1:
+        def __init__(self, n: _Nested1) -> None:
+            self.n = n
+
+    class _Nested2:
+        pass
+
+    class _Source2:
+        def __init__(self, n: _Nested2) -> None:
+            self.n = n
+
+    class _Destination:
+        n: Any
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s1 = _Source1(_Nested1())
+    d1 = mapper.map(_Source1, _Destination, s1)
+    assert isinstance(d1.n, _Nested1)
+    assert d1.n is not s1.n
+
+    s2 = _Source2(_Nested2())
+    d2 = mapper.map(_Source2, _Destination, s2)
+    assert isinstance(d2.n, _Nested2)
+    assert d2.n is not s2.n
+
+
+def test_map_to_union_type() -> None:
+    class _NestedSource:
+        pass
+
+    class _Source:
+        def __init__(self, n: _NestedSource) -> None:
+            self.n = n
+
+    class _NestedDest1:
+        pass
+
+    class _NestedDest2:
+        pass
+
+    class _Destination:
+        n: _NestedDest1 | _NestedDest2
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest.n, lambda opt: opt.map_from(lambda src: src.n).use_type(_NestedDest2)
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s = _Source(_NestedSource())
+    d = mapper.map(_Source, _Destination, s)
+
+    assert isinstance(d.n, _NestedDest2)
+
+
+def test_fail_map_to_union_type() -> None:
+    class _NestedSource:
+        pass
+
+    class _Source:
+        def __init__(self, n: _NestedSource) -> None:
+            self.n = n
+
+    class _NestedDest1:
+        pass
+
+    class _NestedDest2:
+        pass
+
+    class _Destination:
+        n: _NestedDest1 | _NestedDest2
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s = _Source(_NestedSource())
+    with pytest.raises(MappingError) as info:
+        mapper.map(_Source, _Destination, s)
+
+    assert (
+        "Attribute '$.n', Destination type test_fail_map_to_union_type.<locals>._NestedDest1 | "
+        "test_fail_map_to_union_type.<locals>._NestedDest2 is a union,"
+        " please use 'use_type' in profile" == info.value.message
+    )
+
+
+def test_fail_map_use_type_not_in_union() -> None:
+    class _NestedSource:
+        pass
+
+    class _Source:
+        def __init__(self, n: _NestedSource) -> None:
+            self.n = n
+
+    class _NestedDest1:
+        pass
+
+    class _NestedDest2:
+        pass
+
+    class _NestedDest3:
+        pass
+
+    class _Destination:
+        n: _NestedDest1 | _NestedDest2
+
+    cache = Cache()
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest.n, lambda opt: opt.map_from(lambda src: src.n).use_type(_NestedDest3)
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s = _Source(_NestedSource())
+    with pytest.raises(MappingError) as info:
+        mapper.map(_Source, _Destination, s)
+
+    assert (
+        "Attribute '$.n', Selected type test_fail_map_use_type_not_in_union.<locals>._NestedDest3 is not assignable to "
+        "test_fail_map_use_type_not_in_union.<locals>._NestedDest1 | "
+        "test_fail_map_use_type_not_in_union.<locals>._NestedDest2" == info.value.message
+    )
+
+
+def test_map_collection() -> None:
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Destination:
+        value: int
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    sources = [_Source(1), _Source(2), _Source(3)]
+    destinations = mapper.map(list[_Source], list[_Destination], sources)
+
+    assert len(destinations) == 3
+    assert destinations is not sources
+    assert all(isinstance(d, _Destination) for d in destinations)
+    assert destinations[0].value == 1
+    assert destinations[1].value == 2
+    assert destinations[2].value == 3
+
+
+def test_fail_map_collection_from_not_iter() -> None:
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Destination:
+        value: int
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    source = _Source(1)
+    with pytest.raises(MappingError) as info:
+        mapper.map(_Source, list[_Destination], source)
+
+    assert (
+        "Attribute '$', Could not map non iterable type test_fail_map_collection_from_not_iter.<locals>._Source "
+        "to list[test_fail_map_collection_from_not_iter.<locals>._Destination]" == info.value.message
+    )
+
+
+def test_map_existing_collection() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    sources = [1, 2, 3]
+    dest_l: list[int] = []
+    dest_s: set[int] = set()
+    dest_t: tuple[int, ...] = ()
+    n_dest_l = mapper.map(list[int], list[int], sources, dest_l)
+    n_dest_s = mapper.map(list[int], set[int], sources, dest_s)
+
+    assert dest_l is n_dest_l
+    assert dest_l == n_dest_l == [1, 2, 3]
+    assert dest_s is n_dest_s
+    assert dest_s == n_dest_s == {1, 2, 3}
+
+    with pytest.raises(MappingError) as info:
+        mapper.map(list[int], tuple[int, ...], sources, dest_t)
+
+    assert "Attribute '$', Could not use an existing tuple instance, tuples are immutable" == info.value.message

@@ -3,7 +3,7 @@ from typing import Any, Callable, Protocol, TypeVar, overload
 from bolinette import Cache, __core_cache__, __user_cache__, meta
 from bolinette.exceptions import MappingError
 from bolinette.injection import Injection, init_method, injectable
-from bolinette.mapping.profiles import Profile
+from bolinette.mapping.profiles import Profile, MapFromOptions
 from bolinette.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.types import Type
 
@@ -135,8 +135,10 @@ class DefaultTypeMapper:
         src: SrcT,
         dest: Any | None,
     ) -> Any:
-        if dest_t.cls is list:
-            return self._map_list(path, src_t, dest_t, src, dest)
+        if dest_t.cls in (list, tuple, set):
+            return self._map_iterable(path, src_t, dest_t, src, dest)
+        if dest_t.cls is dict:
+            return self._map_dict(path, dest_t, src, dest)
         return self._map_object(path, src_t, dest_t, src, dest)
 
     def _map_object(
@@ -147,6 +149,8 @@ class DefaultTypeMapper:
         src: SrcT,
         dest: Any | None,
     ) -> Any:
+        if dest_t.is_any:
+            return self.runner.map(path, src_t, src_t, src, None)
         if dest is None:
             dest = dest_t.new()
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
@@ -158,6 +162,7 @@ class DefaultTypeMapper:
         for dest_name, anno_t in dest_t.annotations.items():
             src_name = dest_name
             sub_path = f"{path}.{dest_name}"
+            selected_t: Type[Any] | None = None
             if sequence is not None and dest_name in sequence.for_attrs:
                 for_attr = sequence.for_attrs[dest_name]
                 if isinstance(for_attr, IgnoreAttribute):
@@ -167,6 +172,7 @@ class DefaultTypeMapper:
                     continue
                 if isinstance(for_attr, MapFromAttribute):
                     src_name = for_attr.src_attr
+                    selected_t = for_attr.use_type
             if not hasattr(src, src_name):
                 if anno_t.nullable:
                     setattr(dest, dest_name, None)
@@ -175,6 +181,16 @@ class DefaultTypeMapper:
                     raise MappingError(
                         f"Not found in source, could not bind a None value to non nullable type {anno_t}", attr=sub_path
                     )
+            if anno_t.is_union:
+                if selected_t is None:
+                    raise MappingError(
+                        f"Destination type {anno_t} is a union, "
+                        f"please use '{MapFromOptions.use_type.__name__}' in profile",
+                        attr=sub_path,
+                    )
+                if selected_t != anno_t and selected_t not in anno_t.union:
+                    raise MappingError(f"Selected type {selected_t} is not assignable to {anno_t}", attr=sub_path)
+                anno_t = selected_t
             value = getattr(src, src_name)
             setattr(dest, dest_name, self.runner.map(sub_path, Type(type(value)), anno_t, value, None))
         if sequence is not None:
@@ -182,19 +198,46 @@ class DefaultTypeMapper:
                 func.func(src, dest)
         return dest
 
-    def _map_list(
+    def _map_iterable(
         self,
         path: str,
         src_t: Type[SrcT],
-        dest_t: Type[list],
+        dest_t: Type[list[DestT]] | Type[set[DestT]] | Type[tuple[DestT]],
         src: SrcT,
-        dest: list | None,
-    ) -> list:
-        assert isinstance(src, list)
-        dest = []
-        for index, elem in enumerate(src):
-            dest.append(
+        dest: list[DestT] | set[DestT] | tuple[DestT] | None,
+    ) -> list[DestT] | set[DestT] | tuple[DestT]:
+        elems = []
+        if not hasattr(src, "__iter__"):
+            raise MappingError(f"Could not map non iterable type {src_t} to {dest_t}", attr=path)
+        for index, elem in enumerate(src):  # type: ignore
+            elems.append(
                 self.runner.map(f"{path}.[{index}]", Type.from_instance(elem), Type(dest_t.vars[0]), elem, None)
+            )
+        if dest is None:
+            dest = dest_t.new(elems)
+        elif isinstance(dest, list):
+            dest.clear()
+            dest.extend(elems)
+        elif isinstance(dest, set):
+            dest.clear()
+            dest.update(elems)
+        elif isinstance(dest, tuple):
+            raise MappingError("Could not use an existing tuple instance, tuples are immutable", attr=path)
+        return dest
+
+    def _map_dict(
+        self,
+        path: str,
+        dest_t: Type[dict[str, DestT]],
+        src: object,
+        dest: dict[str, DestT] | None,
+    ) -> dict[str, DestT]:
+        if dest is None:
+            dest = dest_t.new()
+        for src_name, src_value in vars(src).items():
+            sub_path = f"{path}['{src_name}']"
+            dest[src_name] = self.runner.map(
+                sub_path, Type.from_instance(src_value), Type(dest_t.vars[1]), src_value, None
             )
         return dest
 
@@ -218,6 +261,45 @@ class IntegerTypeMapper:
             return int(src)  # type: ignore
         except ValueError:
             raise MappingError(f"Could not convert value '{src}' to int", attr=path)
+
+
+@type_mapper(float, cache=__core_cache__)
+class FloatTypeMapper:
+    __slots__ = "runner"
+
+    def __init__(self, runner: MappingRunner) -> None:
+        self.runner = runner
+
+    def map(
+        self,
+        path: str,
+        src_t: Type[SrcT],
+        dest_t: Type[float],
+        src: SrcT,
+        dest: float | None,
+    ) -> float:
+        try:
+            return float(src)  # type: ignore
+        except ValueError:
+            raise MappingError(f"Could not convert value '{src}' to float", attr=path)
+
+
+@type_mapper(bool, cache=__core_cache__)
+class BoolTypeMapper:
+    __slots__ = "runner"
+
+    def __init__(self, runner: MappingRunner) -> None:
+        self.runner = runner
+
+    def map(
+        self,
+        path: str,
+        src_t: Type[SrcT],
+        dest_t: Type[bool],
+        src: SrcT,
+        dest: bool | None,
+    ) -> bool:
+        return bool(src)
 
 
 @type_mapper(str, cache=__core_cache__)

@@ -16,17 +16,25 @@ SrcT = TypeVar("SrcT", bound=object)
 DestT = TypeVar("DestT", bound=object)
 
 
+class MapFromOptions:
+    def __init__(self, attr: MapFromAttribute) -> None:
+        self.step = attr
+
+    def use_type(self, cls: type[Any]) -> None:
+        self.step.use_type = Type(cls)
+
+
 class MappingOptions(Generic[SrcT, DestT]):
-    def __init__(self, dest_expr: AttributeNode, sequence: MappingSequence[SrcT, DestT]) -> None:
+    def __init__(self, dest_expr: AttributeNode) -> None:
         self.dest_expr = dest_expr
-        self.sequence = sequence
         self.step: ForAttributeMapping | None = None
 
-    def map_from(self, func: Callable[[SrcT], Any]) -> None:
+    def map_from(self, func: Callable[[SrcT], Any]) -> MapFromOptions:
         src_expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
         src_attr = ExpressionTree.get_attribute_name(src_expr)
         dest_attr = ExpressionTree.get_attribute_name(self.dest_expr)
         self.step = MapFromAttribute(src_attr, dest_attr)
+        return MapFromOptions(self.step)
 
     def ignore(self) -> None:
         attr = ExpressionTree.get_attribute_name(self.dest_expr)
@@ -40,10 +48,10 @@ class SequenceBuilder(Generic[SrcT, DestT]):
     def for_attr(
         self,
         func: Callable[[DestT], Any],
-        options: Callable[[MappingOptions[SrcT, DestT]], None],
+        options: Callable[[MappingOptions[SrcT, DestT]], MapFromOptions | None],
     ) -> Self:
         expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        opt = MappingOptions(expr, self.sequence)
+        opt = MappingOptions(expr)
         options(opt)
         if opt.step is not None:
             self.sequence.add_for_attr(opt.step)
