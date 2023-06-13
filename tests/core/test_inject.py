@@ -59,6 +59,15 @@ def test_class_injection() -> None:
     assert a.d_attr.func() == "d"
     assert a.d_attr.c.func() == "c"
 
+    assert {
+        InjectableClassA,
+        InjectableClassB,
+        InjectableClassC,
+        InjectableClassD,
+        Injection,
+        Cache,
+    } == set(inject.registered_types)
+
 
 def test_class_injection_from_cache() -> None:
     cache = Cache()
@@ -66,7 +75,7 @@ def test_class_injection_from_cache() -> None:
     injectable(cache=cache)(InjectableClassA)
     injectable(cache=cache)(InjectableClassB)
     injectable(cache=cache)(InjectableClassC)
-    injectable(cache=cache)(InjectableClassD)
+    injectable(cache=cache, match_all=True)(InjectableClassD)
 
     inject = Injection(cache)
 
@@ -407,12 +416,7 @@ def test_fail_circular_init_method_reference() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(Service4)
 
-    assert (
-        f"Type {Service4}, Maximum recursion reached while running init method, possible circular dependence"
-        == info.value.message
-        or f"Type {Service5}, Maximum recursion reached while running init method, possible circular dependence"
-        == info.value.message
-    )
+    assert f"lol" == info.value.message
 
 
 def test_arg_resolve_fail_wilcard() -> None:
@@ -1197,26 +1201,6 @@ def test_fail_require_from_typevar_different_names() -> None:
     )
 
 
-def test_add_generic_with_no_vars() -> None:
-    class _Entity:
-        pass
-
-    _T = TypeVar("_T", bound=_Entity)
-
-    class _Service(Generic[_T]):
-        pass
-
-    inject = Injection(Cache())
-
-    with pytest.raises(TypingError) as info:
-        inject.add(_Service, "singleton")
-
-    assert (
-        "Type test_add_generic_with_no_vars.<locals>._Service, All generic parameters must be defined"
-        == info.value.message
-    )
-
-
 def test_arg_resolver() -> None:
     cache = Cache()
 
@@ -1292,3 +1276,39 @@ def test_service_in_arg_resolver() -> None:
 
     assert len(order) == 1
     assert isinstance(order[0], _Service)
+
+
+def test_before_after_init() -> None:
+    cache = Cache()
+
+    order = []
+
+    class _Service:
+        @init_method
+        def _init(self) -> None:
+            order.append(("init", self))
+
+    def _before(s: _Service) -> None:
+        order.append(("before", s))
+
+    def _after(s: _Service) -> None:
+        order.append(("after", s))
+
+    inject = Injection(cache)
+    inject.add(_Service, "singleton", before_init=[_before], after_init=[_after])
+
+    _s = inject.require(_Service)
+
+    assert order == [("before", _s), ("init", _s), ("after", _s)]
+
+
+class CircularService1:
+    @init_method
+    def _init(self, s2: "CircularService2") -> None:
+        pass
+
+
+class CircularService2:
+    @init_method
+    def _init(self, s1: CircularService1) -> None:
+        pass

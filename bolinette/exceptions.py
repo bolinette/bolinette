@@ -100,11 +100,11 @@ class MappingError(BolinetteError, ParameterError):
         self,
         message: str,
         *,
-        cls: type[Any] | None = None,
-        attr: str | None = None,
+        src: str | None = None,
+        dest: str | None = None,
     ) -> None:
-        ParameterError.__init__(self, cls="Type {}", attr="Attribute '{}'")
-        BolinetteError.__init__(self, self._format_params(message, cls=cls, attr=attr))
+        ParameterError.__init__(self, dest="Destination path '{}'", src="From source path '{}'")
+        BolinetteError.__init__(self, self._format_params(message, dest=dest, src=src))
 
 
 class InitMappingError(InitError):

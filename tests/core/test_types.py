@@ -1,4 +1,4 @@
-from typing import ForwardRef, Generic, TypeVar
+from typing import Any, ForwardRef, Generic, TypeVar
 
 import pytest
 
@@ -36,18 +36,16 @@ def test_generic_type() -> None:
     assert t == Type(_T[T], raise_on_typevar=False)
 
 
-def test_fail_missing_generic_param() -> None:
+def test_missing_generic_param_is_any() -> None:
     T = TypeVar("T")
 
     class _T(Generic[T]):
         pass
 
-    with pytest.raises(TypingError) as info:
-        Type(_T)
+    t = Type(_T)
 
-    assert (
-        info.value.message == "Type test_fail_missing_generic_param.<locals>._T, All generic parameters must be defined"
-    )
+    assert t.cls is _T
+    assert t.vars == (Any,)
 
 
 def test_specified_generic_type() -> None:

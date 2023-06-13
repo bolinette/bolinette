@@ -43,8 +43,9 @@ def test_init_type_mappers_from_cache() -> None:
 
         def map(
             self,
-            path: str,
+            src_path: str,
             src_t: Type[Any],
+            dest_path: str,
             dest_t: Type[_Destination],
             src: Any,
             dest: _Destination | None,
@@ -168,13 +169,6 @@ def test_map_default_value_none() -> None:
         value: str | None
 
     cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination)
-
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -197,13 +191,6 @@ def test_fail_no_default_value() -> None:
         value: _Value
 
     cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination)
-
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -213,9 +200,29 @@ def test_fail_no_default_value() -> None:
         mapper.map(_Source, _Destination, _Source())
 
     assert (
-        "Attribute '$.value', Not found in source, could not bind a None "
+        "Destination path 'test_fail_no_default_value.<locals>._Destination.value', "
+        "From source path 'test_fail_no_default_value.<locals>._Source.value', "
+        "Source path not found, could not bind a None "
         "value to non nullable type test_fail_no_default_value.<locals>._Value" == info.value.message
     )
+
+
+def test_map_default_value() -> None:
+    class _Source:
+        pass
+
+    class _Destination:
+        value: int = 1
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    dest = mapper.map(_Source, _Destination, _Source())
+
+    assert dest.value == 1
 
 
 def test_map_explicit_ignore() -> None:
@@ -277,7 +284,10 @@ def test_fail_map_ignore_non_nullable() -> None:
     with pytest.raises(MappingError) as info:
         mapper.map(_Source, _Destination, s)
 
-    assert "Attribute '$.name', Could not ignore attribute, type str is not nullable" == info.value.message
+    assert (
+        "Destination path 'test_fail_map_ignore_non_nullable.<locals>._Destination.name', "
+        "Could not ignore attribute, type str is not nullable" == info.value.message
+    )
 
 
 def test_fail_invalid_int_cast() -> None:
@@ -299,7 +309,11 @@ def test_fail_invalid_int_cast() -> None:
     with pytest.raises(MappingError) as info:
         mapper.map(_Source, _Destination, src)
 
-    assert "Attribute '$.value', Could not convert value 'test' to int" == info.value.message
+    assert (
+        "Destination path 'test_fail_invalid_int_cast.<locals>._Destination.value', "
+        "From source path 'test_fail_invalid_int_cast.<locals>._Source.value', "
+        "Could not convert value 'test' to int" == info.value.message
+    )
 
 
 def test_fail_invalid_float_cast() -> None:
@@ -321,7 +335,11 @@ def test_fail_invalid_float_cast() -> None:
     with pytest.raises(MappingError) as info:
         mapper.map(_Source, _Destination, src)
 
-    assert "Attribute '$.value', Could not convert value 'test' to float" == info.value.message
+    assert (
+        "Destination path 'test_fail_invalid_float_cast.<locals>._Destination.value', "
+        "From source path 'test_fail_invalid_float_cast.<locals>._Source.value', "
+        "Could not convert value 'test' to float" == info.value.message
+    )
 
 
 def test_cast_to_bool() -> None:
@@ -760,7 +778,8 @@ def test_fail_map_to_union_type() -> None:
         mapper.map(_Source, _Destination, s)
 
     assert (
-        "Attribute '$.n', Destination type test_fail_map_to_union_type.<locals>._NestedDest1 | "
+        "Destination path 'test_fail_map_to_union_type.<locals>._Destination.n', "
+        "Destination type test_fail_map_to_union_type.<locals>._NestedDest1 | "
         "test_fail_map_to_union_type.<locals>._NestedDest2 is a union,"
         " please use 'use_type' in profile" == info.value.message
     )
@@ -806,7 +825,9 @@ def test_fail_map_use_type_not_in_union() -> None:
         mapper.map(_Source, _Destination, s)
 
     assert (
-        "Attribute '$.n', Selected type test_fail_map_use_type_not_in_union.<locals>._NestedDest3 is not assignable to "
+        "Destination path 'test_fail_map_use_type_not_in_union.<locals>._Destination.n', "
+        "From source path 'test_fail_map_use_type_not_in_union.<locals>._Source.n', "
+        "Selected type test_fail_map_use_type_not_in_union.<locals>._NestedDest3 is not assignable to "
         "test_fail_map_use_type_not_in_union.<locals>._NestedDest1 | "
         "test_fail_map_use_type_not_in_union.<locals>._NestedDest2" == info.value.message
     )
@@ -856,7 +877,9 @@ def test_fail_map_collection_from_not_iter() -> None:
         mapper.map(_Source, list[_Destination], source)
 
     assert (
-        "Attribute '$', Could not map non iterable type test_fail_map_collection_from_not_iter.<locals>._Source "
+        "Destination path 'list[test_fail_map_collection_from_not_iter.<locals>._Destination]', "
+        "From source path 'test_fail_map_collection_from_not_iter.<locals>._Source', "
+        "Could not map non iterable type test_fail_map_collection_from_not_iter.<locals>._Source "
         "to list[test_fail_map_collection_from_not_iter.<locals>._Destination]" == info.value.message
     )
 
@@ -883,4 +906,90 @@ def test_map_existing_collection() -> None:
     with pytest.raises(MappingError) as info:
         mapper.map(list[int], tuple[int, ...], sources, dest_t)
 
-    assert "Attribute '$', Could not use an existing tuple instance, tuples are immutable" == info.value.message
+    assert (
+        "Destination path 'tuple[int, ...]', "
+        "Could not use an existing tuple instance, tuples are immutable" == info.value.message
+    )
+
+
+def test_map_from_dict() -> None:
+    class _Destination:
+        id: int
+        name: str
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    dest = mapper.map(dict[str, Any], _Destination, {"id": 1, "name": "test"})
+
+    assert dest.id == 1
+    assert dest.name == "test"
+
+
+def test_fail_map_from_dict() -> None:
+    class _Destination:
+        id: int
+        name: str
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    with pytest.raises(MappingError) as info:
+        mapper.map(dict[str, Any], _Destination, {"id": 1})
+
+    assert (
+        f"Destination path 'test_fail_map_from_dict.<locals>._Destination.name', "
+        "From source path 'dict[str, Any]['name']', "
+        "Source path not found, could not bind a None value to non nullable type str" == info.value.message
+    )
+
+
+def test_map_from_dict_nested() -> None:
+    class _SubDestination:
+        value: float
+        active: bool
+
+    class _Destination:
+        id: int
+        name: str
+        subs: list[_SubDestination]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    dest = mapper.map(
+        dict[str, Any],
+        _Destination,
+        {"id": 1, "name": "test", "subs": [{"value": 1.1, "active": True}, {"value": 2.2, "active": False}]},
+    )
+
+    assert dest.id == 1
+    assert dest.name == "test"
+    assert len(dest.subs) == 2
+    assert all(isinstance(s, _SubDestination) for s in dest.subs)
+    assert dest.subs[0].value == 1.1
+    assert dest.subs[0].active is True
+    assert dest.subs[1].value == 2.2
+    assert dest.subs[1].active is False
+
+
+def test_map_dict_to_dict() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    dest = mapper.map(dict[str, Any], dict[str, int], {"at1": 1, "at2": "2"})
+
+    assert dest["at1"] == 1
+    assert dest["at2"] == 2

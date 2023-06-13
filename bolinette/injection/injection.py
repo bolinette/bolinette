@@ -14,6 +14,7 @@ from typing import (
     get_type_hints,
     overload,
 )
+from typing_extensions import override
 
 from bolinette import Cache, GenericMeta, meta
 from bolinette.exceptions import InjectionError
@@ -43,8 +44,8 @@ class Injection:
         self._cache = cache
         self._global_ctx = global_ctx or InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
-        self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], cache, safe=True)
-        self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], self, safe=True)
+        self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], [], cache, safe=True)
+        self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], [], self, safe=True)
         self._arg_resolvers = self._pickup_resolvers(cache)
 
     @property
@@ -68,7 +69,8 @@ class Injection:
                     _meta.strategy,  # type: ignore
                     _meta.args,
                     _meta.named_args,
-                    _meta.init_methods,
+                    _meta.before_init,
+                    _meta.after_init,
                 )
             else:
                 type_bag.add_type(
@@ -77,7 +79,8 @@ class Injection:
                     _meta.strategy,  # type: ignore
                     _meta.args,
                     _meta.named_args,
-                    _meta.init_methods,
+                    _meta.before_init,
+                    _meta.after_init,
                 )
         return types
 
@@ -118,10 +121,15 @@ class Injection:
         strategy: Literal["singleton", "scoped", "transcient"],
         vars_lookup: TypeVarLookup[Any] | None,
         immediate: bool,
+        circular_guard: set[Any],
         args: list[Any],
         named_args: dict[str, Any],
         additional_resolvers: list[ArgumentResolver],
     ) -> dict[str, Any]:
+        if func in circular_guard:
+            raise InjectionError("lol")
+        circular_guard.add(func)
+
         func_params = dict(inspect.signature(func).parameters)
         if any((n, p) for n, p in func_params.items() if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)):
             raise InjectionError(
@@ -191,6 +199,7 @@ class Injection:
                     default_set,
                     default,
                     immediate,
+                    circular_guard,
                 )
                 if resolver.supports(options):
                     arg_name, arg_value = resolver.resolve(options)
@@ -227,29 +236,33 @@ class Injection:
         cls: type[InstanceT],
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
+        circular_guard: set[Any] | None,
     ) -> None:
         for base in cls.__bases__:
-            self._run_init_recursive(base, instance, vars_lookup)
+            self._run_init_recursive(base, instance, vars_lookup, circular_guard)
         for _, attr in vars(cls).items():
             if meta.has(attr, InitMethodMeta):
-                self.call(attr, args=[instance], vars_lookup=vars_lookup)
+                self.call(attr, args=[instance], vars_lookup=vars_lookup, circular_guard=circular_guard)
 
     def _run_init_methods(
         self,
         r_type: "RegisteredType[InstanceT]",
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
+        circular_guard: set[Any],
     ):
-        try:
-            self._run_init_recursive(r_type.t.cls, instance, vars_lookup)
-            for method in r_type.init_methods:
-                self.call(method, args=[instance])
-        except RecursionError as exp:
-            raise InjectionError(
-                "Maximum recursion reached while running init method, possible circular dependence", cls=r_type.t.cls
-            ) from exp
+        for method in r_type.before_init:
+            self.call(method, args=[instance], circular_guard=circular_guard)
+        self._run_init_recursive(r_type.t.cls, instance, vars_lookup, circular_guard)
+        for method in r_type.after_init:
+            self.call(method, args=[instance], circular_guard=circular_guard)
 
-    def _instanciate(self, r_type: "RegisteredType[InstanceT]", t: Type[InstanceT]) -> InstanceT:
+    def __instanciate__(
+        self,
+        r_type: "RegisteredType[InstanceT]",
+        t: Type[InstanceT],
+        circular_guard: set[Any],
+    ) -> InstanceT:
         vars_lookup = TypeVarLookup(t)
         func_args = self._resolve_args(
             r_type.t.cls,
@@ -257,6 +270,7 @@ class Injection:
             r_type.strategy,  # type: ignore
             vars_lookup,
             False,
+            circular_guard,
             r_type.args,
             r_type.named_args,
             [],
@@ -265,7 +279,7 @@ class Injection:
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
-        self._run_init_methods(r_type, instance, vars_lookup)
+        self._run_init_methods(r_type, instance, vars_lookup, circular_guard)
         self._set_instance(r_type, instance)
         return instance
 
@@ -284,9 +298,18 @@ class Injection:
         named_args: dict[str, Any] | None = None,
         vars_lookup: TypeVarLookup[Any] | None = None,
         additional_resolvers: list[ArgumentResolver] | None = None,
+        circular_guard: set[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            func, None, "singleton", vars_lookup, True, args or [], named_args or {}, additional_resolvers or []
+            func,
+            None,
+            "singleton",
+            vars_lookup,
+            True,
+            circular_guard or set(),
+            args or [],
+            named_args or {},
+            additional_resolvers or [],
         )
         return func(**func_args)
 
@@ -300,18 +323,21 @@ class Injection:
     ) -> InstanceT:
         t = Type(cls)
         init_args = self._resolve_args(
-            cls, t.vars, "transcient", None, True, args or [], named_args or {}, additional_resolvers or []
+            cls,
+            t.vars,
+            "transcient",
+            None,
+            True,
+            set(),
+            args or [],
+            named_args or {},
+            additional_resolvers or [],
         )
         instance = cls(**init_args)
         self._hook_proxies(instance)
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
-        try:
-            self._run_init_recursive(cls, instance, None)
-        except RecursionError as exp:
-            raise InjectionError(
-                "Maximum recursion reached while running init method, possible circular dependence", cls=cls
-            ) from exp
+        self._run_init_recursive(cls, instance, None, None)
         return instance
 
     def _add_type_instance(
@@ -322,7 +348,8 @@ class Injection:
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
-        init_methods: list[Callable[[InstanceT], None]],
+        before_init: list[Callable[[Any], None]],
+        after_init: list[Callable[[Any], None]],
         instance: InstanceT | None,
         *,
         safe: bool = False,
@@ -333,10 +360,10 @@ class Injection:
         r_type: RegisteredType[InstanceT] | None = None
         if match_all:
             if not safe or not type_bag.has_match_all():
-                r_type = type_bag.set_match_all(t, strategy, args, named_args, init_methods)
+                r_type = type_bag.set_match_all(t, strategy, args, named_args, before_init, after_init)
         else:
             if not safe or not type_bag.has_type(super_t):
-                r_type = type_bag.add_type(super_t, t, strategy, args, named_args, init_methods)
+                r_type = type_bag.add_type(super_t, t, strategy, args, named_args, before_init, after_init)
         if instance is not None:
             if r_type is None:
                 r_type = self._types[t.cls].get_type(t)
@@ -351,7 +378,8 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        init_methods: list[Callable[[InstanceT], None]] | None = None,
+        before_init: list[Callable[[InstanceT], None]] | None = None,
+        after_init: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
@@ -367,7 +395,8 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        init_methods: list[Callable[[InstanceT], None]] | None = None,
+        before_init: list[Callable[[InstanceT], None]] | None = None,
+        after_init: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
     ) -> None:
@@ -380,7 +409,8 @@ class Injection:
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        init_methods: list[Callable[[InstanceT], None]] | None = None,
+        before_init: list[Callable[[InstanceT], None]] | None = None,
+        after_init: list[Callable[[InstanceT], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
@@ -412,7 +442,15 @@ class Injection:
                     f"Injection strategy for {t.cls} must be {formatted_strategies} if an instance is provided"
                 )
         self._add_type_instance(
-            super_t, t, match_all, strategy, args or [], named_args or {}, init_methods or [], instance
+            super_t,
+            t,
+            match_all,
+            strategy,
+            args or [],
+            named_args or {},
+            before_init or [],
+            after_init or [],
+            instance,
         )
         if instanciate:
             return self.require(t.cls)
@@ -430,7 +468,7 @@ class Injection:
             )
         if self._has_instance(r_type):
             return self._get_instance(r_type)
-        return self._instanciate(r_type, t)
+        return self.__instanciate__(r_type, t, set())
 
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self._cache, self._global_ctx, InjectionContext(), self._types)
@@ -488,6 +526,7 @@ class ScopedInjection(Injection):
 
         return [*resolvers, DefaultArgResolver()]
 
+    @override
     def call(
         self,
         func: Callable[..., FuncT],
@@ -496,9 +535,18 @@ class ScopedInjection(Injection):
         named_args: dict[str, Any] | None = None,
         vars_lookup: TypeVarLookup | None = None,
         additional_resolvers: list[ArgumentResolver] | None = None,
+        circular_guard: set[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            func, None, "scoped", vars_lookup, True, args or [], named_args or {}, additional_resolvers or []
+            func,
+            None,
+            "scoped",
+            vars_lookup,
+            True,
+            circular_guard or set(),
+            args or [],
+            named_args or {},
+            additional_resolvers or [],
         )
         return func(**func_args)
 

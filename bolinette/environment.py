@@ -1,12 +1,11 @@
-import inspect
 import os
 from collections.abc import Callable
-from types import UnionType
-from typing import Any, Protocol, TypeVar, Union, get_args, get_origin
+from typing import Any, Protocol, TypeVar
 
-from bolinette import Cache, CoreSection, Logger, __user_cache__, meta
+from bolinette import Cache, Logger, __user_cache__, __core_cache__, meta
 from bolinette.exceptions import EnvironmentError
 from bolinette.injection import Injection, init_method
+from bolinette.mapping import Mapper
 from bolinette.utils import FileUtils, PathUtils
 
 _NoAnnotation = type("_NoAnnotation", (), {})
@@ -28,6 +27,7 @@ class Environment:
         inject: Injection,
         paths: PathUtils,
         files: FileUtils,
+        mapper: Mapper,
         *,
         env_path: str = "env",
     ) -> None:
@@ -37,6 +37,7 @@ class Environment:
         self._inject = inject
         self._paths = paths
         self._files = files
+        self._mapper = mapper
         self._path = env_path
         self._raw_env: dict[str, Any] = {}
 
@@ -44,13 +45,19 @@ class Environment:
         section_name = meta.get(type(section), _EnvSectionMeta).name
         if section_name not in self._raw_env:
             raise EnvironmentError(f"No '{section_name}' section was found in the environment files")
-        _EnvParser(self._raw_env[section_name], section).parse()
+        self._mapper.map(
+            dict[str, Any],
+            type(section),
+            self._raw_env[section_name],
+            section,
+            src_path=f"Environment['{section_name}']",
+        )
 
     @init_method
     def init(self) -> None:
         if EnvironmentSection in self._cache:
             for cls in self._cache.get(EnvironmentSection, hint=type):
-                self._inject.add(cls, "singleton", init_methods=[self._init_section])
+                self._inject.add(cls, "singleton", before_init=[self._init_section])
 
         stack = [
             self._init_from_os(),
@@ -64,14 +71,9 @@ class Environment:
             for name, section in node.items():
                 if name not in merged:
                     merged[name] = {}
-                if isinstance(section, str):
-                    raise AttributeError(section, node, stack)
                 for key, value in section.items():
                     merged[name][key] = value
         self._raw_env = merged
-
-        if self._inject.is_registered(CoreSection):
-            self._cache.debug = self._inject.require(CoreSection).debug
 
     @staticmethod
     def _init_from_os() -> dict[str, dict[str, Any]]:
@@ -119,94 +121,10 @@ def environment(name: str, *, cache: Cache | None = None) -> Callable[[type[EnvT
     return decorator
 
 
-class _EnvParser:
-    def __init__(self, env: dict[str, Any], obj: object) -> None:
-        self._env = env
-        self._object = obj
+@environment("core", cache=__core_cache__)
+class CoreSection:
+    debug: bool = False
 
-    @staticmethod
-    def _get_value(
-        path: str,
-        name: str,
-        node: dict[str, Any],
-        default_set: bool,
-        default: Any,
-    ) -> Any:
-        if name not in node:
-            if not default_set:
-                raise EnvironmentError(
-                    f"Section {path}: " "no value to bind found in environment and no default value set"
-                )
-            return default
-        return node[name]
-
-    def _parse_object(self, obj: object, node: dict[str, Any], path: str) -> None:
-        for att_name, annotation in obj.__annotations__.items():
-            sub_path = f"{path}.{att_name}"
-            default_set = False
-            default = None
-            if hasattr(obj, att_name):
-                default_set = True
-                default = getattr(obj, att_name)
-            env_value = _EnvParser._get_value(path, att_name, node, default_set, default)
-            value = self._parse_value(annotation, env_value, sub_path)
-            setattr(obj, att_name, value)
-
-    def _parse_value(self, annotation: Any, value: Any, path: str) -> Any:
-        if annotation in (_NoAnnotation, Any):
-            return value
-        if isinstance(annotation, str):
-            raise EnvironmentError(f"Section {path}: no literal allowed in type hints")
-        nullable = False
-        if origin := get_origin(annotation):
-            type_args = get_args(annotation)
-            if origin in (UnionType, Union):
-                nullable = type(None) in type_args
-                if (nullable and len(type_args) >= 3) or not nullable:
-                    raise EnvironmentError(f"Section {path}: type unions are not allowed")
-                annotation = next(filter(lambda t: t is not type(None), type_args))
-            elif origin is list:
-                return self._parse_list(value, type_args[0], path)
-            else:
-                raise EnvironmentError(f"Section {path}: unsupported generic type {origin}")
-        if value is None:
-            if not nullable:
-                raise EnvironmentError(f"Section {path}: attemting to bind None value to a non-nullable attribute")
-            value = None
-        elif annotation is list:
-            return self._parse_list(value, _NoAnnotation, path)
-        elif annotation in (str, int, float, bool):
-            try:
-                value = annotation(value)
-            except ValueError as exp:
-                raise EnvironmentError(f"Section {path}: unable to bind value {value} to type {annotation}") from exp
-        elif isinstance(annotation, type):
-            if len(inspect.signature(annotation).parameters) != 0:
-                raise EnvironmentError(f"Section {annotation} must have an empty __init__ method")
-            if not isinstance(value, dict):
-                raise EnvironmentError(f"Section {path} is typed has a class and can only be mapped from a dictionnary")
-            sub_obj = annotation()
-            self._parse_object(sub_obj, value, path)
-            value = sub_obj
-        else:
-            raise EnvironmentError(
-                f"Unable to bind value to section {path}, " "be sure to type hint with only classes and buit-in types"
-            )
-        return value
-
-    def _parse_list(self, value: Any, arg_type: type | None, path: str) -> list[Any]:
-        if not isinstance(value, list):
-            raise EnvironmentError(f"Section {path} must be binded to a list, {type(value)} found")
-        index = 0
-        env_list = []
-        for elem in value:
-            sub_path = f"{path}[{index}]"
-            env_list.append(self._parse_value(arg_type, elem, sub_path))
-            index += 1
-        return env_list
-
-    def parse(self) -> None:
-        self._parse_object(self._object, self._env, str(type(self._object)))
-
-
-environment("core")(CoreSection)
+    @init_method
+    def _init_debug(self, cache: Cache) -> None:
+        cache.debug = self.debug

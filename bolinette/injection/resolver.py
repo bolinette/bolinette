@@ -18,6 +18,7 @@ class ArgResolverOptions:
         "default_set",
         "default",
         "immediate",
+        "circular_guard",
     )
 
     def __init__(
@@ -25,13 +26,14 @@ class ArgResolverOptions:
         injection: "injection.Injection",
         caller: Callable,
         caller_type_vars: tuple[Any, ...] | None,
-        caller_strategy: Literal["singleton", "scoped", "transcient"] | None,
+        caller_strategy: Literal["singleton", "scoped", "transcient"],
         name: str,
         t: Type[Any],
         nullable: bool,
         default_set: bool,
         default: Any | None,
         immediate: bool,
+        circular_guard: set[Any],
     ) -> None:
         self.injection = injection
         self.caller = caller
@@ -43,6 +45,7 @@ class ArgResolverOptions:
         self.default_set = default_set
         self.default = default
         self.immediate = immediate
+        self.circular_guard = circular_guard
 
 
 class ArgumentResolver(Protocol):
@@ -101,12 +104,6 @@ class DefaultArgResolver:
         r_type = options.injection._types[options.t.cls].get_type(options.t)
 
         if r_type.strategy == "scoped":
-            if options.caller_strategy is None:
-                raise InjectionError(
-                    "Cannot instanciate a scoped service in a non-scoped context",
-                    func=options.caller,
-                    param=options.name,
-                )
             if options.caller_strategy in ["singleton", "transcient"]:
                 raise InjectionError(
                     f"Cannot instanciate a scoped service in a {options.caller_strategy} service",
@@ -119,6 +116,6 @@ class DefaultArgResolver:
         if options.immediate:
             return (
                 options.name,
-                options.injection._instanciate(r_type, options.t),
+                options.injection.__instanciate__(r_type, options.t, options.circular_guard),
             )
         return (options.name, InjectionHook(options.t))

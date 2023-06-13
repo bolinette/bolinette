@@ -1,3 +1,5 @@
+import collections.abc
+import contextlib
 from types import NoneType, UnionType
 from typing import Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
 
@@ -31,10 +33,11 @@ class Type(Generic[T]):
             additional_cls = ()
             self.nullable = False
         self.cls, self.vars = Type.get_generics(__cls, lookup, raise_on_string, raise_on_typevar)
+        self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), self.get_param_count(self.cls))))
         self.annotations = Type._get_recursive_annotations(self.cls)
         self.union = tuple(Type(c) for c in additional_cls)
-        if hasattr(self.cls, "__parameters__") and len(self.cls.__parameters__) != len(self.vars):  # type:ignore
-            raise TypingError("All generic parameters must be defined", cls=self.cls.__qualname__)
+        # if self.get_param_count(self.cls) != len(self.vars):
+        #     raise TypingError("All generic parameters must be defined", cls=self.cls.__qualname__)
 
     def __str__(self) -> str:
         def _format_v(v: type[Any] | TypeVar | ForwardRef) -> str:
@@ -42,6 +45,8 @@ class Type(Generic[T]):
                 return v.__qualname__
             if isinstance(v, TypeVar):
                 return f"~{v.__name__}"
+            if v is Ellipsis:
+                return "..."
             return f"'{str(v.__forward_arg__)}'"
 
         if not self.vars:
@@ -51,7 +56,10 @@ class Type(Generic[T]):
 
         if self.is_union:
             for t in self.union:
-                repr_str = f"{repr_str} | {str(t)}"
+                repr_str += f" | {str(t)}"
+
+        if self.nullable:
+            repr_str += " | None"
 
         return repr_str
 
@@ -117,3 +125,51 @@ class Type(Generic[T]):
                 type_vars = (*type_vars, arg)
             return origin, type_vars
         return _cls, ()
+
+    @staticmethod
+    def get_param_count(__cls: type[Any]) -> int:
+        if __cls in _BUILTIN_PARAM_COUNT:
+            return _BUILTIN_PARAM_COUNT[__cls]
+        if hasattr(__cls, "__parameters__"):
+            return len(__cls.__parameters__)  # type: ignore
+        return 0
+
+
+_BUILTIN_PARAM_COUNT = {
+    collections.abc.Hashable: 0,
+    collections.abc.Awaitable: 1,
+    collections.abc.Coroutine: 3,
+    collections.abc.AsyncIterable: 1,
+    collections.abc.AsyncIterator: 1,
+    collections.abc.Iterable: 1,
+    collections.abc.Iterator: 1,
+    collections.abc.Reversible: 1,
+    collections.abc.Sized: 0,
+    collections.abc.Container: 1,
+    collections.abc.Collection: 1,
+    collections.abc.Set: 1,
+    collections.abc.MutableSet: 1,
+    collections.abc.Mapping: 2,
+    collections.abc.MutableMapping: 2,
+    collections.abc.Sequence: 1,
+    collections.abc.MutableSequence: 1,
+    collections.abc.ByteString: 0,
+    list: 1,
+    collections.deque: 1,
+    set: 1,
+    frozenset: 1,
+    collections.abc.MappingView: 1,
+    collections.abc.KeysView: 1,
+    collections.abc.ItemsView: 2,
+    collections.abc.ValuesView: 1,
+    contextlib.AbstractContextManager: 1,
+    contextlib.AbstractAsyncContextManager: 1,
+    dict: 2,
+    collections.defaultdict: 2,
+    collections.OrderedDict: 2,
+    collections.Counter: 1,
+    collections.ChainMap: 2,
+    collections.abc.Generator: 3,
+    collections.abc.AsyncGenerator: 2,
+    type: 1,
+}

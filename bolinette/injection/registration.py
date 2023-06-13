@@ -7,7 +7,7 @@ InstanceT = TypeVar("InstanceT")
 
 
 class RegisteredType(Generic[InstanceT]):
-    __slots__ = ("t", "strategy", "args", "named_args", "init_methods")
+    __slots__ = ("t", "strategy", "args", "named_args", "before_init", "after_init")
 
     def __init__(
         self,
@@ -15,13 +15,15 @@ class RegisteredType(Generic[InstanceT]):
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
-        init_methods: list[Callable[[Any], None]],
+        before_init: list[Callable[[Any], None]],
+        after_init: list[Callable[[Any], None]],
     ) -> None:
         self.t = t
         self.strategy = strategy
         self.args = args
         self.named_args = named_args
-        self.init_methods = init_methods
+        self.before_init = before_init
+        self.after_init = after_init
 
     def __repr__(self) -> str:
         return f"<RegisteredType {self.t}: {self.strategy}>"
@@ -57,9 +59,10 @@ class RegisteredTypeBag(Generic[InstanceT]):
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
-        init_methods: list[Callable[[Any], None]],
+        before_init: list[Callable[[Any], None]],
+        after_init: list[Callable[[Any], None]],
     ) -> RegisteredType[InstanceT]:
-        r_type = RegisteredType(t, strategy, args, named_args, init_methods)
+        r_type = RegisteredType(t, strategy, args, named_args, before_init, after_init)
         self._match_all = r_type
         return r_type
 
@@ -70,9 +73,10 @@ class RegisteredTypeBag(Generic[InstanceT]):
         strategy: Literal["singleton", "scoped", "transcient"],
         args: list[Any],
         named_args: dict[str, Any],
-        init_methods: list[Callable[[Any], None]],
+        before_init: list[Callable[[Any], None]],
+        after_init: list[Callable[[Any], None]],
     ) -> RegisteredType[InstanceT]:
-        r_type = RegisteredType(t, strategy, args, named_args, init_methods)
+        r_type = RegisteredType(t, strategy, args, named_args, before_init, after_init)
         self._types[hash(super_t)] = r_type
         return r_type
 
