@@ -1,4 +1,4 @@
-from typing import Any, Callable, Iterable, Protocol, TypeVar, overload
+from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overload
 
 from bolinette import Cache, __core_cache__, __user_cache__, meta
 from bolinette.exceptions import MappingError
@@ -274,9 +274,9 @@ class DefaultTypeMapper:
         dest: list[DestT] | set[DestT] | tuple[DestT] | None,
     ) -> list[DestT] | set[DestT] | tuple[DestT]:
         elems = []
-        if not hasattr(src, "__iter__"):
+        if not self._is_iterable(src):
             raise MappingError(f"Could not map non iterable type {src_t} to {dest_t}", dest=dest_path, src=src_path)
-        for index, elem in enumerate(src):  # type: ignore
+        for index, elem in enumerate(src):
             elems.append(
                 self.runner.map(
                     f"{src_path}.[{index}]",
@@ -351,6 +351,10 @@ class DefaultTypeMapper:
         if isinstance(obj, dict):
             return obj.items()
         return vars(obj).items()
+
+    @staticmethod
+    def _is_iterable(obj: Any) -> TypeGuard[Iterable[Any]]:
+        return hasattr(obj, "__iter__")
 
 
 @type_mapper(int, cache=__core_cache__)

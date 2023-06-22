@@ -36,8 +36,6 @@ class Type(Generic[T]):
         self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), self.get_param_count(self.cls))))
         self.annotations = Type._get_recursive_annotations(self.cls)
         self.union = tuple(Type(c) for c in additional_cls)
-        # if self.get_param_count(self.cls) != len(self.vars):
-        #     raise TypingError("All generic parameters must be defined", cls=self.cls.__qualname__)
 
     def __str__(self) -> str:
         def _format_v(v: type[Any] | TypeVar | ForwardRef) -> str:
