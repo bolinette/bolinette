@@ -2,13 +2,11 @@ import os
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
-from bolinette import Cache, Logger, __user_cache__, __core_cache__, meta
+from bolinette import Cache, Logger, __user_cache__, meta
 from bolinette.exceptions import EnvironmentError
 from bolinette.injection import Injection, init_method
 from bolinette.mapping import Mapper
 from bolinette.utils import FileUtils, PathUtils
-
-_NoAnnotation = type("_NoAnnotation", (), {})
 
 
 class _EnvSectionMeta:
@@ -121,7 +119,6 @@ def environment(name: str, *, cache: Cache | None = None) -> Callable[[type[EnvT
     return decorator
 
 
-@environment("core", cache=__core_cache__)
 class CoreSection:
     debug: bool = False
 

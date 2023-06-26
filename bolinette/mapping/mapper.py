@@ -1,6 +1,6 @@
 from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overload
 
-from bolinette import Cache, __core_cache__, __user_cache__, meta
+from bolinette import Cache, __user_cache__, meta
 from bolinette.exceptions import MappingError
 from bolinette.injection import Injection, init_method, injectable
 from bolinette.mapping.profiles import Profile, MapFromOptions
@@ -19,7 +19,6 @@ NoInitDestT = TypeVar("NoInitDestT", bound=NoInitDestination)
 TargetT = TypeVar("TargetT")
 
 
-@injectable(cache=__core_cache__, strategy="singleton")
 class Mapper:
     def __init__(self) -> None:
         self._sequences: dict[int, MappingSequence] = {}
@@ -357,7 +356,6 @@ class DefaultTypeMapper:
         return hasattr(obj, "__iter__")
 
 
-@type_mapper(int, cache=__core_cache__)
 class IntegerTypeMapper:
     __slots__ = "runner"
 
@@ -379,7 +377,6 @@ class IntegerTypeMapper:
             raise MappingError(f"Could not convert value '{src}' to int", dest=dest_path, src=src_path)
 
 
-@type_mapper(float, cache=__core_cache__)
 class FloatTypeMapper:
     __slots__ = "runner"
 
@@ -401,7 +398,6 @@ class FloatTypeMapper:
             raise MappingError(f"Could not convert value '{src}' to float", dest=dest_path, src=src_path)
 
 
-@type_mapper(bool, cache=__core_cache__)
 class BoolTypeMapper:
     __slots__ = "runner"
 
@@ -420,7 +416,6 @@ class BoolTypeMapper:
         return bool(src)
 
 
-@type_mapper(str, cache=__core_cache__)
 class StringTypeMapper:
     __slots__ = "runner"
 

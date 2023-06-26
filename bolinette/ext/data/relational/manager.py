@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import PrimaryKeyConstraint, Table, UniqueConstraint
 
 from bolinette import Cache, meta
-from bolinette.ext.data import DatabaseManager, __data_cache__
+from bolinette.ext.data import DatabaseManager
 from bolinette.ext.data.exceptions import DataError, EntityError
 from bolinette.ext.data.relational import (
     DeclarativeBase,
@@ -14,10 +14,9 @@ from bolinette.ext.data.relational import (
     SessionManager,
 )
 from bolinette.ext.data.relational.repository import _RepositoryMeta
-from bolinette.injection import Injection, init_method, injectable
+from bolinette.injection import Injection, init_method
 
 
-@injectable(cache=__data_cache__, strategy="singleton")
 class EntityManager:
     def __init__(self) -> None:
         self._entities: list[type[DeclarativeBase]] = []

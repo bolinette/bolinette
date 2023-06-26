@@ -3,7 +3,7 @@ from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import Callable
 from typing import Any, Awaitable, Literal, ParamSpec
 
-from bolinette import Cache, Logger, __core_cache__, __user_cache__, meta
+from bolinette import Cache, Logger, __user_cache__, meta
 from bolinette.exceptions import InitError
 from bolinette.injection import Injection, init_method, injectable
 
@@ -45,7 +45,6 @@ class _ArgumentMeta(list[_Argument]):
     pass
 
 
-@injectable(strategy="singleton", cache=__core_cache__)
 class Parser:
     def __init__(
         self,

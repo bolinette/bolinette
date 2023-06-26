@@ -1,12 +1,6 @@
-from bolinette import __core_cache__, command
 from bolinette.injection import Injection
 
 
-@command(
-    "debug injection",
-    "Prints every service registered in the injection system",
-    cache=__core_cache__,
-)
 async def print_injection_debug_info(inject: Injection):
     for cls, bag in inject.registered_types.items():
         types = bag._types.values()

@@ -59,5 +59,4 @@ class Cache:
         raise NotImplementedError()
 
 
-__core_cache__ = Cache()
 __user_cache__ = Cache()

@@ -1,5 +1,4 @@
 from bolinette.ext.web.version import __version__
-from bolinette.ext.web.cache import __web_cache__
 from bolinette.ext.web.route import (
     route as route,
     get as get,

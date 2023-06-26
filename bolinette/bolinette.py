@@ -62,9 +62,8 @@ class Bolinette:
     async def startup(self) -> None:
         pass
 
-    @require(Parser)
-    def _parser(self):
-        pass
+    def _parser(self) -> Parser:
+        ...
 
     async def exec_cmd_args(self):
         await self._parser.run()

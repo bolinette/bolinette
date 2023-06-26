@@ -8,7 +8,6 @@ from bolinette.ext.data.relational import EntityManager, RelationalDatabase, Ses
 from bolinette.injection.resolver import ArgResolverOptions, injection_arg_resolver
 
 
-@injection_arg_resolver(priority=110, scoped=True)
 class AsyncSessionArgResolver:
     def __init__(self, entities: EntityManager, sessions: SessionManager) -> None:
         self.entities = entities

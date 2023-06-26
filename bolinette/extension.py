@@ -1,4 +1,4 @@
-from bolinette import Cache, __core_cache__
+from bolinette import Cache
 from bolinette.exceptions import InitError
 
 
@@ -36,4 +36,4 @@ class Extension:
         return cache
 
 
-core_ext = Extension(__core_cache__)
+core_ext = Extension(Cache())

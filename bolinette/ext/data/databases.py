@@ -4,12 +4,11 @@ from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
 from bolinette import Cache, __user_cache__
-from bolinette.ext.data import DataSection, __data_cache__
+from bolinette.ext.data import DataSection
 from bolinette.ext.data.exceptions import DatabaseError
 from bolinette.injection import Injection, init_method, injectable
 
 
-@injectable(cache=__data_cache__, strategy="singleton")
 class DatabaseManager:
     DBMS_RE = re.compile(r"^([^:]*://).*$")
 
