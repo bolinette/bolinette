@@ -14,6 +14,7 @@ from typing import (
     get_type_hints,
     overload,
 )
+
 from typing_extensions import override
 
 from bolinette import Cache, GenericMeta, meta

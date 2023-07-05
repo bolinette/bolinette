@@ -1,3 +1,3 @@
-from bolinette import Extension, core_ext, Cache
+from bolinette import Cache, Extension, core_ext
 
 data_ext = Extension(Cache(), [core_ext])

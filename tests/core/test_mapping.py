@@ -6,11 +6,11 @@ from bolinette import Cache
 from bolinette.exceptions import MappingError
 from bolinette.mapping import Mapper, Profile, mapping, type_mapper
 from bolinette.mapping.mapper import (
+    BoolTypeMapper,
     DefaultTypeMapper,
+    FloatTypeMapper,
     IntegerTypeMapper,
     StringTypeMapper,
-    FloatTypeMapper,
-    BoolTypeMapper,
 )
 from bolinette.testing import Mock
 from bolinette.types import Type

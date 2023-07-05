@@ -1,10 +1,10 @@
 import os
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 
-from bolinette import Cache, Environment, Logger, environment, CoreSection
+from bolinette import Cache, CoreSection, Environment, Logger, environment
 from bolinette.exceptions import EnvironmentError
 from bolinette.mapping import Mapper
 from bolinette.testing import Mock

@@ -3,7 +3,7 @@ from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overlo
 from bolinette import Cache, __user_cache__, meta
 from bolinette.exceptions import MappingError
 from bolinette.injection import Injection, init_method, injectable
-from bolinette.mapping.profiles import Profile, MapFromOptions
+from bolinette.mapping.profiles import MapFromOptions, Profile
 from bolinette.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.types import Type
 

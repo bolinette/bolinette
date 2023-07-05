@@ -8,4 +8,5 @@ from bolinette.ext.web.route import (
     delete as delete,
 )
 from bolinette.ext.web.controller import Controller as Controller, controller as controller
-from bolinette.ext.web.resources import WebResources
+from bolinette.ext.web.middleware import with_middleware as with_middleware, without_middleware as without_middleware
+from bolinette.ext.web.resources import WebResources as WebResources
