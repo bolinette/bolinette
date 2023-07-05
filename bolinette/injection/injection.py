@@ -25,6 +25,7 @@ from bolinette.injection.hook import InjectionHook, InjectionProxy
 from bolinette.injection.registration import RegisteredType, RegisteredTypeBag
 from bolinette.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
 from bolinette.types import Type, TypeVarLookup
+from bolinette.utils import OrderedSet
 
 FuncP = ParamSpec("FuncP")
 FuncT = TypeVar("FuncT")
@@ -122,13 +123,14 @@ class Injection:
         strategy: Literal["singleton", "scoped", "transcient"],
         vars_lookup: TypeVarLookup[Any] | None,
         immediate: bool,
-        circular_guard: set[Any],
+        circular_guard: OrderedSet[Any],
         args: list[Any],
         named_args: dict[str, Any],
         additional_resolvers: list[ArgumentResolver],
     ) -> dict[str, Any]:
         if func in circular_guard:
-            raise InjectionError("lol")
+            call_chain = " -> ".join(str(f) for f in circular_guard) + f" -> {func}"
+            raise InjectionError(f"A circular call has been detected: {call_chain}", cls=circular_guard[0])
         circular_guard.add(func)
 
         func_params = dict(inspect.signature(func).parameters)
@@ -237,7 +239,7 @@ class Injection:
         cls: type[InstanceT],
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
-        circular_guard: set[Any] | None,
+        circular_guard: OrderedSet[Any] | None,
     ) -> None:
         for base in cls.__bases__:
             self._run_init_recursive(base, instance, vars_lookup, circular_guard)
@@ -250,7 +252,7 @@ class Injection:
         r_type: "RegisteredType[InstanceT]",
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
-        circular_guard: set[Any],
+        circular_guard: OrderedSet[Any],
     ):
         for method in r_type.before_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
@@ -262,7 +264,7 @@ class Injection:
         self,
         r_type: "RegisteredType[InstanceT]",
         t: Type[InstanceT],
-        circular_guard: set[Any],
+        circular_guard: OrderedSet[Any],
     ) -> InstanceT:
         vars_lookup = TypeVarLookup(t)
         func_args = self._resolve_args(
@@ -299,7 +301,7 @@ class Injection:
         named_args: dict[str, Any] | None = None,
         vars_lookup: TypeVarLookup[Any] | None = None,
         additional_resolvers: list[ArgumentResolver] | None = None,
-        circular_guard: set[Any] | None = None,
+        circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
             func,
@@ -307,7 +309,7 @@ class Injection:
             "singleton",
             vars_lookup,
             True,
-            circular_guard or set(),
+            circular_guard or OrderedSet(),
             args or [],
             named_args or {},
             additional_resolvers or [],
@@ -329,7 +331,7 @@ class Injection:
             "transcient",
             None,
             True,
-            set(),
+            OrderedSet(),
             args or [],
             named_args or {},
             additional_resolvers or [],
@@ -469,7 +471,7 @@ class Injection:
             )
         if self._has_instance(r_type):
             return self._get_instance(r_type)
-        return self.__instanciate__(r_type, t, set())
+        return self.__instanciate__(r_type, t, OrderedSet())
 
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self._cache, self._global_ctx, InjectionContext(), self._types)
@@ -536,7 +538,7 @@ class ScopedInjection(Injection):
         named_args: dict[str, Any] | None = None,
         vars_lookup: TypeVarLookup | None = None,
         additional_resolvers: list[ArgumentResolver] | None = None,
-        circular_guard: set[Any] | None = None,
+        circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
             func,
@@ -544,7 +546,7 @@ class ScopedInjection(Injection):
             "scoped",
             vars_lookup,
             True,
-            circular_guard or set(),
+            circular_guard or OrderedSet(),
             args or [],
             named_args or {},
             additional_resolvers or [],

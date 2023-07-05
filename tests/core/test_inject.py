@@ -416,7 +416,44 @@ def test_fail_circular_init_method_reference() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(Service4)
 
-    assert f"lol" == info.value.message
+    assert (
+        f"Type {Service4}, A circular call has been detected: "
+        f"{Service4} -> {Service4.init} -> {Service5} -> {Service5.init} -> {Service4}" == info.value.message
+    )
+
+
+class Service6:
+    @init_method
+    def init(self, s8: "Service8") -> None:
+        pass
+
+
+class Service7:
+    @init_method
+    def init(self, s6: Service6) -> None:
+        pass
+
+
+class Service8:
+    @init_method
+    def init(self, s7: Service7) -> None:
+        pass
+
+
+def test_fail_three_wide_circular() -> None:
+    inject = Injection(Cache())
+    inject.add(Service6, "singleton")
+    inject.add(Service7, "singleton")
+    inject.add(Service8, "singleton")
+
+    with pytest.raises(InjectionError) as info:
+        inject.require(Service8)
+
+    assert (
+        f"Type {Service8}, A circular call has been detected: "
+        f"{Service8} -> {Service8.init} -> {Service7} -> {Service7.init} -> {Service6} -> {Service6.init} -> {Service8}"
+        == info.value.message
+    )
 
 
 def test_arg_resolve_fail_wilcard() -> None:
@@ -1300,15 +1337,3 @@ def test_before_after_init() -> None:
     _s = inject.require(_Service)
 
     assert order == [("before", _s), ("init", _s), ("after", _s)]
-
-
-class CircularService1:
-    @init_method
-    def _init(self, s2: "CircularService2") -> None:
-        pass
-
-
-class CircularService2:
-    @init_method
-    def _init(self, s1: CircularService1) -> None:
-        pass
