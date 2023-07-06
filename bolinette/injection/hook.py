@@ -4,6 +4,7 @@ from bolinette import injection, meta
 from bolinette.exceptions import InjectionError
 from bolinette.injection.registration import RegisteredType
 from bolinette.types import Type
+from bolinette.utils import OrderedSet
 
 InstanceT = TypeVar("InstanceT")
 
@@ -44,6 +45,6 @@ class InjectionProxy:
         if inject._has_instance(self.r_type):
             obj = inject._get_instance(self.r_type)
         else:
-            obj = inject.__instanciate__(self.r_type, self.t, set())
+            obj = inject.__instanciate__(self.r_type, self.t, OrderedSet())
         setattr(instance, self.name, obj)
         return obj

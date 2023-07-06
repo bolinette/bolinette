@@ -4,6 +4,7 @@ from bolinette import Cache, __user_cache__, injection, meta
 from bolinette.exceptions import InjectionError
 from bolinette.injection.hook import InjectionHook
 from bolinette.types import Type
+from bolinette.utils import OrderedSet
 
 
 class ArgResolverOptions:
@@ -33,7 +34,7 @@ class ArgResolverOptions:
         default_set: bool,
         default: Any | None,
         immediate: bool,
-        circular_guard: set[Any],
+        circular_guard: OrderedSet[Any],
     ) -> None:
         self.injection = injection
         self.caller = caller
