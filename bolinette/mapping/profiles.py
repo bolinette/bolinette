@@ -80,10 +80,10 @@ class SequenceBuilder(Generic[SrcT, DestT]):
 
 class Profile:
     def __init__(self) -> None:
-        self._sequences: list[MappingSequence] = []
+        self._sequences: list[MappingSequence[Any, Any]] = []
 
     @property
-    def sequences(self) -> list[MappingSequence]:
+    def sequences(self) -> list[MappingSequence[Any, Any]]:
         return [*self._sequences]
 
     def register(self, src: type[SrcT], dest: type[DestT]) -> SequenceBuilder[SrcT, DestT]:

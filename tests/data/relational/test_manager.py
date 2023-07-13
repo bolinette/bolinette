@@ -4,7 +4,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from bolinette import Cache, meta
 from bolinette.ext.data import DatabaseManager
-from bolinette.ext.data.databases import _DatabaseConnection
+from bolinette.ext.data.databases import DatabaseConnection
 from bolinette.ext.data.exceptions import DataError, EntityError
 from bolinette.ext.data.relational import (
     DeclarativeMeta,
@@ -34,8 +34,8 @@ def create_entity_base(cache: Cache, name: str = "TestDatabase") -> type[Declara
 
 
 def mock_db_manager(mock: Mock, engine_type: type[RelationalDatabase] | None = None) -> None:
-    def _get_connection(name: str) -> _DatabaseConnection:
-        return _DatabaseConnection(name, "protocol://", False, engine_type or _MockedRelationalDatabase)
+    def _get_connection(name: str) -> DatabaseConnection:
+        return DatabaseConnection(name, "protocol://", False, engine_type or _MockedRelationalDatabase)
 
     (
         mock.mock(DatabaseManager)
@@ -94,8 +94,8 @@ def test_fail_init_engines_non_relational_system() -> None:
 
     create_entity_base(cache)
 
-    def _get_connection(name: str) -> _DatabaseConnection:
-        return _DatabaseConnection(name, "sqlite+aiosqlite://", False, object)
+    def _get_connection(name: str) -> DatabaseConnection:
+        return DatabaseConnection(name, "sqlite+aiosqlite://", False, object)
 
     (
         mock.mock(DatabaseManager)

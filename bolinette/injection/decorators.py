@@ -2,6 +2,7 @@ from typing import Any, Callable, Concatenate, Literal, ParamSpec, TypeVar, get_
 
 from bolinette import Cache, __user_cache__, meta
 from bolinette.injection.hook import InjectionHook
+from bolinette.injection.registration import InjectionStrategy
 from bolinette.types import Type
 
 FuncP = ParamSpec("FuncP")
@@ -23,7 +24,7 @@ class InjectionParamsMeta:
 
     def __init__(
         self,
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any] | None,
         named_args: dict[str, Any] | None,
         before_init: list[Callable[[InstanceT], None]] | None,
@@ -40,7 +41,7 @@ class InjectionParamsMeta:
 
 def injectable(
     *,
-    strategy: Literal["singleton", "scoped", "transcient"] = "singleton",
+    strategy: InjectionStrategy = "singleton",
     args: list[Any] | None = None,
     named_args: dict[str, Any] | None = None,
     cache: Cache | None = None,

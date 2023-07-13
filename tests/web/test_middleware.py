@@ -1,12 +1,18 @@
+from typing import Any, Awaitable, Callable
+from aiohttp import web
 from bolinette import meta
 from bolinette.ext.web import with_middleware, without_middleware
-from bolinette.ext.web.middleware import MiddlewareBag
+from bolinette.ext.web.middleware import Middleware, MiddlewareBag
+from bolinette.types import Type
 
 
 def test_add_middleware() -> None:
     class TestMiddleware:
-        def handle(self) -> None:
-            pass
+        def options(self) -> None:
+            ...
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     @with_middleware(TestMiddleware)
     def test_route() -> None:
@@ -14,19 +20,41 @@ def test_add_middleware() -> None:
 
     assert meta.has(test_route, MiddlewareBag)
     bag = meta.get(test_route, MiddlewareBag)
-    assert TestMiddleware in bag.added
-    mdlw_meta = bag.added[TestMiddleware]
+    mdlw_t = Type(TestMiddleware)
+    assert mdlw_t in bag.added
+    mdlw_meta = bag.added[mdlw_t]
+    assert mdlw_meta.args == ()
+    assert mdlw_meta.kwargs == {}
+
+
+def test_add_middleware_on_class() -> None:
+    class TestMiddleware:
+        def options(self) -> None:
+            ...
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
+
+    @with_middleware(TestMiddleware)
+    class TestCtrl:
+        pass
+
+    assert meta.has(TestCtrl, MiddlewareBag)
+    bag = meta.get(TestCtrl, MiddlewareBag)
+    mdlw_t = Type(TestMiddleware)
+    assert mdlw_t in bag.added
+    mdlw_meta = bag.added[mdlw_t]
     assert mdlw_meta.args == ()
     assert mdlw_meta.kwargs == {}
 
 
 def test_add_middleware_with_options() -> None:
     class TestMiddleware:
-        def __init__(self, value: int) -> None:
-            pass
+        def options(self, value: int) -> None:
+            ...
 
-        def handle(self) -> None:
-            pass
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     @with_middleware(TestMiddleware, value=1)
     def test_route() -> None:
@@ -34,19 +62,20 @@ def test_add_middleware_with_options() -> None:
 
     assert meta.has(test_route, MiddlewareBag)
     bag = meta.get(test_route, MiddlewareBag)
-    assert TestMiddleware in bag.added
-    mdlw_meta = bag.added[TestMiddleware]
+    mdlw_t = Type(TestMiddleware)
+    assert mdlw_t in bag.added
+    mdlw_meta = bag.added[mdlw_t]
     assert mdlw_meta.args == ()
     assert mdlw_meta.kwargs == {"value": 1}
 
 
 def test_add_middleware_with_default_options() -> None:
     class TestMiddleware:
-        def __init__(self, value: int = 0) -> None:
-            pass
+        def options(self, value: int = 0) -> None:
+            ...
 
-        def handle(self) -> None:
-            pass
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     @with_middleware(TestMiddleware)
     def test_route() -> None:
@@ -54,23 +83,27 @@ def test_add_middleware_with_default_options() -> None:
 
     assert meta.has(test_route, MiddlewareBag)
     bag = meta.get(test_route, MiddlewareBag)
-    assert TestMiddleware in bag.added
-    mdlw_meta = bag.added[TestMiddleware]
+    mdlw_t = Type(TestMiddleware)
+    assert mdlw_t in bag.added
+    mdlw_meta = bag.added[mdlw_t]
     assert mdlw_meta.args == ()
     assert mdlw_meta.kwargs == {}
 
 
 def test_add_two_middlewares() -> None:
     class TestMiddleware1:
-        def handle(self) -> None:
-            pass
+        def options(self) -> None:
+            ...
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     class TestMiddleware2:
-        def __init__(self, value: int) -> None:
-            pass
+        def options(self, value: int) -> None:
+            ...
 
-        def handle(self) -> None:
-            pass
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     @with_middleware(TestMiddleware1)
     @with_middleware(TestMiddleware2, 42)
@@ -79,20 +112,25 @@ def test_add_two_middlewares() -> None:
 
     assert meta.has(test_route, MiddlewareBag)
     bag = meta.get(test_route, MiddlewareBag)
-    assert TestMiddleware1 in bag.added
-    mdlw1_meta = bag.added[TestMiddleware1]
+    mdlw1_t = Type(TestMiddleware1)
+    assert mdlw1_t in bag.added
+    mdlw1_meta = bag.added[mdlw1_t]
     assert mdlw1_meta.args == ()
     assert mdlw1_meta.kwargs == {}
-    assert TestMiddleware2 in bag.added
-    mdlw2_meta = bag.added[TestMiddleware2]
+    mdlw2_t = Type(TestMiddleware2)
+    assert mdlw2_t in bag.added
+    mdlw2_meta = bag.added[mdlw2_t]
     assert mdlw2_meta.args == (42,)
     assert mdlw2_meta.kwargs == {}
 
 
 def test_remove_middleware() -> None:
     class TestMiddleware:
-        def handle(self) -> None:
-            pass
+        def options(self) -> None:
+            ...
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     @without_middleware(TestMiddleware)
     def test_route() -> None:
@@ -100,17 +138,24 @@ def test_remove_middleware() -> None:
 
     assert meta.has(test_route, MiddlewareBag)
     bag = meta.get(test_route, MiddlewareBag)
-    assert TestMiddleware in bag.removed
+    mdlw_t = Type(TestMiddleware)
+    assert mdlw_t in bag.removed
 
 
 def test_remove_two_middlewares() -> None:
     class TestMiddleware1:
-        def handle(self) -> None:
-            pass
+        def options(self) -> None:
+            ...
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     class TestMiddleware2:
-        def handle(self) -> None:
-            pass
+        def options(self) -> None:
+            ...
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            ...
 
     @without_middleware(TestMiddleware1)
     @without_middleware(TestMiddleware2)
@@ -119,5 +164,7 @@ def test_remove_two_middlewares() -> None:
 
     assert meta.has(test_route, MiddlewareBag)
     bag = meta.get(test_route, MiddlewareBag)
-    assert TestMiddleware1 in bag.removed
-    assert TestMiddleware2 in bag.removed
+    mdlw1_t = Type(TestMiddleware1)
+    assert mdlw1_t in bag.removed
+    mdlw2_t = Type(TestMiddleware2)
+    assert mdlw2_t in bag.removed

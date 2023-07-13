@@ -22,7 +22,7 @@ from bolinette.exceptions import InjectionError
 from bolinette.injection.context import InjectionContext
 from bolinette.injection.decorators import InitMethodMeta, InjectionParamsMeta, InjectionSymbol
 from bolinette.injection.hook import InjectionHook, InjectionProxy
-from bolinette.injection.registration import RegisteredType, RegisteredTypeBag
+from bolinette.injection.registration import InjectionStrategy, RegisteredType, RegisteredTypeBag
 from bolinette.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
 from bolinette.types import Type, TypeVarLookup
 from bolinette.utils import OrderedSet
@@ -43,6 +43,7 @@ class Injection:
         global_ctx: InjectionContext | None = None,
         types: "dict[type[Any], RegisteredTypeBag[Any]] | None" = None,
     ) -> None:
+        self._arg_resolvers: list[ArgumentResolver] = []
         self._cache = cache
         self._global_ctx = global_ctx or InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
@@ -118,9 +119,9 @@ class Injection:
 
     def _resolve_args(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         func_type_vars: tuple[Any, ...] | None,
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         vars_lookup: TypeVarLookup[Any] | None,
         immediate: bool,
         circular_guard: OrderedSet[Any],
@@ -179,7 +180,7 @@ class Injection:
                     continue
                 raise InjectionError("Annotation is required", func=func, param=p_name)
 
-            hint = hints[p_name]  # type: type
+            hint: type = hints[p_name]
 
             if get_origin(hint) in (UnionType, Union):
                 type_args = get_args(hint)
@@ -190,7 +191,7 @@ class Injection:
 
             hint_t = Type(hint, lookup=vars_lookup)
 
-            for resolver in [*additional_resolvers, *getattr(self, "_arg_resolvers", [])]:
+            for resolver in [*additional_resolvers, *self._arg_resolvers]:
                 options = ArgResolverOptions(
                     self,
                     func,
@@ -217,15 +218,15 @@ class Injection:
 
         return f_args
 
-    def _hook_proxies(self, instance: Any) -> None:
+    def __hook_proxies__(self, instance: Any) -> None:
         hooks: dict[str, Type[Any]] = {}
         cls = type(instance)
-        cls_attrs = dict(vars(cls))
+        cls_attrs: dict[str, Any] = dict(vars(cls))
         for name, attr in cls_attrs.items():
             if isinstance(attr, InjectionHook):
                 delattr(cls, name)
                 hooks[name] = attr.t
-        instance_attrs = dict(vars(instance))
+        instance_attrs: dict[str, Any] = dict(vars(instance))
         for name, attr in instance_attrs.items():
             if isinstance(attr, InjectionHook):
                 delattr(instance, name)
@@ -279,7 +280,7 @@ class Injection:
             [],
         )
         instance = r_type.t.cls(**func_args)
-        self._hook_proxies(instance)
+        self.__hook_proxies__(instance)
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_methods(r_type, instance, vars_lookup, circular_guard)
@@ -328,7 +329,7 @@ class Injection:
         init_args = self._resolve_args(
             cls,
             t.vars,
-            "transcient",
+            "immediate",
             None,
             True,
             OrderedSet(),
@@ -337,7 +338,7 @@ class Injection:
             additional_resolvers or [],
         )
         instance = cls(**init_args)
-        self._hook_proxies(instance)
+        self.__hook_proxies__(instance)
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_recursive(cls, instance, None, None)
@@ -348,7 +349,7 @@ class Injection:
         super_t: Type[InstanceT],
         t: Type[InstanceT],
         match_all: bool,
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
         before_init: list[Callable[[Any], None]],
@@ -377,7 +378,7 @@ class Injection:
     def add(
         self,
         cls: type[InstanceT],
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
@@ -394,7 +395,7 @@ class Injection:
     def add(
         self,
         cls: type[InstanceT],
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
@@ -408,7 +409,7 @@ class Injection:
     def add(
         self,
         cls: type[InstanceT],
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,

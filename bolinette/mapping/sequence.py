@@ -1,4 +1,5 @@
 from typing import Any, Callable, Generic, TypeVar
+from typing_extensions import override
 
 from bolinette.exceptions import MappingError
 from bolinette.types import Type
@@ -54,7 +55,7 @@ class MappingSequence(Generic[SrcT, DestT]):
         self.head: list[MappingFunction[SrcT, DestT]] = []
         self.for_attrs: dict[str, ForAttributeMapping] = {}
         self.tail: list[MappingFunction[SrcT, DestT]] = []
-        self.includes: list[IncludeFromBase] = []
+        self.includes: list[IncludeFromBase[Any, Any]] = []
 
     @staticmethod
     def get_hash(
@@ -63,6 +64,7 @@ class MappingSequence(Generic[SrcT, DestT]):
     ) -> int:
         return hash((src_t, dest_t))
 
+    @override
     def __hash__(self) -> int:
         return MappingSequence.get_hash(self.src_t, self.dest_t)
 
@@ -75,13 +77,13 @@ class MappingSequence(Generic[SrcT, DestT]):
     def add_tail_func(self, func: MappingFunction[SrcT, DestT]) -> None:
         self.tail.append(func)
 
-    def add_include(self, include: IncludeFromBase) -> None:
+    def add_include(self, include: IncludeFromBase[Any, Any]) -> None:
         self.includes.append(include)
 
-    def complete(self, completed: "dict[int, MappingSequence]") -> None:
-        head = []
-        for_attrs = {}
-        tail = []
+    def complete(self, completed: "dict[int, MappingSequence[Any, Any]]") -> None:
+        head: list[MappingFunction[Any, Any]] = []
+        for_attrs: dict[str, ForAttributeMapping] = {}
+        tail: list[MappingFunction[Any, Any]] = []
         for include in self.includes:
             if (h := MappingSequence.get_hash(include.src_t, include.dest_t)) not in completed:
                 raise MappingError(

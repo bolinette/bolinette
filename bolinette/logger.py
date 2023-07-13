@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Generic, Protocol, TypeVar
 
 from bolinette import Cache, GenericMeta, meta
-from bolinette.injection import init_method, injectable
+from bolinette.injection import init_method
 
 T_Contra = TypeVar("T_Contra", contravariant=True)
 T = TypeVar("T")
@@ -68,13 +68,13 @@ class Logger(Generic[T]):
         strs.append(text)
         print(*strs, file=file)
 
-    def warning(self, *values, sep: str | None = None) -> None:
+    def warning(self, *values: str, sep: str | None = None) -> None:
         self._log("WARN", (sep or " ").join(values), color=ConsoleColorCode.FgYellow)
 
-    def info(self, *values, sep: str | None = None) -> None:
+    def info(self, *values: str, sep: str | None = None) -> None:
         self._log("INFO", (sep or " ").join(values), color=ConsoleColorCode.FgGreen)
 
-    def debug(self, *values, sep: str | None = None) -> None:
+    def debug(self, *values: str, sep: str | None = None) -> None:
         if self._cache.debug:
             self._log(
                 "DEBUG",
@@ -82,7 +82,7 @@ class Logger(Generic[T]):
                 color=ConsoleColorCode.FgBlue,
             )
 
-    def error(self, *values, sep: str | None = None) -> None:
+    def error(self, *values: str, sep: str | None = None) -> None:
         self._log(
             "ERROR",
             (sep or " ").join(values),

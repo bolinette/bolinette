@@ -6,13 +6,16 @@ from bolinette.types import Type
 InstanceT = TypeVar("InstanceT")
 
 
+InjectionStrategy = Literal["singleton", "scoped", "transcient", "immediate"]
+
+
 class RegisteredType(Generic[InstanceT]):
     __slots__ = ("t", "strategy", "args", "named_args", "before_init", "after_init")
 
     def __init__(
         self,
         t: Type[InstanceT],
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
         before_init: list[Callable[[Any], None]],
@@ -56,7 +59,7 @@ class RegisteredTypeBag(Generic[InstanceT]):
     def set_match_all(
         self,
         t: Type[InstanceT],
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
         before_init: list[Callable[[Any], None]],
@@ -70,7 +73,7 @@ class RegisteredTypeBag(Generic[InstanceT]):
         self,
         super_t: Type[InstanceT],
         t: Type[InstanceT],
-        strategy: Literal["singleton", "scoped", "transcient"],
+        strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
         before_init: list[Callable[[Any], None]],

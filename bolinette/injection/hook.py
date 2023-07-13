@@ -1,4 +1,5 @@
 from typing import Any, Generic, TypeVar
+from typing_extensions import override
 
 from bolinette import injection, meta
 from bolinette.exceptions import InjectionError
@@ -15,6 +16,7 @@ class InjectionHook(Generic[InstanceT]):
     def __init__(self, t: Type[InstanceT]) -> None:
         self.t = t
 
+    @override
     def __getattribute__(self, __name: str) -> Any:
         if __name in ("t", "__class__"):
             return object.__getattribute__(self, __name)

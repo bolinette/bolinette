@@ -1,8 +1,9 @@
-from typing import Any, Callable, Literal, Protocol, TypeVar
+from typing import Any, Callable, Protocol, TypeVar
 
 from bolinette import Cache, __user_cache__, injection, meta
 from bolinette.exceptions import InjectionError
 from bolinette.injection.hook import InjectionHook
+from bolinette.injection.registration import InjectionStrategy
 from bolinette.types import Type
 from bolinette.utils import OrderedSet
 
@@ -25,9 +26,9 @@ class ArgResolverOptions:
     def __init__(
         self,
         injection: "injection.Injection",
-        caller: Callable,
+        caller: Callable[..., Any],
         caller_type_vars: tuple[Any, ...] | None,
-        caller_strategy: Literal["singleton", "scoped", "transcient"],
+        caller_strategy: InjectionStrategy,
         name: str,
         t: Type[Any],
         nullable: bool,

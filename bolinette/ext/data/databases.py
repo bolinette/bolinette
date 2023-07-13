@@ -22,7 +22,7 @@ class DatabaseManager:
         self._section = section
         self._inject = inject
         self._systems: list[DatabaseSystem] = []
-        self._connections: list[_DatabaseConnection] = []
+        self._connections: list[DatabaseConnection] = []
 
     def has_system(self, scheme: str) -> bool:
         return any(s for s in self._systems if s.scheme == scheme)
@@ -33,7 +33,7 @@ class DatabaseManager:
     def has_connection(self, name: str) -> bool:
         return any(s for s in self._connections if s.name == name)
 
-    def get_connection(self, name: str) -> "_DatabaseConnection":
+    def get_connection(self, name: str) -> "DatabaseConnection":
         return next(s for s in self._connections if s.name == name)
 
     @init_method
@@ -63,7 +63,7 @@ class DatabaseManager:
                     f"Database system supporting scheme '{scheme}' was not found", connection=db_config.name
                 )
             system = self.get_system(scheme)
-            self._connections.append(_DatabaseConnection(db_config.name, db_config.url, db_config.echo, system.manager))
+            self._connections.append(DatabaseConnection(db_config.name, db_config.url, db_config.echo, system.manager))
 
 
 class DatabaseSystem(Protocol):
@@ -86,7 +86,7 @@ def database_system(*, cache: Cache | None = None) -> Callable[[type[SystemT]], 
     return decorator
 
 
-class _DatabaseConnection:
+class DatabaseConnection:
     def __init__(self, name: str, url: str, echo: bool, manager: Any) -> None:
         self.name = name
         self.url = url

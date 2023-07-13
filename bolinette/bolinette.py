@@ -2,7 +2,7 @@ from typing import Callable, Protocol
 
 from bolinette import Environment, Extension, Logger, __user_cache__, core_ext, meta
 from bolinette.command import Parser
-from bolinette.injection import Injection, require
+from bolinette.injection import Injection
 from bolinette.utils import FileUtils, PathUtils
 
 
@@ -46,7 +46,7 @@ class Bolinette:
             args=[self._profile],
             instanciate=True,
         )
-        self._inject._hook_proxies(self)
+        self._inject.__hook_proxies__(self)
 
     @property
     def injection(self) -> Injection:

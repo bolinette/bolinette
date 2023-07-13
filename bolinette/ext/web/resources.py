@@ -1,10 +1,11 @@
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 from aiohttp import web
 
 from bolinette import Cache, meta
 from bolinette.ext.web import Controller
 from bolinette.ext.web.controller import ControllerMeta
+from bolinette.ext.web.middleware import Middleware, MiddlewareBag
 from bolinette.ext.web.route import RouteBucket, RouteProps
 from bolinette.injection import Injection, init_method
 from bolinette.injection.resolver import ArgResolverOptions
@@ -65,17 +66,56 @@ class RouteHandler:
         self.props = props
         self.func = func
 
-    async def handle(self, request: web.Request) -> Any:
+    @staticmethod
+    def prepare_session(inject: Injection, request: web.Request) -> None:
+        inject.add(web.Request, "scoped", instance=request)
+
+    async def handle(self, request: web.Request) -> web.Response:
         try:
             scoped_inject = self.inject.get_scoped_session()
-            ctrl = scoped_inject.instanciate(self.ctrl_t.cls)
-            return await scoped_inject.call(
+            self.prepare_session(scoped_inject, request)
+            mdlws = self.collect_middlewares(scoped_inject)
+            return await self.middleware_chain(request, scoped_inject, mdlws, 0)
+        except BaseException as e:
+            raise e
+
+    async def middleware_chain(
+        self,
+        request: web.Request,
+        scoped: Injection,
+        mdlws: list[Middleware[Any]],
+        index: int,
+    ) -> web.Response:
+        async def _next_handle() -> web.Response:
+            return await self.middleware_chain(request, scoped, mdlws, index + 1)
+
+        if index >= len(mdlws):
+            ctrl = scoped.instanciate(self.ctrl_t.cls)
+            return await scoped.call(
                 self.func,
                 args=[ctrl],
                 additional_resolvers=[RouteParamArgResolver(request, self.props)],
             )
-        except BaseException:
-            pass
+        else:
+            mdlw = mdlws[index]
+            return await scoped.call(mdlw.handle, args=[_next_handle])
+
+    def collect_middlewares(self, scoped: Injection) -> list[Middleware[Any]]:
+        bags: list[MiddlewareBag] = []
+        if meta.has(self.ctrl_t.cls, MiddlewareBag):
+            bags.append(meta.get(self.ctrl_t.cls, MiddlewareBag))
+        if meta.has(self.func, MiddlewareBag):
+            bags.append(meta.get(self.func, MiddlewareBag))
+        mdlws: dict[Type[Middleware], Middleware] = {}
+        for bag in bags:
+            for t, mdlw_meta in reversed(bag.added.items()):
+                mdlw = scoped.instanciate(t.cls)
+                mdlw.options(*mdlw_meta.args, **mdlw_meta.kwargs)
+                mdlws[t] = mdlw
+            for t in bag.removed:
+                if t in mdlws:
+                    del mdlws[t]
+        return list(mdlws.values())
 
 
 class RouteParamArgResolver:

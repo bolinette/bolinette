@@ -2,7 +2,7 @@ from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overlo
 
 from bolinette import Cache, __user_cache__, meta
 from bolinette.exceptions import MappingError
-from bolinette.injection import Injection, init_method, injectable
+from bolinette.injection import Injection, init_method
 from bolinette.mapping.profiles import MapFromOptions, Profile
 from bolinette.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.types import Type
@@ -21,13 +21,13 @@ TargetT = TypeVar("TargetT")
 
 class Mapper:
     def __init__(self) -> None:
-        self._sequences: dict[int, MappingSequence] = {}
+        self._sequences: dict[int, MappingSequence[Any, Any]] = {}
         self._type_mappers: dict[Type[Any], type[TypeMapper[Any]]] = {}
         self._default_mapper: type[TypeMapper[object]] = DefaultTypeMapper
 
     @init_method
     def _init_profiles(self, cache: Cache, inject: Injection) -> None:
-        completed: dict[int, MappingSequence] = {}
+        completed: dict[int, MappingSequence[Any, Any]] = {}
         for cls in cache.get(Profile, hint=type[Profile], raises=False):
             profile = inject.instanciate(cls)
             for sequence in profile.sequences:
