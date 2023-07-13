@@ -1,4 +1,5 @@
 from typing import Any, Generic, TypeVar
+
 from typing_extensions import override
 
 from bolinette import injection, meta
@@ -44,8 +45,8 @@ class InjectionProxy:
 
     def __get__(self, instance: Any, _) -> Any:
         inject = meta.get(instance, injection.Injection)
-        if inject._has_instance(self.r_type):
-            obj = inject._get_instance(self.r_type)
+        if inject.__has_instance__(self.r_type):
+            obj = inject.__get_instance__(self.r_type)
         else:
             obj = inject.__instanciate__(self.r_type, self.t, OrderedSet())
         setattr(instance, self.name, obj)

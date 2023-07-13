@@ -6,11 +6,12 @@ from bolinette.expressions import AttributeNode, ExpressionTree
 from bolinette.injection import Injection
 from bolinette.injection.context import InjectionContext
 
-T = TypeVar("T")
+MockedT = TypeVar("MockedT")
+SetupT = TypeVar("SetupT")
 
 
-class _MockedMeta(Generic[T]):
-    def __init__(self, cls: type[T]) -> None:
+class _MockedMeta(Generic[MockedT]):
+    def __init__(self, cls: type[MockedT]) -> None:
         self.cls = cls
         self.dummy = False
         self._attrs: dict[str, Any] = {}
@@ -32,16 +33,16 @@ class _MockedMeta(Generic[T]):
         self._attrs[key] = value
 
 
-class _MockWrapper(Generic[T]):
+class _MockWrapper(Generic[MockedT]):
     def __init__(
         self,
-        cls: type[T],
+        cls: type[MockedT],
     ) -> None:
         self._cls = self._setup_mocked_cls(cls)
         self.instance = self._cls()
 
     @staticmethod
-    def _get_mocked_attr(_cls: type[T], instance: T, name: str) -> Any:
+    def _get_mocked_attr(_cls: type[MockedT], instance: MockedT, name: str) -> Any:
         if name == "__class__":
             return _cls
         _meta = meta.get(type(instance), _MockedMeta)
@@ -50,26 +51,33 @@ class _MockWrapper(Generic[T]):
         raise KeyError(f"'{name}' attribute has not been mocked in {_cls}")
 
     @staticmethod
-    def _setup_mocked_cls(_cls: type[T]) -> type[T]:
-        _t = type(f"{_cls.__name__}__Mocked", (_cls,), {})  # type: ignore
+    def _setup_mocked_cls(_cls: type[MockedT]) -> type[MockedT]:
+        def _get_attr(instance: object, name: str) -> Any:
+            return _MockWrapper._get_mocked_attr(_cls, instance, name)
+
+        _t = type(f"{_cls.__name__}__Mocked", (_cls,), {})
         setattr(_t, "__init__", lambda _: None)
         setattr(_t, "__repr__", lambda _: f"<Mocked[{_cls.__name__}]>")
-        setattr(
-            _t,
-            "__getattribute__",
-            lambda i, n: _MockWrapper._get_mocked_attr(_cls, i, n),
-        )
+        setattr(_t, "__getattribute__", _get_attr)
         meta.set(_t, _MockedMeta(_cls))
         return _t  # type: ignore
 
-    def setup(self, func: Callable[[T], Any], value: Any) -> "_MockWrapper[T]":
+    """@overload
+    def setup(self, func: Callable[[T], FuncT], value: FuncT) -> "_MockWrapper[T]":
+        ...
+
+    @overload
+    def setup(self, func: Callable[[T], Callable[FuncP, FuncT]], value: Callable[FuncP, FuncT]) -> "_MockWrapper[T]":
+        ..."""
+
+    def setup(self, func: Callable[[MockedT], SetupT], value: SetupT) -> "_MockWrapper[MockedT]":
         expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
         name = ExpressionTree.get_attribute_name(expr)
         _meta = meta.get(self._cls, _MockedMeta)
         _meta[name] = value
         return self
 
-    def dummy(self, value: bool = True) -> "_MockWrapper[T]":
+    def dummy(self, value: bool = True) -> "_MockWrapper[MockedT]":
         _meta = meta.get(self._cls, _MockedMeta)
         _meta.dummy = value
         return self
@@ -82,8 +90,8 @@ class Mock:
 
     @staticmethod
     def _get_generic_params(
-        _cls: type[T],
-    ) -> tuple[type[T], tuple[Any, ...]]:
+        _cls: type[MockedT],
+    ) -> tuple[type[MockedT], tuple[Any, ...]]:
         if origin := get_origin(_cls):
             params: tuple[Any, ...] = ()
             for arg in get_args(_cls):
@@ -91,7 +99,7 @@ class Mock:
             return origin, params
         return _cls, ()
 
-    def mock(self, cls: type[T], *, match_all: bool = False) -> _MockWrapper[T]:
+    def mock(self, cls: type[MockedT], *, match_all: bool = False) -> _MockWrapper[MockedT]:
         origin, _ = self._get_generic_params(cls)
         if origin in self._mocked:
             mocked = self._mocked[origin]

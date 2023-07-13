@@ -8,7 +8,7 @@ paths = PathUtils()
 files = FileUtils(paths)
 
 
-def project_packages(module) -> list[str]:
+def project_packages(module: str) -> list[str]:
     return [m for m in find_namespace_packages() if m.startswith(module)]
 
 
@@ -25,9 +25,7 @@ setup(
     author_email="pierrechat@outlook.com",
     url="https://github.com/bolinette/bolinette",
     keywords=["Bolinette", "Framework", "ORM", "Data Management"],
-    install_requires=files.read_requirements(
-        paths.root_path(), name="requirements.data.txt"
-    ),
+    install_requires=files.read_requirements(paths.root_path(), name="requirements.data.txt"),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

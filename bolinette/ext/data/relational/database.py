@@ -14,6 +14,10 @@ class RelationalDatabase:
         self._session_maker = async_sessionmaker(self._engine)
         self._sql_defs: dict[type[Any], type[DeclarativeBase]] = {}
 
+    @property
+    def name(self) -> str:
+        return self._name
+
     def open_session(self, sessions: SessionManager) -> None:
         session = self._session_maker()
         sessions.add(self._name, session)

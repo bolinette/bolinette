@@ -1,3 +1,3 @@
-import example.entities
+import example.entities  # pyright: ignore[reportUnusedImport]
 import example.commands
-from example.app import blnt
+from example.app import blnt as blnt

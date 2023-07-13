@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
 from aiohttp import web
 
@@ -22,6 +22,7 @@ class WebResources:
         routes: list[web.RouteDef] = []
         for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller]):
             ctrl_meta = meta.get(ctrl_cls, ControllerMeta)
+            attr: Any
             for attr in AttributeUtils.get_cls_attrs(ctrl_cls).values():
                 if not meta.has(attr, RouteBucket):
                     continue
@@ -59,7 +60,7 @@ class RouteHandler:
         inject: Injection,
         ctrl_t: Type[Controller],
         props: RouteProps,
-        func: Callable,
+        func: Callable[..., Any],
     ) -> None:
         self.inject = inject
         self.ctrl_t = ctrl_t
@@ -106,7 +107,7 @@ class RouteHandler:
             bags.append(meta.get(self.ctrl_t.cls, MiddlewareBag))
         if meta.has(self.func, MiddlewareBag):
             bags.append(meta.get(self.func, MiddlewareBag))
-        mdlws: dict[Type[Middleware], Middleware] = {}
+        mdlws: dict[Type[Middleware[...]], Middleware[...]] = {}
         for bag in bags:
             for t, mdlw_meta in reversed(bag.added.items()):
                 mdlw = scoped.instanciate(t.cls)
@@ -141,4 +142,6 @@ class RouteParamArgResolver:
                 value = bool(value)
             case cls if cls is not str:
                 raise Exception()  # TODO: Lever une vraie exception
+            case _:
+                pass
         return (options.name, value)

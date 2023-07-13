@@ -107,13 +107,13 @@ class Injection:
 
         return [*resolvers, DefaultArgResolver()]
 
-    def _has_instance(self, r_type: "RegisteredType[Any]") -> bool:
+    def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
         return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
 
-    def _get_instance(self, r_type: "RegisteredType[InstanceT]") -> InstanceT:
+    def __get_instance__(self, r_type: "RegisteredType[InstanceT]") -> InstanceT:
         return self._global_ctx.get_instance(r_type.t)
 
-    def _set_instance(self, r_type: "RegisteredType[InstanceT]", instance: InstanceT) -> None:
+    def __set_instance__(self, r_type: "RegisteredType[InstanceT]", instance: InstanceT) -> None:
         if r_type.strategy == "singleton":
             self._global_ctx.set_instance(r_type.t, instance)
 
@@ -218,10 +218,11 @@ class Injection:
 
         return f_args
 
-    def __hook_proxies__(self, instance: Any) -> None:
+    def __hook_proxies__(self, instance: object) -> None:
         hooks: dict[str, Type[Any]] = {}
         cls = type(instance)
         cls_attrs: dict[str, Any] = dict(vars(cls))
+        attr: InjectionHook[Any] | Any
         for name, attr in cls_attrs.items():
             if isinstance(attr, InjectionHook):
                 delattr(cls, name)
@@ -284,7 +285,7 @@ class Injection:
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_methods(r_type, instance, vars_lookup, circular_guard)
-        self._set_instance(r_type, instance)
+        self.__set_instance__(r_type, instance)
         return instance
 
     def is_registered(self, cls: type[Any] | Type[Any]) -> bool:
@@ -371,8 +372,8 @@ class Injection:
         if instance is not None:
             if r_type is None:
                 r_type = self._types[t.cls].get_type(t)
-            if not safe or not self._has_instance(r_type):
-                self._set_instance(r_type, instance)
+            if not safe or not self.__has_instance__(r_type):
+                self.__set_instance__(r_type, instance)
 
     @overload
     def add(
@@ -470,8 +471,8 @@ class Injection:
             raise InjectionError(
                 f"Injection strategy for {t} must be {formatted_strategies} to be required in this context"
             )
-        if self._has_instance(r_type):
-            return self._get_instance(r_type)
+        if self.__has_instance__(r_type):
+            return self.__get_instance__(r_type)
         return self.__instanciate__(r_type, t, OrderedSet())
 
     def get_scoped_session(self) -> "ScopedInjection":
@@ -495,23 +496,27 @@ class ScopedInjection(Injection):
         super().__init__(cache, global_ctx, types)
         self._scoped_ctx.set_instance(Type(Injection), self)
 
-    def _has_instance(self, r_type: "RegisteredType[Any]") -> bool:
+    @override
+    def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
         return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.t)) or (
             r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
         )
 
-    def _get_instance(self, r_type: "RegisteredType[InstanceT]") -> InstanceT:
+    @override
+    def __get_instance__(self, r_type: "RegisteredType[InstanceT]") -> InstanceT:
         if self._scoped_ctx.has_instance(r_type.t):
             return self._scoped_ctx.get_instance(r_type.t)
         return self._global_ctx.get_instance(r_type.t)
 
-    def _set_instance(self, r_type: "RegisteredType[InstanceT]", instance: InstanceT) -> None:
+    @override
+    def __set_instance__(self, r_type: "RegisteredType[InstanceT]", instance: InstanceT) -> None:
         strategy = r_type.strategy
         if strategy == "scoped":
             self._scoped_ctx.set_instance(r_type.t, instance)
         if strategy == "singleton":
             self._global_ctx.set_instance(r_type.t, instance)
 
+    @override
     def _pickup_resolvers(self, cache: Cache) -> "list[ArgumentResolver]":
         resolver_scoped: dict[type, bool] = {}
         resolver_priority: dict[type, int] = {}
@@ -537,7 +542,7 @@ class ScopedInjection(Injection):
         *,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
-        vars_lookup: TypeVarLookup | None = None,
+        vars_lookup: TypeVarLookup[Any] | None = None,
         additional_resolvers: list[ArgumentResolver] | None = None,
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
@@ -561,12 +566,12 @@ class _GenericOrigin(Protocol):
 
 def _format_list(collection: Collection[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
     """TODO: move this into StringUtils and rework import flow"""
-    formatted = []
+    formatted: list[str] = []
     cnt = len(collection)
     for i, e in enumerate(collection):
         formatted.append(str(e))
         if i != cnt - 1:
-            if i == cnt - 2:
+            if i == cnt - 2 and final_sep:
                 formatted.append(final_sep)
             else:
                 formatted.append(sep)

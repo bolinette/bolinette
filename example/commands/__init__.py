@@ -1,1 +1,1 @@
-import example.commands.test
+import example.commands.test  # pyright: ignore[reportUnusedImport]

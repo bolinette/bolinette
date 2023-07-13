@@ -32,7 +32,7 @@ def test_generic_type() -> None:
     assert t.vars == (T,)
     assert str(t) == "test_generic_type.<locals>._T[~T]"
     assert repr(t) == "<Type test_generic_type.<locals>._T[~T]>"
-    assert hash(t) == hash((_T, (T,)))
+    assert hash(t) == hash((_T, (T,)))  # pyright: ignore[reportUnknownArgumentType]
     assert t == Type(_T[T], raise_on_typevar=False)
 
 
@@ -62,7 +62,7 @@ def test_specified_generic_type() -> None:
     assert t.cls is _T
     assert t.vars == (_P,)
     assert str(t) == "test_specified_generic_type.<locals>._T[test_specified_generic_type.<locals>._P]"
-    assert hash(t) == hash((_T, (_P,)))
+    assert hash(t) == hash((_T, (_P,)))  # pyright: ignore[reportUnknownArgumentType]
 
 
 def test_fail_forward_ref() -> None:
@@ -175,11 +175,11 @@ def test_lookup() -> None:
         pass
 
     t = Type(_T[_P], raise_on_typevar=False)
-    l = TypeVarLookup(t)
+    lookup = TypeVarLookup(t)
 
-    assert not l.empty
-    assert [*l] == [(T, _P)]
-    assert l[T] is _P
+    assert not lookup.empty
+    assert [*lookup] == [(T, _P)]
+    assert lookup[T] is _P
 
 
 def test_empty_lookup() -> None:
@@ -187,10 +187,10 @@ def test_empty_lookup() -> None:
         pass
 
     t = Type(_T)
-    l = TypeVarLookup(t)
+    lookup = TypeVarLookup(t)
 
-    assert l.empty
-    assert [*l] == []
+    assert lookup.empty
+    assert [*lookup] == []
 
 
 def test_fail_lookup_key_not_found() -> None:
@@ -204,10 +204,10 @@ def test_fail_lookup_key_not_found() -> None:
         pass
 
     t = Type(_T[_P], raise_on_typevar=False)
-    l = TypeVarLookup(t)
+    lookup = TypeVarLookup(t)
 
     with pytest.raises(KeyError):
-        l[K]
+        lookup[K]
 
 
 def test_nullable_type() -> None:

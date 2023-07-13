@@ -103,7 +103,7 @@ class DefaultArgResolver:
                 param=options.name,
             )
 
-        r_type = options.injection._types[options.t.cls].get_type(options.t)
+        r_type = options.injection.registered_types[options.t.cls].get_type(options.t)
 
         if r_type.strategy == "scoped":
             if options.caller_strategy in ["singleton", "transcient"]:
@@ -113,8 +113,8 @@ class DefaultArgResolver:
                     param=options.name,
                 )
 
-        if options.injection._has_instance(r_type):
-            return (options.name, options.injection._get_instance(r_type))
+        if options.injection.__has_instance__(r_type):
+            return (options.name, options.injection.__get_instance__(r_type))
         if options.immediate:
             return (
                 options.name,

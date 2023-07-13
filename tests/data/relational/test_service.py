@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,8 +21,18 @@ def test_create() -> None:
         id: Mapped[int] = mapped_column(primary_key=True)
         name: Mapped[str]
 
+    def _map(
+        src_cls: type[Any],
+        dest_cls: type[Any],
+        src: Any,
+        *,
+        src_path: str | None = None,
+        dest_path: str | None = None,
+    ) -> _Entity:
+        return _Entity(id=1, name="name")
+
     mock.mock(Repository[_Entity]).setup(lambda r: r.add, lambda e: e)
-    mock.mock(Mapper).setup(lambda m: m.map, lambda cs, cd, s: _Entity(id=1, name="name"))
+    mock.mock(Mapper).setup(lambda m: m.map, _map)
     mock.injection.add(Service[_Entity], "singleton")
 
     service = mock.injection.require(Service[_Entity])
@@ -42,8 +54,19 @@ def test_update() -> None:
         id: Mapped[int] = mapped_column(primary_key=True)
         name: Mapped[str]
 
+    def _map(
+        src_cls: type[Any],
+        dest_cls: type[Any],
+        src: Any,
+        dest: _Entity,
+        *,
+        src_path: str | None = None,
+        dest_path: str | None = None,
+    ) -> _Entity:
+        return dest
+
     mock.mock(Repository[_Entity])
-    mock.mock(Mapper).setup(lambda m: m.map, lambda cs, cd, s, d: d)
+    mock.mock(Mapper).setup(lambda m: m.map, _map)
     mock.injection.add(Service[_Entity], "singleton")
 
     service = mock.injection.require(Service[_Entity])
@@ -68,8 +91,18 @@ def test_fail_validate_non_nullable_column() -> None:
         id: Mapped[int] = mapped_column(primary_key=True)
         name: Mapped[str]
 
+    def _map(
+        src_cls: type[Any],
+        dest_cls: type[Any],
+        src: Any,
+        *,
+        src_path: str | None = None,
+        dest_path: str | None = None,
+    ) -> _Entity:
+        return _Entity(id=1, name=None)
+
     mock.mock(Repository[_Entity]).setup(lambda r: r.add, lambda e: e)
-    mock.mock(Mapper).setup(lambda m: m.map, lambda cs, cd, s: _Entity(id=1, name=None))
+    mock.mock(Mapper).setup(lambda m: m.map, _map)
     mock.injection.add(Service[_Entity], "singleton")
 
     service = mock.injection.require(Service[_Entity])
@@ -92,8 +125,18 @@ def test_fail_validate_wrong_column_type() -> None:
         name: Mapped[str | None]
         value: Mapped[int]
 
+    def _map(
+        src_cls: type[Any],
+        dest_cls: type[Any],
+        src: Any,
+        *,
+        src_path: str | None = None,
+        dest_path: str | None = None,
+    ) -> _Entity:
+        return _Entity(id=1, name=None, value="42")
+
     mock.mock(Repository[_Entity]).setup(lambda r: r.add, lambda e: e)
-    mock.mock(Mapper).setup(lambda m: m.map, lambda cs, cd, s: _Entity(id=1, name=None, value="42"))
+    mock.mock(Mapper).setup(lambda m: m.map, _map)
     mock.injection.add(Service[_Entity], "singleton")
 
     service = mock.injection.require(Service[_Entity])

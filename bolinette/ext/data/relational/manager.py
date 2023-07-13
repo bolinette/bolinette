@@ -13,7 +13,7 @@ from bolinette.ext.data.relational import (
     Repository,
     SessionManager,
 )
-from bolinette.ext.data.relational.repository import _RepositoryMeta
+from bolinette.ext.data.relational.repository import RepositoryMeta
 from bolinette.injection import Injection, init_method
 
 
@@ -21,6 +21,14 @@ class EntityManager:
     def __init__(self) -> None:
         self._entities: list[type[DeclarativeBase]] = []
         self._engines: dict[type[DeclarativeBase], RelationalDatabase] = {}
+
+    @property
+    def entities(self) -> list[type[DeclarativeBase]]:
+        return list(self._entities)
+
+    @property
+    def engines(self) -> dict[type[DeclarativeBase], RelationalDatabase]:
+        return dict(self._engines)
 
     @init_method
     def _init_engines(self, cache: Cache, databases: DatabaseManager) -> None:
@@ -59,11 +67,11 @@ class EntityManager:
 
     @init_method
     def _init_repositories(self, cache: Cache, inject: Injection) -> None:
-        repo_classes = cache.get(_RepositoryMeta, hint=type[Repository[Any]], raises=False)
+        repo_classes = cache.get(RepositoryMeta, hint=type[Repository[Any]], raises=False)
         used_classes: set[type[Repository[Any]]] = set()
         for entity in self._entities:
             for repo_class in repo_classes:
-                if meta.get(repo_class, _RepositoryMeta).entity is entity:
+                if meta.get(repo_class, RepositoryMeta).entity is entity:
                     inject.add(repo_class, "scoped")
                     inject.add(repo_class, "scoped", super_cls=Repository[entity])
                     used_classes.add(repo_class)

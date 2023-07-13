@@ -3,6 +3,8 @@ import contextlib
 from types import NoneType, UnionType
 from typing import Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
 
+from typing_extensions import override
+
 from bolinette import types
 from bolinette.exceptions import TypingError
 
@@ -20,7 +22,7 @@ class Type(Generic[T]):
         self,
         __cls: type[T],
         *,
-        lookup: "types.TypeVarLookup | None" = None,
+        lookup: "types.TypeVarLookup[Any] | None" = None,
         raise_on_string: bool = True,
         raise_on_typevar: bool = True,
     ) -> None:
@@ -37,6 +39,7 @@ class Type(Generic[T]):
         self.annotations = Type._get_recursive_annotations(self.cls)
         self.union = tuple(Type(c) for c in additional_cls)
 
+    @override
     def __str__(self) -> str:
         def _format_v(v: type[Any] | TypeVar | ForwardRef) -> str:
             if isinstance(v, type):
@@ -61,16 +64,23 @@ class Type(Generic[T]):
 
         return repr_str
 
+    @override
     def __repr__(self) -> str:
         return f"<Type {str(self)}>"
 
+    @override
     def __hash__(self) -> int:
         return hash((self.cls, self.vars))
 
+    @override
     def __eq__(self, __value: object) -> bool:
-        return isinstance(__value, Type) and __value.cls is self.cls and __value.vars == self.vars
+        return (
+            isinstance(__value, Type)
+            and __value.cls is self.cls  # pyright: ignore[reportUnknownMemberType]
+            and __value.vars == self.vars
+        )
 
-    def new(self, *args, **kwargs) -> T:
+    def new(self, *args: Any, **kwargs: Any) -> T:
         return self.cls(*args, **kwargs)
 
     @property
@@ -97,7 +107,7 @@ class Type(Generic[T]):
     @staticmethod
     def get_generics(
         _cls: type[T],
-        lookup: "types.TypeVarLookup | None",
+        lookup: "types.TypeVarLookup[Any] | None",
         raise_on_string: bool,
         raise_on_typevar: bool,
     ) -> tuple[type[T], tuple[Any, ...]]:
@@ -133,7 +143,7 @@ class Type(Generic[T]):
         return 0
 
 
-_BUILTIN_PARAM_COUNT = {
+_BUILTIN_PARAM_COUNT: dict[type[Any], int] = {
     collections.abc.Hashable: 0,
     collections.abc.Awaitable: 1,
     collections.abc.Coroutine: 3,

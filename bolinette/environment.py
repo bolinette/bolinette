@@ -64,7 +64,7 @@ class Environment:
             self._init_from_file(f"env.local.{self._profile}.yaml"),
         ]
 
-        merged: dict = {}
+        merged: dict[str, Any] = {}
         for node in stack:
             for name, section in node.items():
                 if name not in merged:

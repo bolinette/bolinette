@@ -1,3 +1,5 @@
+from typing import Any
+
 import yaml
 
 from bolinette.utils import paths
@@ -13,7 +15,7 @@ class FileUtils:
             return f.read()
 
     @staticmethod
-    def read_yaml(path: str) -> dict:
+    def read_yaml(path: str) -> dict[str, Any]:
         with open(path) as f:
             return yaml.safe_load(f)
 

@@ -6,7 +6,7 @@ from typing import Any, Protocol, TypeVar
 from bolinette import Cache, __user_cache__
 from bolinette.ext.data import DataSection
 from bolinette.ext.data.exceptions import DatabaseError
-from bolinette.injection import Injection, init_method, injectable
+from bolinette.injection import Injection, init_method
 
 
 class DatabaseManager:

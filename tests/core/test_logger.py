@@ -28,7 +28,7 @@ def _parse_output(out: str) -> _Output:
     return _Output(match.group(1), match.group(2), match.group(3), match.group(4))
 
 
-def test_logger(capsys: CaptureFixture) -> None:
+def test_logger(capsys: CaptureFixture[Any]) -> None:
     logger: Logger[Any] = Logger(Cache(debug=True))
 
     d1 = datetime.utcnow()
@@ -65,13 +65,13 @@ def test_logger(capsys: CaptureFixture) -> None:
     assert outputs[3].message == "Test error message"
 
 
-def test_logger_generic(capsys: CaptureFixture) -> None:
+def test_logger_generic(capsys: CaptureFixture[Any]) -> None:
     class _TestClass:
         pass
 
     logger: Logger[Any] = Logger(Cache(debug=True))
     meta.set(logger, GenericMeta([_TestClass]))  # type: ignore
-    logger._init()
+    logger._init()  # pyright: ignore[reportPrivateUsage]
 
     d1 = datetime.utcnow()
 
@@ -89,7 +89,7 @@ def test_logger_generic(capsys: CaptureFixture) -> None:
     assert outputs[0].message == "Test info message"
 
 
-def test_logger_debug(capsys: CaptureFixture) -> None:
+def test_logger_debug(capsys: CaptureFixture[Any]) -> None:
     cache = Cache()
 
     logger: Logger[Any] = Logger(cache)

@@ -8,7 +8,7 @@ class AttributeUtils:
     def get_cls_attrs(
         obj: type[Any], *, of_type: type[InstanceT] | tuple[type[InstanceT], ...] | None = None
     ) -> dict[str, InstanceT]:
-        parent_attrs = {}
+        parent_attrs: dict[str, Any] = {}
         for parent in obj.__bases__:
             parent_attrs |= AttributeUtils.get_cls_attrs(parent, of_type=of_type)
         return parent_attrs | {

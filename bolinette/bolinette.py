@@ -62,6 +62,7 @@ class Bolinette:
     async def startup(self) -> None:
         pass
 
+    @property
     def _parser(self) -> Parser:
         ...
 

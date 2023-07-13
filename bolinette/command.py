@@ -1,16 +1,21 @@
 import sys
-from argparse import ArgumentParser, _SubParsersAction
+from argparse import ArgumentParser
 from collections.abc import Callable
-from typing import Any, Awaitable, Literal, ParamSpec
+from typing import Any, Awaitable, Literal, ParamSpec, Protocol
 
 from bolinette import Cache, Logger, __user_cache__, meta
 from bolinette.exceptions import InitError
-from bolinette.injection import Injection, init_method, injectable
+from bolinette.injection import Injection, init_method
 
 P_Func = ParamSpec("P_Func")
 
 
-class _CommandMeta:
+class _SubParsersAction(Protocol):
+    def add_parser(self, name: str, *, help: str | None = None) -> ArgumentParser:
+        ...
+
+
+class CommandMeta:
     def __init__(
         self,
         path: str,
@@ -30,7 +35,7 @@ class _Argument:
         summary: str | None = None,
         value_type: type[Any] | None = None,
         default: Any | None = None,
-        choices: list | None = None,
+        choices: list[str] | None = None,
     ):
         self.arg_type = arg_type
         self.name = name
@@ -41,7 +46,7 @@ class _Argument:
         self.choices = choices
 
 
-class _ArgumentMeta(list[_Argument]):
+class ArgumentMeta(list[_Argument]):
     pass
 
 
@@ -66,8 +71,8 @@ class Parser:
 
     @init_method
     def init(self):
-        if _CommandMeta in self._cache:
-            self._functions = self._cache.get(_CommandMeta)
+        if CommandMeta in self._cache:
+            self._functions = self._cache.get(CommandMeta)
 
     async def run(self) -> None:
         tree = self._parse_commands()
@@ -90,10 +95,10 @@ class Parser:
     async def _run_command(self, cmd: str, args: dict[str, Any]):
         await self._inject.call(self._commands[cmd], named_args=args)
 
-    def _parse_commands(self):
-        command_tree = {}
+    def _parse_commands(self) -> dict[str, Any]:
+        command_tree: dict[str, Any] = {}
         for func in self._functions:
-            _cmd = meta.get(func, _CommandMeta)
+            _cmd = meta.get(func, CommandMeta)
             cur_node = command_tree
             path = _cmd.path.split(" ")
             for elem in path[:-1]:
@@ -114,11 +119,11 @@ class Parser:
         path: list[str],
     ):
         for name, elem in command_tree.items():
-            if meta.has(elem, _CommandMeta):
-                _cmd = meta.get(elem, _CommandMeta)
+            if meta.has(elem, CommandMeta):
+                _cmd = meta.get(elem, CommandMeta)
                 sub_parser = sub_parsers.add_parser(name, help=_cmd.summary)
-                if meta.has(elem, _ArgumentMeta):
-                    for arg in meta.get(elem, _ArgumentMeta):
+                if meta.has(elem, ArgumentMeta):
+                    for arg in meta.get(elem, ArgumentMeta):
                         self._factories[arg.arg_type](arg, sub_parser)
                 sub_parser.set_defaults(__blnt_cmd__=_cmd.path)
             else:
@@ -128,7 +133,7 @@ class Parser:
                 self._build_parsers(elem, sub_parser.add_subparsers(), path + [name])
 
     @staticmethod
-    def _build_help(command_tree: dict, path: list[str]):
+    def _build_help(command_tree: dict[str, Any], path: list[str]):
         commands = [f'"{" ".join(path + [x])}"' for x in command_tree]
         return "Sub-commands: " + ", ".join(commands)
 
@@ -175,8 +180,8 @@ class Parser:
 class _CommandDecorator:
     def __call__(self, name: str, summary: str, *, cache: Cache | None = None):
         def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
-            meta.set(func, _CommandMeta(name, summary))
-            (cache or __user_cache__).add(_CommandMeta, func)
+            meta.set(func, CommandMeta(name, summary))
+            (cache or __user_cache__).add(CommandMeta, func)
             return func
 
         return decorator
@@ -189,13 +194,13 @@ class _CommandDecorator:
         flag: str | None = None,
         summary: str | None = None,
         value_type: type | None = None,
-        default=None,
-        choices: list | None = None,
+        default: Any = None,
+        choices: list[str] | None = None,
     ):
         def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
-            if not meta.has(func, _ArgumentMeta):
-                meta.set(func, _ArgumentMeta())
-            meta.get(func, _ArgumentMeta).append(
+            if not meta.has(func, ArgumentMeta):
+                meta.set(func, ArgumentMeta())
+            meta.get(func, ArgumentMeta).append(
                 _Argument(
                     arg_type,
                     name,

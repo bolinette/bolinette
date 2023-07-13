@@ -1,4 +1,5 @@
 from typing import Any, Callable, Generic, TypeVar
+
 from typing_extensions import override
 
 from bolinette.exceptions import MappingError

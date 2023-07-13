@@ -1,8 +1,10 @@
-from typing import Any, Awaitable, Callable
+from typing import Awaitable, Callable
+
 from aiohttp import web
+
 from bolinette import meta
 from bolinette.ext.web import with_middleware, without_middleware
-from bolinette.ext.web.middleware import Middleware, MiddlewareBag
+from bolinette.ext.web.middleware import MiddlewareBag
 from bolinette.types import Type
 
 

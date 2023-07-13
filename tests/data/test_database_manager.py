@@ -3,7 +3,7 @@ import pytest
 from bolinette import Cache
 from bolinette.ext.data import DatabaseManager, DataSection, database_system
 from bolinette.ext.data.exceptions import DatabaseError
-from bolinette.ext.data.objects import _DatabaseSection
+from bolinette.ext.data.objects import DatabaseSection
 from bolinette.ext.data.relational import RelationalDatabase
 from bolinette.testing import Mock
 
@@ -11,12 +11,12 @@ from bolinette.testing import Mock
 def test_init_systems() -> None:
     cache = Cache()
 
-    @database_system(cache=cache)
     class _SQLite:
         scheme = "sqlite+aiosqlite://"
         python_package = "aiosqlite"
         manager = RelationalDatabase
 
+    database_system(cache=cache)(_SQLite)
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, [])
     mock.injection.add(DatabaseManager, "singleton")
@@ -46,12 +46,12 @@ def test_fail_init_systems_no_system() -> None:
 def test_fail_init_systems_python_package_not_found() -> None:
     cache = Cache()
 
-    @database_system(cache=cache)
     class _SQLite:
         scheme = "sqlite+aiosqlite://"
         python_package = "some-package"
         manager = RelationalDatabase
 
+    database_system(cache=cache)(_SQLite)
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, [])
     mock.injection.add(DatabaseManager, "singleton")
@@ -72,8 +72,8 @@ def test_init_connections() -> None:
     cache = Cache()
     database_system(cache=cache)(SQLite)
 
-    def get_sections() -> list[_DatabaseSection]:
-        conn = _DatabaseSection()
+    def get_sections() -> list[DatabaseSection]:
+        conn = DatabaseSection()
         conn.name = "test-connection"
         conn.url = "sqlite+aiosqlite://"
         conn.echo = False
@@ -99,8 +99,8 @@ def test_fail_init_connections_invalid_url() -> None:
     cache = Cache()
     database_system(cache=cache)(SQLite)
 
-    def get_sections() -> list[_DatabaseSection]:
-        conn = _DatabaseSection()
+    def get_sections() -> list[DatabaseSection]:
+        conn = DatabaseSection()
         conn.name = "test-connection"
         conn.url = "invalid url!"
         conn.echo = False
@@ -120,8 +120,8 @@ def test_fail_init_connections_system_not_found() -> None:
     cache = Cache()
     database_system(cache=cache)(SQLite)
 
-    def get_sections() -> list[_DatabaseSection]:
-        conn = _DatabaseSection()
+    def get_sections() -> list[DatabaseSection]:
+        conn = DatabaseSection()
         conn.name = "test-connection"
         conn.url = "protocol://"
         conn.echo = False

@@ -1,5 +1,7 @@
 from typing import Any, Callable, Generic, Literal, TypeVar
 
+from typing_extensions import override
+
 from bolinette.exceptions import InjectionError
 from bolinette.types import Type
 
@@ -28,6 +30,7 @@ class RegisteredType(Generic[InstanceT]):
         self.before_init = before_init
         self.after_init = after_init
 
+    @override
     def __repr__(self) -> str:
         return f"<RegisteredType {self.t}: {self.strategy}>"
 
@@ -83,5 +86,6 @@ class RegisteredTypeBag(Generic[InstanceT]):
         self._types[hash(super_t)] = r_type
         return r_type
 
+    @override
     def __repr__(self) -> str:
         return f"<RegisteredTypeBag {self._cls}: [{self._match_all}], [{len(self._types)}]>"

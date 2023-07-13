@@ -1,4 +1,4 @@
-from typing import Any, Callable, Concatenate, Literal, ParamSpec, TypeVar, get_origin
+from typing import Any, Callable, Concatenate, ParamSpec, TypeVar, get_origin
 
 from bolinette import Cache, __user_cache__, meta
 from bolinette.injection.hook import InjectionHook
@@ -61,8 +61,8 @@ def injectable(
     return decorator
 
 
-def require(cls: type[InstanceT]) -> Callable[[Callable], InjectionHook[InstanceT]]:
-    def decorator(func: Callable) -> InjectionHook[InstanceT]:
+def require(cls: type[InstanceT]) -> Callable[[Callable[..., Any]], InjectionHook[InstanceT]]:
+    def decorator(func: Callable[..., Any]) -> InjectionHook[InstanceT]:
         return InjectionHook(Type(cls))
 
     return decorator

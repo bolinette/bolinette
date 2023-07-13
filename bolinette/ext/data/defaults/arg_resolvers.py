@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bolinette import meta
 from bolinette.exceptions import InjectionError
 from bolinette.ext.data.relational import EntityManager, RelationalDatabase, SessionManager
-from bolinette.injection.resolver import ArgResolverOptions, injection_arg_resolver
+from bolinette.injection.resolver import ArgResolverOptions
 
 
 class AsyncSessionArgResolver:
@@ -27,4 +27,4 @@ class AsyncSessionArgResolver:
                 f"Type {entity_type} is not registered as an entity", func=options.caller, param=options.name
             )
         engine = meta.get(entity_type, RelationalDatabase)
-        return options.name, self.sessions.get(engine._name)
+        return options.name, self.sessions.get(engine.name)

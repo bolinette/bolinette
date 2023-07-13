@@ -25,31 +25,31 @@ class PathUtils:
         return os.getcwd()
 
     @staticmethod
-    def mkdir(path) -> None:
+    def mkdir(path: str) -> None:
         os.makedirs(path)
 
     @staticmethod
-    def exists(path) -> bool:
+    def exists(path: str) -> bool:
         return os.path.exists(path)
 
     @staticmethod
-    def rename(path, new_path) -> None:
+    def rename(path: str, new_path: str) -> None:
         os.rename(path, new_path)
 
     @staticmethod
-    def join(*args) -> str:
+    def join(*args: str) -> str:
         return os.path.join(*args)
 
     @staticmethod
-    def dirname(path) -> str:
+    def dirname(path: str) -> str:
         return os.path.dirname(os.path.realpath(path))
 
     @staticmethod
-    def split(path) -> tuple[str, str]:
+    def split(path: str) -> tuple[str, str]:
         return os.path.split(path)
 
     @staticmethod
-    def rm(path, *, recursive=False) -> None:
+    def rm(path: str, *, recursive: bool = False) -> None:
         if recursive:
             for root, dirs, files in os.walk(path, topdown=False):
                 for name in files:

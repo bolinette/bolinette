@@ -1,1 +1,1 @@
-from bolinette.expressions.tree import ExpressionTree, AttributeNode
+from bolinette.expressions.tree import ExpressionTree as ExpressionTree, AttributeNode as AttributeNode

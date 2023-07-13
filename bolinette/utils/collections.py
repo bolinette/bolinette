@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from typing import Generic, Iterable, TypeVar
+
 from typing_extensions import override
 
 T = TypeVar("T")
@@ -7,12 +8,12 @@ T = TypeVar("T")
 
 class OrderedSet(Generic[T], set[T]):
     def __init__(self, iterable: Iterable[T] | None = None, /) -> None:
-        set.__init__(self, iterable or ())
+        super().__init__(iterable or ())
         self._order: list[T] = []
 
     @override
     def add(self, element: T, /) -> None:
-        set.add(self, element)
+        super().add(element)
         self._order.append(element)
 
     @override

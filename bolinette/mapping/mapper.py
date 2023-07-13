@@ -38,7 +38,7 @@ class Mapper:
     @init_method
     def _init_type_mappers(self, cache: Cache) -> None:
         mappers: dict[Type[Any], type[TypeMapper[Any]]] = {}
-        for cls in cache.get(TypeMapperMeta, hint=type[TypeMapper], raises=False):
+        for cls in cache.get(TypeMapperMeta, hint=type[TypeMapper[Any]], raises=False):
             _m = meta.get(cls, TypeMapperMeta)
             mappers[_m.t] = cls
         self._type_mappers = mappers
@@ -96,7 +96,7 @@ class MappingRunner:
 
     def __init__(
         self,
-        sequences: dict[int, MappingSequence],
+        sequences: dict[int, MappingSequence[Any, Any]],
         mappers: "dict[Type[Any], type[TypeMapper[Any]]]",
         default_mapper: "type[TypeMapper[object]]",
     ) -> None:
@@ -142,7 +142,7 @@ class TypeMapper(Protocol[TargetT]):
         ...
 
 
-TypeMapperT = TypeVar("TypeMapperT", bound=TypeMapper)
+TypeMapperT = TypeVar("TypeMapperT", bound=TypeMapper[Any])
 
 
 class TypeMapperMeta:
@@ -272,7 +272,7 @@ class DefaultTypeMapper:
         src: SrcT,
         dest: list[DestT] | set[DestT] | tuple[DestT] | None,
     ) -> list[DestT] | set[DestT] | tuple[DestT]:
-        elems = []
+        elems: list[DestT] = []
         if not self._is_iterable(src):
             raise MappingError(f"Could not map non iterable type {src_t} to {dest_t}", dest=dest_path, src=src_path)
         for index, elem in enumerate(src):
@@ -294,7 +294,7 @@ class DefaultTypeMapper:
         elif isinstance(dest, set):
             dest.clear()
             dest.update(elems)
-        elif isinstance(dest, tuple):
+        else:
             raise MappingError("Could not use an existing tuple instance, tuples are immutable", dest=dest_path)
         return dest
 
@@ -336,7 +336,7 @@ class DefaultTypeMapper:
     @staticmethod
     def _get_value(obj: object, attr: str) -> Any:
         if isinstance(obj, dict):
-            return obj[attr]
+            return obj[attr]  # pyright: ignore[reportUnknownVariableType]
         return getattr(obj, attr)
 
     @staticmethod
@@ -348,7 +348,7 @@ class DefaultTypeMapper:
     @staticmethod
     def _iter_obj(obj: object) -> Iterable[tuple[str, Any]]:
         if isinstance(obj, dict):
-            return obj.items()
+            return obj.items()  # pyright: ignore[reportUnknownVariableType]
         return vars(obj).items()
 
     @staticmethod

@@ -4,7 +4,7 @@ import pytest
 
 from bolinette import meta
 from bolinette.exceptions import InternalError
-from bolinette.metadata import _BolinetteMetadata, _get_meta_container
+from bolinette.metadata import BolinetteMetadata, get_meta_container
 
 T = TypeVar("T")
 
@@ -103,7 +103,7 @@ def test_fail_get_container() -> None:
     setattr(_TestClass, "__blnt_meta__", 0)
 
     with pytest.raises(InternalError) as info:
-        _get_meta_container(_TestClass)
+        get_meta_container(_TestClass)
 
     assert (
         f"Metadata container in {_TestClass} has been overwritten. "
@@ -115,7 +115,7 @@ def test_fail_container_set_item() -> None:
     class _TestClass:
         pass
 
-    _c = _BolinetteMetadata()
+    _c = BolinetteMetadata()
 
     with pytest.raises(TypeError):
         _c[_TestClass()] = 0  # type: ignore
@@ -125,7 +125,7 @@ def test_fail_container_set_item_wrong_type() -> None:
     class _TestClass:
         pass
 
-    _c = _BolinetteMetadata()
+    _c = BolinetteMetadata()
 
     with pytest.raises(TypeError):
         _c[_TestClass] = 0

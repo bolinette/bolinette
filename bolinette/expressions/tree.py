@@ -1,10 +1,13 @@
 from abc import ABC
 from typing import Any
 
+from typing_extensions import override
+
 from bolinette.exceptions import ExpressionError
 
 
 class ExpressionNode(ABC):
+    @override
     def __getattribute__(self, __name: str) -> "AttributeNode":
         return AttributeNode(self, __name)
 

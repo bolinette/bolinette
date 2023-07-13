@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from bolinette import Cache, meta
 from bolinette.ext.data.exceptions import DataError, EntityNotFoundError
 from bolinette.ext.data.relational import Repository, entity, get_base, repository
-from bolinette.ext.data.relational.repository import _RepositoryMeta
+from bolinette.ext.data.relational.repository import RepositoryMeta
 from bolinette.testing import Mock
 
 
@@ -30,7 +32,7 @@ def test_init_repo() -> None:
 
     repo = mock.injection.require(Repository[Entity])
 
-    assert list(repo._primary_key) == [Entity.id]
+    assert list(repo.primary_key) == [Entity.id]
 
 
 async def test_iterate() -> None:
@@ -44,7 +46,7 @@ async def test_iterate() -> None:
         def scalars(self):
             return [e1, e2]
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -52,7 +54,7 @@ async def test_iterate() -> None:
 
     repo = mock.injection.require(Repository[Entity])
 
-    res = []
+    res: list[Entity] = []
     async for e in repo.iterate(select(Entity)):
         res.append(e)
 
@@ -70,7 +72,7 @@ async def test_find_all() -> None:
         def scalars(self):
             return [e1, e2]
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -78,7 +80,7 @@ async def test_find_all() -> None:
 
     repo = mock.injection.require(Repository[Entity])
 
-    res = []
+    res: list[Entity] = []
     async for e in repo.find_all():
         res.append(e)
 
@@ -92,10 +94,10 @@ async def test_first() -> None:
     e1 = Entity()
 
     class _MockedResult:
-        def scalar_one_or_none(self):
+        def scalar_one_or_none(self) -> Entity:
             return e1
 
-    async def _execute(*_):
+    async def _execute(*_: Any) -> _MockedResult:
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -116,7 +118,7 @@ async def test_first_none() -> None:
         def scalar_one_or_none(self):
             return None
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -137,7 +139,7 @@ async def test_fail_first_none() -> None:
         def scalar_one_or_none(self):
             return None
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -161,7 +163,7 @@ async def test_get_by_primary() -> None:
         def scalar_one_or_none(self):
             return e1
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -182,7 +184,7 @@ async def test_get_by_primary_none() -> None:
         def scalar_one_or_none(self):
             return None
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -203,7 +205,7 @@ async def test_fail_get_by_primary_none() -> None:
         def scalar_one_or_none(self):
             return None
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -242,7 +244,7 @@ async def test_get_by_key() -> None:
         def scalar_one_or_none(self):
             return e1
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -263,7 +265,7 @@ async def test_get_by_key_none() -> None:
         def scalar_one_or_none(self):
             return None
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -284,7 +286,7 @@ async def test_fail_get_by_key_none() -> None:
         def scalar_one_or_none(self):
             return None
 
-    async def _execute(*_):
+    async def _execute(*_: Any):
         return _MockedResult()
 
     mock.mock(AsyncSession).setup(lambda s: s.execute, _execute)
@@ -318,9 +320,9 @@ async def test_add() -> None:
     mock = Mock(cache=cache)
 
     e1 = Entity()
-    entities = []
+    entities: list[Entity] = []
 
-    def _add(entity):
+    def _add(entity: Entity) -> None:
         entities.append(entity)
 
     mock.mock(AsyncSession).setup(lambda s: s.add, _add)
@@ -340,7 +342,7 @@ async def test_delete() -> None:
     e1 = Entity()
     entities = [e1]
 
-    async def _delete(entity):
+    async def _delete(entity: Entity) -> None:
         entities.remove(entity)
 
     mock.mock(AsyncSession).setup(lambda s: s.delete, _delete)
@@ -381,6 +383,6 @@ def test_custom_repo() -> None:
     class _EntityRepo(Repository[Entity]):
         pass
 
-    res = cache.get(_RepositoryMeta)
+    res: list[RepositoryMeta[Any]] = cache.get(RepositoryMeta)
     assert res == [_EntityRepo]
-    assert meta.get(res[0], _RepositoryMeta).entity is Entity
+    assert meta.get(res[0], RepositoryMeta).entity is Entity

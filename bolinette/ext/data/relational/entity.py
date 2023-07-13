@@ -26,11 +26,11 @@ def entity(
             _key_names = [entity_key]
         else:
             _key_names = entity_key
-        _entity_key = []
+        _entity_key: list[InstrumentedAttribute[Any]] = []
         for name in _key_names:
             if not hasattr(cls, name):
                 raise EntityError(f"Attribute '{name}' not found", entity=cls)
-            attr = getattr(cls, name)
+            attr: InstrumentedAttribute[Any] | Any = getattr(cls, name)
             if (
                 not isinstance(attr, InstrumentedAttribute)
                 or not hasattr(attr, "prop")

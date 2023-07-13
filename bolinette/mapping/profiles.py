@@ -51,7 +51,7 @@ class SequenceBuilder(Generic[SrcT, DestT]):
         options: Callable[[MappingOptions[SrcT, DestT]], MapFromOptions | None],
     ) -> Self:
         expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        opt = MappingOptions(expr)
+        opt: MappingOptions[SrcT, DestT] = MappingOptions(expr)
         options(opt)
         if opt.step is not None:
             self.sequence.add_for_attr(opt.step)

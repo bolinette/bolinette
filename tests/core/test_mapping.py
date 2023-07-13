@@ -4,7 +4,7 @@ import pytest
 
 from bolinette import Cache
 from bolinette.exceptions import MappingError
-from bolinette.mapping import Mapper, Profile, mapping, type_mapper
+from bolinette.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
 from bolinette.mapping.mapper import (
     BoolTypeMapper,
     DefaultTypeMapper,
@@ -38,7 +38,7 @@ def test_init_type_mappers_from_cache() -> None:
 
     @type_mapper(_Destination, cache=cache)
     class _:
-        def __init__(self, runner) -> None:
+        def __init__(self, runner: MappingRunner) -> None:
             self.runner = runner
 
         def map(
@@ -184,7 +184,7 @@ def test_fail_no_default_value() -> None:
         pass
 
     class _Value:
-        def __init__(self, value) -> None:
+        def __init__(self, value: Any) -> None:
             self.value = value
 
     class _Destination:
@@ -253,7 +253,7 @@ def test_map_explicit_ignore() -> None:
     d = mapper.map(_Source, _Destination, s)
 
     assert s.name == "test"
-    assert d.name == None
+    assert d.name is None
 
 
 def test_fail_map_ignore_non_nullable() -> None:
@@ -369,7 +369,7 @@ def test_map_with_custom_dest() -> None:
     class _Source:
         name: str
 
-        def __init__(self, name) -> None:
+        def __init__(self, name: str) -> None:
             self.name = name
 
     class _Destination:
@@ -944,7 +944,7 @@ def test_fail_map_from_dict() -> None:
         mapper.map(dict[str, Any], _Destination, {"id": 1})
 
     assert (
-        f"Destination path 'test_fail_map_from_dict.<locals>._Destination.name', "
+        "Destination path 'test_fail_map_from_dict.<locals>._Destination.name', "
         "From source path 'dict[str, Any]['name']', "
         "Source path not found, could not bind a None value to non nullable type str" == info.value.message
     )

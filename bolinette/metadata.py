@@ -5,7 +5,7 @@ from bolinette.exceptions import InternalError
 T = TypeVar("T")
 
 
-class _BolinetteMetadata:
+class BolinetteMetadata:
     def __init__(self) -> None:
         self._data: dict[type[Any], Any] = {}
 
@@ -23,13 +23,13 @@ class _BolinetteMetadata:
         self._data[key] = value
 
 
-def _get_meta_container(obj: Any) -> _BolinetteMetadata:
+def get_meta_container(obj: Any) -> BolinetteMetadata:
     if "__blnt_meta__" not in vars(obj):
-        _meta = _BolinetteMetadata()
+        _meta = BolinetteMetadata()
         setattr(obj, "__blnt_meta__", _meta)
     else:
         _meta = getattr(obj, "__blnt_meta__")
-        if not isinstance(_meta, _BolinetteMetadata):
+        if not isinstance(_meta, BolinetteMetadata):
             raise InternalError(
                 f"Metadata container in {obj} has been overwritten. "
                 "Please do not use '__blnt_meta__' as an attribute in any class"
@@ -42,7 +42,7 @@ class _MetaFunctions:
     def has(obj: Any, cls: type[Any], /) -> bool:
         if not hasattr(obj, "__dict__"):
             return False
-        container = _get_meta_container(obj)
+        container = get_meta_container(obj)
         return cls in container
 
     @staticmethod
@@ -52,12 +52,12 @@ class _MetaFunctions:
         else:
             if not isinstance(_meta, cls):
                 raise TypeError(f"Type mismatch between {cls} and {_meta}")
-        container = _get_meta_container(obj)
+        container = get_meta_container(obj)
         container[cls] = _meta
 
     @staticmethod
     def get(obj: Any, cls: type[T], /, *, default: T | None = None) -> T:
-        container = _get_meta_container(obj)
+        container = get_meta_container(obj)
         if cls not in container and default is not None:
             return default
         return container[cls]

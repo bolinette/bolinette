@@ -12,11 +12,23 @@ from bolinette.utils import FileUtils, PathUtils
 
 
 def _setup_test(cache: Cache | None = None) -> Mock:
+    def _map(
+        src_cls: type[Any],
+        dest_cls: type[Any],
+        src: Any,
+        dest: Any,
+        *,
+        src_path: str | None = None,
+        dest_path: str | None = None,
+    ) -> None:
+        return None
+
     mock = Mock(cache=cache)
     mock.mock(Logger[Any], match_all=True)
     mock.mock(PathUtils).setup(lambda p: p.env_path, lambda *values: "".join(values))
-    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {})
-    mock.mock(Mapper).setup(lambda m: m.map, lambda *_a, **_k: None)
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda _: {})
+
+    mock.mock(Mapper).setup(lambda m: m.map, _map)
     mock.injection.add(Environment, "singleton", args=["test"])
     return mock
 
@@ -61,7 +73,7 @@ def test_parse_yaml_file() -> None:
         b: bool = True
 
     mock = _setup_test(cache)
-    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda *_: {"test": {"a": False}})
+    mock.mock(FileUtils).setup(lambda f: f.read_yaml, lambda _: {"test": {"a": False}})
     mock.injection.require(Environment)
     mock.injection.require(TestSection)
 
@@ -76,7 +88,7 @@ def test_env_file_not_found() -> None:
 
     mock = _setup_test(cache)
 
-    def _read_yaml(path) -> dict:
+    def _read_yaml(path: str) -> dict[str, Any]:
         match path:
             case "env.yaml":
                 return {"test": {"a": False, "b": True}}
@@ -101,7 +113,7 @@ def test_file_override() -> None:
         b: int
         c: int
 
-    def _read_yaml(path) -> dict:
+    def _read_yaml(path: str) -> dict[str, Any]:
         match path:
             case "env.yaml":
                 return {"test": {"a": 1, "b": 1, "c": 1}}
@@ -126,7 +138,7 @@ def test_os_env_conflict() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(Environment)
 
-    assert f"OS variable 'BLNT_TEST__A' conflicts with other variables" in info.value.message
+    assert "OS variable 'BLNT_TEST__A' conflicts with other variables" in info.value.message
 
     del os.environ["BLNT_TEST__A__A"]
     del os.environ["BLNT_TEST__A"]
@@ -146,7 +158,7 @@ def test_fail_no_section() -> None:
     with pytest.raises(EnvironmentError) as info:
         mock.injection.require(TestSection)
 
-    assert (f"No 'test' section was found in the environment files") in info.value.message
+    assert "No 'test' section was found in the environment files" in info.value.message
 
 
 def test_init_core_section() -> None:
@@ -156,7 +168,7 @@ def test_init_core_section() -> None:
 
     mock = _setup_test(cache)
 
-    def _read_yaml(path) -> dict:
+    def _read_yaml(path: str) -> dict[str, Any]:
         match path:
             case "env.yaml":
                 return {"core": {"debug": True}}
@@ -165,8 +177,19 @@ def test_init_core_section() -> None:
 
     assert cache.debug is False
 
+    def _map(
+        src_cls: type[Any],
+        dest_cls: type[Any],
+        src: Any,
+        dest: Any,
+        *,
+        src_path: str | None = None,
+        dest_path: str | None = None,
+    ) -> None:
+        setattr(dest, "debug", True)
+
     mock.mock(FileUtils).setup(lambda f: f.read_yaml, _read_yaml)
-    mock.mock(Mapper).setup(lambda m: m.map, lambda _st, _dt, _s, d, *_a, **_k: setattr(d, "debug", True))
+    mock.mock(Mapper).setup(lambda m: m.map, _map)
     mock.injection.require(Environment)
     section = mock.injection.require(CoreSection)
 

@@ -26,5 +26,5 @@ class StringUtils:
         return f"{string[0].upper()}{string[1:]}"
 
     @staticmethod
-    def random_string(length) -> str:
+    def random_string(length: int) -> str:
         return "".join(random.choices(string.ascii_letters + string.digits, k=length))

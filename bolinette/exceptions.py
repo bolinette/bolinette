@@ -1,6 +1,8 @@
 from collections.abc import Iterator
 from typing import Any, Callable
 
+from typing_extensions import override
+
 
 class BolinetteError(Exception):
     def __init__(self, message: str) -> None:
@@ -13,6 +15,7 @@ class InitError(BolinetteError):
         BolinetteError.__init__(self, message)
         self.message = message
 
+    @override
     def __str__(self) -> str:
         return self.message
 
@@ -47,9 +50,11 @@ class ErrorCollection(Exception):
     def __iter__(self) -> Iterator[BolinetteError]:
         return iter(self._errors)
 
+    @override
     def __str__(self) -> str:
         return str(self._errors)
 
+    @override
     def __repr__(self) -> str:
         return f'<BolinetteErrors [{",".join([repr(err) for err in self._errors])}]>'
 
@@ -71,7 +76,7 @@ class InjectionError(BolinetteError, ParameterError):
         message: str,
         *,
         cls: type[Any] | None = None,
-        func: Callable | None = None,
+        func: Callable[..., Any] | None = None,
         param: str | None = None,
     ) -> None:
         ParameterError.__init__(self, cls="Type {}", func="Callable {}", param="Parameter '{}'")

@@ -3,6 +3,7 @@ from typing import Any, Callable, Generic, Literal, TypeVar, overload
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import NamedColumn
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette import Cache, __user_cache__, meta
@@ -18,6 +19,10 @@ class Repository(Generic[EntityT]):
         self._session = session
         self._primary_key = self._entity.__table__.primary_key
         self._entity_key = meta.get(self._entity, EntityMeta).entity_key
+
+    @property
+    def primary_key(self) -> list[NamedColumn[Any]]:
+        return list(self._primary_key)
 
     async def iterate(self, statement: TypedReturnsRows[tuple[EntityT]]) -> AsyncIterable[EntityT]:
         result = await self._session.execute(statement)
@@ -87,15 +92,15 @@ class Repository(Generic[EntityT]):
 RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # type: ignore
 
 
-class _RepositoryMeta(Generic[EntityT]):
+class RepositoryMeta(Generic[EntityT]):
     def __init__(self, entity: type[EntityT]) -> None:
         self.entity = entity
 
 
 def repository(entity: type[EntityT], *, cache: Cache | None = None) -> Callable[[type[RepoT]], type[RepoT]]:
     def decorator(cls: type[RepoT]) -> type[RepoT]:
-        meta.set(cls, _RepositoryMeta(entity))
-        (cache or __user_cache__).add(_RepositoryMeta, cls)
+        meta.set(cls, RepositoryMeta(entity))
+        (cache or __user_cache__).add(RepositoryMeta, cls)
         return cls
 
     return decorator

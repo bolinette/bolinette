@@ -1,3 +1,4 @@
+# pyright: reportMissingParameterType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false
 from typing import Any, Generic, Optional, TypeVar
 
 import pytest
@@ -120,7 +121,7 @@ async def test_fail_injection() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(InjectableClassC)
 
-    assert f"Type InjectableClassC is not a registered type in the injection system" == info.value.message
+    assert "Type InjectableClassC is not a registered type in the injection system" == info.value.message
 
 
 async def test_fail_injection_generic() -> None:
@@ -138,7 +139,7 @@ async def test_fail_injection_generic() -> None:
         inject.require(_Service[_Param])
 
     assert (
-        f"Type test_fail_injection_generic.<locals>._Service[test_fail_injection_generic.<locals>._Param] "
+        "Type test_fail_injection_generic.<locals>._Service[test_fail_injection_generic.<locals>._Param] "
         "is not a registered type in the injection system" == info.value.message
     )
 
@@ -314,7 +315,7 @@ def test_use_init_method() -> None:
 
 
 def test_init_method_call_order() -> None:
-    order = []
+    order: list[str] = []
 
     class _S1:
         @init_method
@@ -512,7 +513,11 @@ def test_arg_resolve() -> None:
     inject = Injection(Cache())
     inject.add(InjectableClassC, "singleton")
 
-    inject.call(_test_func, args=["a"], named_args={"b": "b", "e": "e", "f": "f"})
+    inject.call(
+        _test_func,
+        args=["a"],
+        named_args={"b": "b", "e": "e", "f": "f"},
+    )
 
 
 def test_two_injections() -> None:
@@ -619,7 +624,7 @@ def test_scoped_injection_fail_no_scope_in_singleton() -> None:
         inject.require(_C2)
 
     assert (
-        f"Callable test_scoped_injection_fail_no_scope_in_singleton.<locals>._C2, Parameter 'c1', "
+        "Callable test_scoped_injection_fail_no_scope_in_singleton.<locals>._C2, Parameter 'c1', "
         "Cannot instanciate a scoped service in a singleton service" == info.value.message
     )
 
@@ -987,7 +992,7 @@ def test_require_decorator() -> None:
 
 
 def test_instanciate_type() -> None:
-    calls = []
+    calls: list[str] = []
 
     class _Service:
         def __init__(self) -> None:
@@ -1241,8 +1246,6 @@ def test_fail_require_from_typevar_different_names() -> None:
 def test_arg_resolver() -> None:
     cache = Cache()
 
-    order = []
-
     class _Service:
         pass
 
@@ -1251,8 +1254,8 @@ def test_arg_resolver() -> None:
             self.s = s
 
     _s = _Service()
+    order: list[int] = []
 
-    @injection_arg_resolver(priority=2, cache=cache)
     class _Resolver2:
         def supports(self, options: ArgResolverOptions):
             order.append(3)
@@ -1262,7 +1265,6 @@ def test_arg_resolver() -> None:
             order.append(4)
             return (options.name, _s)
 
-    @injection_arg_resolver(priority=1, cache=cache)
     class _Resolver1:
         def supports(self, options: ArgResolverOptions):
             order.append(1)
@@ -1271,6 +1273,9 @@ def test_arg_resolver() -> None:
         def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
             order.append(2)
             return ("", 0)
+
+    injection_arg_resolver(priority=2, cache=cache)(_Resolver2)
+    injection_arg_resolver(priority=1, cache=cache)(_Resolver1)
 
     inject = Injection(cache)
     inject.add(_Controller, "singleton")
@@ -1284,15 +1289,14 @@ def test_arg_resolver() -> None:
 def test_service_in_arg_resolver() -> None:
     cache = Cache()
 
-    order = []
-
     class _Service:
         pass
 
     class _Controller:
         pass
 
-    @injection_arg_resolver(priority=1, cache=cache, scoped=True)
+    order: list[_Service] = []
+
     class _Resolver:
         def __init__(self, s: _Service) -> None:
             order.append(s)
@@ -1302,6 +1306,8 @@ def test_service_in_arg_resolver() -> None:
 
         def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
             ...
+
+    injection_arg_resolver(priority=1, cache=cache, scoped=True)(_Resolver)
 
     inject = Injection(cache)
     inject.add(_Service, "singleton")
@@ -1318,7 +1324,7 @@ def test_service_in_arg_resolver() -> None:
 def test_before_after_init() -> None:
     cache = Cache()
 
-    order = []
+    order: list[tuple[str, object]] = []
 
     class _Service:
         @init_method

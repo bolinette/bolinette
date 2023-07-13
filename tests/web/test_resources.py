@@ -1,10 +1,10 @@
-from typing import Any, Awaitable, Callable
+from typing import Awaitable, Callable
 
 from aiohttp import web
 from aiohttp.test_utils import TestClient
 
 from bolinette import Cache
-from bolinette.ext.web import Controller, WebResources, controller, route, with_middleware, get
+from bolinette.ext.web import Controller, WebResources, controller, get, route, with_middleware
 from bolinette.testing import Mock
 
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]

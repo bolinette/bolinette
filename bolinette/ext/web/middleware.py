@@ -7,7 +7,7 @@ from bolinette.ext.web import Controller
 from bolinette.types import Type
 
 MdlwInitP = ParamSpec("MdlwInitP")
-CtrlT = TypeVar("CtrlT", bound=Controller | Callable)
+CtrlT = TypeVar("CtrlT", bound=Controller | Callable[..., Any])
 
 
 class Middleware(Protocol[MdlwInitP]):
@@ -26,8 +26,8 @@ class MiddlewareMeta:
 
 class MiddlewareBag:
     def __init__(self) -> None:
-        self.added: dict[Type[Middleware], MiddlewareMeta] = {}
-        self.removed: list[Type[Middleware]] = []
+        self.added: dict[Type[Middleware[...]], MiddlewareMeta] = {}
+        self.removed: list[Type[Middleware[...]]] = []
 
 
 def with_middleware(
@@ -47,7 +47,7 @@ def with_middleware(
     return decorator
 
 
-def without_middleware(middleware: type[Middleware]) -> Callable[[CtrlT], CtrlT]:
+def without_middleware(middleware: type[Middleware[...]]) -> Callable[[CtrlT], CtrlT]:
     def decorator(func: CtrlT) -> CtrlT:
         if not meta.has(func, MiddlewareBag):
             bag = MiddlewareBag()

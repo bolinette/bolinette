@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from typing_extensions import override
 
 from bolinette import Cache, meta
 from bolinette.ext.data import DatabaseManager
@@ -66,8 +67,8 @@ def test_init_engines() -> None:
 
     manager = mock.injection.require(EntityManager)
 
-    assert len(manager._engines) == 1
-    assert base in manager._engines
+    assert len(manager.engines) == 1
+    assert base in manager.engines
 
 
 def test_fail_init_engines_unknown_connection() -> None:
@@ -115,12 +116,13 @@ async def test_create_all() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(EntityManager, "singleton")
 
-    visited = []
+    visited: list[str] = []
 
     class _MockedRelationalDatabase(RelationalDatabase):
         def __init__(self, base: type[DeclarativeBase], name: str, uri: str, echo: bool):
             self._name = name
 
+        @override
         async def create_all(self) -> None:
             visited.append(self._name)
 
@@ -140,12 +142,13 @@ def test_open_sessions() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(EntityManager, "singleton")
 
-    visited = []
+    visited: list[str] = []
 
     class _MockedRelationalDatabase(RelationalDatabase):
         def __init__(self, base: type[DeclarativeBase], name: str, uri: str, echo: bool):
             self._name = name
 
+        @override
         def open_session(self, sessions: SessionManager) -> None:
             visited.append(self._name)
 
@@ -171,8 +174,8 @@ def test_init_entities() -> None:
 
     manager = mock.injection.require(EntityManager)
 
-    assert len(manager._entities) == 1
-    assert entity_type in manager._entities
+    assert len(manager.entities) == 1
+    assert entity_type in manager.entities
     assert meta.has(entity_type, RelationalDatabase)
     assert manager.is_entity_type(entity_type)
     assert not manager.is_entity_type(object)

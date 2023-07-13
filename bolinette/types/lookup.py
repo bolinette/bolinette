@@ -33,4 +33,4 @@ class TypeVarLookup(Generic[T]):
     def get_lookup(t: Type[Any]) -> dict[TypeVar, type[Any]] | None:
         if not hasattr(t.cls, "__parameters__"):
             return None
-        return {n: t.vars[i] for i, n in enumerate(t.cls.__parameters__)}  # type: ignore
+        return {n: t.vars[i] for i, n in enumerate(t.cls.__parameters__)}

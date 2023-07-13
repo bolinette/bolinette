@@ -1,10 +1,11 @@
 import sys
+from typing import Any
 
 import pytest
 from pytest import CaptureFixture
 
 from bolinette import Cache, Logger, command, meta
-from bolinette.command import Parser, _ArgumentMeta, _CommandMeta
+from bolinette.command import ArgumentMeta, CommandMeta, Parser
 from bolinette.exceptions import InitError
 from bolinette.testing import Mock
 
@@ -16,8 +17,8 @@ def test_decorate_command() -> None:
     async def _command() -> None:
         pass
 
-    assert _CommandMeta in cache
-    assert cache.get(_CommandMeta) == [_command]
+    assert CommandMeta in cache
+    assert cache.get(CommandMeta) == [_command]
 
 
 def test_decorate_argument() -> None:
@@ -25,9 +26,9 @@ def test_decorate_argument() -> None:
     async def _command():
         pass
 
-    assert meta.has(_command, _ArgumentMeta)
-    assert len(meta.get(_command, _ArgumentMeta)) == 1
-    assert meta.get(_command, _ArgumentMeta)[0].name == "p1"
+    assert meta.has(_command, ArgumentMeta)
+    assert len(meta.get(_command, ArgumentMeta)) == 1
+    assert meta.get(_command, ArgumentMeta)[0].name == "p1"
 
 
 async def test_launch_command() -> None:
@@ -53,7 +54,7 @@ async def test_launch_command() -> None:
 
     _argv = sys.argv
     _exit = sys.exit
-    sys.exit = _catch_exit  # type: ignore
+    sys.exit = _catch_exit
 
     sys.argv = ["test", "command"]
     await parser.run()
@@ -84,7 +85,7 @@ async def test_launch_command_not_found() -> None:
         nonlocal error_str
         error_str = s
 
-    mock.mock(Logger[Parser]).setup(lambda l: l.error, _write_error)
+    mock.mock(Logger[Parser]).setup(lambda logger: logger.error, _write_error)
 
     @command("command", "This is a test command", cache=cache)
     async def _() -> None:
@@ -95,7 +96,7 @@ async def test_launch_command_not_found() -> None:
 
     _argv = sys.argv
     _exit = sys.exit
-    sys.exit = _catch_exit  # type: ignore
+    sys.exit = _catch_exit
 
     sys.argv = ["test", "none"]
     await parser.run()
@@ -136,7 +137,7 @@ async def test_launch_sub_command() -> None:
 
     _argv = sys.argv
     _exit = sys.exit
-    sys.exit = _catch_exit  # type: ignore
+    sys.exit = _catch_exit
 
     sys.argv = ["test", "command", "inc"]
     await parser.run()
@@ -171,7 +172,7 @@ async def test_launch_sub_command_not_found() -> None:
         nonlocal error_str
         error_str = s
 
-    mock.mock(Logger[Parser]).setup(lambda l: l.error, _write_error)
+    mock.mock(Logger[Parser]).setup(lambda logger: logger.error, _write_error)
 
     @command("command inc", "This is a test command", cache=cache)
     async def _() -> None:
@@ -187,7 +188,7 @@ async def test_launch_sub_command_not_found() -> None:
 
     _argv = sys.argv
     _exit = sys.exit
-    sys.exit = _catch_exit  # type: ignore
+    sys.exit = _catch_exit
     sys.argv = ["test", "command", "none"]
 
     await parser.run()
@@ -330,7 +331,7 @@ async def test_command_flag_flag() -> None:
     sys.argv = _argv
 
 
-async def test_command_argument_help(capsys: CaptureFixture) -> None:
+async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
@@ -349,7 +350,7 @@ async def test_command_argument_help(capsys: CaptureFixture) -> None:
 
     _argv = sys.argv
     _exit = sys.exit
-    sys.exit = _catch_exit  # type: ignore
+    sys.exit = _catch_exit
 
     parser = mock.injection.require(Parser)
 
@@ -386,6 +387,6 @@ async def test_command_conflict() -> None:
     with pytest.raises(InitError) as info:
         await parser.run()
 
-    assert "Conflict with 'command sub' command" in info.value.message  # type: ignore
+    assert "Conflict with 'command sub' command" in info.value.message
 
     sys.argv = _argv
