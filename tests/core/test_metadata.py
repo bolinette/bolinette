@@ -2,9 +2,9 @@ from typing import Any, TypeVar
 
 import pytest
 
-from bolinette import meta
-from bolinette.exceptions import InternalError
-from bolinette.metadata import BolinetteMetadata, get_meta_container
+from bolinette.core import meta
+from bolinette.core.exceptions import InternalError
+from bolinette.core.metadata import BolinetteMetadata, get_meta_container
 
 T = TypeVar("T")
 

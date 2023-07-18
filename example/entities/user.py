@@ -1,6 +1,6 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from bolinette.ext.data.relational import get_base, entity
+from bolinette.data.relational import get_base, entity
 
 from example.entities import Role
 

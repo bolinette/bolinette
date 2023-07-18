@@ -1,7 +1,7 @@
 from setuptools import setup, find_namespace_packages
 
-from bolinette.ext.web import __version__
-from bolinette.utils import PathUtils, FileUtils
+from bolinette.web import __version__
+from bolinette.core.utils import PathUtils, FileUtils
 
 
 paths = PathUtils()

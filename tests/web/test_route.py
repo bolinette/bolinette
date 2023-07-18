@@ -1,6 +1,6 @@
-from bolinette import meta
-from bolinette.ext.web import delete, get, patch, post, put, route
-from bolinette.ext.web.route import RouteBucket, RouteProps
+from bolinette.core import meta
+from bolinette.web import delete, get, patch, post, put, route
+from bolinette.web.route import RouteBucket, RouteProps
 
 
 def test_basic_route() -> None:

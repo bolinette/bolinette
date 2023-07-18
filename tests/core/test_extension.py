@@ -1,7 +1,7 @@
 import pytest
 
-from bolinette import Cache, Extension
-from bolinette.exceptions import InitError
+from bolinette.core import Cache, Extension
+from bolinette.core.exceptions import InitError
 
 
 def test_sort_extensions() -> None:

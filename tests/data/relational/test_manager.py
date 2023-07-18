@@ -3,11 +3,11 @@ from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing_extensions import override
 
-from bolinette import Cache, meta
-from bolinette.ext.data import DatabaseManager
-from bolinette.ext.data.databases import DatabaseConnection
-from bolinette.ext.data.exceptions import DataError, EntityError
-from bolinette.ext.data.relational import (
+from bolinette.core import Cache, meta
+from bolinette.data import DatabaseManager
+from bolinette.data.databases import DatabaseConnection
+from bolinette.data.exceptions import DataError, EntityError
+from bolinette.data.relational import (
     DeclarativeMeta,
     EntityManager,
     EntityMeta,
@@ -18,8 +18,8 @@ from bolinette.ext.data.relational import (
     get_base,
     repository,
 )
-from bolinette.testing import Mock
-from bolinette.utils import StringUtils
+from bolinette.core.testing import Mock
+from bolinette.core.utils import StringUtils
 
 
 class _MockedRelationalDatabase(RelationalDatabase):

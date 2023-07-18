@@ -2,10 +2,10 @@ from typing import Awaitable, Callable
 
 from aiohttp import web
 
-from bolinette import meta
-from bolinette.ext.web import with_middleware, without_middleware
-from bolinette.ext.web.middleware import MiddlewareBag
-from bolinette.types import Type
+from bolinette.core import meta
+from bolinette.web import with_middleware, without_middleware
+from bolinette.web.middleware import MiddlewareBag
+from bolinette.core.types import Type
 
 
 def test_add_middleware() -> None:

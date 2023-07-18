@@ -4,9 +4,9 @@ import sys
 from ctypes import ArgumentError
 from typing import Any
 
-from bolinette import version as core_version
-from bolinette.ext.data import version as data_version
-from bolinette.ext.web import version as web_version
+from bolinette.core import version as core_version
+from bolinette.data import version as data_version
+from bolinette.web import version as web_version
 
 
 def update_version(module: Any, major: int, minor: int, patch: int) -> None:

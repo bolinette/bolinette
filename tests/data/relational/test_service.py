@@ -3,11 +3,11 @@ from typing import Any
 import pytest
 from sqlalchemy.orm import Mapped, mapped_column
 
-from bolinette import Cache
-from bolinette.ext.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
-from bolinette.ext.data.relational import Repository, Service, get_base
-from bolinette.mapping import Mapper
-from bolinette.testing import Mock
+from bolinette.core import Cache
+from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
+from bolinette.data.relational import Repository, Service, get_base
+from bolinette.core.mapping import Mapper
+from bolinette.core.testing import Mock
 
 
 def test_create() -> None:

@@ -2,8 +2,8 @@ from typing import Any, ForwardRef, Generic, TypeVar
 
 import pytest
 
-from bolinette.exceptions import TypingError
-from bolinette.types import Type, TypeVarLookup
+from bolinette.core.exceptions import TypingError
+from bolinette.core.types import Type, TypeVarLookup
 
 
 def test_simple_type() -> None:

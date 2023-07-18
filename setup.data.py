@@ -1,7 +1,7 @@
 from setuptools import setup, find_namespace_packages
 
-from bolinette.ext.data import __version__
-from bolinette.utils import PathUtils, FileUtils
+from bolinette.data import __version__
+from bolinette.core.utils import PathUtils, FileUtils
 
 
 paths = PathUtils()
@@ -14,7 +14,7 @@ def project_packages(module: str) -> list[str]:
 
 setup(
     name="bolinette-data",
-    packages=project_packages("bolinette.ext.data"),
+    packages=project_packages("bolinette.data"),
     include_package_data=True,
     version=__version__,
     license="MIT",

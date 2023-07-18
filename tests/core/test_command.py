@@ -4,10 +4,10 @@ from typing import Any
 import pytest
 from pytest import CaptureFixture
 
-from bolinette import Cache, Logger, command, meta
-from bolinette.command import ArgumentMeta, CommandMeta, Parser
-from bolinette.exceptions import InitError
-from bolinette.testing import Mock
+from bolinette.core import Cache, Logger, command, meta
+from bolinette.core.command import ArgumentMeta, CommandMeta, Parser
+from bolinette.core.exceptions import InitError
+from bolinette.core.testing import Mock
 
 
 def test_decorate_command() -> None:

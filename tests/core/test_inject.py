@@ -3,10 +3,10 @@ from typing import Any, Generic, Optional, TypeVar
 
 import pytest
 
-from bolinette import Cache, GenericMeta, meta
-from bolinette.exceptions import InjectionError, TypingError
-from bolinette.injection import Injection, init_method, injectable, require
-from bolinette.injection.resolver import ArgResolverOptions, injection_arg_resolver
+from bolinette.core import Cache, GenericMeta, meta
+from bolinette.core.exceptions import InjectionError, TypingError
+from bolinette.core.injection import Injection, init_method, injectable, require
+from bolinette.core.injection.resolver import ArgResolverOptions, injection_arg_resolver
 
 
 class InjectableClassB:

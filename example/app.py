@@ -1,4 +1,4 @@
-from bolinette import Bolinette
-from bolinette.ext import data
+from bolinette import data
+from bolinette.core import Bolinette
 
 blnt = Bolinette(extensions=[data])

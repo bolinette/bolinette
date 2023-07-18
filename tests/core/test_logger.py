@@ -4,7 +4,7 @@ from typing import Any
 
 from pytest import CaptureFixture
 
-from bolinette import Cache, GenericMeta, Logger, meta
+from bolinette.core import Cache, GenericMeta, Logger, meta
 
 output_regex = re.compile(
     r"^([\d\-T\:\.]+) "  # timestamp

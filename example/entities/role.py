@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from bolinette.ext.data.relational import get_base, entity
+from bolinette.data.relational import get_base, entity
 
 if TYPE_CHECKING:
     from example.entities import User

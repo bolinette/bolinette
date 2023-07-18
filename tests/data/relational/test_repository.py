@@ -5,11 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from bolinette import Cache, meta
-from bolinette.ext.data.exceptions import DataError, EntityNotFoundError
-from bolinette.ext.data.relational import Repository, entity, get_base, repository
-from bolinette.ext.data.relational.repository import RepositoryMeta
-from bolinette.testing import Mock
+from bolinette.core import Cache, meta
+from bolinette.data.exceptions import DataError, EntityNotFoundError
+from bolinette.data.relational import Repository, entity, get_base, repository
+from bolinette.data.relational.repository import RepositoryMeta
+from bolinette.core.testing import Mock
 
 
 def setup_test():

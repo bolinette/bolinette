@@ -2,18 +2,18 @@ from typing import Any
 
 import pytest
 
-from bolinette import Cache
-from bolinette.exceptions import MappingError
-from bolinette.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
-from bolinette.mapping.mapper import (
+from bolinette.core import Cache
+from bolinette.core.exceptions import MappingError
+from bolinette.core.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
+from bolinette.core.mapping.mapper import (
     BoolTypeMapper,
     DefaultTypeMapper,
     FloatTypeMapper,
     IntegerTypeMapper,
     StringTypeMapper,
 )
-from bolinette.testing import Mock
-from bolinette.types import Type
+from bolinette.core.testing import Mock
+from bolinette.core.types import Type
 
 
 def load_default_mappers(mapper: Mapper) -> None:
