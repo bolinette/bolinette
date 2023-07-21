@@ -1,3 +1,3 @@
-isort --skip __init__.py bolinette tests \
+isort --skip __init__.py --profile black bolinette tests example \
     && autoflake -r --in-place --remove-unused-variables bolinette tests example \
-    && black bolinette tests
+    && black bolinette tests example

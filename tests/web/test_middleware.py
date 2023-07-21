@@ -3,9 +3,9 @@ from typing import Awaitable, Callable
 from aiohttp import web
 
 from bolinette.core import meta
+from bolinette.core.types import Type
 from bolinette.web import with_middleware, without_middleware
 from bolinette.web.middleware import MiddlewareBag
-from bolinette.core.types import Type
 
 
 def test_add_middleware() -> None:

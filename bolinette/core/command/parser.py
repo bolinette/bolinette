@@ -1,53 +1,16 @@
 import sys
 from argparse import ArgumentParser
-from collections.abc import Callable
-from typing import Any, Awaitable, Literal, ParamSpec, Protocol
+from typing import Any, Awaitable, Callable, Protocol
 
-from bolinette.core import Cache, Logger, __user_cache__, meta
+from bolinette.core import Cache, Logger, meta
+from bolinette.core.command.command import Argument, ArgumentMeta, CommandMeta
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, init_method
-
-P_Func = ParamSpec("P_Func")
 
 
 class _SubParsersAction(Protocol):
     def add_parser(self, name: str, *, help: str | None = None) -> ArgumentParser:
         ...
-
-
-class CommandMeta:
-    def __init__(
-        self,
-        path: str,
-        summary: str,
-    ):
-        self.path = path
-        self.summary = summary
-
-
-class _Argument:
-    def __init__(
-        self,
-        arg_type: Literal["argument", "option", "flag", "count"],
-        name: str,
-        *,
-        flag: str | None = None,
-        summary: str | None = None,
-        value_type: type[Any] | None = None,
-        default: Any | None = None,
-        choices: list[str] | None = None,
-    ):
-        self.arg_type = arg_type
-        self.name = name
-        self.flag = flag
-        self.summary = summary
-        self.value_type = value_type
-        self.default = default
-        self.choices = choices
-
-
-class ArgumentMeta(list[_Argument]):
-    pass
 
 
 class Parser:
@@ -139,7 +102,7 @@ class Parser:
 
     @staticmethod
     def _create_parser_arg(
-        arg: _Argument,
+        arg: Argument,
         *,
         optional: bool = False,
         use_flag: bool = False,
@@ -162,58 +125,16 @@ class Parser:
         return args, kwargs
 
     @staticmethod
-    def _create_argument(arg: _Argument, parser: ArgumentParser):
+    def _create_argument(arg: Argument, parser: ArgumentParser):
         args, kwargs = Parser._create_parser_arg(arg, optional=False, use_flag=False, action=None)
         parser.add_argument(*args, **kwargs)
 
     @staticmethod
-    def _create_option(arg: _Argument, parser: ArgumentParser):
+    def _create_option(arg: Argument, parser: ArgumentParser):
         args, kwargs = Parser._create_parser_arg(arg, optional=True, use_flag=True, action=None)
         parser.add_argument(*args, **kwargs)
 
     @staticmethod
-    def _create_flag(arg: _Argument, parser: ArgumentParser):
+    def _create_flag(arg: Argument, parser: ArgumentParser):
         args, kwargs = Parser._create_parser_arg(arg, optional=True, use_flag=True, action="store_true")
         parser.add_argument(*args, **kwargs)
-
-
-class _CommandDecorator:
-    def __call__(self, name: str, summary: str, *, cache: Cache | None = None):
-        def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
-            meta.set(func, CommandMeta(name, summary))
-            (cache or __user_cache__).add(CommandMeta, func)
-            return func
-
-        return decorator
-
-    def argument(
-        self,
-        arg_type: Literal["argument", "option", "flag", "count"],
-        name: str,
-        *,
-        flag: str | None = None,
-        summary: str | None = None,
-        value_type: type | None = None,
-        default: Any = None,
-        choices: list[str] | None = None,
-    ):
-        def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
-            if not meta.has(func, ArgumentMeta):
-                meta.set(func, ArgumentMeta())
-            meta.get(func, ArgumentMeta).append(
-                _Argument(
-                    arg_type,
-                    name,
-                    flag=flag,
-                    summary=summary,
-                    value_type=value_type,
-                    default=default,
-                    choices=choices,
-                )
-            )
-            return func
-
-        return decorator
-
-
-command = _CommandDecorator()

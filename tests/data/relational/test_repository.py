@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
 from typing import Any
 
 import pytest
@@ -6,13 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bolinette.core import Cache, meta
+from bolinette.core.testing import Mock
 from bolinette.data.exceptions import DataError, EntityNotFoundError
 from bolinette.data.relational import Repository, entity, get_base, repository
 from bolinette.data.relational.repository import RepositoryMeta
-from bolinette.core.testing import Mock
 
 
-def setup_test():
+def test_init_repo() -> None:
     cache = Cache()
 
     @entity(entity_key="id", cache=cache)
@@ -20,11 +21,6 @@ def setup_test():
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
-    return cache, Entity
-
-
-def test_init_repo() -> None:
-    cache, Entity = setup_test()
     mock = Mock(cache=cache)
 
     mock.mock(AsyncSession)
@@ -36,7 +32,13 @@ def test_init_repo() -> None:
 
 
 async def test_iterate() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -62,7 +64,13 @@ async def test_iterate() -> None:
 
 
 async def test_find_all() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -88,7 +96,13 @@ async def test_find_all() -> None:
 
 
 async def test_first() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -111,7 +125,13 @@ async def test_first() -> None:
 
 
 async def test_first_none() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     class _MockedResult:
@@ -132,7 +152,13 @@ async def test_first_none() -> None:
 
 
 async def test_fail_first_none() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     class _MockedResult:
@@ -154,7 +180,13 @@ async def test_fail_first_none() -> None:
 
 
 async def test_get_by_primary() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -177,7 +209,13 @@ async def test_get_by_primary() -> None:
 
 
 async def test_get_by_primary_none() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     class _MockedResult:
@@ -198,7 +236,13 @@ async def test_get_by_primary_none() -> None:
 
 
 async def test_fail_get_by_primary_none() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     class _MockedResult:
@@ -220,7 +264,13 @@ async def test_fail_get_by_primary_none() -> None:
 
 
 async def test_fail_get_by_primary_values_mismatch() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     mock.mock(AsyncSession)
@@ -235,7 +285,13 @@ async def test_fail_get_by_primary_values_mismatch() -> None:
 
 
 async def test_get_by_key() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -258,7 +314,13 @@ async def test_get_by_key() -> None:
 
 
 async def test_get_by_key_none() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     class _MockedResult:
@@ -279,7 +341,13 @@ async def test_get_by_key_none() -> None:
 
 
 async def test_fail_get_by_key_none() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     class _MockedResult:
@@ -301,7 +369,13 @@ async def test_fail_get_by_key_none() -> None:
 
 
 async def test_fail_get_by_key_values_mismatch() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     mock.mock(AsyncSession)
@@ -316,7 +390,13 @@ async def test_fail_get_by_key_values_mismatch() -> None:
 
 
 async def test_add() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -336,7 +416,13 @@ async def test_add() -> None:
 
 
 async def test_delete() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     e1 = Entity()
@@ -356,7 +442,13 @@ async def test_delete() -> None:
 
 
 async def test_commit() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     mock = Mock(cache=cache)
 
     commit = False
@@ -376,7 +468,13 @@ async def test_commit() -> None:
 
 
 def test_custom_repo() -> None:
-    cache, Entity = setup_test()
+    cache = Cache()
+
+    @entity(entity_key="id", cache=cache)
+    class Entity(get_base("tests", cache=cache)):
+        __tablename__ = "entities"
+        id: Mapped[int] = mapped_column(primary_key=True)
+
     cache = Cache()
 
     @repository(Entity, cache=cache)

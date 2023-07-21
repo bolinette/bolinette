@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import PrimaryKeyConstraint, Table, UniqueConstraint
 
 from bolinette.core import Cache, meta
+from bolinette.core.injection import Injection, init_method
 from bolinette.data import DatabaseManager
 from bolinette.data.exceptions import DataError, EntityError
 from bolinette.data.relational import (
@@ -14,7 +15,6 @@ from bolinette.data.relational import (
     SessionManager,
 )
 from bolinette.data.relational.repository import RepositoryMeta
-from bolinette.core.injection import Injection, init_method
 
 
 class EntityManager:
@@ -71,7 +71,8 @@ class EntityManager:
         used_classes: set[type[Repository[Any]]] = set()
         for entity in self._entities:
             for repo_class in repo_classes:
-                if meta.get(repo_class, RepositoryMeta).entity is entity:
+                repo_meta: RepositoryMeta[Any] = meta.get(repo_class, RepositoryMeta)
+                if repo_meta.entity is entity:
                     inject.add(repo_class, "scoped")
                     inject.add(repo_class, "scoped", super_cls=Repository[entity])
                     used_classes.add(repo_class)

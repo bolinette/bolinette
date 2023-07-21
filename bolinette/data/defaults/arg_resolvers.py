@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bolinette.core import meta
 from bolinette.core.exceptions import InjectionError
-from bolinette.data.relational import EntityManager, RelationalDatabase, SessionManager
 from bolinette.core.injection.resolver import ArgResolverOptions
+from bolinette.data.relational import EntityManager, RelationalDatabase, SessionManager
 
 
 class AsyncSessionArgResolver:

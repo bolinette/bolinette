@@ -5,7 +5,8 @@ import pytest
 from pytest import CaptureFixture
 
 from bolinette.core import Cache, Logger, command, meta
-from bolinette.core.command import ArgumentMeta, CommandMeta, Parser
+from bolinette.core.command import Parser
+from bolinette.core.command.command import ArgumentMeta, CommandMeta
 from bolinette.core.exceptions import InitError
 from bolinette.core.testing import Mock
 

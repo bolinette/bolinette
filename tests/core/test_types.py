@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
 from typing import Any, ForwardRef, Generic, TypeVar
 
 import pytest
@@ -32,7 +33,7 @@ def test_generic_type() -> None:
     assert t.vars == (T,)
     assert str(t) == "test_generic_type.<locals>._T[~T]"
     assert repr(t) == "<Type test_generic_type.<locals>._T[~T]>"
-    assert hash(t) == hash((_T, (T,)))  # pyright: ignore[reportUnknownArgumentType]
+    assert hash(t) == hash((_T, (T,)))
     assert t == Type(_T[T], raise_on_typevar=False)
 
 
@@ -62,7 +63,7 @@ def test_specified_generic_type() -> None:
     assert t.cls is _T
     assert t.vars == (_P,)
     assert str(t) == "test_specified_generic_type.<locals>._T[test_specified_generic_type.<locals>._P]"
-    assert hash(t) == hash((_T, (_P,)))  # pyright: ignore[reportUnknownArgumentType]
+    assert hash(t) == hash((_T, (_P,)))
 
 
 def test_fail_forward_ref() -> None:

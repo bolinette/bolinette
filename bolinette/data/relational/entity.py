@@ -1,7 +1,8 @@
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from sqlalchemy.orm import ColumnProperty, DeclarativeBase, InstrumentedAttribute
+from sqlalchemy.orm import ColumnProperty  # pyright: ignore[reportUnknownVariableType]
+from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.data.exceptions import EntityError

@@ -3,8 +3,8 @@ from typing import Any, Awaitable, Callable, ParamSpec, Protocol, TypeVar
 from aiohttp import web
 
 from bolinette.core import meta
-from bolinette.web import Controller
 from bolinette.core.types import Type
+from bolinette.web import Controller
 
 MdlwInitP = ParamSpec("MdlwInitP")
 CtrlT = TypeVar("CtrlT", bound=Controller | Callable[..., Any])

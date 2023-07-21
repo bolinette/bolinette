@@ -4,9 +4,9 @@ from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
 from bolinette.core import Cache, __user_cache__
+from bolinette.core.injection import Injection, init_method
 from bolinette.data import DataSection
 from bolinette.data.exceptions import DatabaseError
-from bolinette.core.injection import Injection, init_method
 
 
 class DatabaseManager:

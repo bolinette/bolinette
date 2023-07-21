@@ -4,8 +4,15 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient
 
 from bolinette.core import Cache
-from bolinette.web import Controller, WebResources, controller, get, route, with_middleware
 from bolinette.core.testing import Mock
+from bolinette.web import (
+    Controller,
+    WebResources,
+    controller,
+    get,
+    route,
+    with_middleware,
+)
 
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
 

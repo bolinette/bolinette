@@ -3,14 +3,14 @@ from typing import Any, Callable
 from aiohttp import web
 
 from bolinette.core import Cache, meta
-from bolinette.web import Controller
-from bolinette.web.controller import ControllerMeta
-from bolinette.web.middleware import Middleware, MiddlewareBag
-from bolinette.web.route import RouteBucket, RouteProps
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.injection.resolver import ArgResolverOptions
 from bolinette.core.types import Type
 from bolinette.core.utils import AttributeUtils
+from bolinette.web import Controller
+from bolinette.web.controller import ControllerMeta
+from bolinette.web.middleware import Middleware, MiddlewareBag
+from bolinette.web.route import RouteBucket, RouteProps
 
 
 class WebResources:

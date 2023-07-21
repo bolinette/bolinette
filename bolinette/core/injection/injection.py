@@ -20,10 +20,23 @@ from typing_extensions import override
 from bolinette.core import Cache, GenericMeta, meta
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.injection.context import InjectionContext
-from bolinette.core.injection.decorators import InitMethodMeta, InjectionParamsMeta, InjectionSymbol
+from bolinette.core.injection.decorators import (
+    InitMethodMeta,
+    InjectionParamsMeta,
+    InjectionSymbol,
+)
 from bolinette.core.injection.hook import InjectionHook, InjectionProxy
-from bolinette.core.injection.registration import InjectionStrategy, RegisteredType, RegisteredTypeBag
-from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
+from bolinette.core.injection.registration import (
+    InjectionStrategy,
+    RegisteredType,
+    RegisteredTypeBag,
+)
+from bolinette.core.injection.resolver import (
+    ArgResolverMeta,
+    ArgResolverOptions,
+    ArgumentResolver,
+    DefaultArgResolver,
+)
 from bolinette.core.types import Type, TypeVarLookup
 from bolinette.core.utils import OrderedSet
 
@@ -458,7 +471,7 @@ class Injection:
             instance,
         )
         if instanciate:
-            return self.require(t.cls)
+            return self.require(t.cls)  # type: ignore
         return None
 
     def require(self, cls: type[InstanceT]) -> InstanceT:

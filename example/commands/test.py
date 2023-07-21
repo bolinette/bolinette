@@ -1,13 +1,12 @@
-from typing import Callable, Awaitable
+from typing import Awaitable, Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from bolinette.core import command
 from bolinette.core.injection import Injection
-from bolinette.data.relational import Repository, EntityManager, SessionManager
-
-from example.entities import User, Role
+from bolinette.data.relational import EntityManager, Repository, SessionManager
+from example.entities import Role, User
 
 
 @command("test", "Test command")

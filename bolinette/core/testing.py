@@ -45,7 +45,7 @@ class _MockWrapper(Generic[MockedT]):
     def _get_mocked_attr(_cls: type[MockedT], instance: MockedT, name: str) -> Any:
         if name == "__class__":
             return _cls
-        _meta = meta.get(type(instance), _MockedMeta)
+        _meta: _MockedMeta[Any] = meta.get(type(instance), _MockedMeta)
         if name in _meta:
             return _meta[name]
         raise KeyError(f"'{name}' attribute has not been mocked in {_cls}")
@@ -62,23 +62,15 @@ class _MockWrapper(Generic[MockedT]):
         meta.set(_t, _MockedMeta(_cls))
         return _t  # type: ignore
 
-    """@overload
-    def setup(self, func: Callable[[T], FuncT], value: FuncT) -> "_MockWrapper[T]":
-        ...
-
-    @overload
-    def setup(self, func: Callable[[T], Callable[FuncP, FuncT]], value: Callable[FuncP, FuncT]) -> "_MockWrapper[T]":
-        ..."""
-
     def setup(self, func: Callable[[MockedT], SetupT], value: SetupT) -> "_MockWrapper[MockedT]":
         expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
         name = ExpressionTree.get_attribute_name(expr)
-        _meta = meta.get(self._cls, _MockedMeta)
+        _meta: _MockedMeta[Any] = meta.get(self._cls, _MockedMeta)
         _meta[name] = value
         return self
 
     def dummy(self, value: bool = True) -> "_MockWrapper[MockedT]":
-        _meta = meta.get(self._cls, _MockedMeta)
+        _meta: _MockedMeta[Any] = meta.get(self._cls, _MockedMeta)
         _meta.dummy = value
         return self
 

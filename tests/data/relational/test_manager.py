@@ -1,9 +1,12 @@
 import pytest
 from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import relationship  # pyright: ignore[reportUnknownVariableType]
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from typing_extensions import override
 
 from bolinette.core import Cache, meta
+from bolinette.core.testing import Mock
+from bolinette.core.utils import StringUtils
 from bolinette.data import DatabaseManager
 from bolinette.data.databases import DatabaseConnection
 from bolinette.data.exceptions import DataError, EntityError
@@ -18,8 +21,6 @@ from bolinette.data.relational import (
     get_base,
     repository,
 )
-from bolinette.core.testing import Mock
-from bolinette.core.utils import StringUtils
 
 
 class _MockedRelationalDatabase(RelationalDatabase):

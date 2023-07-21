@@ -1,11 +1,16 @@
 from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overload
+
 from typing_extensions import override
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.exceptions import MappingError
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping.profiles import MapFromOptions, Profile
-from bolinette.core.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
+from bolinette.core.mapping.sequence import (
+    IgnoreAttribute,
+    MapFromAttribute,
+    MappingSequence,
+)
 from bolinette.core.types import Type
 
 

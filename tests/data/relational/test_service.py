@@ -4,10 +4,10 @@ import pytest
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bolinette.core import Cache
-from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
-from bolinette.data.relational import Repository, Service, get_base
 from bolinette.core.mapping import Mapper
 from bolinette.core.testing import Mock
+from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
+from bolinette.data.relational import Repository, Service, get_base
 
 
 def test_create() -> None:

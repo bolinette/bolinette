@@ -1,11 +1,11 @@
 import pytest
 
 from bolinette.core import Cache
+from bolinette.core.testing import Mock
 from bolinette.data import DatabaseManager, DataSection, database_system
 from bolinette.data.exceptions import DatabaseError
 from bolinette.data.objects import DatabaseSection
 from bolinette.data.relational import RelationalDatabase
-from bolinette.core.testing import Mock
 
 
 def test_init_systems() -> None:

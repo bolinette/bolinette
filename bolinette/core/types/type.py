@@ -1,7 +1,16 @@
 import collections.abc
 import contextlib
 from types import NoneType, UnionType
-from typing import Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Any,
+    ForwardRef,
+    Generic,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from typing_extensions import override
 

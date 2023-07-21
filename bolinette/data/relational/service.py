@@ -2,9 +2,9 @@ from typing import Any, Generic, TypeVar
 
 from sqlalchemy import Table
 
+from bolinette.core.mapping import Mapper
 from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
 from bolinette.data.relational import DeclarativeBase, Repository
-from bolinette.core.mapping import Mapper
 
 EntityT = TypeVar("EntityT", bound=DeclarativeBase)
 
