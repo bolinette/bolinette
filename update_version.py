@@ -39,13 +39,10 @@ def update_web(major: int, minor: int, patch: int) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise ArgumentError("Only accepts 1 argument")
-    tag = sys.argv[1]
-    try:
-        project, version = tag.split("-")
-    except ValueError:
-        raise ArgumentError("Invalid version format")
+    if len(sys.argv) != 3:
+        raise ArgumentError("Only accepts 3 argument")
+    project = sys.argv[1]
+    version = sys.argv[2]
     if not (match := re.match(r"(\d+)\.(\d+).(\d+)", version)):
         raise ArgumentError("Invalid version format")
     match project:
