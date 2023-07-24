@@ -2,14 +2,14 @@ import inspect
 import re
 import sys
 from ctypes import ArgumentError
-from typing import Any
+from types import ModuleType
 
 from bolinette.core import version as core_version
 from bolinette.data import version as data_version
 from bolinette.web import version as web_version
 
 
-def update_version(module: Any, major: int, minor: int, patch: int) -> None:
+def update_version(module: ModuleType, major: int, minor: int, patch: int) -> None:
     version = f"{major}.{minor}.{patch}"
     file = inspect.getfile(module)
     with open(file, "w") as stream:

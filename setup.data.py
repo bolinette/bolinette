@@ -1,8 +1,7 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import find_namespace_packages, setup
 
+from bolinette.core.utils import FileUtils, PathUtils
 from bolinette.data import __version__
-from bolinette.core.utils import PathUtils, FileUtils
-
 
 paths = PathUtils()
 files = FileUtils(paths)

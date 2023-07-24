@@ -1,8 +1,7 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import find_namespace_packages, setup
 
+from bolinette.core.utils import FileUtils, PathUtils
 from bolinette.web import __version__
-from bolinette.core.utils import PathUtils, FileUtils
-
 
 paths = PathUtils()
 files = FileUtils(paths)
@@ -18,7 +17,7 @@ setup(
     include_package_data=True,
     version=__version__,
     license="MIT",
-    description="The Bolinette web package, an async REST API and Websocket framework, based on bolinette, bolinette-data and aiohttp",
+    description="The Bolinette web package, an async REST API and Websocket framework, based on bolinette and aiohttp",
     long_description=files.read_file(paths.root_path("README.md")),
     long_description_content_type="text/markdown",
     author="Pierre Chat",

@@ -1,0 +1,37 @@
+name: Publish Bolinette Data to pypi.org
+
+on:
+  push:
+    tags:
+      - data-*
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.11"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Update package version ${{ steps.get_version.outputs.VERSION }}
+        run: python update_version.py ${{ steps.get_version.outputs.VERSION }}
+      - name: Build and publish version ${{ steps.get_version.outputs.VERSION }}
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python setup.data.py sdist bdist_wheel
+          twine upload dist/*

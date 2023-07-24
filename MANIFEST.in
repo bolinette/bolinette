@@ -1,5 +1,2 @@
 include README.md
 include LICENSE.txt
-recursive-include bolinette/core/_files *
-recursive-include bolinette/data/_files *
-recursive-include bolinette/web/_files *
