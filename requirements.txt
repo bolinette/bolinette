@@ -12,7 +12,8 @@ pytest==7.4.0
 pytest-aiohttp==1.0.4
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
-pyyaml==6.0
-ruff==0.0.278
-SQLAlchemy==2.0.18
+pyyaml==6.0.1
+ruff==0.0.280
+SQLAlchemy==2.0.19
+typing_extensions==4.7.1
 twine==4.0.2
