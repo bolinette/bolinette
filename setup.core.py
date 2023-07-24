@@ -25,6 +25,7 @@ setup(
     url="https://github.com/bolinette/bolinette",
     keywords=["Bolinette", "Framework", "IoC", "Dependency Injection"],
     install_requires=files.read_requirements(paths.root_path(), name="requirements.core.txt"),
+    package_data={"bolinette.core": ["py.typed"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

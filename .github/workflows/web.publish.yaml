@@ -28,6 +28,15 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Update package version ${{ steps.get_version.outputs.VERSION }}
         run: python update_version.py ${{ steps.get_version.outputs.VERSION }}
+      - name: Commit version change
+        run: |
+          if [[ `git status --porcelain` ]]; then
+            git config --global user.name 'Pierre Chat'
+            git config --global user.email 'TheCaptainCat@users.noreply.github.com'
+            git add -A
+            git commit -m "[Github] Updated to version ${{ steps.get_version.outputs.VERSION }}"
+            git push
+          fi
       - name: Build and publish version ${{ steps.get_version.outputs.VERSION }}
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}

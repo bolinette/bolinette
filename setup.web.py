@@ -25,6 +25,7 @@ setup(
     url="https://github.com/bolinette/bolinette",
     keywords=["Bolinette", "Framework", "REST API", "Websocket"],
     install_requires=files.read_requirements(paths.root_path(), name="requirements.web.txt"),
+    package_data={"bolinette.web": ["py.typed"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
