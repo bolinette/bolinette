@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
-from sqlalchemy.orm import relationship  # pyright: ignore[reportUnknownVariableType]
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing_extensions import override
 
 from bolinette.core import Cache, meta

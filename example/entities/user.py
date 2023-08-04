@@ -1,6 +1,5 @@
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship  # pyright: ignore[reportUnknownVariableType]
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from bolinette.data.relational import entity, get_base
 from example.entities import Role

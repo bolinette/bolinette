@@ -1,9 +1,9 @@
-from typing import Callable, TypeVar
+from typing import Callable, Protocol, TypeVar
 
 from bolinette.core import Cache, __user_cache__, meta
 
 
-class Controller:
+class Controller(Protocol):
     pass
 
 

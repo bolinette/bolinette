@@ -444,7 +444,7 @@ class Injection:
                 raise InjectionError(
                     f"Type {t} requires {len(t.cls.__parameters__)} generic parameters and {len(t.vars)} were given"
                 )
-        super_t = Type(super_cls)
+        super_t: Type[InstanceT] = Type(super_cls)
         if not issubclass(t.cls, super_t.cls):
             raise InjectionError(f"Type {t} does not inherit from type {super_t}")
         if instance is not None:

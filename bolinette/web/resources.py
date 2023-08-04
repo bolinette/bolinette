@@ -1,15 +1,20 @@
+import json
 from typing import Any, Callable
 
 from aiohttp import web
 
 from bolinette.core import Cache, meta
+from bolinette.core.exceptions import BolinetteError
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.injection.resolver import ArgResolverOptions
+from bolinette.core.mapping import JsonObjectEncoder, Mapper
 from bolinette.core.types import Type
 from bolinette.core.utils import AttributeUtils
 from bolinette.web import Controller
 from bolinette.web.controller import ControllerMeta
+from bolinette.web.exceptions import BadRequestError, WebError
 from bolinette.web.middleware import Middleware, MiddlewareBag
+from bolinette.web.payload import PayloadMeta
 from bolinette.web.route import RouteBucket, RouteProps
 
 
@@ -77,8 +82,11 @@ class RouteHandler:
             self.prepare_session(scoped_inject, request)
             mdlws = self.collect_middlewares(scoped_inject)
             return await self.middleware_chain(request, scoped_inject, mdlws, 0)
-        except BaseException as e:
-            raise e
+        except WebError as e:
+            content: dict[str, Any] = {"code": e.error_code, "status": e.status}
+            return web.Response(body=json.dumps(content), content_type="application/json", status=e.status)
+        except BolinetteError:
+            raise  # TODO log error
 
     async def middleware_chain(
         self,
@@ -91,15 +99,49 @@ class RouteHandler:
             return await self.middleware_chain(request, scoped, mdlws, index + 1)
 
         if index >= len(mdlws):
-            ctrl = scoped.instanciate(self.ctrl_t.cls)
-            return await scoped.call(
-                self.func,
-                args=[ctrl],
-                additional_resolvers=[RouteParamArgResolver(request, self.props)],
-            )
+            return await self.call_controller(request, scoped)
         else:
             mdlw = mdlws[index]
             return await scoped.call(mdlw.handle, args=[_next_handle])
+
+    async def call_controller(
+        self,
+        request: web.Request,
+        scoped: Injection,
+    ) -> web.Response:
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            body = None
+        ctrl = scoped.instanciate(self.ctrl_t.cls)
+        result = await scoped.call(
+            self.func,
+            args=[ctrl],
+            additional_resolvers=[
+                RouteParamArgResolver(self, request),
+                RoutePayloadArgResolver(self, scoped.require(Mapper), body),
+            ],
+        )
+        if isinstance(result, web.Response):
+            return result
+        status: int
+        match result:
+            case [_, int()]:
+                status = result[1]
+                result = result[0]
+            case _:
+                status = 200
+        match result:
+            case str():
+                content = result
+                content_type = "text/plain"
+            case int() | float() | bool():
+                content = str(result)
+                content_type = "text/plain"
+            case _:
+                content = json.dumps(result, cls=JsonObjectEncoder)
+                content_type = "application/json"
+        return web.Response(text=content, status=status, content_type=content_type)
 
     def collect_middlewares(self, scoped: Injection) -> list[Middleware[Any]]:
         bags: list[MiddlewareBag] = []
@@ -120,18 +162,18 @@ class RouteHandler:
 
 
 class RouteParamArgResolver:
-    def __init__(self, request: web.Request, props: RouteProps) -> None:
+    def __init__(self, handler: RouteHandler, request: web.Request) -> None:
+        self.handler = handler
         self.request = request
-        self.props = props
 
-    def supports(self, options: ArgResolverOptions):
+    def supports(self, options: ArgResolverOptions) -> bool:
         return (
-            options.name in self.props.func_to_url_args
-            and self.props.func_to_url_args[options.name] in self.request.match_info
+            options.name in self.handler.props.func_to_url_args
+            and self.handler.props.func_to_url_args[options.name] in self.request.match_info
         )
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        value = self.request.match_info[self.props.func_to_url_args[options.name]]
+        value = self.request.match_info[self.handler.props.func_to_url_args[options.name]]
         t = options.t
         match t.cls:
             case cls if cls is int:
@@ -145,3 +187,26 @@ class RouteParamArgResolver:
             case _:
                 pass
         return (options.name, value)
+
+
+class RoutePayloadArgResolver:
+    def __init__(self, handler: RouteHandler, mapper: Mapper, body: Any | None) -> None:
+        self.handler = handler
+        self.mapper = mapper
+        self.body = body
+
+    def supports(self, options: ArgResolverOptions) -> bool:
+        return isinstance(options.default, PayloadMeta)
+
+    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+        if self.body is None:
+            if options.nullable:
+                return options.name, None
+            raise BadRequestError(
+                "Payload expected but none provided",
+                "payload.expected",
+                ctrl=self.handler.ctrl_t,
+                route=self.handler.func,
+            )
+        payload = self.mapper.map(type(self.body), options.t.cls, self.body)
+        return options.name, payload

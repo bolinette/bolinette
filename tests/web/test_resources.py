@@ -4,12 +4,21 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient
 
 from bolinette.core import Cache
+from bolinette.core.mapping import Mapper
+from bolinette.core.mapping.mapper import (
+    BoolTypeMapper,
+    FloatTypeMapper,
+    IntegerTypeMapper,
+    StringTypeMapper,
+    type_mapper,
+)
 from bolinette.core.testing import Mock
 from bolinette.web import (
-    Controller,
     WebResources,
     controller,
     get,
+    payload,
+    post,
     route,
     with_middleware,
 )
@@ -17,10 +26,17 @@ from bolinette.web import (
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
 
 
+def load_default_mappers(cache: Cache) -> None:
+    type_mapper(int, cache=cache)(IntegerTypeMapper)
+    type_mapper(str, cache=cache)(StringTypeMapper)
+    type_mapper(float, cache=cache)(FloatTypeMapper)
+    type_mapper(bool, cache=cache)(BoolTypeMapper)
+
+
 async def test_call_basic_route(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class _TestCtrl(Controller):
+    class _TestCtrl:
         @route("GET", "route")
         async def get_by_id(self) -> web.Response:
             return web.Response(status=200, body="ok")
@@ -28,6 +44,7 @@ async def test_call_basic_route(aiohttp_client: ClientFixture) -> None:
     controller("test", cache=cache)(_TestCtrl)
 
     mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
     res = mock.injection.require(WebResources)
@@ -42,7 +59,7 @@ async def test_call_basic_route(aiohttp_client: ClientFixture) -> None:
 async def test_call_route_with_args(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class _TestCtrl(Controller):
+    class _TestCtrl:
         @route("GET", "{id}")
         async def get_by_id(self, id: int) -> web.Response:
             return web.Response(status=200, body=f"{id}: {type(id)}")
@@ -50,6 +67,7 @@ async def test_call_route_with_args(aiohttp_client: ClientFixture) -> None:
     controller("test", cache=cache)(_TestCtrl)
 
     mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
     res = mock.injection.require(WebResources)
@@ -92,7 +110,7 @@ async def test_call_route_with_middleware(aiohttp_client: ClientFixture) -> None
 
     @controller("test", cache=cache)
     @with_middleware(_CtrlMdlw)
-    class _(Controller):
+    class _:
         @route("GET", "")
         @with_middleware(_RouteMdlw1)
         @with_middleware(_RouteMdlw2)
@@ -100,6 +118,7 @@ async def test_call_route_with_middleware(aiohttp_client: ClientFixture) -> None
             return web.Response(status=200, body="ok")
 
     mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
     res = mock.injection.require(WebResources)
@@ -130,12 +149,13 @@ async def test_intercept_request(aiohttp_client: ClientFixture) -> None:
 
     @controller("test", cache=cache)
     @with_middleware(_Auth)
-    class _(Controller):
+    class _:
         @get("")
         async def get_by_id(self) -> web.Response:
             return web.Response(status=200, body="ok")
 
     mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
     res = mock.injection.require(WebResources)
@@ -144,3 +164,141 @@ async def test_intercept_request(aiohttp_client: ClientFixture) -> None:
     resp = await client.get("/test")
 
     assert resp.status == 401
+
+
+async def test_return_mapped_json(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Entity:
+        def __init__(self, id: int, name: str) -> None:
+            self.id = id
+            self.name = name
+
+    class EntityResponse:
+        id: int
+        name: str
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @get("{id}/{name}")
+        async def get_entity(self, id: int, name: str) -> EntityResponse:
+            entity = Entity(id, name)
+            return self.mapper.map(Entity, EntityResponse, entity)
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.get("/entity/1/test")
+
+    assert resp.status == 200
+    assert resp.content_type == "application/json"
+    assert await resp.json() == {"id": 1, "name": "test"}
+
+
+async def test_expect_payload_return_status(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Entity:
+        def __init__(self, id: int, name: str) -> None:
+            self.id = id
+            self.name = name
+
+    class EntityPayload:
+        id: int
+        name: str
+
+    class EntityResponse:
+        id: int
+        name: str
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @post("")
+        async def create_entity(self, payload: EntityPayload = payload()) -> tuple[EntityResponse, int]:
+            entity = Entity(payload.id, payload.name)
+            return self.mapper.map(Entity, EntityResponse, entity), 201
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.post("/entity", json={"id": 1, "name": "test"})
+
+    assert resp.status == 201
+    assert resp.content_type == "application/json"
+    assert await resp.json() == {"id": 1, "name": "test"}
+
+
+async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Payload:
+        value: str
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @post("")
+        async def create_entity(self, payload: Payload | None = payload()) -> str:
+            return "<none>" if not payload else payload.value
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.post("/entity")
+
+    assert resp.status == 200
+    assert resp.content_type == "text/plain"
+    assert await resp.text() == "<none>"
+
+
+async def test_fail_non_nullable_payload(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Payload:
+        value: str
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @post("")
+        async def create_entity(self, payload: Payload = payload()) -> str:
+            return payload.value
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.post("/entity")
+
+    assert resp.status == 400
+    assert resp.content_type == "application/json"
+    assert await resp.json() == {"code": "payload.expected", "status": 400}
