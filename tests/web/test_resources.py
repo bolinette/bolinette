@@ -21,6 +21,7 @@ from bolinette.web import (
     post,
     route,
     with_middleware,
+    without_middleware,
 )
 
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
@@ -130,6 +131,59 @@ async def test_call_route_with_middleware(aiohttp_client: ClientFixture) -> None
     assert await resp.text() == "ok"
 
     assert order == ["ctrl", "route1", "route2"]
+
+
+async def test_remove_middleware_from_route(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    order: list[str] = []
+
+    class _Mdlw1:
+        def options(self) -> None:
+            pass
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            order.append("1")
+            return await next()
+
+    class _Mdlw2:
+        def options(self) -> None:
+            pass
+
+        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
+            order.append("2")
+            return await next()
+
+    @controller("test", cache=cache)
+    @with_middleware(_Mdlw1)
+    @with_middleware(_Mdlw2)
+    class _:
+        @route("GET", "1")
+        async def get1(self) -> web.Response:
+            return web.Response(status=200, body="ok")
+
+        @route("GET", "2")
+        @without_middleware(_Mdlw1)
+        async def get2(self) -> web.Response:
+            return web.Response(status=200, body="ok")
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.get("/test/1")
+    assert resp.status == 200
+    assert await resp.text() == "ok"
+    assert order == ["1", "2"]
+
+    order.clear()
+    resp = await client.get("/test/2")
+    assert resp.status == 200
+    assert await resp.text() == "ok"
+    assert order == ["2"]
 
 
 async def test_intercept_request(aiohttp_client: ClientFixture) -> None:
