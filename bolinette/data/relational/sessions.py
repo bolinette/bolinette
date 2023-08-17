@@ -21,3 +21,7 @@ class SessionManager:
     async def rollback(self) -> None:
         for session in self._sessions.values():
             await session.rollback()
+
+    async def close(self) -> None:
+        for session in self._sessions.values():
+            await session.close()

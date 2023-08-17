@@ -418,8 +418,8 @@ def test_fail_circular_init_method_reference() -> None:
         inject.require(Service4)
 
     assert (
-        f"Type {Service4}, A circular call has been detected: "
-        f"{Service4} -> {Service4.init} -> {Service5} -> {Service5.init} -> {Service4}" == info.value.message
+        "Type Service4, A circular call has been detected: "
+        "Service4 -> Service4.init -> Service5 -> Service5.init -> Service4" == info.value.message
     )
 
 
@@ -451,8 +451,8 @@ def test_fail_three_wide_circular() -> None:
         inject.require(Service8)
 
     assert (
-        f"Type {Service8}, A circular call has been detected: "
-        f"{Service8} -> {Service8.init} -> {Service7} -> {Service7.init} -> {Service6} -> {Service6.init} -> {Service8}"
+        "Type Service8, A circular call has been detected: "
+        "Service8 -> Service8.init -> Service7 -> Service7.init -> Service6 -> Service6.init -> Service8"
         == info.value.message
     )
 
@@ -885,7 +885,7 @@ def test_generic_injection() -> None:
     g = inject.require(_GenericTest[_ParamClass])
 
     assert meta.has(g, GenericMeta)
-    assert meta.get(g, GenericMeta).args == (_ParamClass,)
+    assert meta.get(g, GenericMeta) == (_ParamClass,)
 
 
 def test_generic_injection_from_cache() -> None:
@@ -906,7 +906,7 @@ def test_generic_injection_from_cache() -> None:
     g = inject.require(_GenericTest[_ParamClass])
 
     assert meta.has(g, GenericMeta)
-    assert meta.get(g, GenericMeta).args == (_ParamClass,)
+    assert meta.get(g, GenericMeta) == (_ParamClass,)
 
 
 def test_generic_no_direct_injection_literal() -> None:
@@ -946,7 +946,7 @@ def test_generic_sub_injection() -> None:
     t = inject.require(_TestClass)
 
     assert meta.has(t.g, GenericMeta)
-    assert meta.get(t.g, GenericMeta).args == (_ParamClass,)
+    assert meta.get(t.g, GenericMeta) == (_ParamClass,)
 
 
 def test_generic_sub_injection_literal() -> None:
@@ -966,7 +966,7 @@ def test_generic_sub_injection_literal() -> None:
     t = inject.require(_TestClass)
 
     assert meta.has(t.g, GenericMeta)
-    assert meta.get(t.g, GenericMeta).args == (_SubTestClass,)
+    assert meta.get(t.g, GenericMeta) == (_SubTestClass,)
 
 
 def test_require_decorator() -> None:
@@ -1119,11 +1119,11 @@ def test_register_match_all() -> None:
 
     assert isinstance(_loggerA, _Logger)
     assert isinstance(_loggerA, _LoggerA)
-    assert meta.get(_loggerA, GenericMeta).args == (_ServiceA,)
+    assert meta.get(_loggerA, GenericMeta) == (_ServiceA,)
 
     assert isinstance(_loggerB, _Logger)
     assert not isinstance(_loggerB, _LoggerA)
-    assert meta.get(_loggerB, GenericMeta).args == (_ServiceB,)
+    assert meta.get(_loggerB, GenericMeta) == (_ServiceB,)
 
 
 def test_require_from_typevar() -> None:
@@ -1156,11 +1156,11 @@ def test_require_from_typevar() -> None:
 
     ctrl = inject.require(_Controller[_Resource])
     assert isinstance(ctrl.sub, _Service)
-    assert meta.get(ctrl.sub, GenericMeta).args == (_Resource,)
+    assert meta.get(ctrl.sub, GenericMeta) == (_Resource,)
 
     ctrl2 = inject.require(_Controller[_SpecificResource])
     assert isinstance(ctrl2.sub, _SpecificService)
-    assert meta.get(ctrl2.sub, GenericMeta).args == (_SpecificResource,)
+    assert meta.get(ctrl2.sub, GenericMeta) == (_SpecificResource,)
 
 
 def test_init_method_with_typevar() -> None:
@@ -1184,7 +1184,7 @@ def test_init_method_with_typevar() -> None:
     ctrl = inject.require(_Controller[_Entity])
 
     assert isinstance(ctrl.s, _Service)
-    assert meta.get(ctrl.s, GenericMeta).args == (_Entity,)
+    assert meta.get(ctrl.s, GenericMeta) == (_Entity,)
 
 
 def test_fail_require_from_typevar_non_generic_parent() -> None:

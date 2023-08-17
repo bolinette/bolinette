@@ -1,16 +1,9 @@
 import collections.abc
 import contextlib
+import inspect
+from inspect import Parameter
 from types import NoneType, UnionType
-from typing import (
-    Any,
-    ForwardRef,
-    Generic,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-    get_type_hints,
-)
+from typing import Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
 
 from typing_extensions import override
 
@@ -21,7 +14,7 @@ T = TypeVar("T")
 
 
 class Type(Generic[T]):
-    __slots__ = ("cls", "vars", "annotations", "nullable", "union")
+    __slots__: list[str] = ["cls", "vars", "nullable", "union"]
 
     @staticmethod
     def from_instance(__instance: T) -> "Type[T]":
@@ -45,7 +38,6 @@ class Type(Generic[T]):
             self.nullable = False
         self.cls, self.vars = Type.get_generics(__cls, lookup, raise_on_string, raise_on_typevar)
         self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), self.get_param_count(self.cls))))
-        self.annotations = Type._get_recursive_annotations(self.cls)
         self.union = tuple(Type(c) for c in additional_cls)
 
     @override
@@ -89,8 +81,9 @@ class Type(Generic[T]):
             and __value.vars == self.vars
         )
 
-    def new(self, *args: Any, **kwargs: Any) -> T:
-        return self.cls(*args, **kwargs)
+    @property
+    def init(self):
+        return types.Function(self.cls.__init__)
 
     @property
     def is_union(self) -> bool:
@@ -100,18 +93,33 @@ class Type(Generic[T]):
     def is_any(self) -> bool:
         return self.cls is Any
 
+    def new(self, *args: Any, **kwargs: Any) -> T:
+        return self.cls(*args, **kwargs)
+
+    def parameters(self) -> dict[str, Parameter]:
+        return {**inspect.signature(self.cls).parameters}
+
+    def annotations(self, *, lookup: "types.TypeVarLookup[Any] | None" = None) -> dict[str, Any]:
+        return self._get_recursive_annotations(self.cls, lookup)
+
     @staticmethod
-    def _get_recursive_annotations(_cls: type[Any]) -> "dict[str, Type[Any]]":
+    def _get_recursive_annotations(_cls: type[Any], lookup: "types.TypeVarLookup[Any] | None") -> dict[str, Any]:
         annotations: dict[str, Type[Any]] = {}
         try:
             for base in _cls.__bases__:
-                annotations |= Type._get_recursive_annotations(base)
+                annotations |= Type._get_recursive_annotations(base, lookup)
             hints: dict[str, type[Any]] = get_type_hints(_cls)
             for attr_name, hint in hints.items():
-                annotations[attr_name] = Type(hint)
+                annotations[attr_name] = Type._transform_annotation(hint, lookup)
         except (AttributeError, TypeError, NameError):
             return annotations
         return annotations
+
+    @staticmethod
+    def _transform_annotation(anno: Any, lookup: "types.TypeVarLookup[Any] | None") -> Any:
+        if anno in (None, Ellipsis):
+            return anno
+        return Type(anno, lookup=lookup)
 
     @staticmethod
     def get_generics(

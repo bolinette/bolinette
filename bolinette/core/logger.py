@@ -49,10 +49,9 @@ class Logger(Generic[T]):
 
     @init_method
     def _init(self) -> None:
-        if meta.has(self, GenericMeta):
-            args = meta.get(self, GenericMeta).args
-            if args and len(args):
-                self._package = args[0].__name__
+        if gen_meta := meta.get(self, GenericMeta, default=None):
+            if len(gen_meta):
+                self._package = gen_meta[0].__name__
 
     def _log(
         self,
@@ -63,7 +62,7 @@ class Logger(Generic[T]):
     ):
         strs: list[str] = []
         strs.append(f"{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')}")
-        strs.append(f"{ConsoleColorCode.Bright}{color}{prefix.ljust(5)}{ConsoleColorCode.Reset}")
+        strs.append(f"{ConsoleColorCode.Bright}{color}{prefix}{ConsoleColorCode.Reset}")
         strs.append(f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]")
         strs.append(text)
         print(*strs, file=file)

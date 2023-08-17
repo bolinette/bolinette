@@ -1,39 +1,60 @@
-from bolinette.core import Cache
+from graphlib import CycleError, TopologicalSorter
+from typing import Protocol
+
+from typing_extensions import override
+
+from bolinette.core import Cache, Logger, environment
+from bolinette.core.command import Parser
+from bolinette.core.environment import CoreSection
 from bolinette.core.exceptions import InitError
+from bolinette.core.injection import Injection, injectable
+from bolinette.core.mapping import Mapper, type_mapper
+from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
+from bolinette.core.utils import FileUtils, PathUtils
+
+
+class _ExtensionModule(Protocol):
+    __blnt_ext__: "Extension"
 
 
 class Extension:
-    def __init__(self, cache: Cache, dependencies: "list[Extension] | None" = None) -> None:
-        self.cache = cache
-        self.dependencies = dependencies or []
+    def __init__(self, name: str, dependencies: "list[_ExtensionModule] | None" = None) -> None:
+        self.name = name
+        self.dependencies = [m.__blnt_ext__ for m in dependencies] if dependencies else []
+
+    def add_cached(self, cache: Cache) -> None:
+        pass
 
     @staticmethod
     def sort_extensions(extensions: "list[Extension]") -> "list[Extension]":
-        dependencies: dict[Extension, set[Extension]] = {}
-        for extension in extensions:
-            dependencies[extension] = set(extension.dependencies)
-        sorted_extensions: list[Extension] = []
-        while len(sorted_extensions) != len(extensions):
-            no_dependencies: list[Extension] = []
-            for extension, deps in dependencies.items():
-                if not deps:
-                    no_dependencies.append(extension)
-            if len(no_dependencies) == 0:
-                raise InitError("A circular dependency was detected in the loaded extensions")
-            for extension in no_dependencies:
-                sorted_extensions.append(extension)
-                del dependencies[extension]
-                for other_extension in dependencies:
-                    if extension in dependencies[other_extension]:
-                        dependencies[other_extension].remove(extension)
-        return sorted_extensions
-
-    @staticmethod
-    def merge_caches(extensions: "list[Extension]") -> Cache:
-        cache = Cache()
-        for extension in extensions:
-            cache |= extension.cache
-        return cache
+        sorter: TopologicalSorter[Extension] = TopologicalSorter()
+        for ext in extensions:
+            sorter.add(ext, *ext.dependencies)
+        try:
+            return list(sorter.static_order())
+        except CycleError:
+            raise InitError("A circular dependency was detected in the loaded extensions")
 
 
-core_ext = Extension(Cache())
+class _CoreExtension(Extension):
+    def __init__(self) -> None:
+        super().__init__("core")
+
+    @override
+    def add_cached(self, cache: Cache) -> None:
+        environment("core", cache=cache)(CoreSection)
+
+        injectable(strategy="singleton", cache=cache)(Injection)
+        injectable(strategy="singleton", cache=cache)(Parser)
+        injectable(strategy="singleton", cache=cache)(Mapper)
+        injectable(strategy="transcient", match_all=True, cache=cache)(Logger)
+        injectable(strategy="singleton", cache=cache)(PathUtils)
+        injectable(strategy="singleton", cache=cache)(FileUtils)
+
+        type_mapper(int, cache=cache)(IntegerTypeMapper)
+        type_mapper(float, cache=cache)(FloatTypeMapper)
+        type_mapper(bool, cache=cache)(BoolTypeMapper)
+        type_mapper(str, cache=cache)(StringTypeMapper)
+
+
+core_ext = _CoreExtension()

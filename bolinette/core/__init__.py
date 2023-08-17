@@ -9,5 +9,5 @@ from bolinette.core.environment import (
     CoreSection as CoreSection,
 )
 from bolinette.core.command.command import command as command
-from bolinette.core.extension import Extension as Extension, core_ext as core_ext
+from bolinette.core.extension import Extension as Extension, core_ext as __blnt_ext__
 from bolinette.core.bolinette import Bolinette as Bolinette, main_func as main_func

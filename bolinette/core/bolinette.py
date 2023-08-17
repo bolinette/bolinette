@@ -1,20 +1,15 @@
-from typing import Callable, Protocol
+import importlib
+import pkgutil
+from types import ModuleType
+from typing import Callable
 
-from bolinette.core import (
-    Environment,
-    Extension,
-    Logger,
-    __user_cache__,
-    core_ext,
-    meta,
-)
+import bolinette
+from bolinette.core import Environment, Extension, Logger, __user_cache__, meta
+from bolinette.core.cache import Cache
 from bolinette.core.command import Parser
-from bolinette.core.injection import Injection
+from bolinette.core.exceptions import InitError
+from bolinette.core.injection import Injection, require
 from bolinette.core.utils import FileUtils, PathUtils
-
-
-class _ExtensionModule(Protocol):
-    __blnt_ext__: Extension
 
 
 class Bolinette:
@@ -22,42 +17,45 @@ class Bolinette:
         self,
         *,
         profile: str | None = None,
-        inject: Injection | None = None,
-        load_defaults: bool = True,
-        extensions: list[_ExtensionModule] | None = None,
     ) -> None:
-        if extensions is None:
-            _extensions = []
-        else:
-            _extensions = [m.__blnt_ext__ for m in extensions]
-        if load_defaults and core_ext not in _extensions:
-            _extensions = [core_ext, *_extensions]
+        self.cache = Cache()
 
-        _extensions = Extension.sort_extensions(_extensions)
-        cache = Extension.merge_caches(_extensions)
-        cache |= __user_cache__
+        self.extensions = self._load_extensions()
+        for ext in self.extensions:
+            ext.add_cached(self.cache)
 
-        self._inject = inject or Injection(cache)
-        meta.set(self, self._inject)
+        self.cache |= __user_cache__
 
-        self._logger = self._inject.require(Logger[Bolinette])
-        self._paths = self._inject.require(PathUtils)
-        self._files = self._inject.require(FileUtils)
+        self.inject = Injection(self.cache)
+        meta.set(self, self.inject)
+
+        self._logger = self.inject.require(Logger[Bolinette])
+        self._paths = self.inject.require(PathUtils)
+        self._files = self.inject.require(FileUtils)
 
         self._profile = profile or self._files.read_profile(self._paths.env_path()) or self._set_default_profile()
 
-        self._inject.add(Bolinette, "singleton", instance=self)
-        self._inject.add(
-            Environment,
-            "singleton",
-            args=[self._profile],
-            instanciate=True,
-        )
-        self._inject.__hook_proxies__(self)
+        self.inject.add(Bolinette, "singleton", instance=self)
+        self.inject.add(Environment, "singleton", args=[self._profile], instanciate=True)
+        self.inject.__hook_proxies__(self)
+
+        self._logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self.extensions)}")
 
     @property
     def injection(self) -> Injection:
-        return self._inject
+        return self.inject
+
+    def _load_extensions(self) -> list[Extension]:
+        def iter_namespace(module: ModuleType) -> list[str]:
+            return [info[1] for info in pkgutil.iter_modules(module.__path__, module.__name__ + ".")]
+
+        blnt_modules = [importlib.import_module(name) for name in iter_namespace(bolinette)]
+        extensions: list[Extension] = []
+        for module in blnt_modules:
+            if not hasattr(module, "__blnt_ext__") or not isinstance(ext := module.__blnt_ext__, Extension):
+                raise InitError(f"{module.__name__} is not a valid Bolinette extension module")
+            extensions.append(ext)
+        return Extension.sort_extensions(extensions)
 
     def _set_default_profile(self) -> str:
         self._logger.warning(
@@ -69,8 +67,8 @@ class Bolinette:
     async def startup(self) -> None:
         pass
 
-    @property
-    def _parser(self) -> Parser:
+    @require(Parser)
+    def _parser(self):
         ...
 
     async def exec_cmd_args(self):

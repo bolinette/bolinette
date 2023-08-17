@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from typing import Any, Callable
+from typing import Any
 
 from typing_extensions import override
 
@@ -76,19 +76,11 @@ class InjectionError(BolinetteError, ParameterError):
         message: str,
         *,
         cls: type[Any] | None = None,
-        func: Callable[..., Any] | None = None,
+        func: Any | None = None,
         param: str | None = None,
     ) -> None:
         ParameterError.__init__(self, cls="Type {}", func="Callable {}", param="Parameter '{}'")
-        BolinetteError.__init__(
-            self,
-            self._format_params(
-                message,
-                cls=cls,
-                func=func.__qualname__ if func is not None else None,
-                param=param,
-            ),
-        )
+        BolinetteError.__init__(self, self._format_params(message, cls=cls, func=func, param=param))
 
 
 class EnvironmentError(BolinetteError):

@@ -6,11 +6,7 @@ from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.exceptions import MappingError
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping.profiles import MapFromOptions, Profile
-from bolinette.core.mapping.sequence import (
-    IgnoreAttribute,
-    MapFromAttribute,
-    MappingSequence,
-)
+from bolinette.core.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.core.types import Type
 
 
@@ -216,7 +212,7 @@ class DefaultTypeMapper(TypeMapper[object]):
         if sequence is not None:
             for func in sequence.head:
                 func.func(src, dest)
-        for dest_name, anno_t in dest_t.annotations.items():
+        for dest_name, anno_t in dest_t.annotations().items():
             src_name = dest_name
             sub_dest_path = f"{dest_path}.{dest_name}"
             selected_t: Type[Any] | None = None

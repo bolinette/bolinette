@@ -1,43 +1,15 @@
-import inspect
-from collections.abc import Callable, Collection
-from types import NoneType, UnionType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    ParamSpec,
-    Protocol,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-    get_type_hints,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, Protocol, Sequence, TypeVar, overload
 
 from typing_extensions import override
 
 from bolinette.core import Cache, GenericMeta, meta
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.injection.context import InjectionContext
-from bolinette.core.injection.decorators import (
-    InitMethodMeta,
-    InjectionParamsMeta,
-    InjectionSymbol,
-)
+from bolinette.core.injection.decorators import InitMethodMeta, InjectionParamsMeta, InjectionSymbol
 from bolinette.core.injection.hook import InjectionHook, InjectionProxy
-from bolinette.core.injection.registration import (
-    InjectionStrategy,
-    RegisteredType,
-    RegisteredTypeBag,
-)
-from bolinette.core.injection.resolver import (
-    ArgResolverMeta,
-    ArgResolverOptions,
-    ArgumentResolver,
-    DefaultArgResolver,
-)
-from bolinette.core.types import Type, TypeVarLookup
+from bolinette.core.injection.registration import InjectionStrategy, RegisteredType, RegisteredTypeBag
+from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
+from bolinette.core.types import Function, Type, TypeVarLookup
 from bolinette.core.utils import OrderedSet
 
 FuncP = ParamSpec("FuncP")
@@ -46,7 +18,7 @@ InstanceT = TypeVar("InstanceT")
 
 
 class Injection:
-    __slots__ = ("_cache", "_global_ctx", "_types", "_arg_resolvers")
+    __slots__ = ("cache", "_global_ctx", "_types", "_arg_resolvers")
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
     _REQUIREABLE_STRATEGIES = ("singleton", "transcient")
 
@@ -57,7 +29,7 @@ class Injection:
         types: "dict[type[Any], RegisteredTypeBag[Any]] | None" = None,
     ) -> None:
         self._arg_resolvers: list[ArgumentResolver] = []
-        self._cache = cache
+        self.cache = cache
         self._global_ctx = global_ctx or InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
         self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], [], cache, safe=True)
@@ -132,8 +104,8 @@ class Injection:
 
     def _resolve_args(
         self,
-        func: Callable[..., Any],
-        func_type_vars: tuple[Any, ...] | None,
+        obj: Type[Any] | Function[..., Any],
+        type_vars: tuple[Any, ...] | None,
         strategy: InjectionStrategy,
         vars_lookup: TypeVarLookup[Any] | None,
         immediate: bool,
@@ -142,29 +114,29 @@ class Injection:
         named_args: dict[str, Any],
         additional_resolvers: list[ArgumentResolver],
     ) -> dict[str, Any]:
-        if func in circular_guard:
-            call_chain = " -> ".join(str(f) for f in circular_guard) + f" -> {func}"
+        if obj in circular_guard:
+            call_chain = " -> ".join(str(f) for f in circular_guard) + f" -> {obj}"
             raise InjectionError(f"A circular call has been detected: {call_chain}", cls=circular_guard[0])
-        circular_guard.add(func)
+        circular_guard.add(obj)
 
-        func_params = dict(inspect.signature(func).parameters)
+        try:
+            if isinstance(obj, Function):
+                annotations = obj.annotations(lookup=vars_lookup)
+            else:
+                annotations = obj.init.annotations(lookup=vars_lookup)
+        except NameError as exp:
+            raise InjectionError(f"Type hint '{exp.name}' could not be resolved", func=obj) from exp
+        func_params = obj.parameters()
+
         if any((n, p) for n, p in func_params.items() if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL)):
             raise InjectionError(
                 "Positional only parameters and positional wildcards are not allowed",
-                func=func,
+                func=obj,
             )
 
         f_args: dict[str, Any] = {}
         _args = [*args]
         _named_args = {**named_args}
-
-        try:
-            if inspect.isclass(func):
-                hints = get_type_hints(func.__init__)
-            else:
-                hints = get_type_hints(func)
-        except NameError as exp:
-            raise InjectionError(f"Type hint '{exp.name}' could not be resolved", func=func) from exp
 
         for p_name, param in func_params.items():
             if param.kind == param.VAR_KEYWORD:
@@ -185,34 +157,26 @@ class Injection:
             if param.default is not param.empty:
                 default_set = True
                 default = param.default
-            nullable = False
 
-            if p_name not in hints:
+            if p_name not in annotations:
                 if default_set:
                     f_args[p_name] = default
                     continue
-                raise InjectionError("Annotation is required", func=func, param=p_name)
+                raise InjectionError("Annotation is required", func=obj, param=p_name)
 
-            hint: type = hints[p_name]
+            hint: Type[Any] = annotations[p_name]
 
-            if get_origin(hint) in (UnionType, Union):
-                type_args = get_args(hint)
-                nullable = type(None) in type_args
-                if not nullable or (nullable and len(type_args) >= 3):
-                    raise InjectionError("Type unions are not allowed", func=func, param=p_name)
-                hint = next(filter(lambda t: t is not NoneType, type_args))
-
-            hint_t = Type(hint, lookup=vars_lookup)
+            if hint.is_union:
+                raise InjectionError("Type unions are not allowed", func=obj, param=p_name)
 
             for resolver in [*additional_resolvers, *self._arg_resolvers]:
                 options = ArgResolverOptions(
                     self,
-                    func,
-                    func_type_vars,
+                    obj,
+                    type_vars,
                     strategy,
                     p_name,
-                    hint_t,
-                    nullable,
+                    hint,
                     default_set,
                     default,
                     immediate,
@@ -226,7 +190,7 @@ class Injection:
         if _args or _named_args:
             raise InjectionError(
                 f"Expected {len(func_params)} arguments, {len(args) + len(named_args)} given",
-                func=func,
+                func=obj,
             )
 
         return f_args
@@ -283,7 +247,7 @@ class Injection:
     ) -> InstanceT:
         vars_lookup = TypeVarLookup(t)
         func_args = self._resolve_args(
-            r_type.t.cls,
+            r_type.t,
             t.vars,
             r_type.strategy,  # type: ignore
             vars_lookup,
@@ -319,7 +283,7 @@ class Injection:
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            func,
+            Function(func),
             None,
             "singleton",
             vars_lookup,
@@ -341,7 +305,7 @@ class Injection:
     ) -> InstanceT:
         t = Type(cls)
         init_args = self._resolve_args(
-            cls,
+            t,
             t.vars,
             "immediate",
             None,
@@ -489,7 +453,7 @@ class Injection:
         return self.__instanciate__(r_type, t, OrderedSet())
 
     def get_scoped_session(self) -> "ScopedInjection":
-        return ScopedInjection(self._cache, self._global_ctx, InjectionContext(), self._types)
+        return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)
 
 
 class ScopedInjection(Injection):
@@ -560,7 +524,7 @@ class ScopedInjection(Injection):
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            func,
+            Function(func),
             None,
             "scoped",
             vars_lookup,
@@ -577,7 +541,7 @@ class _GenericOrigin(Protocol):
     __parameters__: tuple[TypeVar, ...]
 
 
-def _format_list(collection: Collection[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
+def _format_list(collection: Sequence[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
     """TODO: move this into StringUtils and rework import flow"""
     formatted: list[str] = []
     cnt = len(collection)

@@ -1,2 +1,2 @@
-import bolinette.data.defaults.databases  # pyright: ignore[reportUnusedImport]
-import bolinette.data.defaults.arg_resolvers
+from bolinette.data.defaults.databases import SQLite as SQLite
+from bolinette.data.defaults.arg_resolvers import AsyncSessionArgResolver as AsyncSessionArgResolver

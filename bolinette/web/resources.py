@@ -200,7 +200,7 @@ class RoutePayloadArgResolver:
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
         if self.body is None:
-            if options.nullable:
+            if options.t.nullable:
                 return options.name, None
             raise BadRequestError(
                 "Payload expected but none provided",

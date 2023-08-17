@@ -11,3 +11,4 @@ from bolinette.web.controller import Controller as Controller, controller as con
 from bolinette.web.middleware import with_middleware as with_middleware, without_middleware as without_middleware
 from bolinette.web.payload import payload as payload
 from bolinette.web.resources import WebResources as WebResources
+from bolinette.web.extension import web_ext as __blnt_ext__

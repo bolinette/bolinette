@@ -32,6 +32,7 @@ async def test_command(inject: Injection, entities: EntityManager) -> None:
         await s_inject.call(func)
         if commit:
             await sessions.commit()
+        await sessions.close()
 
     await run_in_scope(create_role, commit=True)
     await run_in_scope(create_users, commit=True)

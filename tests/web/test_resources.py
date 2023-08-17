@@ -13,16 +13,7 @@ from bolinette.core.mapping.mapper import (
     type_mapper,
 )
 from bolinette.core.testing import Mock
-from bolinette.web import (
-    WebResources,
-    controller,
-    get,
-    payload,
-    post,
-    route,
-    with_middleware,
-    without_middleware,
-)
+from bolinette.web import WebResources, controller, get, payload, post, route, with_middleware, without_middleware
 
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
 

@@ -24,7 +24,7 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
-    "__init__.py"
+    "__init__.py",
 ]
 per-file-ignores = {}
 
@@ -41,6 +41,12 @@ seaborn = "sns"
 
 [tool.ruff.mccabe]
 max-complexity = 10
+
+[tool.isort]
+py_version = 311
+line_length = 120
+skip = ["__init__.py"]
+profile = "black"
 
 [tool.black]
 line-length = 120
