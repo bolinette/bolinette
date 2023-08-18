@@ -25,7 +25,7 @@ class WebResources:
     @init_method
     def _init_ctrls(self, cache: Cache, inject: Injection) -> None:
         routes: list[web.RouteDef] = []
-        for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller]):
+        for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller], raises=False):
             ctrl_meta = meta.get(ctrl_cls, ControllerMeta)
             attr: Any
             for attr in AttributeUtils.get_cls_attrs(ctrl_cls).values():
