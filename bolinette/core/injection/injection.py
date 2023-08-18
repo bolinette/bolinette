@@ -18,7 +18,7 @@ InstanceT = TypeVar("InstanceT")
 
 
 class Injection:
-    __slots__ = ("cache", "_global_ctx", "_types", "_arg_resolvers")
+    __slots__ = ("cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers")
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
     _REQUIREABLE_STRATEGIES = ("singleton", "transcient")
 
@@ -28,12 +28,13 @@ class Injection:
         global_ctx: InjectionContext | None = None,
         types: "dict[type[Any], RegisteredTypeBag[Any]] | None" = None,
     ) -> None:
-        self._arg_resolvers: list[ArgumentResolver] = []
         self.cache = cache
+        self._arg_resolvers: list[ArgumentResolver] = []
         self._global_ctx = global_ctx or InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
         self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], [], cache, safe=True)
         self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], [], self, safe=True)
+        self._default_resolver: ArgumentResolver = DefaultArgResolver()
         self._arg_resolvers = self._pickup_resolvers(cache)
 
     @property
@@ -88,9 +89,9 @@ class Injection:
         for cls in resolver_types:
             if resolver_scoped[cls]:
                 continue
-            resolvers.append(self.instanciate(cls, additional_resolvers=[DefaultArgResolver()]))
+            resolvers.append(self.instanciate(cls))
 
-        return [*resolvers, DefaultArgResolver()]
+        return [*resolvers]
 
     def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
         return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
@@ -169,7 +170,7 @@ class Injection:
             if hint.is_union:
                 raise InjectionError("Type unions are not allowed", func=obj, param=p_name)
 
-            for resolver in [*additional_resolvers, *self._arg_resolvers]:
+            for resolver in [*additional_resolvers, *self._arg_resolvers, self._default_resolver]:
                 options = ArgResolverOptions(
                     self,
                     obj,
@@ -508,9 +509,9 @@ class ScopedInjection(Injection):
 
         resolvers: list[ArgumentResolver] = []
         for cls in resolver_types:
-            resolvers.append(self.instanciate(cls, additional_resolvers=[DefaultArgResolver()]))
+            resolvers.append(self.instanciate(cls))
 
-        return [*resolvers, DefaultArgResolver()]
+        return [*resolvers]
 
     @override
     def call(

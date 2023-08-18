@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable, Protocol
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.command.command import Argument, ArgumentMeta, CommandMeta
 from bolinette.core.exceptions import InitError
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import init_method
 
 
 class _SubParsersAction(Protocol):
@@ -18,11 +18,9 @@ class Parser:
         self,
         logger: Logger["Parser"],
         cache: Cache,
-        inject: Injection,
     ):
         self._cache = cache
         self._logger = logger
-        self._inject = inject
         self._factories = {
             "argument": self._create_argument,
             "option": self._create_option,
@@ -37,7 +35,9 @@ class Parser:
         if CommandMeta in self._cache:
             self._functions = self._cache.get(CommandMeta)
 
-    async def run(self) -> None:
+    def parse_command(
+        self,
+    ) -> tuple[Callable[..., Awaitable[int | None]], dict[str, Any]]:
         tree = self._parse_commands()
         parser = ArgumentParser(description="Bolinette Framework")
         sub_parsers = parser.add_subparsers()
@@ -47,16 +47,13 @@ class Parser:
             cmd = parsed.pop("__blnt_cmd__")
             if "__blnt_path__" in parsed:
                 del parsed["__blnt_path__"]
-            await self._run_command(cmd, parsed)
+            return (self._commands[cmd], parsed)
         elif "__blnt_path__" in parsed:
             self._logger.error(self._sub_commands[parsed["__blnt_path__"]].format_help())
             sys.exit(1)
         else:
             self._logger.error(parser.format_help())
             sys.exit(1)
-
-    async def _run_command(self, cmd: str, args: dict[str, Any]):
-        await self._inject.call(self._commands[cmd], named_args=args)
 
     def _parse_commands(self) -> dict[str, Any]:
         command_tree: dict[str, Any] = {}

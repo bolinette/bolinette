@@ -58,7 +58,8 @@ async def test_launch_command() -> None:
     sys.exit = _catch_exit
 
     sys.argv = ["test", "command"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
     assert value == 2
 
     assert not exited
@@ -100,7 +101,7 @@ async def test_launch_command_not_found() -> None:
     sys.exit = _catch_exit
 
     sys.argv = ["test", "none"]
-    await parser.run()
+    parser.parse_command()
     assert value == 1
 
     assert exited
@@ -141,11 +142,13 @@ async def test_launch_sub_command() -> None:
     sys.exit = _catch_exit
 
     sys.argv = ["test", "command", "inc"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
     assert value == 2
 
     sys.argv = ["test", "command", "dec"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
     assert value == 1
 
     assert not exited
@@ -192,7 +195,7 @@ async def test_launch_sub_command_not_found() -> None:
     sys.exit = _catch_exit
     sys.argv = ["test", "command", "none"]
 
-    await parser.run()
+    parser.parse_command()
     assert value == 1
 
     assert exited
@@ -221,7 +224,8 @@ async def test_command_argument() -> None:
     parser = mock.injection.require(Parser)
 
     sys.argv = ["test", "command", "42"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
 
@@ -247,7 +251,8 @@ async def test_command_option() -> None:
     parser = mock.injection.require(Parser)
 
     sys.argv = ["test", "command", "--param", "42"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
 
@@ -273,7 +278,8 @@ async def test_command_option_flag() -> None:
     parser = mock.injection.require(Parser)
 
     sys.argv = ["test", "command", "-p", "42"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
 
@@ -299,7 +305,8 @@ async def test_command_flag() -> None:
     parser = mock.injection.require(Parser)
 
     sys.argv = ["test", "command", "--param"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
 
     assert value
 
@@ -325,7 +332,8 @@ async def test_command_flag_flag() -> None:
     parser = mock.injection.require(Parser)
 
     sys.argv = ["test", "command", "-p"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
 
     assert value
 
@@ -356,7 +364,8 @@ async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
     parser = mock.injection.require(Parser)
 
     sys.argv = ["test", "command", "--help"]
-    await parser.run()
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
 
     assert exited
 
@@ -386,7 +395,7 @@ async def test_command_conflict() -> None:
 
     sys.argv = ["test", "command", "--help"]
     with pytest.raises(InitError) as info:
-        await parser.run()
+        parser.parse_command()
 
     assert "Conflict with 'command sub' command" in info.value.message
 

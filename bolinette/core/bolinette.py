@@ -1,7 +1,8 @@
 import importlib
 import pkgutil
+import sys
 from types import ModuleType
-from typing import Callable
+from typing import Callable, NoReturn
 
 import bolinette
 from bolinette.core import Environment, Extension, Logger, __user_cache__, meta
@@ -71,8 +72,10 @@ class Bolinette:
     def _parser(self):
         ...
 
-    async def exec_cmd_args(self):
-        await self._parser.run()
+    async def run_from_args(self) -> NoReturn:
+        cmd, args = self._parser.parse_command()
+        result = await self.inject.call(cmd, named_args=args)
+        sys.exit(result or 0)
 
 
 def main_func(func: Callable[[], Bolinette]) -> Callable[[], Bolinette]:

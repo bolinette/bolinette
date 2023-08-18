@@ -43,7 +43,7 @@ class ArgumentMeta(list[Argument]):
 
 class _CommandDecorator:
     def __call__(self, name: str, summary: str, *, cache: Cache | None = None):
-        def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
+        def decorator(func: Callable[P_Func, Awaitable[int | None]]) -> Callable[P_Func, Awaitable[int | None]]:
             meta.set(func, CommandMeta(name, summary))
             (cache or __user_cache__).add(CommandMeta, func)
             return func
@@ -61,7 +61,7 @@ class _CommandDecorator:
         default: Any = None,
         choices: list[str] | None = None,
     ):
-        def decorator(func: Callable[P_Func, Awaitable[None]]) -> Callable[P_Func, Awaitable[None]]:
+        def decorator(func: Callable[P_Func, Awaitable[int | None]]) -> Callable[P_Func, Awaitable[int | None]]:
             if not meta.has(func, ArgumentMeta):
                 meta.set(func, ArgumentMeta())
             meta.get(func, ArgumentMeta).append(
