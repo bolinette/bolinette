@@ -1,16 +1,17 @@
-from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, Protocol, Sequence, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Callable, Concatenate, Iterable, Literal, ParamSpec, Protocol, TypeVar, overload
 
 from typing_extensions import override
 
-from bolinette.core import Cache, GenericMeta, meta
+from bolinette.core import Cache, GenericMeta, __user_cache__, meta
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.injection.context import InjectionContext
 from bolinette.core.injection.decorators import InitMethodMeta, InjectionParamsMeta, InjectionSymbol
 from bolinette.core.injection.hook import InjectionHook, InjectionProxy
-from bolinette.core.injection.registration import InjectionStrategy, RegisteredType, RegisteredTypeBag
+from bolinette.core.injection.registration import AddStrategy, InjectionStrategy, RegisteredType, RegisteredTypeBag
 from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
 from bolinette.core.types import Function, Type, TypeVarLookup
 from bolinette.core.utils import OrderedSet
+from bolinette.core.utils.strings import StringUtils
 
 FuncP = ParamSpec("FuncP")
 FuncT = TypeVar("FuncT")
@@ -18,7 +19,7 @@ InstanceT = TypeVar("InstanceT")
 
 
 class Injection:
-    __slots__ = ("cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers")
+    __slots__: list[str] = ["cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers", "_callbacks"]
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
     _REQUIREABLE_STRATEGIES = ("singleton", "transcient")
 
@@ -29,12 +30,14 @@ class Injection:
         types: "dict[type[Any], RegisteredTypeBag[Any]] | None" = None,
     ) -> None:
         self.cache = cache
-        self._arg_resolvers: list[ArgumentResolver] = []
+        self._callbacks: Iterable[InjectionCallback] = []
         self._global_ctx = global_ctx or InjectionContext()
         self._types = types if types is not None else self._pickup_types(cache)
-        self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], [], cache, safe=True)
-        self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], [], self, safe=True)
+        self._arg_resolvers: list[ArgumentResolver] = []
         self._default_resolver: ArgumentResolver = DefaultArgResolver()
+        self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], [], cache, safe=True)
+        self._callbacks = self._pickup_callbacks()
+        self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], [], self, safe=True)
         self._arg_resolvers = self._pickup_resolvers(cache)
 
     @property
@@ -92,6 +95,11 @@ class Injection:
             resolvers.append(self.instanciate(cls))
 
         return [*resolvers]
+
+    def _pickup_callbacks(self) -> "Iterable[InjectionCallback]":
+        return [
+            self.instanciate(t) for t in self.cache.get(InjectionCallback, hint=type[InjectionCallback], raises=False)
+        ]
 
     def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
         return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
@@ -245,6 +253,8 @@ class Injection:
         r_type: "RegisteredType[InstanceT]",
         t: Type[InstanceT],
         circular_guard: OrderedSet[Any],
+        args: list[Any] | None = None,
+        named_args: dict[str, Any] | None = None,
     ) -> InstanceT:
         vars_lookup = TypeVarLookup(t)
         func_args = self._resolve_args(
@@ -254,8 +264,8 @@ class Injection:
             vars_lookup,
             False,
             circular_guard,
-            r_type.args,
-            r_type.named_args,
+            r_type.args + (args or []),
+            r_type.named_args | (named_args or {}),
             [],
         )
         instance = r_type.t.cls(**func_args)
@@ -264,6 +274,13 @@ class Injection:
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_methods(r_type, instance, vars_lookup, circular_guard)
         self.__set_instance__(r_type, instance)
+        for callback in self._callbacks:
+            callback(
+                "instanciated",
+                t,
+                r_type.strategy,  # type: ignore
+                instance,
+            )
         return instance
 
     def is_registered(self, cls: type[Any] | Type[Any]) -> bool:
@@ -357,12 +374,12 @@ class Injection:
     def add(
         self,
         cls: type[InstanceT],
-        strategy: InjectionStrategy,
+        strategy: AddStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[[InstanceT], None]] | None = None,
-        after_init: list[Callable[[InstanceT], None]] | None = None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
@@ -374,12 +391,12 @@ class Injection:
     def add(
         self,
         cls: type[InstanceT],
-        strategy: InjectionStrategy,
+        strategy: AddStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[[InstanceT], None]] | None = None,
-        after_init: list[Callable[[InstanceT], None]] | None = None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
     ) -> None:
@@ -388,12 +405,12 @@ class Injection:
     def add(
         self,
         cls: type[InstanceT],
-        strategy: InjectionStrategy,
+        strategy: AddStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[[InstanceT], None]] | None = None,
-        after_init: list[Callable[[InstanceT], None]] | None = None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
@@ -420,7 +437,7 @@ class Injection:
             if not isinstance(instance, t.cls):
                 raise InjectionError(f"Object provided must an instance of type {t.cls}")
             if strategy not in self._ADD_INSTANCE_STRATEGIES:
-                formatted_strategies = _format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
+                formatted_strategies = StringUtils.format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
                 raise InjectionError(
                     f"Injection strategy for {t.cls} must be {formatted_strategies} if an instance is provided"
                 )
@@ -439,26 +456,32 @@ class Injection:
             return self.require(t.cls)  # type: ignore
         return None
 
-    def require(self, cls: type[InstanceT]) -> InstanceT:
+    def require(
+        self,
+        cls: type[InstanceT],
+        *,
+        args: list[Any] | None = None,
+        named_args: dict[str, Any] | None = None,
+    ) -> InstanceT:
         t = Type(cls)
         if not self.is_registered(t):
             raise InjectionError(f"Type {t} is not a registered type in the injection system")
         r_type = self._types[t.cls].get_type(t)
         if r_type.strategy not in self._REQUIREABLE_STRATEGIES:
-            formatted_strategies = _format_list(self._REQUIREABLE_STRATEGIES, final_sep=" or ")
+            formatted_strategies = StringUtils.format_list(self._REQUIREABLE_STRATEGIES, final_sep=" or ")
             raise InjectionError(
                 f"Injection strategy for {t} must be {formatted_strategies} to be required in this context"
             )
         if self.__has_instance__(r_type):
             return self.__get_instance__(r_type)
-        return self.__instanciate__(r_type, t, OrderedSet())
+        return self.__instanciate__(r_type, t, OrderedSet(), args, named_args)
 
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)
 
 
 class ScopedInjection(Injection):
-    __slots__ = "_scoped_ctx"
+    __slots__: list[str] = ["_scoped_ctx"]
 
     _ADD_INSTANCE_STRATEGIES = ("singleton", "scoped")
     _REQUIREABLE_STRATEGIES = ("singleton", "scoped", "transcient")
@@ -496,14 +519,12 @@ class ScopedInjection(Injection):
 
     @override
     def _pickup_resolvers(self, cache: Cache) -> "list[ArgumentResolver]":
-        resolver_scoped: dict[type, bool] = {}
         resolver_priority: dict[type, int] = {}
         resolver_types: list[type[ArgumentResolver]] = []
 
         for t in cache.get(ArgumentResolver, hint=type[ArgumentResolver], raises=False):
             _meta = meta.get(t, ArgResolverMeta)
             resolver_priority[t] = _meta.priority
-            resolver_scoped[t] = _meta.scoped
             resolver_types.append(t)
         resolver_types = sorted(resolver_types, key=lambda t: resolver_priority[t])
 
@@ -538,19 +559,24 @@ class ScopedInjection(Injection):
         return func(**func_args)
 
 
+InjectionEvent = Literal["instanciated"]
+
+
+class InjectionCallback(Protocol):
+    def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None:
+        ...
+
+
+CallbackT = TypeVar("CallbackT", bound=InjectionCallback)
+
+
+def injection_callback(*, cache: Cache) -> Callable[[type[CallbackT]], type[CallbackT]]:
+    def decorator(callback: type[CallbackT]) -> type[CallbackT]:
+        (cache or __user_cache__).add(InjectionCallback, callback)
+        return callback
+
+    return decorator
+
+
 class _GenericOrigin(Protocol):
     __parameters__: tuple[TypeVar, ...]
-
-
-def _format_list(collection: Sequence[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
-    """TODO: move this into StringUtils and rework import flow"""
-    formatted: list[str] = []
-    cnt = len(collection)
-    for i, e in enumerate(collection):
-        formatted.append(str(e))
-        if i != cnt - 1:
-            if i == cnt - 2 and final_sep:
-                formatted.append(final_sep)
-            else:
-                formatted.append(sep)
-    return "".join(formatted)

@@ -4,7 +4,8 @@ from typing import Any
 
 import pytest
 
-from bolinette.core import Cache, CoreSection, Environment, Logger, environment
+from bolinette.core import Cache, Logger
+from bolinette.core.environment import Environment, environment
 from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.mapping import Mapper
 from bolinette.core.testing import Mock
@@ -159,39 +160,3 @@ def test_fail_no_section() -> None:
         mock.injection.require(TestSection)
 
     assert "No 'test' section was found in the environment files" in info.value.message
-
-
-def test_init_core_section() -> None:
-    cache = Cache()
-
-    environment("core", cache=cache)(CoreSection)
-
-    mock = _setup_test(cache)
-
-    def _read_yaml(path: str) -> dict[str, Any]:
-        match path:
-            case "env.yaml":
-                return {"core": {"debug": True}}
-            case _:
-                raise FileNotFoundError()
-
-    assert cache.debug is False
-
-    def _map(
-        src_cls: type[Any],
-        dest_cls: type[Any],
-        src: Any,
-        dest: Any,
-        *,
-        src_path: str | None = None,
-        dest_path: str | None = None,
-    ) -> None:
-        setattr(dest, "debug", True)
-
-    mock.mock(FileUtils).setup(lambda f: f.read_yaml, _read_yaml)
-    mock.mock(Mapper).setup(lambda m: m.map, _map)
-    mock.injection.require(Environment)
-    section = mock.injection.require(CoreSection)
-
-    assert section.debug is True
-    assert cache.debug is True

@@ -5,9 +5,10 @@ from types import ModuleType
 from typing import Callable, NoReturn
 
 import bolinette
-from bolinette.core import Environment, Extension, Logger, __user_cache__, meta
+from bolinette.core import Extension, Logger, __user_cache__, meta
 from bolinette.core.cache import Cache
 from bolinette.core.command import Parser
+from bolinette.core.environment import Environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, require
 from bolinette.core.utils import FileUtils, PathUtils
@@ -33,11 +34,11 @@ class Bolinette:
         self._logger = self.inject.require(Logger[Bolinette])
         self._paths = self.inject.require(PathUtils)
         self._files = self.inject.require(FileUtils)
-
         self._profile = profile or self._files.read_profile(self._paths.env_path()) or self._set_default_profile()
+        self._env = self.inject.require(Environment, named_args={"profile": self._profile})
+        self.cache.debug = self._env.config["core"]["debug"]
 
         self.inject.add(Bolinette, "singleton", instance=self)
-        self.inject.add(Environment, "singleton", args=[self._profile], instanciate=True)
         self.inject.__hook_proxies__(self)
 
         self._logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self.extensions)}")

@@ -1,15 +1,18 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Protocol
+from typing import Any, Protocol
 
 from typing_extensions import override
 
-from bolinette.core import Cache, Logger, environment
+from bolinette.core import Cache, Logger
 from bolinette.core.command import Parser
-from bolinette.core.environment import CoreSection
+from bolinette.core.environment import CoreSection, Environment, environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, injectable
+from bolinette.core.injection.injection import InjectionEvent, injection_callback
+from bolinette.core.injection.registration import InjectionStrategy
 from bolinette.core.mapping import Mapper, type_mapper
 from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
+from bolinette.core.types import Type
 from bolinette.core.utils import FileUtils, PathUtils
 
 
@@ -44,13 +47,15 @@ class _CoreExtension(Extension):
     def add_cached(self, cache: Cache) -> None:
         environment("core", cache=cache)(CoreSection)
 
+        injection_callback(cache=cache)(InjectionLogger)
         injectable(strategy="singleton", cache=cache)(Injection)
         injectable(strategy="singleton", cache=cache)(Parser)
-        injectable(strategy="singleton", cache=cache)(Mapper)
         injectable(strategy="transcient", match_all=True, cache=cache)(Logger)
         injectable(strategy="singleton", cache=cache)(PathUtils)
         injectable(strategy="singleton", cache=cache)(FileUtils)
+        injectable(strategy="singleton", cache=cache)(Environment)
 
+        injectable(strategy="singleton", cache=cache)(Mapper)
         type_mapper(int, cache=cache)(IntegerTypeMapper)
         type_mapper(float, cache=cache)(FloatTypeMapper)
         type_mapper(bool, cache=cache)(BoolTypeMapper)
@@ -58,3 +63,13 @@ class _CoreExtension(Extension):
 
 
 core_ext = _CoreExtension()
+
+
+class InjectionLogger:
+    def __init__(self, logger: Logger[Injection]) -> None:
+        self.logger = logger
+
+    def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None:
+        match event:
+            case "instanciated":
+                self.logger.debug(f"Instanciated {type} with strategy '{strategy}'")

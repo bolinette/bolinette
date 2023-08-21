@@ -1,7 +1,8 @@
 from typing_extensions import override
 
 from bolinette import core
-from bolinette.core import Cache, Extension, environment
+from bolinette.core import Cache, Extension
+from bolinette.core.environment import environment
 from bolinette.core.injection import injectable, injection_arg_resolver
 from bolinette.data import DatabaseManager, DataSection, database_system
 from bolinette.data.defaults import AsyncSessionArgResolver, SQLite

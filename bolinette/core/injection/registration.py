@@ -9,6 +9,7 @@ InstanceT = TypeVar("InstanceT")
 
 
 InjectionStrategy = Literal["singleton", "scoped", "transcient", "immediate"]
+AddStrategy = Literal["singleton", "scoped", "transcient"]
 
 
 class RegisteredType(Generic[InstanceT]):
@@ -20,8 +21,8 @@ class RegisteredType(Generic[InstanceT]):
         strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
-        before_init: list[Callable[[Any], None]],
-        after_init: list[Callable[[Any], None]],
+        before_init: list[Callable[..., None]],
+        after_init: list[Callable[..., None]],
     ) -> None:
         self.t = t
         self.strategy = strategy

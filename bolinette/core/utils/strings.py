@@ -1,6 +1,7 @@
 import random
 import re
 import string
+from typing import Any, Sequence
 
 
 class StringUtils:
@@ -28,3 +29,16 @@ class StringUtils:
     @staticmethod
     def random_string(length: int) -> str:
         return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+    @staticmethod
+    def format_list(collection: Sequence[Any], *, sep: str = ", ", final_sep: str | None = None) -> str:
+        formatted: list[str] = []
+        cnt = len(collection)
+        for i, e in enumerate(collection):
+            formatted.append(str(e))
+            if i != cnt - 1:
+                if i == cnt - 2 and final_sep:
+                    formatted.append(final_sep)
+                else:
+                    formatted.append(sep)
+        return "".join(formatted)

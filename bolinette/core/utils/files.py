@@ -2,11 +2,11 @@ from typing import Any
 
 import yaml
 
-from bolinette.core.utils import paths
+from bolinette.core.utils import PathUtils
 
 
 class FileUtils:
-    def __init__(self, paths: paths.PathUtils) -> None:
+    def __init__(self, paths: PathUtils) -> None:
         self._paths = paths
 
     @staticmethod
@@ -19,17 +19,19 @@ class FileUtils:
         with open(path) as f:
             return yaml.safe_load(f)
 
-    def read_requirements(self, path: str, *, name: str = "requirements.txt") -> list[str]:
+    @staticmethod
+    def read_requirements(path: str, *, name: str = "requirements.txt") -> list[str]:
         return list(
             filter(
                 lambda r: len(r),
-                self.read_file(self._paths.join(path, name)).split("\n"),
+                FileUtils.read_file(PathUtils.join(path, name)).split("\n"),
             )
         )
 
-    def read_profile(self, path: str) -> str | None:
+    @staticmethod
+    def read_profile(path: str) -> str | None:
         try:
-            with open(self._paths.join(path, ".profile")) as f:
+            with open(PathUtils.join(path, ".profile")) as f:
                 for line in f:
                     return line
         except FileNotFoundError:

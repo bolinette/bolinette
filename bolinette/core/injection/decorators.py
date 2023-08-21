@@ -2,7 +2,7 @@ from typing import Any, Callable, Concatenate, ParamSpec, TypeVar, get_origin
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection.hook import InjectionHook
-from bolinette.core.injection.registration import InjectionStrategy
+from bolinette.core.injection.registration import AddStrategy
 from bolinette.core.types import Type
 
 FuncP = ParamSpec("FuncP")
@@ -24,11 +24,11 @@ class InjectionParamsMeta:
 
     def __init__(
         self,
-        strategy: InjectionStrategy,
+        strategy: AddStrategy,
         args: list[Any] | None,
         named_args: dict[str, Any] | None,
-        before_init: list[Callable[[InstanceT], None]] | None,
-        after_init: list[Callable[[InstanceT], None]] | None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None,
         match_all: bool,
     ) -> None:
         self.strategy = strategy
@@ -41,12 +41,12 @@ class InjectionParamsMeta:
 
 def injectable(
     *,
-    strategy: InjectionStrategy = "singleton",
+    strategy: AddStrategy = "singleton",
     args: list[Any] | None = None,
     named_args: dict[str, Any] | None = None,
     cache: Cache | None = None,
-    before_init: list[Callable[[InstanceT], None]] | None = None,
-    after_init: list[Callable[[InstanceT], None]] | None = None,
+    before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+    after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
     match_all: bool = False,
 ) -> Callable[[type[InstanceT]], type[InstanceT]]:
     def decorator(cls: type[InstanceT]) -> type[InstanceT]:
