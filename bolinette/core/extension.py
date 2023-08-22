@@ -13,7 +13,6 @@ from bolinette.core.injection.registration import InjectionStrategy
 from bolinette.core.mapping import Mapper, type_mapper
 from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
 from bolinette.core.types import Type
-from bolinette.core.utils import FileUtils, PathUtils
 
 
 class _ExtensionModule(Protocol):
@@ -51,8 +50,6 @@ class _CoreExtension(Extension):
         injectable(strategy="singleton", cache=cache)(Injection)
         injectable(strategy="singleton", cache=cache)(Parser)
         injectable(strategy="transcient", match_all=True, cache=cache)(Logger)
-        injectable(strategy="singleton", cache=cache)(PathUtils)
-        injectable(strategy="singleton", cache=cache)(FileUtils)
         injectable(strategy="singleton", cache=cache)(Environment)
 
         injectable(strategy="singleton", cache=cache)(Mapper)

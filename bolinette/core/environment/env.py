@@ -1,36 +1,39 @@
 import os
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.environment.sections import EnvironmentSection, EnvSectionMeta
 from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping import Mapper
-from bolinette.core.utils import FileUtils, PathUtils
 
 
 class Environment:
     _OS_ENV_PREFIX = "BLNT_"
 
-    def __init__(
-        self,
-        profile: str,
-        logger: "Logger[Environment]",
-        cache: Cache,
-        inject: Injection,
-        paths: PathUtils,
-        files: FileUtils,
-        *,
-        env_path: str = "env",
-    ) -> None:
-        self._profile = profile
-        self._logger = logger
+    def __init__(self, cache: Cache, inject: Injection, logger: "Logger[Environment]") -> None:
         self._cache = cache
         self._inject = inject
-        self._paths = paths
-        self._files = files
-        self._path = env_path
+        self._logger = logger
+        self._env_folder = Path.cwd() / "env"
+        self.profile: str
         self.config: dict[str, Any] = {}
+
+    @init_method
+    def init_profile(self) -> None:
+        def read_profile() -> str:
+            try:
+                with open(self._env_folder / ".profile") as f:
+                    for line in f:
+                        return line.strip(" \n")
+            except FileNotFoundError:
+                self._logger.warning(".profile not found in env folder, defaulting to 'development'")
+            return "development"
+
+        self.profile = read_profile()
 
     @init_method
     def init(self) -> None:
@@ -41,8 +44,8 @@ class Environment:
         stack = [
             self._init_from_os(),
             self._init_from_file("env.yaml"),
-            self._init_from_file(f"env.{self._profile}.yaml"),
-            self._init_from_file(f"env.local.{self._profile}.yaml"),
+            self._init_from_file(f"env.{self.profile}.yaml"),
+            self._init_from_file(f"env.local.{self.profile}.yaml"),
         ]
 
         merged: dict[str, Any] = {}
@@ -78,7 +81,8 @@ class Environment:
 
     def _init_from_file(self, file_name: str) -> dict[str, dict[str, Any]]:
         try:
-            return self._files.read_yaml(self._paths.env_path(file_name))
+            with open(self._env_folder / file_name) as f:
+                return yaml.safe_load(f)
         except FileNotFoundError:
             return {}
 

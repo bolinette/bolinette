@@ -11,7 +11,6 @@ from bolinette.core.command import Parser
 from bolinette.core.environment import Environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, require
-from bolinette.core.utils import FileUtils, PathUtils
 
 
 class Bolinette:
@@ -28,24 +27,20 @@ class Bolinette:
 
         self.cache |= __user_cache__
 
-        self.inject = Injection(self.cache)
-        meta.set(self, self.inject)
-
-        self._logger = self.inject.require(Logger[Bolinette])
-        self._paths = self.inject.require(PathUtils)
-        self._files = self.inject.require(FileUtils)
-        self._profile = profile or self._files.read_profile(self._paths.env_path()) or self._set_default_profile()
-        self._env = self.inject.require(Environment, named_args={"profile": self._profile})
+        self._inject = Injection(self.cache)
+        meta.set(self, self._inject)
+        self._env = self._inject.require(Environment)
         self.cache.debug = self._env.config["core"]["debug"]
 
-        self.inject.add(Bolinette, "singleton", instance=self)
-        self.inject.__hook_proxies__(self)
+        self._inject.add(Bolinette, "singleton", instance=self)
+        self._inject.__hook_proxies__(self)
 
+        self._logger = self._inject.require(Logger[Bolinette])
         self._logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self.extensions)}")
 
     @property
     def injection(self) -> Injection:
-        return self.inject
+        return self._inject
 
     def _load_extensions(self) -> list[Extension]:
         def iter_namespace(module: ModuleType) -> list[str]:
@@ -75,7 +70,7 @@ class Bolinette:
 
     async def run_from_args(self) -> NoReturn:
         cmd, args = self._parser.parse_command()
-        result = await self.inject.call(cmd, named_args=args)
+        result = await self._inject.call(cmd, named_args=args)
         sys.exit(result or 0)
 
 

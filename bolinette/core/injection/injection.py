@@ -253,8 +253,6 @@ class Injection:
         r_type: "RegisteredType[InstanceT]",
         t: Type[InstanceT],
         circular_guard: OrderedSet[Any],
-        args: list[Any] | None = None,
-        named_args: dict[str, Any] | None = None,
     ) -> InstanceT:
         vars_lookup = TypeVarLookup(t)
         func_args = self._resolve_args(
@@ -264,8 +262,8 @@ class Injection:
             vars_lookup,
             False,
             circular_guard,
-            r_type.args + (args or []),
-            r_type.named_args | (named_args or {}),
+            r_type.args,
+            r_type.named_args,
             [],
         )
         instance = r_type.t.cls(**func_args)
@@ -456,13 +454,7 @@ class Injection:
             return self.require(t.cls)  # type: ignore
         return None
 
-    def require(
-        self,
-        cls: type[InstanceT],
-        *,
-        args: list[Any] | None = None,
-        named_args: dict[str, Any] | None = None,
-    ) -> InstanceT:
+    def require(self, cls: type[InstanceT]) -> InstanceT:
         t = Type(cls)
         if not self.is_registered(t):
             raise InjectionError(f"Type {t} is not a registered type in the injection system")
@@ -474,7 +466,7 @@ class Injection:
             )
         if self.__has_instance__(r_type):
             return self.__get_instance__(r_type)
-        return self.__instanciate__(r_type, t, OrderedSet(), args, named_args)
+        return self.__instanciate__(r_type, t, OrderedSet())
 
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)

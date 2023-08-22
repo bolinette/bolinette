@@ -1,15 +1,11 @@
-from setuptools import find_namespace_packages, setup
+from pathlib import Path
+
+from setuptools import setup
 
 from bolinette.core import __version__
-from bolinette.core.utils import FileUtils, PathUtils
+from bolinette.core.utils.packaging import project_packages, read_file, read_requirements
 
-paths = PathUtils()
-files = FileUtils(paths)
-
-
-def project_packages(module: str) -> list[str]:
-    return [m for m in find_namespace_packages() if m.startswith(module)]
-
+cwd = Path.cwd()
 
 setup(
     name="bolinette",
@@ -18,13 +14,13 @@ setup(
     version=__version__,
     license="MIT",
     description="The Bolinette core package, an inversion of control framework",
-    long_description=files.read_file(paths.root_path("README.md")),
+    long_description=read_file(cwd / "README.md"),
     long_description_content_type="text/markdown",
     author="Pierre Chat",
     author_email="pierrechat@outlook.com",
     url="https://github.com/bolinette/bolinette",
     keywords=["Bolinette", "Framework", "IoC", "Dependency Injection"],
-    install_requires=files.read_requirements(paths.root_path(), name="requirements.core.txt"),
+    install_requires=read_requirements(cwd / "requirements.core.txt"),
     package_data={"bolinette.core": ["py.typed"]},
     classifiers=[
         "Development Status :: 4 - Beta",

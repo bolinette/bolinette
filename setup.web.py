@@ -1,15 +1,11 @@
-from setuptools import find_namespace_packages, setup
+from pathlib import Path
 
-from bolinette.core.utils import FileUtils, PathUtils
-from bolinette.web import __version__
+from setuptools import setup
 
-paths = PathUtils()
-files = FileUtils(paths)
+from bolinette.core import __version__
+from bolinette.core.utils.packaging import project_packages, read_file, read_requirements
 
-
-def project_packages(module: str) -> list[str]:
-    return [m for m in find_namespace_packages() if m.startswith(module)]
-
+cwd = Path.cwd()
 
 setup(
     name="bolinette-web",
@@ -18,13 +14,13 @@ setup(
     version=__version__,
     license="MIT",
     description="The Bolinette web package, an async Http and Websocket framework, based on bolinette and aiohttp",
-    long_description=files.read_file(paths.root_path("README.md")),
+    long_description=read_file(cwd / "README.md"),
     long_description_content_type="text/markdown",
     author="Pierre Chat",
     author_email="pierrechat@outlook.com",
     url="https://github.com/bolinette/bolinette",
     keywords=["Bolinette", "Framework", "Http", "Websocket"],
-    install_requires=files.read_requirements(paths.root_path(), name="requirements.web.txt"),
+    install_requires=read_requirements(cwd / "requirements.web.txt"),
     package_data={"bolinette.web": ["py.typed"]},
     classifiers=[
         "Development Status :: 4 - Beta",
