@@ -27,8 +27,8 @@ class InjectionParamsMeta:
         strategy: AddStrategy,
         args: list[Any] | None,
         named_args: dict[str, Any] | None,
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None,
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None,
+        before_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None,
+        after_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None,
         match_all: bool,
     ) -> None:
         self.strategy = strategy
@@ -45,8 +45,8 @@ def injectable(
     args: list[Any] | None = None,
     named_args: dict[str, Any] | None = None,
     cache: Cache | None = None,
-    before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
-    after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+    before_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
+    after_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
     match_all: bool = False,
 ) -> Callable[[type[InstanceT]], type[InstanceT]]:
     def decorator(cls: type[InstanceT]) -> type[InstanceT]:

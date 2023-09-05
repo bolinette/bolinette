@@ -3,7 +3,7 @@ import re
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
-from bolinette.core import Cache, __user_cache__
+from bolinette.core import Cache, Logger, __user_cache__
 from bolinette.core.injection import Injection, init_method
 from bolinette.data import DataSection
 from bolinette.data.exceptions import DatabaseError
@@ -17,12 +17,14 @@ class DatabaseManager:
         cache: Cache,
         section: DataSection,
         inject: Injection,
+        logger: "Logger[DatabaseManager]",
     ) -> None:
         self._cache = cache
         self._section = section
         self._inject = inject
         self._systems: list[DatabaseSystem] = []
         self._connections: list[DatabaseConnection] = []
+        self._logger = logger
 
     def has_system(self, scheme: str) -> bool:
         return any(s for s in self._systems if s.scheme == scheme)
@@ -64,6 +66,7 @@ class DatabaseManager:
                 )
             system = self.get_system(scheme)
             self._connections.append(DatabaseConnection(db_config.name, db_config.url, db_config.echo, system.manager))
+            self._logger.debug(f"Opening connection to {db_config.url}")
 
 
 class DatabaseSystem(Protocol):

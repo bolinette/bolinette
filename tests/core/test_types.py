@@ -27,14 +27,14 @@ def test_generic_type() -> None:
     class _T(Generic[T]):
         pass
 
-    t = Type(_T[T], raise_on_typevar=False)  # type: ignore
+    t = Type(_T[T], raise_on_typevar=False)
 
     assert t.cls is _T
     assert t.vars == (T,)
     assert str(t) == "test_generic_type.<locals>._T[~T]"
     assert repr(t) == "<Type test_generic_type.<locals>._T[~T]>"
     assert hash(t) == hash((_T, (T,)))
-    assert t == Type(_T[T], raise_on_typevar=False)  # type: ignore
+    assert t == Type(_T[T], raise_on_typevar=False)
 
 
 def test_missing_generic_param_is_any() -> None:
@@ -103,7 +103,7 @@ def test_fail_typevar() -> None:
         pass
 
     with pytest.raises(TypingError) as info:
-        Type(_T[T], raise_on_typevar=True)  # type: ignore
+        Type(_T[T], raise_on_typevar=True)
 
     assert info.value.message == "Type test_fail_typevar.<locals>._T, Generic parameter ~T cannot be a TypeVar"
 
@@ -120,7 +120,7 @@ def test_typvar_lookup() -> None:
     class _P:
         pass
 
-    t = Type(_T[T], lookup=TypeVarLookup(Type(_K[_P])))  # type: ignore
+    t = Type(_T[T], lookup=TypeVarLookup(Type(_K[_P])))
 
     assert t.vars == (_P,)
 
@@ -139,7 +139,7 @@ def test_fail_typvar_not_found_in_lookup() -> None:
         pass
 
     with pytest.raises(TypingError) as info:
-        Type(_T[T], lookup=TypeVarLookup(Type(_K[_P])))  # type: ignore
+        Type(_T[T], lookup=TypeVarLookup(Type(_K[_P])))
 
     assert (
         info.value.message
@@ -161,7 +161,7 @@ def test_typvar_not_found_in_lookup() -> None:
         pass
 
     k = Type(_K[_P])
-    t = Type(_T[T], lookup=TypeVarLookup(k), raise_on_typevar=False)  # type: ignore
+    t = Type(_T[T], lookup=TypeVarLookup(k), raise_on_typevar=False)
 
     assert t.vars == (T,)
 

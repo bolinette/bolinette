@@ -3,9 +3,19 @@ from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overlo
 from typing_extensions import override
 
 from bolinette.core import Cache, __user_cache__, meta
-from bolinette.core.exceptions import MappingError
 from bolinette.core.injection import Injection, init_method
-from bolinette.core.mapping.profiles import MapFromOptions, Profile
+from bolinette.core.mapping.exceptions import (
+    ConvertionError,
+    DestinationNotNullableError,
+    IgnoreImpossibleError,
+    ImmutableCollectionError,
+    InstanciationError,
+    SourceNotFoundError,
+    TypeMismatchError,
+    TypeNotIterableError,
+    UnionNotAllowedError,
+)
+from bolinette.core.mapping.profiles import Profile
 from bolinette.core.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.core.types import Type
 
@@ -117,11 +127,7 @@ class MappingRunner:
     ) -> DestT:
         if src is None:
             if not dest_t.nullable:
-                raise MappingError(
-                    f"Could not bind a None value to non nullable type {dest_t}",
-                    dest=dest_path,
-                    src=src_path,
-                )
+                raise DestinationNotNullableError(src_path, dest_path, dest_t)
             return None  # type: ignore
         mapper_cls: type[TypeMapper[Any]] = self.mappers[dest_t] if dest_t in self.mappers else self.default_mapper
         mapper = mapper_cls(self)
@@ -202,10 +208,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             try:
                 dest = dest_t.new()
             except TypeError:
-                raise MappingError(
-                    f"Could not instanciate type {dest_t}, make sure the __init__ has no required parameters",
-                    dest=dest_path,
-                )
+                raise InstanciationError(dest_path, dest_t)
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
             MappingSequence.get_hash(src_t, dest_t), None
         )
@@ -220,9 +223,7 @@ class DefaultTypeMapper(TypeMapper[object]):
                 for_attr = sequence.for_attrs[dest_name]
                 if isinstance(for_attr, IgnoreAttribute):
                     if not anno_t.nullable:
-                        raise MappingError(
-                            f"Could not ignore attribute, type {anno_t} is not nullable", dest=sub_dest_path
-                        )
+                        raise IgnoreImpossibleError(sub_dest_path, anno_t)
                     setattr(dest, dest_name, None)
                     continue
                 if isinstance(for_attr, MapFromAttribute):
@@ -231,26 +232,14 @@ class DefaultTypeMapper(TypeMapper[object]):
             sub_src_path = self._format_src_path(src_path, src, src_name)
             if anno_t.is_union:
                 if selected_t is None:
-                    raise MappingError(
-                        f"Destination type {anno_t} is a union, "
-                        f"please use '{MapFromOptions.use_type.__name__}' in profile",
-                        dest=sub_dest_path,
-                    )
+                    raise UnionNotAllowedError(sub_dest_path, anno_t)
                 if selected_t != anno_t and selected_t not in anno_t.union:
-                    raise MappingError(
-                        f"Selected type {selected_t} is not assignable to {anno_t}",
-                        dest=sub_dest_path,
-                        src=sub_src_path,
-                    )
+                    raise TypeMismatchError(sub_src_path, sub_dest_path, selected_t, anno_t)
                 anno_t = selected_t
             if not self._has_attr(src, src_name):
                 if not self._has_default_value(dest, dest_name):
                     if not anno_t.nullable:
-                        raise MappingError(
-                            f"Source path not found, could not bind a None value to non nullable type {anno_t}",
-                            dest=sub_dest_path,
-                            src=sub_src_path,
-                        )
+                        raise SourceNotFoundError(sub_src_path, sub_dest_path, anno_t)
                     else:
                         setattr(dest, dest_name, None)
                         continue
@@ -277,7 +266,7 @@ class DefaultTypeMapper(TypeMapper[object]):
     ) -> list[DestT] | set[DestT] | tuple[DestT]:
         elems: list[DestT] = []
         if not self._is_iterable(src):
-            raise MappingError(f"Could not map non iterable type {src_t} to {dest_t}", dest=dest_path, src=src_path)
+            raise TypeNotIterableError(src_path, dest_path, src_t, dest_t)
         for index, elem in enumerate(src):
             elems.append(
                 self.runner.map(
@@ -298,7 +287,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             dest.clear()
             dest.update(elems)
         else:
-            raise MappingError("Could not use an existing tuple instance, tuples are immutable", dest=dest_path)
+            raise ImmutableCollectionError(dest_path)
         return dest
 
     def _map_dict(
@@ -378,7 +367,7 @@ class IntegerTypeMapper(TypeMapper[int]):
         try:
             return int(src)  # type: ignore
         except (ValueError, TypeError):
-            raise MappingError(f"Could not convert value '{src}' to int", dest=dest_path, src=src_path)
+            raise ConvertionError(src_path, dest_path, src, Type(int))
 
 
 class FloatTypeMapper(TypeMapper[float]):
@@ -400,7 +389,7 @@ class FloatTypeMapper(TypeMapper[float]):
         try:
             return float(src)  # type: ignore
         except ValueError:
-            raise MappingError(f"Could not convert value '{src}' to float", dest=dest_path, src=src_path)
+            raise ConvertionError(src_path, dest_path, src, Type(float))
 
 
 class BoolTypeMapper(TypeMapper[bool]):

@@ -92,17 +92,5 @@ class ExpressionError(BolinetteError):
         super().__init__(f"Expression error: {message}")
 
 
-class MappingError(BolinetteError, ParameterError):
-    def __init__(
-        self,
-        message: str,
-        *,
-        src: str | None = None,
-        dest: str | None = None,
-    ) -> None:
-        ParameterError.__init__(self, dest="Destination path '{}'", src="From source path '{}'")
-        BolinetteError.__init__(self, self._format_params(message, dest=dest, src=src))
-
-
 class InitMappingError(InitError):
     pass

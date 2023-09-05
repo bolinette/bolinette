@@ -2,7 +2,7 @@ from typing import Any, Callable, Generic, TypeVar
 
 from typing_extensions import override
 
-from bolinette.core.exceptions import MappingError
+from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.types import Type
 
 SrcT = TypeVar("SrcT", bound=object)

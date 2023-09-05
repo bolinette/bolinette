@@ -3,8 +3,8 @@ from typing import Any
 import pytest
 
 from bolinette.core import Cache
-from bolinette.core.exceptions import MappingError
 from bolinette.core.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
+from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.mapping.mapper import (
     BoolTypeMapper,
     DefaultTypeMapper,
@@ -781,7 +781,7 @@ def test_fail_map_to_union_type() -> None:
         "Destination path 'test_fail_map_to_union_type.<locals>._Destination.n', "
         "Destination type test_fail_map_to_union_type.<locals>._NestedDest1 | "
         "test_fail_map_to_union_type.<locals>._NestedDest2 is a union,"
-        " please use 'use_type' in profile" == info.value.message
+        " please use use_type(...) in profile" == info.value.message
     )
 
 
