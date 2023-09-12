@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from http import HTTPStatus
 from typing import Any
 
 from aiohttp import web
@@ -9,7 +10,7 @@ from bolinette.core.exceptions import BolinetteError
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.injection.resolver import ArgResolverOptions
 from bolinette.core.mapping import JsonObjectEncoder, Mapper
-from bolinette.core.types import Type
+from bolinette.core.types import Function, Type
 from bolinette.core.utils import AttributeUtils
 from bolinette.web import Controller
 from bolinette.web.controller import ControllerMeta
@@ -115,34 +116,58 @@ class RouteHandler:
         except json.JSONDecodeError:
             body = None
         ctrl = scoped.instantiate(self.ctrl_t.cls)
-        result = await scoped.call(
-            self.func,
-            args=[ctrl],
-            additional_resolvers=[
-                RouteParamArgResolver(self, request),
-                RoutePayloadArgResolver(self, scoped.require(Mapper), body),
-            ],
-        )
-        if isinstance(result, web.Response):
-            return result
         status: int
-        match result:
-            case [_, int()]:
-                status = result[1]
-                result = result[0]
-            case _:
-                status = 200
-        match result:
-            case str():
-                content = result
-                content_type = "text/plain"
-            case int() | float() | bool():
-                content = str(result)
-                content_type = "text/plain"
-            case _:
-                content = json.dumps(result, cls=JsonObjectEncoder)
-                content_type = "application/json"
-        return web.Response(text=content, status=status, content_type=content_type)
+        try:
+            result = await scoped.call(
+                self.func,
+                args=[ctrl],
+                additional_resolvers=[
+                    RouteParamArgResolver(self, request),
+                    RoutePayloadArgResolver(self, scoped.require(Mapper), body),
+                ],
+            )
+            if isinstance(result, web.Response):
+                return result
+            match result:
+                case [_, int()]:
+                    status = result[1]
+                    result = result[0]
+                case _:
+                    status = 200
+            match result:
+                case str():
+                    content = result
+                    content_type = "text/plain"
+                case int() | float() | bool():
+                    content = str(result)
+                    content_type = "text/plain"
+                case _:
+                    content = json.dumps(result, cls=JsonObjectEncoder)
+                    content_type = "application/json"
+            return web.Response(text=content, status=status, content_type=content_type)
+        except BaseException as e:
+            response: dict[str, Any]
+            if isinstance(e, WebError):
+                status = e.status
+                response = {
+                    "error": {
+                        "code": e.error_code,
+                        "params": e.error_args,
+                        "message": e.message,
+                    }
+                }
+            else:
+                status = HTTPStatus.INTERNAL_SERVER_ERROR
+                response = {
+                    "error": {
+                        "code": "global.error.internal",
+                        "params": {},
+                        "message": f"{Type.from_instance(e)}: {str(e)}",
+                    },
+                }
+            response["code"] = status
+            response["status"] = status.phrase
+            return web.Response(text=json.dumps(response), status=status, content_type="application/json")
 
     def collect_middlewares(self, scoped: Injection) -> list[Middleware[Any]]:
         bags: list[MiddlewareBag] = []
@@ -205,9 +230,8 @@ class RoutePayloadArgResolver:
                 return options.name, None
             raise BadRequestError(
                 "Payload expected but none provided",
-                "payload.expected",
-                ctrl=self.handler.ctrl_t,
-                route=self.handler.func,
+                "web.payload.expected",
+                route=Function(self.handler.func),
             )
         payload = self.mapper.map(type(self.body), options.t.cls, self.body)
         return options.name, payload

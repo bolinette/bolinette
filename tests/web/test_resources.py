@@ -346,4 +346,13 @@ async def test_fail_non_nullable_payload(aiohttp_client: ClientFixture) -> None:
 
     assert resp.status == 400
     assert resp.content_type == "application/json"
-    assert await resp.json() == {"code": "payload.expected", "status": 400}
+    assert await resp.json() == {
+        "code": 400,
+        "status": "Bad Request",
+        "error": {
+            "code": "web.payload.expected",
+            "message": "Route test_fail_non_nullable_payload.<locals>._.create_entity, "
+            "Payload expected but none provided",
+            "params": {},
+        },
+    }
