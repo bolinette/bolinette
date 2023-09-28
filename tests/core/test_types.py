@@ -1,5 +1,5 @@
-# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
-# pyright: reportGeneralTypeIssues=false
+# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
+# pyright: reportUnknownVariableType=false, reportGeneralTypeIssues=false
 from typing import Any, ForwardRef, Generic, TypeVar
 
 import pytest

@@ -1,24 +1,8 @@
 from typing import Any
 
-from typing_extensions import override
-
-from bolinette.core.exceptions import ExpressionError
-
-
-class ExpressionNode:
-    @override
-    def __getattribute__(self, __name: str) -> "AttributeNode":
-        return AttributeNode(self, __name)
-
-
-class RootNode(ExpressionNode):
-    pass
-
-
-class AttributeNode(ExpressionNode):
-    def __init__(self, parent: ExpressionNode, attr: str) -> None:
-        self.parent = parent
-        self.attr = attr
+from bolinette.core.expressions.exceptions import AttributeChainError, MaxDepthExpressionError
+from bolinette.core.expressions.nodes import AttributeNode, ExpressionNode, RootNode
+from bolinette.core.types import Type
 
 
 class ExpressionTree:
@@ -26,30 +10,42 @@ class ExpressionTree:
         raise TypeError(f"Cannot instantiate {ExpressionTree}")
 
     @staticmethod
-    def new() -> RootNode:
-        return RootNode()
+    def new(origin: Type[Any] | None = None) -> RootNode:
+        return RootNode(origin)
 
     @staticmethod
     def get_value(expr: ExpressionNode, obj: object) -> Any:
-        cls = type(expr)
-        if cls is RootNode:
-            return obj
-        if cls is AttributeNode:
-            parent = object.__getattribute__(expr, "parent")
-            attr = object.__getattribute__(expr, "attr")
-            return getattr(ExpressionTree.get_value(parent, obj), attr)
-        raise ExpressionError(f"Cannot get value from {type(expr).__name__}")
+        return object.__getattribute__(expr, "__expr_get_value__")(obj)
 
     @staticmethod
     def set_value(expr: ExpressionNode, obj: object, value: Any) -> None:
-        cls = type(expr)
-        if cls is AttributeNode:
-            parent = object.__getattribute__(expr, "parent")
-            attr = object.__getattribute__(expr, "attr")
-            setattr(ExpressionTree.get_value(parent, obj), attr, value)
-            return
-        raise ExpressionError(f"Cannot set value of {type(expr).__name__}")
+        return object.__getattribute__(expr, "__expr_get_value__")(obj, value)
 
     @staticmethod
-    def get_attribute_name(expr: AttributeNode) -> str:
-        return object.__getattribute__(expr, "attr")
+    def get_attribute(expr: ExpressionNode) -> str:
+        return object.__getattribute__(expr, "__expr_get_attribute__")()
+
+    @staticmethod
+    def format(expr: ExpressionNode) -> str:
+        return object.__getattribute__(expr, "__expr_format__")()
+
+    @staticmethod
+    def ensure_attribute_chain(
+        expr: ExpressionNode,
+        *,
+        max_depth: int | None = None,
+        origin: ExpressionNode | None = None,
+    ) -> None:
+        if max_depth is not None:
+            if max_depth == 0:
+                if object.__getattribute__(expr, "__class__") != RootNode:
+                    raise MaxDepthExpressionError(origin or expr)
+            elif object.__getattribute__(expr, "__class__") != AttributeNode:
+                raise AttributeChainError(origin or expr)
+        parents: list[ExpressionNode] = object.__getattribute__(expr, "__expr_get_parents__")()
+        for parent in parents:
+            ExpressionTree.ensure_attribute_chain(
+                parent,
+                max_depth=max_depth - 1 if max_depth is not None else None,
+                origin=origin or expr,
+            )

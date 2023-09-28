@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any, Generic, Self, TypeVar
 
 from bolinette.core import Cache, __user_cache__
-from bolinette.core.expressions import AttributeNode, ExpressionTree
+from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.mapping.sequence import (
     ForAttributeMapping,
     IgnoreAttribute,
@@ -26,20 +26,18 @@ class MapFromOptions:
 
 
 class MappingOptions(Generic[SrcT, DestT]):
-    def __init__(self, dest_expr: AttributeNode) -> None:
+    def __init__(self, sequence: MappingSequence[SrcT, DestT], dest_expr: ExpressionNode) -> None:
+        self.sequence = sequence
         self.dest_expr = dest_expr
         self.step: ForAttributeMapping | None = None
 
     def map_from(self, func: Callable[[SrcT], Any]) -> MapFromOptions:
-        src_expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        src_attr = ExpressionTree.get_attribute_name(src_expr)
-        dest_attr = ExpressionTree.get_attribute_name(self.dest_expr)
-        self.step = MapFromAttribute(src_attr, dest_attr)
+        src_expr: ExpressionNode = func(ExpressionTree.new(self.sequence.src_t))  # type: ignore
+        self.step = MapFromAttribute(src_expr, self.dest_expr)
         return MapFromOptions(self.step)
 
     def ignore(self) -> None:
-        attr = ExpressionTree.get_attribute_name(self.dest_expr)
-        self.step = IgnoreAttribute(attr)
+        self.step = IgnoreAttribute(self.dest_expr)
 
 
 class SequenceBuilder(Generic[SrcT, DestT]):
@@ -51,8 +49,8 @@ class SequenceBuilder(Generic[SrcT, DestT]):
         func: Callable[[DestT], Any],
         options: Callable[[MappingOptions[SrcT, DestT]], MapFromOptions | None],
     ) -> Self:
-        expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        opt: MappingOptions[SrcT, DestT] = MappingOptions(expr)
+        expr: ExpressionNode = func(ExpressionTree.new(self.sequence.dest_t))  # type: ignore
+        opt: MappingOptions[SrcT, DestT] = MappingOptions(self.sequence, expr)
         options(opt)
         if opt.step is not None:
             self.sequence.add_for_attr(opt.step)

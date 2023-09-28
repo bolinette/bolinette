@@ -1,8 +1,10 @@
-from typing import Any
+from typing import Any, TypedDict
 
 import pytest
 
 from bolinette.core import Cache
+from bolinette.core.expressions import ExpressionNode
+from bolinette.core.expressions.exceptions import AttributeChainError, MaxDepthExpressionError
 from bolinette.core.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
 from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.mapping.mapper import (
@@ -43,9 +45,9 @@ def test_init_type_mappers_from_cache() -> None:
 
         def map(
             self,
-            src_path: str,
+            src_expr: ExpressionNode,
             src_t: Type[Any],
-            dest_path: str,
+            dest_expr: ExpressionNode,
             dest_t: Type[_Destination],
             src: Any,
             dest: _Destination | None,
@@ -525,7 +527,38 @@ def test_map_before_after() -> None:
     assert order == ["before", "after"]
 
 
-def test_nested_mapping() -> None:
+def test_nested_mapping_no_profile() -> None:
+    class _NestedSource:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    class _NestedDestination:
+        value: str
+
+    class _Source:
+        def __init__(self, nested: _NestedSource) -> None:
+            self.content = nested
+
+    class _Destination:
+        content: _NestedDestination
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source(_NestedSource("test"))
+
+    d = mapper.map(_Source, _Destination, src)
+
+    assert src is not d
+    assert src.content is not d.content
+    assert src.content.value == d.content.value
+    assert isinstance(d.content, _NestedDestination)
+
+
+def test_nested_mapping_with_profile() -> None:
     class _NestedSource:
         def __init__(self, value: str) -> None:
             self.value = value
@@ -993,3 +1026,114 @@ def test_map_dict_to_dict() -> None:
 
     assert dest["at1"] == 1
     assert dest["at2"] == 2
+
+
+def test_map_attr_from_child() -> None:
+    cache = Cache()
+
+    class _NestedSource:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Source:
+        def __init__(self, nested: _NestedSource) -> None:
+            self.nested = nested
+
+    class _Destination:
+        value: int
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest.value, lambda opt: opt.map_from(lambda src: src.nested.value)
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source(_NestedSource(1))
+
+    d = mapper.map(_Source, _Destination, src)
+
+    assert src is not d
+    assert src.nested.value == d.value
+
+
+def test_fail_map_from_nested() -> None:
+    cache = Cache()
+
+    class _NestedSource:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _NestedDestination:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Source:
+        def __init__(self, nested: _NestedSource) -> None:
+            self.nested = nested
+
+    class _Destination:
+        nested: _NestedDestination
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest.nested.value, lambda opt: opt.map_from(lambda src: src.nested.value)
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+
+    with pytest.raises(MaxDepthExpressionError) as info:
+        mock.injection.require(Mapper)
+
+    assert (
+        info.value.message == "Expression test_fail_map_from_nested.<locals>._Destination.nested.value, "
+        "Expression exceeds allowed depth"
+    )
+
+
+def test_fail_map_from_expression() -> None:
+    cache = Cache()
+
+    class _NestedSource:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _NestedDestination:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Source:
+        def __init__(self, nested: _NestedSource) -> None:
+            self.nested = nested
+
+    class _Destination(TypedDict):
+        nested: _NestedDestination
+
+    @mapping(cache=cache)
+    class _(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest["nested"], lambda opt: opt.map_from(lambda src: src.nested.value)
+            )
+
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+
+    with pytest.raises(AttributeChainError) as info:
+        mock.injection.require(Mapper)
+
+    assert (
+        info.value.message == "Expression test_fail_map_from_expression.<locals>._Destination['nested'], "
+        "Expression is excepted to be a chain of attribute access"
+    )

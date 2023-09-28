@@ -7,8 +7,10 @@ import yaml
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.environment.sections import EnvironmentSection, EnvSectionMeta
 from bolinette.core.exceptions import EnvironmentError
+from bolinette.core.expressions import ExpressionTree
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping import Mapper
+from bolinette.core.types import Type
 
 
 class Environment:
@@ -96,5 +98,5 @@ def init_section(section: object, env: Environment, mapper: Mapper) -> None:
         type(section),
         env.config[section_name],
         section,
-        src_path=f"Environment['{section_name}']",
+        src_expr=ExpressionTree.new(Type(Environment))[section_name],
     )

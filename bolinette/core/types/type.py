@@ -2,7 +2,7 @@ import collections.abc
 import contextlib
 import inspect
 from inspect import Parameter
-from types import NoneType, UnionType
+from types import EllipsisType, NoneType, UnionType
 from typing import Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
 
 from typing_extensions import override
@@ -99,11 +99,13 @@ class Type(Generic[T]):
     def parameters(self) -> dict[str, Parameter]:
         return {**inspect.signature(self.cls).parameters}
 
-    def annotations(self, *, lookup: "types.TypeVarLookup[Any] | None" = None) -> dict[str, Any]:
+    def annotations(self, *, lookup: "types.TypeVarLookup[Any] | None" = None) -> "dict[str, Type[Any]]":
         return self._get_recursive_annotations(self.cls, lookup)
 
     @staticmethod
-    def _get_recursive_annotations(_cls: type[Any], lookup: "types.TypeVarLookup[Any] | None") -> dict[str, Any]:
+    def _get_recursive_annotations(
+        _cls: type[Any], lookup: "types.TypeVarLookup[Any] | None"
+    ) -> "dict[str, Type[Any]]":
         annotations: dict[str, Type[Any]] = {}
         try:
             for base in _cls.__bases__:
@@ -116,9 +118,11 @@ class Type(Generic[T]):
         return annotations
 
     @staticmethod
-    def _transform_annotation(anno: Any, lookup: "types.TypeVarLookup[Any] | None") -> Any:
-        if anno in (None, Ellipsis):
-            return anno
+    def _transform_annotation(anno: Any, lookup: "types.TypeVarLookup[Any] | None") -> "Type[Any]":
+        if anno is NoneType:
+            return Type(NoneType)
+        if anno is Ellipsis:
+            return Type(EllipsisType)
         return Type(anno, lookup=lookup)
 
     @staticmethod

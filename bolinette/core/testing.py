@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any, Generic, TypeVar, get_args, get_origin
 
 from bolinette.core import Cache, meta
-from bolinette.core.expressions import AttributeNode, ExpressionTree
+from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.injection import Injection
 from bolinette.core.injection.context import InjectionContext
 
@@ -63,8 +63,9 @@ class _MockWrapper(Generic[MockedT]):
         return _t  # type: ignore
 
     def setup(self, func: Callable[[MockedT], SetupT], value: SetupT) -> "_MockWrapper[MockedT]":
-        expr: AttributeNode = func(ExpressionTree.new())  # type: ignore
-        name = ExpressionTree.get_attribute_name(expr)
+        expr: ExpressionNode = func(ExpressionTree.new())  # type: ignore
+        ExpressionTree.ensure_attribute_chain(expr)
+        name = ExpressionTree.get_attribute(expr)
         _meta: _MockedMeta[Any] = meta.get(self._cls, _MockedMeta)
         _meta[name] = value
         return self

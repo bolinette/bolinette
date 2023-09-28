@@ -4,13 +4,14 @@ from typing import Any, Protocol, TypeGuard, TypeVar, overload
 from typing_extensions import override
 
 from bolinette.core import Cache, __user_cache__, meta
+from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping.exceptions import (
-    ConversionError,
+    ConvertionError,
     DestinationNotNullableError,
     IgnoreImpossibleError,
     ImmutableCollectionError,
-    InstantiationError,
+    InstanciationError,
     SourceNotFoundError,
     TypeMismatchError,
     TypeNotIterableError,
@@ -69,8 +70,8 @@ class Mapper:
         dest_cls: type[NoInitDestT],
         src: SrcT,
         *,
-        src_path: str | None = None,
-        dest_path: str | None = None,
+        src_expr: ExpressionNode | None = None,
+        dest_expr: ExpressionNode | None = None,
     ) -> NoInitDestT:
         pass
 
@@ -82,8 +83,8 @@ class Mapper:
         src: SrcT,
         dest: DestT,
         *,
-        src_path: str | None = None,
-        dest_path: str | None = None,
+        src_expr: ExpressionNode | None = None,
+        dest_expr: ExpressionNode | None = None,
     ) -> DestT:
         pass
 
@@ -94,13 +95,18 @@ class Mapper:
         src: SrcT,
         dest: DestT | None = None,
         *,
-        src_path: str | None = None,
-        dest_path: str | None = None,
+        src_expr: ExpressionNode | None = None,
+        dest_expr: ExpressionNode | None = None,
     ) -> DestT:
         src_t = Type(src_cls)
         dest_t = Type(dest_cls)
         return MappingRunner(self._sequences, self._type_mappers, self._default_mapper).map(
-            src_path or str(src_t), src_t, dest_path or str(dest_t), dest_t, src, dest
+            src_expr or ExpressionTree.new(src_t),
+            src_t,
+            dest_expr or ExpressionTree.new(dest_t),
+            dest_t,
+            src,
+            dest,
         )
 
 
@@ -119,20 +125,20 @@ class MappingRunner:
 
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[DestT],
         src: SrcT,
         dest: DestT | None,
     ) -> DestT:
         if src is None:
             if not dest_t.nullable:
-                raise DestinationNotNullableError(src_path, dest_path, dest_t)
+                raise DestinationNotNullableError(src_expr, dest_expr, dest_t)
             return None  # type: ignore
         mapper_cls: type[TypeMapper[Any]] = self.mappers[dest_t] if dest_t in self.mappers else self.default_mapper
         mapper = mapper_cls(self)
-        return mapper.map(src_path, src_t, dest_path, dest_t, src, dest)
+        return mapper.map(src_expr, src_t, dest_expr, dest_t, src, dest)
 
 
 class TypeMapper(Protocol[TargetT]):
@@ -141,9 +147,9 @@ class TypeMapper(Protocol[TargetT]):
 
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[Any],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[TargetT],
         src: Any,
         dest: TargetT | None,
@@ -181,35 +187,35 @@ class DefaultTypeMapper(TypeMapper[object]):
     @override
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[Any],
         src: SrcT,
         dest: Any | None,
     ) -> Any:
         if dest_t.cls in (list, tuple, set):
-            return self._map_iterable(src_path, src_t, dest_path, dest_t, src, dest)
+            return self._map_iterable(src_expr, src_t, dest_expr, dest_t, src, dest)
         if dest_t.cls is dict:
-            return self._map_dict(src_path, dest_path, dest_t, src, dest)
-        return self._map_object(src_path, src_t, dest_path, dest_t, src, dest)
+            return self._map_dict(src_expr, dest_expr, dest_t, src, dest)
+        return self._map_object(src_expr, src_t, dest_expr, dest_t, src, dest)
 
     def _map_object(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[Any],
         src: SrcT,
         dest: Any | None,
     ) -> Any:
         if dest_t.is_any:
-            return self.runner.map(src_path, src_t, dest_path, src_t, src, None)
+            return self.runner.map(src_expr, src_t, dest_expr, src_t, src, None)
         if dest is None:
             try:
                 dest = dest_t.new()
-            except TypeError as e:
-                raise InstantiationError(dest_path, dest_t) from e
+            except TypeError:
+                raise InstanciationError(dest_expr, dest_t)
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
             MappingSequence.get_hash(src_t, dest_t), None
         )
@@ -218,38 +224,42 @@ class DefaultTypeMapper(TypeMapper[object]):
                 func.func(src, dest)
         for dest_name, anno_t in dest_t.annotations().items():
             src_name = dest_name
-            sub_dest_path = f"{dest_path}.{dest_name}"
+            field_src_expr = self._get_expr(src_expr, src, src_name)
+            field_dest_expr: ExpressionNode = getattr(dest_expr, dest_name)
             selected_t: Type[Any] | None = None
+            src_value_expr = self._get_expr(ExpressionTree.new(src_t), src, src_name)
             if sequence is not None and dest_name in sequence.for_attrs:
                 for_attr = sequence.for_attrs[dest_name]
                 if isinstance(for_attr, IgnoreAttribute):
                     if not anno_t.nullable:
-                        raise IgnoreImpossibleError(sub_dest_path, anno_t)
+                        raise IgnoreImpossibleError(field_dest_expr, anno_t)
                     setattr(dest, dest_name, None)
                     continue
                 if isinstance(for_attr, MapFromAttribute):
-                    src_name = for_attr.src_attr
+                    src_value_expr = for_attr.src_expr
                     selected_t = for_attr.use_type
-            sub_src_path = self._format_src_path(src_path, src, src_name)
             if anno_t.is_union:
                 if selected_t is None:
-                    raise UnionNotAllowedError(sub_dest_path, anno_t)
+                    raise UnionNotAllowedError(field_dest_expr, anno_t)
                 if selected_t != anno_t and selected_t not in anno_t.union:
-                    raise TypeMismatchError(sub_src_path, sub_dest_path, selected_t, anno_t)
+                    raise TypeMismatchError(field_src_expr, field_dest_expr, selected_t, anno_t)
                 anno_t = selected_t
-            if not self._has_attr(src, src_name):
+            try:
+                value = ExpressionTree.get_value(src_value_expr, src)
+            except Exception:
                 if not self._has_default_value(dest, dest_name):
                     if not anno_t.nullable:
-                        raise SourceNotFoundError(sub_src_path, sub_dest_path, anno_t)
+                        raise SourceNotFoundError(field_src_expr, field_dest_expr, anno_t)
                     else:
                         setattr(dest, dest_name, None)
                         continue
                 else:
                     setattr(dest, dest_name, self._get_default_value(dest, dest_name))
                     continue
-            value = self._get_value(src, src_name)
             setattr(
-                dest, dest_name, self.runner.map(sub_src_path, Type(type(value)), sub_dest_path, anno_t, value, None)
+                dest,
+                dest_name,
+                self.runner.map(field_src_expr, Type(type(value)), field_dest_expr, anno_t, value, None),
             )
         if sequence is not None:
             for func in sequence.tail:
@@ -258,22 +268,22 @@ class DefaultTypeMapper(TypeMapper[object]):
 
     def _map_iterable(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[list[DestT]] | Type[set[DestT]] | Type[tuple[DestT]],
         src: SrcT,
         dest: list[DestT] | set[DestT] | tuple[DestT] | None,
     ) -> list[DestT] | set[DestT] | tuple[DestT]:
         elems: list[DestT] = []
         if not self._is_iterable(src):
-            raise TypeNotIterableError(src_path, dest_path, src_t, dest_t)
+            raise TypeNotIterableError(src_expr, dest_expr, src_t, dest_t)
         for index, elem in enumerate(src):
             elems.append(
                 self.runner.map(
-                    f"{src_path}.[{index}]",
+                    src_expr[index],
                     Type.from_instance(elem),
-                    f"{dest_path}.[{index}]",
+                    dest_expr[index],
                     Type(dest_t.vars[0]),
                     elem,
                     None,
@@ -288,13 +298,13 @@ class DefaultTypeMapper(TypeMapper[object]):
             dest.clear()
             dest.update(elems)
         else:
-            raise ImmutableCollectionError(dest_path)
+            raise ImmutableCollectionError(dest_expr)
         return dest
 
     def _map_dict(
         self,
-        src_path: str,
-        dest_path: str,
+        src_expr: ExpressionNode,
+        dest_expr: ExpressionNode,
         dest_t: Type[dict[str, DestT]],
         src: object,
         dest: dict[str, DestT] | None,
@@ -303,9 +313,9 @@ class DefaultTypeMapper(TypeMapper[object]):
             dest = dest_t.new()
         for src_name, src_value in self._iter_obj(src):
             dest[src_name] = self.runner.map(
-                f"{src_path}['{src_name}']",
+                src_expr[src_name],
                 Type.from_instance(src_value),
-                f"{dest_path}.{src_name}",
+                getattr(dest_expr, src_name),
                 Type(dest_t.vars[1]),
                 src_value,
                 None,
@@ -333,10 +343,10 @@ class DefaultTypeMapper(TypeMapper[object]):
         return getattr(obj, attr)
 
     @staticmethod
-    def _format_src_path(path: str, obj: Any, attr: str) -> str:
+    def _get_expr(path: ExpressionNode, obj: Any, attr: str) -> ExpressionNode:
         if isinstance(obj, dict):
-            return f"{path}['{attr}']"
-        return f"{path}.{attr}"
+            return path[attr]
+        return getattr(path, attr)
 
     @staticmethod
     def _iter_obj(obj: object) -> Iterable[tuple[str, Any]]:
@@ -358,17 +368,17 @@ class IntegerTypeMapper(TypeMapper[int]):
     @override
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[int],
         src: SrcT,
         dest: int | None,
     ) -> int:
         try:
             return int(src)  # type: ignore
-        except (ValueError, TypeError) as e:
-            raise ConversionError(src_path, dest_path, src, Type(int)) from e
+        except (ValueError, TypeError) as err:
+            raise ConvertionError(src_expr, dest_expr, src, Type(int)) from err
 
 
 class FloatTypeMapper(TypeMapper[float]):
@@ -380,17 +390,17 @@ class FloatTypeMapper(TypeMapper[float]):
     @override
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[float],
         src: SrcT,
         dest: float | None,
     ) -> float:
         try:
             return float(src)  # type: ignore
-        except ValueError as e:
-            raise ConversionError(src_path, dest_path, src, Type(float)) from e
+        except ValueError as err:
+            raise ConvertionError(src_expr, dest_expr, src, Type(float)) from err
 
 
 class BoolTypeMapper(TypeMapper[bool]):
@@ -402,9 +412,9 @@ class BoolTypeMapper(TypeMapper[bool]):
     @override
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[bool],
         src: SrcT,
         dest: bool | None,
@@ -421,9 +431,9 @@ class StringTypeMapper(TypeMapper[str]):
     @override
     def map(
         self,
-        src_path: str,
+        src_expr: ExpressionNode,
         src_t: Type[SrcT],
-        dest_path: str,
+        dest_expr: ExpressionNode,
         dest_t: Type[str],
         src: SrcT,
         dest: str | None,

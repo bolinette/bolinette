@@ -3,6 +3,7 @@ from typing import Any, Generic, TypeVar
 
 from typing_extensions import override
 
+from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.types import Type
 
@@ -11,26 +12,26 @@ DestT = TypeVar("DestT", bound=object)
 
 
 class ForAttributeMapping:
-    __slots__ = "dest_attr"
+    __slots__ = "dest_expr"
 
-    def __init__(self, dest_attr: str) -> None:
-        self.dest_attr = dest_attr
+    def __init__(self, dest_expr: ExpressionNode) -> None:
+        self.dest_expr = dest_expr
 
 
 class MapFromAttribute(ForAttributeMapping):
-    __slots__ = ("src_attr", "use_type")
+    __slots__ = ("src_expr", "use_type")
 
-    def __init__(self, src_attr: str, dest_attr: str) -> None:
-        ForAttributeMapping.__init__(self, dest_attr)
-        self.src_attr = src_attr
+    def __init__(self, src_expr: ExpressionNode, dest_expr: ExpressionNode) -> None:
+        ForAttributeMapping.__init__(self, dest_expr)
+        self.src_expr = src_expr
         self.use_type: Type[Any] | None = None
 
 
 class IgnoreAttribute(ForAttributeMapping):
     __slots__ = "func"
 
-    def __init__(self, dest_attr: str) -> None:
-        ForAttributeMapping.__init__(self, dest_attr)
+    def __init__(self, dest_expr: ExpressionNode) -> None:
+        ForAttributeMapping.__init__(self, dest_expr)
 
 
 class MappingFunction(Generic[SrcT, DestT]):
@@ -74,7 +75,9 @@ class MappingSequence(Generic[SrcT, DestT]):
         self.head.append(func)
 
     def add_for_attr(self, for_attr: ForAttributeMapping) -> None:
-        self.for_attrs[for_attr.dest_attr] = for_attr
+        ExpressionTree.ensure_attribute_chain(for_attr.dest_expr, max_depth=1)
+        attr_name = ExpressionTree.get_attribute(for_attr.dest_expr)
+        self.for_attrs[attr_name] = for_attr
 
     def add_tail_func(self, func: MappingFunction[SrcT, DestT]) -> None:
         self.tail.append(func)
