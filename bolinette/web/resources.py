@@ -114,7 +114,7 @@ class RouteHandler:
             body = await request.json()
         except json.JSONDecodeError:
             body = None
-        ctrl = scoped.instanciate(self.ctrl_t.cls)
+        ctrl = scoped.instantiate(self.ctrl_t.cls)
         result = await scoped.call(
             self.func,
             args=[ctrl],
@@ -153,7 +153,7 @@ class RouteHandler:
         mdlws: dict[Type[Middleware[...]], Middleware[...]] = {}
         for bag in bags:
             for t, mdlw_meta in reversed(bag.added.items()):
-                mdlw = scoped.instanciate(t.cls)
+                mdlw = scoped.instantiate(t.cls)
                 mdlw.options(*mdlw_meta.args, **mdlw_meta.kwargs)
                 mdlws[t] = mdlw
             for t in bag.removed:

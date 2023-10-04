@@ -23,7 +23,7 @@ class AttributeNode(ExpressionNode):
 
 class ExpressionTree:
     def __init__(self) -> None:
-        raise TypeError(f"Cannot instanciate {ExpressionTree}")
+        raise TypeError(f"Cannot instantiate {ExpressionTree}")
 
     @staticmethod
     def new() -> RootNode:

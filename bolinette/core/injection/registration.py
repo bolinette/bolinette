@@ -9,8 +9,8 @@ from bolinette.core.types import Type
 InstanceT = TypeVar("InstanceT")
 
 
-InjectionStrategy = Literal["singleton", "scoped", "transcient", "immediate"]
-AddStrategy = Literal["singleton", "scoped", "transcient"]
+InjectionStrategy = Literal["singleton", "scoped", "transient", "immediate"]
+AddStrategy = Literal["singleton", "scoped", "transient"]
 
 
 class RegisteredType(Generic[InstanceT]):

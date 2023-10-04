@@ -109,7 +109,7 @@ def test_fail_typevar() -> None:
     assert info.value.message == "Type test_fail_typevar.<locals>._T, Generic parameter ~T cannot be a TypeVar"
 
 
-def test_typvar_lookup() -> None:
+def test_typevar_lookup() -> None:
     T = TypeVar("T")
 
     class _T(Generic[T]):
@@ -126,7 +126,7 @@ def test_typvar_lookup() -> None:
     assert t.vars == (_P,)
 
 
-def test_fail_typvar_not_found_in_lookup() -> None:
+def test_fail_typevar_not_found_in_lookup() -> None:
     T = TypeVar("T")
     K = TypeVar("K")
 
@@ -144,11 +144,11 @@ def test_fail_typvar_not_found_in_lookup() -> None:
 
     assert (
         info.value.message
-        == "Type test_fail_typvar_not_found_in_lookup.<locals>._T, TypeVar ~T could not be found in lookup"
+        == "Type test_fail_typevar_not_found_in_lookup.<locals>._T, TypeVar ~T could not be found in lookup"
     )
 
 
-def test_typvar_not_found_in_lookup() -> None:
+def test_typevar_not_found_in_lookup() -> None:
     T = TypeVar("T")
     K = TypeVar("K")
 

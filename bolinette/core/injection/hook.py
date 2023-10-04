@@ -23,7 +23,7 @@ class InjectionHook(Generic[InstanceT]):
             return object.__getattribute__(self, __name)
         raise InjectionError(
             f"Tried accessing member '{__name}' of an injected instance inside the __init__ method. "
-            "Use @init_method to process logic at instanciation."
+            "Use @init_method to process logic at instantiation."
         )
 
     def __get__(self, *_) -> InstanceT:
@@ -48,6 +48,6 @@ class InjectionProxy:
         if inject.__has_instance__(self.r_type):
             obj = inject.__get_instance__(self.r_type)
         else:
-            obj = inject.__instanciate__(self.r_type, self.t, OrderedSet())
+            obj = inject.__instantiate__(self.r_type, self.t, OrderedSet())
         setattr(instance, self.name, obj)
         return obj

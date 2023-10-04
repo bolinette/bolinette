@@ -213,7 +213,7 @@ def test_add_instance_no_singleton() -> None:
     b = InjectableClassB()
 
     with pytest.raises(InjectionError) as info:
-        inject.add(InjectableClassB, "transcient", instance=b)
+        inject.add(InjectableClassB, "transient", instance=b)
 
     assert (
         f"Injection strategy for {InjectableClassB} must be singleton if an instance is provided" == info.value.message
@@ -543,7 +543,7 @@ def test_two_injections() -> None:
     assert c2.c1 is c3.c1
 
 
-def test_transcient_injection() -> None:
+def test_transient_injection() -> None:
     class _C1:
         pass
 
@@ -561,7 +561,7 @@ def test_transcient_injection() -> None:
             self.c2 = c2
 
     inject = Injection(Cache())
-    inject.add(_C1, "transcient")
+    inject.add(_C1, "transient")
     inject.add(_C2, "singleton")
     inject.add(_C3, "singleton")
     inject.add(_C4, "singleton")
@@ -585,7 +585,7 @@ def test_scoped_injection_fail_no_scope() -> None:
 
     assert (
         "Injection strategy for test_scoped_injection_fail_no_scope.<locals>._C1 "
-        "must be singleton or transcient to be required in this context" == info.value.message
+        "must be singleton or transient to be required in this context" == info.value.message
     )
 
 
@@ -604,7 +604,7 @@ def test_scoped_injection_fail_no_scope_in_func() -> None:
 
     assert (
         "Callable test_scoped_injection_fail_no_scope_in_func.<locals>._func, Parameter 'c1', "
-        "Cannot instanciate a scoped service in a singleton service" == info.value.message
+        "Cannot instantiate a scoped service in a singleton service" == info.value.message
     )
 
 
@@ -625,11 +625,11 @@ def test_scoped_injection_fail_no_scope_in_singleton() -> None:
 
     assert (
         "Callable test_scoped_injection_fail_no_scope_in_singleton.<locals>._C2, Parameter 'c1', "
-        "Cannot instanciate a scoped service in a singleton service" == info.value.message
+        "Cannot instantiate a scoped service in a singleton service" == info.value.message
     )
 
 
-def test_scoped_injection_fail_no_scope_in_transcient() -> None:
+def test_scoped_injection_fail_no_scope_in_transient() -> None:
     class _C1:
         pass
 
@@ -639,14 +639,14 @@ def test_scoped_injection_fail_no_scope_in_transcient() -> None:
 
     inject = Injection(Cache())
     inject.add(_C1, "scoped")
-    inject.add(_C2, "transcient")
+    inject.add(_C2, "transient")
 
     with pytest.raises(InjectionError) as info:
         inject.require(_C2)
 
     assert (
-        "Callable test_scoped_injection_fail_no_scope_in_transcient.<locals>._C2, Parameter 'c1', "
-        "Cannot instanciate a scoped service in a transcient service" == info.value.message
+        "Callable test_scoped_injection_fail_no_scope_in_transient.<locals>._C2, Parameter 'c1', "
+        "Cannot instantiate a scoped service in a transient service" == info.value.message
     )
 
 
@@ -669,11 +669,11 @@ def test_fail_get_scoped_from_singleton_in_scope() -> None:
 
     assert (
         "Callable test_fail_get_scoped_from_singleton_in_scope.<locals>._C2, Parameter 'c1', "
-        "Cannot instanciate a scoped service in a singleton service" == info.value.message
+        "Cannot instantiate a scoped service in a singleton service" == info.value.message
     )
 
 
-def test_fail_get_scoped_from_transcient_in_scope() -> None:
+def test_fail_get_scoped_from_transient_in_scope() -> None:
     class _C1:
         pass
 
@@ -683,7 +683,7 @@ def test_fail_get_scoped_from_transcient_in_scope() -> None:
 
     inject = Injection(Cache())
     inject.add(_C1, "scoped")
-    inject.add(_C2, "transcient")
+    inject.add(_C2, "transient")
 
     sub_inject = inject.get_scoped_session()
 
@@ -691,8 +691,8 @@ def test_fail_get_scoped_from_transcient_in_scope() -> None:
         sub_inject.require(_C2)
 
     assert (
-        "Callable test_fail_get_scoped_from_transcient_in_scope.<locals>._C2, Parameter 'c1', "
-        "Cannot instanciate a scoped service in a transcient service" == info.value.message
+        "Callable test_fail_get_scoped_from_transient_in_scope.<locals>._C2, Parameter 'c1', "
+        "Cannot instantiate a scoped service in a transient service" == info.value.message
     )
 
 
@@ -719,7 +719,7 @@ def test_scoped_injection() -> None:
             self.c3 = c3
 
     inject = Injection(Cache())
-    inject.add(_C1, "transcient")
+    inject.add(_C1, "transient")
     inject.add(_C2, "singleton")
     inject.add(_C3, "scoped")
     inject.add(_C4, "scoped")
@@ -754,7 +754,7 @@ def test_get_injection_scoped_context() -> None:
     assert sub_inject2.require(Injection) is sub_inject2
 
 
-def test_require_transcient_service() -> None:
+def test_require_transient_service() -> None:
     class _C1:
         pass
 
@@ -762,7 +762,7 @@ def test_require_transcient_service() -> None:
         pass
 
     inject = Injection(Cache())
-    inject.add(_C1, "transcient")
+    inject.add(_C1, "transient")
     inject.add(_C2, "singleton")
 
     assert inject.require(_C1) is not inject.require(_C1)
@@ -991,7 +991,7 @@ def test_require_decorator() -> None:
     assert t.param.v == 1
 
 
-def test_instanciate_type() -> None:
+def test_instantiate_type() -> None:
     calls: list[str] = []
 
     class _Service:
@@ -1004,13 +1004,13 @@ def test_instanciate_type() -> None:
 
     inject = Injection(Cache())
 
-    service = inject.instanciate(_Service)
+    service = inject.instantiate(_Service)
 
     assert isinstance(service, _Service)
     assert calls == ["__init__", "_init"]
 
 
-def test_fail_immediate_instanciate() -> None:
+def test_fail_immediate_instantiate() -> None:
     class _TestClass:
         pass
 
@@ -1021,10 +1021,10 @@ def test_fail_immediate_instanciate() -> None:
             _TestClass,
             "singleton",
             instance=_TestClass(),
-            instanciate=True,
+            instantiate=True,
         )
 
-    assert f"Cannot instanciate {_TestClass} if an instance is provided" == info.value.message
+    assert f"Cannot instantiate {_TestClass} if an instance is provided" == info.value.message
 
 
 def test_register_with_super_type() -> None:

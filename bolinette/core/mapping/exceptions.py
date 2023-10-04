@@ -24,10 +24,10 @@ class DestinationNotNullableError(MappingError):
         super().__init__(f"Could not bind a None value to non nullable type {t}", src=src, dest=dest)
 
 
-class InstanciationError(MappingError):
+class InstantiationError(MappingError):
     def __init__(self, dest: str, t: Type[Any]) -> None:
         super().__init__(
-            f"Could not instanciate type {t}, make sure the __init__ has no required parameters", dest=dest
+            f"Could not instantiate type {t}, make sure the __init__ has no required parameters", dest=dest
         )
 
 
@@ -56,6 +56,6 @@ class ImmutableCollectionError(MappingError):
         super().__init__("Could not use an existing tuple instance, tuples are immutable", dest=dest)
 
 
-class ConvertionError(MappingError):
+class ConversionError(MappingError):
     def __init__(self, src: str, dest: str, value: Any, target: Type[Any]) -> None:
         super().__init__(f"Could not convert value '{value}' to {target}", src=src, dest=dest)

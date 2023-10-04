@@ -49,7 +49,7 @@ class _CoreExtension(Extension):
         injection_callback(cache=cache)(InjectionLogger)
         injectable(strategy="singleton", cache=cache)(Injection)
         injectable(strategy="singleton", cache=cache)(Parser)
-        injectable(strategy="transcient", match_all=True, cache=cache)(Logger)
+        injectable(strategy="transient", match_all=True, cache=cache)(Logger)
         injectable(strategy="singleton", cache=cache)(Environment)
 
         injectable(strategy="singleton", cache=cache)(Mapper)
@@ -68,5 +68,5 @@ class InjectionLogger:
 
     def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None:
         match event:
-            case "instanciated":
-                self.logger.debug(f"Instanciated {type} with strategy '{strategy}'")
+            case "instantiated":
+                self.logger.debug(f"Instantiated {type} with strategy '{strategy}'")

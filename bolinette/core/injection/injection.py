@@ -22,7 +22,7 @@ InstanceT = TypeVar("InstanceT")
 class Injection:
     __slots__: list[str] = ["cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers", "_callbacks"]
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
-    _REQUIREABLE_STRATEGIES = ("singleton", "transcient")
+    _REQUIREABLE_STRATEGIES = ("singleton", "transient")
 
     def __init__(
         self,
@@ -93,13 +93,13 @@ class Injection:
         for cls in resolver_types:
             if resolver_scoped[cls]:
                 continue
-            resolvers.append(self.instanciate(cls))
+            resolvers.append(self.instantiate(cls))
 
         return [*resolvers]
 
     def _pickup_callbacks(self) -> "Iterable[InjectionCallback]":
         return [
-            self.instanciate(t) for t in self.cache.get(InjectionCallback, hint=type[InjectionCallback], raises=False)
+            self.instantiate(t) for t in self.cache.get(InjectionCallback, hint=type[InjectionCallback], raises=False)
         ]
 
     def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
@@ -249,7 +249,7 @@ class Injection:
         for method in r_type.after_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
 
-    def __instanciate__(
+    def __instantiate__(
         self,
         r_type: "RegisteredType[InstanceT]",
         t: Type[InstanceT],
@@ -275,7 +275,7 @@ class Injection:
         self.__set_instance__(r_type, instance)
         for callback in self._callbacks:
             callback(
-                "instanciated",
+                "instantiated",
                 t,
                 r_type.strategy,  # type: ignore
                 instance,
@@ -312,7 +312,7 @@ class Injection:
         )
         return func(**func_args)
 
-    def instanciate(
+    def instantiate(
         self,
         cls: type[InstanceT],
         *,
@@ -382,7 +382,7 @@ class Injection:
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
-        instanciate: Literal[True],
+        instantiate: Literal[True],
     ) -> InstanceT:
         pass
 
@@ -413,7 +413,7 @@ class Injection:
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
-        instanciate: bool = False,
+        instantiate: bool = False,
     ) -> InstanceT | None:
         if super_cls is None:
             super_cls = cls
@@ -429,9 +429,9 @@ class Injection:
         if not issubclass(t.cls, super_t.cls):
             raise InjectionError(f"Type {t} does not inherit from type {super_t}")
         if instance is not None:
-            if instanciate:
+            if instantiate:
                 raise InjectionError(
-                    f"Cannot instanciate {t.cls} if an instance is provided",
+                    f"Cannot instantiate {t.cls} if an instance is provided",
                 )
             if not isinstance(instance, t.cls):
                 raise InjectionError(f"Object provided must an instance of type {t.cls}")
@@ -451,7 +451,7 @@ class Injection:
             after_init or [],
             instance,
         )
-        if instanciate:
+        if instantiate:
             return self.require(t.cls)  # type: ignore
         return None
 
@@ -467,7 +467,7 @@ class Injection:
             )
         if self.__has_instance__(r_type):
             return self.__get_instance__(r_type)
-        return self.__instanciate__(r_type, t, OrderedSet())
+        return self.__instantiate__(r_type, t, OrderedSet())
 
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)
@@ -477,7 +477,7 @@ class ScopedInjection(Injection):
     __slots__: list[str] = ["_scoped_ctx"]
 
     _ADD_INSTANCE_STRATEGIES = ("singleton", "scoped")
-    _REQUIREABLE_STRATEGIES = ("singleton", "scoped", "transcient")
+    _REQUIREABLE_STRATEGIES = ("singleton", "scoped", "transient")
 
     def __init__(
         self,
@@ -523,7 +523,7 @@ class ScopedInjection(Injection):
 
         resolvers: list[ArgumentResolver] = []
         for cls in resolver_types:
-            resolvers.append(self.instanciate(cls))
+            resolvers.append(self.instantiate(cls))
 
         return [*resolvers]
 
@@ -552,7 +552,7 @@ class ScopedInjection(Injection):
         return func(**func_args)
 
 
-InjectionEvent = Literal["instanciated"]
+InjectionEvent = Literal["instantiated"]
 
 
 class InjectionCallback(Protocol):

@@ -6,11 +6,11 @@ from typing_extensions import override
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping.exceptions import (
-    ConvertionError,
+    ConversionError,
     DestinationNotNullableError,
     IgnoreImpossibleError,
     ImmutableCollectionError,
-    InstanciationError,
+    InstantiationError,
     SourceNotFoundError,
     TypeMismatchError,
     TypeNotIterableError,
@@ -42,7 +42,7 @@ class Mapper:
     def _init_profiles(self, cache: Cache, inject: Injection) -> None:
         completed: dict[int, MappingSequence[Any, Any]] = {}
         for cls in cache.get(Profile, hint=type[Profile], raises=False):
-            profile = inject.instanciate(cls)
+            profile = inject.instantiate(cls)
             for sequence in profile.sequences:
                 sequence.complete(completed)
                 completed[hash(sequence)] = sequence
@@ -209,7 +209,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             try:
                 dest = dest_t.new()
             except TypeError as e:
-                raise InstanciationError(dest_path, dest_t) from e
+                raise InstantiationError(dest_path, dest_t) from e
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
             MappingSequence.get_hash(src_t, dest_t), None
         )
@@ -368,7 +368,7 @@ class IntegerTypeMapper(TypeMapper[int]):
         try:
             return int(src)  # type: ignore
         except (ValueError, TypeError) as e:
-            raise ConvertionError(src_path, dest_path, src, Type(int)) from e
+            raise ConversionError(src_path, dest_path, src, Type(int)) from e
 
 
 class FloatTypeMapper(TypeMapper[float]):
@@ -390,7 +390,7 @@ class FloatTypeMapper(TypeMapper[float]):
         try:
             return float(src)  # type: ignore
         except ValueError as e:
-            raise ConvertionError(src_path, dest_path, src, Type(float)) from e
+            raise ConversionError(src_path, dest_path, src, Type(float)) from e
 
 
 class BoolTypeMapper(TypeMapper[bool]):

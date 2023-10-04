@@ -104,9 +104,9 @@ class DefaultArgResolver:
         r_type = options.injection.registered_types[options.t.cls].get_type(options.t)
 
         if r_type.strategy == "scoped":
-            if options.caller_strategy in ["singleton", "transcient"]:
+            if options.caller_strategy in ["singleton", "transient"]:
                 raise InjectionError(
-                    f"Cannot instanciate a scoped service in a {options.caller_strategy} service",
+                    f"Cannot instantiate a scoped service in a {options.caller_strategy} service",
                     func=options.caller,
                     param=options.name,
                 )
@@ -116,6 +116,6 @@ class DefaultArgResolver:
         if options.immediate:
             return (
                 options.name,
-                options.injection.__instanciate__(r_type, options.t, options.circular_guard),
+                options.injection.__instantiate__(r_type, options.t, options.circular_guard),
             )
         return (options.name, InjectionHook(options.t))
