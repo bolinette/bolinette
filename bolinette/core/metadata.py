@@ -26,9 +26,9 @@ class BolinetteMetadata:
 def get_meta_container(obj: Any) -> BolinetteMetadata:
     if "__blnt_meta__" not in vars(obj):
         _meta = BolinetteMetadata()
-        setattr(obj, "__blnt_meta__", _meta)
+        obj.__blnt_meta__ = _meta
     else:
-        _meta = getattr(obj, "__blnt_meta__")
+        _meta = obj.__blnt_meta__
         if not isinstance(_meta, BolinetteMetadata):
             raise InternalError(
                 f"Metadata container in {obj} has been overwritten. "

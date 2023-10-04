@@ -56,9 +56,9 @@ class _MockWrapper(Generic[MockedT]):
             return _MockWrapper._get_mocked_attr(_cls, instance, name)
 
         _t = type(f"{_cls.__name__}__Mocked", (_cls,), {})
-        setattr(_t, "__init__", lambda _: None)
-        setattr(_t, "__repr__", lambda _: f"<Mocked[{_cls.__name__}]>")
-        setattr(_t, "__getattribute__", _get_attr)
+        _t.__init__ = lambda _: None
+        _t.__repr__ = lambda _: f"<Mocked[{_cls.__name__}]>"
+        _t.__getattribute__ = _get_attr
         meta.set(_t, _MockedMeta(_cls))
         return _t  # type: ignore
 

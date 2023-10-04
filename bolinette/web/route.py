@@ -1,5 +1,6 @@
 import re
-from typing import Callable, Literal, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import Literal, ParamSpec, TypeVar
 
 from bolinette.core import meta
 

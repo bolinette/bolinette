@@ -1,4 +1,5 @@
-from typing import Any, Generic, Iterator, TypeVar
+from collections.abc import Iterator
+from typing import Any, Generic, TypeVar
 
 from bolinette.core.types import Type
 

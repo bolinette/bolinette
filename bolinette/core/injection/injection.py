@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Callable, Concatenate, Iterable, Literal, ParamSpec, Protocol, TypeVar, overload
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Concatenate, Literal, ParamSpec, Protocol, TypeVar, overload
 
 from typing_extensions import override
 

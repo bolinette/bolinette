@@ -46,11 +46,11 @@ class DatabaseManager:
         for system in systems:
             try:
                 importlib.import_module(system.python_package)
-            except ModuleNotFoundError:
+            except ModuleNotFoundError as e:
                 raise DatabaseError(
                     f"Python package '{system.python_package}' was not found",
                     system=system.scheme,
-                )
+                ) from e
             self._systems.append(system)
 
     @init_method

@@ -34,7 +34,7 @@ def entity(
             if (
                 not isinstance(attr, InstrumentedAttribute)
                 or not hasattr(attr, "prop")
-                or not isinstance(getattr(attr, "prop"), ColumnProperty)
+                or not isinstance(attr.prop, ColumnProperty)
             ):
                 raise EntityError(f"Attribute '{name}' is not an SQLAlchemy mapped column", entity=cls)
             _entity_key.append(attr)

@@ -1,4 +1,5 @@
-from typing import Any, Callable, Iterable, Protocol, TypeGuard, TypeVar, overload
+from collections.abc import Callable, Iterable
+from typing import Any, Protocol, TypeGuard, TypeVar, overload
 
 from typing_extensions import override
 
@@ -207,8 +208,8 @@ class DefaultTypeMapper(TypeMapper[object]):
         if dest is None:
             try:
                 dest = dest_t.new()
-            except TypeError:
-                raise InstanciationError(dest_path, dest_t)
+            except TypeError as e:
+                raise InstanciationError(dest_path, dest_t) from e
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
             MappingSequence.get_hash(src_t, dest_t), None
         )
@@ -366,8 +367,8 @@ class IntegerTypeMapper(TypeMapper[int]):
     ) -> int:
         try:
             return int(src)  # type: ignore
-        except (ValueError, TypeError):
-            raise ConvertionError(src_path, dest_path, src, Type(int))
+        except (ValueError, TypeError) as e:
+            raise ConvertionError(src_path, dest_path, src, Type(int)) from e
 
 
 class FloatTypeMapper(TypeMapper[float]):
@@ -388,8 +389,8 @@ class FloatTypeMapper(TypeMapper[float]):
     ) -> float:
         try:
             return float(src)  # type: ignore
-        except ValueError:
-            raise ConvertionError(src_path, dest_path, src, Type(float))
+        except ValueError as e:
+            raise ConvertionError(src_path, dest_path, src, Type(float)) from e
 
 
 class BoolTypeMapper(TypeMapper[bool]):

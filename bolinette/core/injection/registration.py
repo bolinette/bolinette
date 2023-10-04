@@ -1,4 +1,5 @@
-from typing import Any, Callable, Generic, Literal, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, Literal, TypeVar
 
 from typing_extensions import override
 

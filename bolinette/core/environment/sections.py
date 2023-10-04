@@ -1,4 +1,5 @@
-from typing import Callable, Protocol, TypeVar
+from collections.abc import Callable
+from typing import Protocol, TypeVar
 
 from bolinette.core import Cache, __user_cache__, meta
 

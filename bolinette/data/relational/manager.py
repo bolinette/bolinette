@@ -58,7 +58,7 @@ class EntityManager:
             if not isinstance(entity.__table__, Table):
                 raise EntityError("Could not determine entity key", entity=entity)
             for constraint in entity.__table__.constraints:
-                if not isinstance(constraint, (UniqueConstraint, PrimaryKeyConstraint)):
+                if not isinstance(constraint, UniqueConstraint | PrimaryKeyConstraint):
                     continue
                 if entity_key == list(constraint):
                     break

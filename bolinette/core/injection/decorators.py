@@ -1,4 +1,5 @@
-from typing import Any, Callable, Concatenate, ParamSpec, TypeVar, get_origin
+from collections.abc import Callable
+from typing import Any, Concatenate, ParamSpec, TypeVar, get_origin
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection.hook import InjectionHook

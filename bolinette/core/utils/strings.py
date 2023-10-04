@@ -1,7 +1,8 @@
 import random
 import re
 import string
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 
 class StringUtils:

@@ -1,4 +1,5 @@
-from typing import Any, Callable, Generic, Self, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, Self, TypeVar
 
 from bolinette.core import Cache, __user_cache__
 from bolinette.core.expressions import AttributeNode, ExpressionTree

@@ -1,5 +1,5 @@
-from collections.abc import Callable
-from typing import Any, Awaitable, Literal, ParamSpec
+from collections.abc import Awaitable, Callable
+from typing import Any, Literal, ParamSpec
 
 from bolinette.core import Cache, __user_cache__, meta
 

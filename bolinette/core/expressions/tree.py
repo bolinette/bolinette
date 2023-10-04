@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Any
 
 from typing_extensions import override
@@ -6,7 +5,7 @@ from typing_extensions import override
 from bolinette.core.exceptions import ExpressionError
 
 
-class ExpressionNode(ABC):
+class ExpressionNode:
     @override
     def __getattribute__(self, __name: str) -> "AttributeNode":
         return AttributeNode(self, __name)

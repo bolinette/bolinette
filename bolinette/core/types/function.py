@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, Generic, ParamSpec, TypeVar, get_type_hints
+from collections.abc import Callable
+from typing import Any, Generic, ParamSpec, TypeVar, get_type_hints
 
 from typing_extensions import override
 
@@ -38,7 +39,7 @@ class Function(Generic[FuncP, FuncT]):
 
     @override
     def __repr__(self) -> str:
-        return f"<Function {str(self)}>"
+        return f"<Function {self!s}>"
 
     @override
     def __hash__(self) -> int:

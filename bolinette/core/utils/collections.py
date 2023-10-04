@@ -1,5 +1,5 @@
-from collections.abc import Iterator
-from typing import Generic, Iterable, TypeVar
+from collections.abc import Iterable, Iterator
+from typing import Generic, TypeVar
 
 from typing_extensions import override
 

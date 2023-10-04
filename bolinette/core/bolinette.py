@@ -1,8 +1,9 @@
 import importlib
 import pkgutil
 import sys
+from collections.abc import Callable
 from types import ModuleType
-from typing import Callable, NoReturn
+from typing import NoReturn
 
 import bolinette
 from bolinette.core import Extension, Logger, __user_cache__, meta

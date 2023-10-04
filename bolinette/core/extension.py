@@ -34,8 +34,8 @@ class Extension:
             sorter.add(ext, *ext.dependencies)
         try:
             return list(sorter.static_order())
-        except CycleError:
-            raise InitError("A circular dependency was detected in the loaded extensions")
+        except CycleError as e:
+            raise InitError("A circular dependency was detected in the loaded extensions") from e
 
 
 class _CoreExtension(Extension):

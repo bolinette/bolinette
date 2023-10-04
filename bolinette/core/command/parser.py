@@ -1,6 +1,7 @@
 import sys
 from argparse import ArgumentParser
-from typing import Any, Awaitable, Callable, Protocol
+from collections.abc import Awaitable, Callable
+from typing import Any, Protocol
 
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.command.command import Argument, ArgumentMeta, CommandMeta
@@ -87,14 +88,14 @@ class Parser:
                         self._factories[arg.arg_type](arg, sub_parser)
                 sub_parser.set_defaults(__blnt_cmd__=_cmd.path)
             else:
-                sub_parser = sub_parsers.add_parser(name, help=self._build_help(elem, path + [name]))
+                sub_parser = sub_parsers.add_parser(name, help=self._build_help(elem, [*path, name]))
                 sub_parser.set_defaults(__blnt_path__=name)
                 self._sub_commands[name] = sub_parser
-                self._build_parsers(elem, sub_parser.add_subparsers(), path + [name])
+                self._build_parsers(elem, sub_parser.add_subparsers(), [*path, name])
 
     @staticmethod
     def _build_help(command_tree: dict[str, Any], path: list[str]):
-        commands = [f'"{" ".join(path + [x])}"' for x in command_tree]
+        commands = [f'"{" ".join([*path, x])}"' for x in command_tree]
         return "Sub-commands: " + ", ".join(commands)
 
     @staticmethod

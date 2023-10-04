@@ -1,5 +1,5 @@
-from collections.abc import AsyncIterable
-from typing import Any, Callable, Generic, Literal, TypeVar, overload
+from collections.abc import AsyncIterable, Callable
+from typing import Any, Generic, Literal, TypeVar, overload
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,7 +59,7 @@ class Repository(Generic[EntityT]):
         if (val_l := len(values)) != (prim_l := len(list(self._primary_key))):
             raise DataError(f"Primary key of {self._entity} has {prim_l} columns, but {val_l} values were provided")
         query = select(self._entity)
-        for col, value in zip(self._primary_key, values):
+        for col, value in zip(self._primary_key, values, strict=True):
             query = query.where(col == value)
         return await self.first(query, raises=raises)  # type: ignore
 
@@ -75,7 +75,7 @@ class Repository(Generic[EntityT]):
         if (val_l := len(values)) != (key_l := len(list(self._entity_key))):
             raise DataError(f"Entity key of {self._entity} has {key_l} columns, but {val_l} values were provided")
         query = select(self._entity)
-        for col, value in zip(self._entity_key, values):
+        for col, value in zip(self._entity_key, values, strict=True):
             query = query.where(col == value)
         return await self.first(query, raises=raises)  # type: ignore
 

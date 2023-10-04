@@ -49,7 +49,7 @@ class Type(Generic[T]):
                 return f"~{v.__name__}"
             if v is Ellipsis:
                 return "..."
-            return f"'{str(v.__forward_arg__)}'"
+            return f"'{v.__forward_arg__!s}'"
 
         if not self.vars:
             repr_str = _format_v(self.cls)
@@ -58,7 +58,7 @@ class Type(Generic[T]):
 
         if self.is_union:
             for t in self.union:
-                repr_str += f" | {str(t)}"
+                repr_str += f" | {t!s}"
 
         if self.nullable:
             repr_str += " | None"
@@ -67,7 +67,7 @@ class Type(Generic[T]):
 
     @override
     def __repr__(self) -> str:
-        return f"<Type {str(self)}>"
+        return f"<Type {self!s}>"
 
     @override
     def __hash__(self) -> int:

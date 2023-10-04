@@ -1,4 +1,5 @@
-from typing import Any, Callable, Protocol, TypeVar
+from collections.abc import Callable
+from typing import Any, Protocol, TypeVar
 
 from bolinette.core import Cache, __user_cache__, injection, meta
 from bolinette.core.exceptions import InjectionError

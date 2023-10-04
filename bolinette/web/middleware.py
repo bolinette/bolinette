@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable, ParamSpec, Protocol, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, ParamSpec, Protocol, TypeVar
 
 from aiohttp import web
 

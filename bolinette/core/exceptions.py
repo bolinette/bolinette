@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from typing import Any
 
 from typing_extensions import override
@@ -33,30 +32,7 @@ class ParameterError:
         for param, f_string in self._error_params.items():
             if param in values and values[param]:
                 f_strings.append(f_string.replace("{}", str(values[param])))
-        return ", ".join(f_strings + [message])
-
-
-class ErrorCollection(Exception):
-    def __init__(self, errors: list[BolinetteError] | None = None) -> None:
-        self._errors: list[BolinetteError] = errors or []
-        Exception.__init__(self, "\n".join(e.message for e in self._errors))
-
-    def append(self, error: BolinetteError) -> None:
-        self._errors.append(error)
-
-    def __bool__(self) -> bool:
-        return any(self._errors)
-
-    def __iter__(self) -> Iterator[BolinetteError]:
-        return iter(self._errors)
-
-    @override
-    def __str__(self) -> str:
-        return str(self._errors)
-
-    @override
-    def __repr__(self) -> str:
-        return f'<BolinetteErrors [{",".join([repr(err) for err in self._errors])}]>'
+        return ", ".join([*f_strings, message])
 
 
 class TypingError(BolinetteError, ParameterError):

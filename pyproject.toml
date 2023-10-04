@@ -1,8 +1,9 @@
 [tool.ruff]
 line-length = 120
 
-select = ["E", "F"]
-ignore = []
+select = ["E", "W", "F", "B", "Q", "I", "N", "RUF", "UP"]
+ignore = ["B010"]
+fixable = ["ALL"]
 
 exclude = [
     ".bzr",
