@@ -1,5 +1,5 @@
 # pyright: reportMissingParameterType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 import pytest
 
@@ -786,7 +786,7 @@ def test_inject_nullable() -> None:
 
 def test_inject_nullable_bis() -> None:
     class _TestClass:
-        def __init__(self, sub: Optional[_SubTestClass]) -> None:
+        def __init__(self, sub: _SubTestClass | None) -> None:
             self.sub = sub
 
     inject = Injection(Cache())
@@ -859,7 +859,7 @@ def test_optional_type_literal_left() -> None:
 
 def test_optional_type_literal_bis() -> None:
     class _TestClass:
-        def __init__(self, sub: "Optional[_SubTestClass]") -> None:
+        def __init__(self, sub: "_SubTestClass | None") -> None:
             self.sub = sub
 
     inject = Injection(Cache())
@@ -1114,16 +1114,16 @@ def test_register_match_all() -> None:
     inject.add(_Logger[Any], "singleton", match_all=True)
     inject.add(_LoggerA, "singleton", super_cls=_Logger[_ServiceA])
 
-    _loggerA = inject.require(_Logger[_ServiceA])
-    _loggerB = inject.require(_Logger[_ServiceB])
+    _logger_a = inject.require(_Logger[_ServiceA])
+    _logger_b = inject.require(_Logger[_ServiceB])
 
-    assert isinstance(_loggerA, _Logger)
-    assert isinstance(_loggerA, _LoggerA)
-    assert meta.get(_loggerA, GenericMeta) == (_ServiceA,)
+    assert isinstance(_logger_a, _Logger)
+    assert isinstance(_logger_a, _LoggerA)
+    assert meta.get(_logger_a, GenericMeta) == (_ServiceA,)
 
-    assert isinstance(_loggerB, _Logger)
-    assert not isinstance(_loggerB, _LoggerA)
-    assert meta.get(_loggerB, GenericMeta) == (_ServiceB,)
+    assert isinstance(_logger_b, _Logger)
+    assert not isinstance(_logger_b, _LoggerA)
+    assert meta.get(_logger_b, GenericMeta) == (_ServiceB,)
 
 
 def test_require_from_typevar() -> None:

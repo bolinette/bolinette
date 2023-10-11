@@ -11,11 +11,13 @@ from bolinette.core.mapping.exceptions import (
     DestinationNotNullableError,
     IgnoreImpossibleError,
     ImmutableCollectionError,
-    InstanciationError,
+    InstantiationError,
+    MappingError,
     SourceNotFoundError,
     TypeMismatchError,
     TypeNotIterableError,
     UnionNotAllowedError,
+    ValidationError,
 )
 from bolinette.core.mapping.profiles import Profile
 from bolinette.core.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
@@ -72,6 +74,7 @@ class Mapper:
         *,
         src_expr: ExpressionNode | None = None,
         dest_expr: ExpressionNode | None = None,
+        validate: bool = False,
     ) -> NoInitDestT:
         pass
 
@@ -85,6 +88,7 @@ class Mapper:
         *,
         src_expr: ExpressionNode | None = None,
         dest_expr: ExpressionNode | None = None,
+        validate: bool = False,
     ) -> DestT:
         pass
 
@@ -97,17 +101,29 @@ class Mapper:
         *,
         src_expr: ExpressionNode | None = None,
         dest_expr: ExpressionNode | None = None,
+        validate: bool = False,
     ) -> DestT:
         src_t = Type(src_cls)
         dest_t = Type(dest_cls)
-        return MappingRunner(self._sequences, self._type_mappers, self._default_mapper).map(
+
+        exc_grp: list[MappingError] | None
+        if validate:
+            exc_grp = []
+        else:
+            exc_grp = None
+
+        mapped = MappingRunner(self._sequences, self._type_mappers, self._default_mapper).map(
             src_expr or ExpressionTree.new(src_t),
             src_t,
             dest_expr or ExpressionTree.new(dest_t),
             dest_t,
             src,
             dest,
+            exc_grp,
         )
+        if exc_grp is not None and len(exc_grp) > 0:
+            raise ValidationError(exc_grp)
+        return mapped
 
 
 class MappingRunner:
@@ -131,14 +147,19 @@ class MappingRunner:
         dest_t: Type[DestT],
         src: SrcT,
         dest: DestT | None,
+        exc_grp: list[MappingError] | None,
     ) -> DestT:
         if src is None:
             if not dest_t.nullable:
-                raise DestinationNotNullableError(src_expr, dest_expr, dest_t)
+                exc = DestinationNotNullableError(src_expr, dest_expr, dest_t)
+                if exc_grp is None:
+                    raise exc
+                exc_grp.append(exc)
+                return None  # type: ignore
             return None  # type: ignore
         mapper_cls: type[TypeMapper[Any]] = self.mappers[dest_t] if dest_t in self.mappers else self.default_mapper
         mapper = mapper_cls(self)
-        return mapper.map(src_expr, src_t, dest_expr, dest_t, src, dest)
+        return mapper.map(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 
 
 class TypeMapper(Protocol[TargetT]):
@@ -153,6 +174,7 @@ class TypeMapper(Protocol[TargetT]):
         dest_t: Type[TargetT],
         src: Any,
         dest: TargetT | None,
+        exc_grp: list[MappingError] | None,
     ) -> TargetT:
         ...
 
@@ -193,12 +215,13 @@ class DefaultTypeMapper(TypeMapper[object]):
         dest_t: Type[Any],
         src: SrcT,
         dest: Any | None,
+        exc_grp: list[MappingError] | None,
     ) -> Any:
         if dest_t.cls in (list, tuple, set):
-            return self._map_iterable(src_expr, src_t, dest_expr, dest_t, src, dest)
+            return self._map_iterable(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
         if dest_t.cls is dict:
-            return self._map_dict(src_expr, dest_expr, dest_t, src, dest)
-        return self._map_object(src_expr, src_t, dest_expr, dest_t, src, dest)
+            return self._map_dict(src_expr, dest_expr, dest_t, src, dest, exc_grp)
+        return self._map_object(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 
     def _map_object(
         self,
@@ -208,14 +231,19 @@ class DefaultTypeMapper(TypeMapper[object]):
         dest_t: Type[Any],
         src: SrcT,
         dest: Any | None,
+        exc_grp: list[MappingError] | None,
     ) -> Any:
         if dest_t.is_any:
-            return self.runner.map(src_expr, src_t, dest_expr, src_t, src, None)
+            return self.runner.map(src_expr, src_t, dest_expr, src_t, src, None, exc_grp)
         if dest is None:
             try:
                 dest = dest_t.new()
-            except TypeError:
-                raise InstanciationError(dest_expr, dest_t)
+            except TypeError as e:
+                exc = InstantiationError(dest_expr, dest_t)
+                if exc_grp is None:
+                    raise exc from e
+                exc_grp.append(exc)
+                return None
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
             MappingSequence.get_hash(src_t, dest_t), None
         )
@@ -232,7 +260,11 @@ class DefaultTypeMapper(TypeMapper[object]):
                 for_attr = sequence.for_attrs[dest_name]
                 if isinstance(for_attr, IgnoreAttribute):
                     if not anno_t.nullable:
-                        raise IgnoreImpossibleError(field_dest_expr, anno_t)
+                        exc = IgnoreImpossibleError(field_dest_expr, anno_t)
+                        if exc_grp is None:
+                            raise exc
+                        exc_grp.append(exc)
+                        continue
                     setattr(dest, dest_name, None)
                     continue
                 if isinstance(for_attr, MapFromAttribute):
@@ -240,16 +272,28 @@ class DefaultTypeMapper(TypeMapper[object]):
                     selected_t = for_attr.use_type
             if anno_t.is_union:
                 if selected_t is None:
-                    raise UnionNotAllowedError(field_dest_expr, anno_t)
+                    exc = UnionNotAllowedError(field_dest_expr, anno_t)
+                    if exc_grp is None:
+                        raise exc
+                    exc_grp.append(exc)
+                    continue
                 if selected_t != anno_t and selected_t not in anno_t.union:
-                    raise TypeMismatchError(field_src_expr, field_dest_expr, selected_t, anno_t)
+                    exc = TypeMismatchError(field_src_expr, field_dest_expr, selected_t, anno_t)
+                    if exc_grp is None:
+                        raise exc
+                    exc_grp.append(exc)
+                    continue
                 anno_t = selected_t
             try:
                 value = ExpressionTree.get_value(src_value_expr, src)
             except Exception:
                 if not self._has_default_value(dest, dest_name):
                     if not anno_t.nullable:
-                        raise SourceNotFoundError(field_src_expr, field_dest_expr, anno_t)
+                        exc = SourceNotFoundError(field_src_expr, field_dest_expr, anno_t)
+                        if exc_grp is None:
+                            raise exc
+                        exc_grp.append(exc)
+                        continue
                     else:
                         setattr(dest, dest_name, None)
                         continue
@@ -259,7 +303,15 @@ class DefaultTypeMapper(TypeMapper[object]):
             setattr(
                 dest,
                 dest_name,
-                self.runner.map(field_src_expr, Type(type(value)), field_dest_expr, anno_t, value, None),
+                self.runner.map(
+                    field_src_expr,
+                    Type(type(value)),
+                    field_dest_expr,
+                    anno_t,
+                    value,
+                    None,
+                    exc_grp,
+                ),
             )
         if sequence is not None:
             for func in sequence.tail:
@@ -274,10 +326,15 @@ class DefaultTypeMapper(TypeMapper[object]):
         dest_t: Type[list[DestT]] | Type[set[DestT]] | Type[tuple[DestT]],
         src: SrcT,
         dest: list[DestT] | set[DestT] | tuple[DestT] | None,
+        exc_grp: list[MappingError] | None,
     ) -> list[DestT] | set[DestT] | tuple[DestT]:
         elems: list[DestT] = []
         if not self._is_iterable(src):
-            raise TypeNotIterableError(src_expr, dest_expr, src_t, dest_t)
+            exc = TypeNotIterableError(src_expr, dest_expr, src_t, dest_t)
+            if exc_grp is None:
+                raise exc
+            exc_grp.append(exc)
+            return None  # type: ignore
         for index, elem in enumerate(src):
             elems.append(
                 self.runner.map(
@@ -287,6 +344,7 @@ class DefaultTypeMapper(TypeMapper[object]):
                     Type(dest_t.vars[0]),
                     elem,
                     None,
+                    exc_grp,
                 )
             )
         if dest is None:
@@ -298,7 +356,11 @@ class DefaultTypeMapper(TypeMapper[object]):
             dest.clear()
             dest.update(elems)
         else:
-            raise ImmutableCollectionError(dest_expr)
+            exc = ImmutableCollectionError(dest_expr)
+            if exc_grp is None:
+                raise exc
+            exc_grp.append(exc)
+            return None  # type: ignore
         return dest
 
     def _map_dict(
@@ -308,6 +370,7 @@ class DefaultTypeMapper(TypeMapper[object]):
         dest_t: Type[dict[str, DestT]],
         src: object,
         dest: dict[str, DestT] | None,
+        exc_grp: list[MappingError] | None,
     ) -> dict[str, DestT]:
         if dest is None:
             dest = dest_t.new()
@@ -319,6 +382,7 @@ class DefaultTypeMapper(TypeMapper[object]):
                 Type(dest_t.vars[1]),
                 src_value,
                 None,
+                exc_grp,
             )
         return dest
 
@@ -374,11 +438,16 @@ class IntegerTypeMapper(TypeMapper[int]):
         dest_t: Type[int],
         src: SrcT,
         dest: int | None,
+        exc_grp: list[MappingError] | None,
     ) -> int:
         try:
             return int(src)  # type: ignore
         except (ValueError, TypeError) as err:
-            raise ConvertionError(src_expr, dest_expr, src, Type(int)) from err
+            exc = ConvertionError(src_expr, dest_expr, src, Type(int))
+            if exc_grp is None:
+                raise exc from err
+            exc_grp.append(exc)
+            return None  # type: ignore
 
 
 class FloatTypeMapper(TypeMapper[float]):
@@ -396,11 +465,16 @@ class FloatTypeMapper(TypeMapper[float]):
         dest_t: Type[float],
         src: SrcT,
         dest: float | None,
+        exc_grp: list[MappingError] | None,
     ) -> float:
         try:
             return float(src)  # type: ignore
         except ValueError as err:
-            raise ConvertionError(src_expr, dest_expr, src, Type(float)) from err
+            exc = ConvertionError(src_expr, dest_expr, src, Type(float))
+            if exc_grp is None:
+                raise exc from err
+            exc_grp.append(exc)
+            return None  # type: ignore
 
 
 class BoolTypeMapper(TypeMapper[bool]):
@@ -418,6 +492,7 @@ class BoolTypeMapper(TypeMapper[bool]):
         dest_t: Type[bool],
         src: SrcT,
         dest: bool | None,
+        exc_grp: list[MappingError] | None,
     ) -> bool:
         return bool(src)
 
@@ -437,5 +512,6 @@ class StringTypeMapper(TypeMapper[str]):
         dest_t: Type[str],
         src: SrcT,
         dest: str | None,
+        exc_grp: list[MappingError] | None,
     ) -> str:
         return str(src)

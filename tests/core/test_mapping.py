@@ -51,6 +51,7 @@ def test_init_type_mappers_from_cache() -> None:
             dest_t: Type[_Destination],
             src: Any,
             dest: _Destination | None,
+            exc_grp: list[MappingError] | None,
         ) -> _Destination:
             assert isinstance(src, _Source)
             if dest is None:

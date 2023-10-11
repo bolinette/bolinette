@@ -1,9 +1,11 @@
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from aiohttp import web
 from aiohttp.test_utils import TestClient
 
 from bolinette.core import Cache
+from bolinette.core.environment.sections import CoreSection
+from bolinette.core.logger import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.mapping.mapper import (
     BoolTypeMapper,
@@ -36,6 +38,8 @@ async def test_call_basic_route(aiohttp_client: ClientFixture) -> None:
     controller("test", cache=cache)(_TestCtrl)
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -59,6 +63,8 @@ async def test_call_route_with_args(aiohttp_client: ClientFixture) -> None:
     controller("test", cache=cache)(_TestCtrl)
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -110,6 +116,8 @@ async def test_call_route_with_middleware(aiohttp_client: ClientFixture) -> None
             return web.Response(status=200, body="ok")
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -159,6 +167,8 @@ async def test_remove_middleware_from_route(aiohttp_client: ClientFixture) -> No
             return web.Response(status=200, body="ok")
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -200,6 +210,8 @@ async def test_intercept_request(aiohttp_client: ClientFixture) -> None:
             return web.Response(status=200, body="ok")
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -234,6 +246,8 @@ async def test_return_mapped_json(aiohttp_client: ClientFixture) -> None:
             return self.mapper.map(Entity, EntityResponse, entity)
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -275,6 +289,8 @@ async def test_expect_payload_return_status(aiohttp_client: ClientFixture) -> No
             return self.mapper.map(Entity, EntityResponse, entity), 201
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -305,6 +321,8 @@ async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
             return "<none>" if not payload else payload.value
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -319,7 +337,7 @@ async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
     assert await resp.text() == "<none>"
 
 
-async def test_fail_non_nullable_payload(aiohttp_client: ClientFixture) -> None:
+async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
     class Payload:
@@ -335,6 +353,8 @@ async def test_fail_non_nullable_payload(aiohttp_client: ClientFixture) -> None:
             return payload.value
 
     mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -347,12 +367,63 @@ async def test_fail_non_nullable_payload(aiohttp_client: ClientFixture) -> None:
     assert resp.status == 400
     assert resp.content_type == "application/json"
     assert await resp.json() == {
-        "code": 400,
-        "status": "Bad Request",
-        "error": {
-            "code": "web.payload.expected",
-            "message": "Route test_fail_non_nullable_payload.<locals>._.create_entity, "
-            "Payload expected but none provided",
-            "params": {},
-        },
+        "status": 400,
+        "reason": "Bad Request",
+        "errors": [
+            {
+                "code": "payload.expected",
+                "message": (
+                    "Controller test_fail_required_payload.<locals>._, "
+                    "Route test_fail_required_payload.<locals>._.create_entity, "
+                    "Payload expected but none provided"
+                ),
+                "params": {},
+            }
+        ],
+    }
+
+
+async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Payload:
+        value: str
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @post("")
+        async def create_entity(self, payload: Payload = payload()) -> str:
+            return payload.value
+
+    mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.post("/entity", json={"value": None})
+
+    assert resp.status == 400
+    assert resp.content_type == "application/json"
+    assert await resp.json() == {
+        "status": 400,
+        "reason": "Bad Request",
+        "errors": [
+            {
+                "code": "payload.parameter_not_nullable",
+                "message": (
+                    "Controller test_fail_non_nullable_payload_parameter.<locals>._, "
+                    "Route test_fail_non_nullable_payload_parameter.<locals>._.create_entity, "
+                    "Parameter '<locals>.Payload.value' must not be null"
+                ),
+                "params": {"path": "<locals>.Payload.value"},
+            }
+        ],
     }

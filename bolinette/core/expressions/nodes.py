@@ -1,4 +1,5 @@
-from typing import Any, Generic, Iterable, TypeVar
+from collections.abc import Iterable
+from typing import Any, Generic, TypeVar
 
 from typing_extensions import override
 

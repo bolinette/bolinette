@@ -1,28 +1,43 @@
 import json
-from collections.abc import Callable
+import traceback
 from http import HTTPStatus
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from aiohttp import web
 
-from bolinette.core import Cache, meta
-from bolinette.core.exceptions import BolinetteError
+from bolinette.core import Cache, Logger, meta
+from bolinette.core.environment import CoreSection
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.injection.resolver import ArgResolverOptions
 from bolinette.core.mapping import JsonObjectEncoder, Mapper
+from bolinette.core.mapping.exceptions import (
+    DestinationNotNullableError,
+    MappingError,
+    SourceNotFoundError,
+    ValidationError,
+)
 from bolinette.core.types import Function, Type
 from bolinette.core.utils import AttributeUtils
 from bolinette.web import Controller
 from bolinette.web.controller import ControllerMeta
-from bolinette.web.exceptions import BadRequestError, WebError
+from bolinette.web.exceptions import (
+    BadRequestError,
+    GroupedWebError,
+    MissingParameterError,
+    ParameterNotNullableError,
+    WebError,
+)
 from bolinette.web.middleware import Middleware, MiddlewareBag
 from bolinette.web.payload import PayloadMeta
 from bolinette.web.route import RouteBucket, RouteProps
 
 
 class WebResources:
-    def __init__(self) -> None:
+    def __init__(self, inject: Injection, logger: "Logger[WebResources]", core_section: CoreSection) -> None:
         self.web_app = web.Application()
+        self.inject = inject
+        self.logger = logger
+        self.core_section = core_section
 
     @init_method
     def _init_ctrls(self, cache: Cache, inject: Injection) -> None:
@@ -55,24 +70,24 @@ class WebResources:
                             handler = web.delete
                         case _:
                             raise NotImplementedError()
-                    routes.append(handler(path, RouteHandler(inject, Type(ctrl_cls), props, attr).handle))
+                    routes.append(handler(path, RouteHandler(self, Type(ctrl_cls), props, Function(attr)).handle))
         self.web_app.add_routes(routes)
 
 
 class RouteHandler:
-    __slots__ = ("inject", "ctrl_t", "props", "func")
+    __slots__ = ("resources", "ctrl_t", "props", "route")
 
     def __init__(
         self,
-        inject: Injection,
+        resources: WebResources,
         ctrl_t: Type[Controller],
         props: RouteProps,
-        func: Callable[..., Any],
+        func: Function[..., Any],
     ) -> None:
-        self.inject = inject
+        self.resources = resources
         self.ctrl_t = ctrl_t
         self.props = props
-        self.func = func
+        self.route = func
 
     @staticmethod
     def prepare_session(inject: Injection, request: web.Request) -> None:
@@ -80,15 +95,39 @@ class RouteHandler:
 
     async def handle(self, request: web.Request) -> web.Response:
         try:
-            scoped_inject = self.inject.get_scoped_session()
+            scoped_inject = self.resources.inject.get_scoped_session()
             self.prepare_session(scoped_inject, request)
             mdlws = self.collect_middlewares(scoped_inject)
             return await self.middleware_chain(request, scoped_inject, mdlws, 0)
-        except WebError as e:
-            content: dict[str, Any] = {"code": e.error_code, "status": e.status}
-            return web.Response(body=json.dumps(content), content_type="application/json", status=e.status)
-        except BolinetteError:
-            raise  # TODO log error
+        except Exception as err:
+            self.resources.logger.error(str(type(err)), str(err))
+            if isinstance(err, WebError):
+                status = err.status.value
+                reason = err.status.phrase
+                if isinstance(err, GroupedWebError):
+                    errors = err.errors
+                else:
+                    errors = [err]
+            else:
+                status = HTTPStatus.INTERNAL_SERVER_ERROR.value
+                reason = HTTPStatus.INTERNAL_SERVER_ERROR.phrase
+                errors = [err]
+            content: ErrorResponseContent = {
+                "status": status,
+                "reason": reason,
+                "errors": [self._format_error(e) for e in errors],
+            }
+            if self.resources.core_section.debug:
+                content["debug"] = {
+                    "type": str(type(err)),
+                    "message": str(err),
+                    "stacktrace": traceback.format_exc().split("\n"),
+                }
+            return web.Response(
+                body=json.dumps(content),
+                content_type="application/json",
+                status=status,
+            )
 
     async def middleware_chain(
         self,
@@ -116,10 +155,20 @@ class RouteHandler:
         except json.JSONDecodeError:
             body = None
         ctrl = scoped.instantiate(self.ctrl_t.cls)
+        result = await scoped.call(
+            self.route.func,
+            args=[ctrl],
+            additional_resolvers=[
+                RouteParamArgResolver(self, request),
+                RoutePayloadArgResolver(self, scoped.require(Mapper), body),
+            ],
+        )
+        if isinstance(result, web.Response):
+            return result
         status: int
         try:
             result = await scoped.call(
-                self.func,
+                self.route.func,
                 args=[ctrl],
                 additional_resolvers=[
                     RouteParamArgResolver(self, request),
@@ -173,8 +222,8 @@ class RouteHandler:
         bags: list[MiddlewareBag] = []
         if meta.has(self.ctrl_t.cls, MiddlewareBag):
             bags.append(meta.get(self.ctrl_t.cls, MiddlewareBag))
-        if meta.has(self.func, MiddlewareBag):
-            bags.append(meta.get(self.func, MiddlewareBag))
+        if meta.has(self.route.func, MiddlewareBag):
+            bags.append(meta.get(self.route.func, MiddlewareBag))
         mdlws: dict[Type[Middleware[...]], Middleware[...]] = {}
         for bag in bags:
             for t, mdlw_meta in reversed(bag.added.items()):
@@ -185,6 +234,19 @@ class RouteHandler:
                 if t in mdlws:
                     del mdlws[t]
         return list(mdlws.values())
+
+    @staticmethod
+    def _format_error(err: Exception) -> "ErrorDescription":
+        if isinstance(err, WebError):
+            message = err.message
+            code = err.error_code
+            params = err.error_args
+        else:
+            message = "Un unexpected error has occured while processin the request"
+            code = "internal.error"
+            params = {}
+        f_err: ErrorDescription = {"message": message, "code": code, "params": params}
+        return f_err
 
 
 class RouteParamArgResolver:
@@ -230,8 +292,45 @@ class RoutePayloadArgResolver:
                 return options.name, None
             raise BadRequestError(
                 "Payload expected but none provided",
-                "web.payload.expected",
-                route=Function(self.handler.func),
+                "payload.expected",
+                ctrl=self.handler.ctrl_t,
+                route=self.handler.route,
             )
-        payload = self.mapper.map(type(self.body), options.t.cls, self.body)
+        try:
+            payload = self.mapper.map(type(self.body), options.t.cls, self.body, validate=True)
+        except ValidationError as err:
+            raise GroupedWebError(
+                [self._transform_error(e) for e in err.errors],
+                HTTPStatus.BAD_REQUEST,
+                ctrl=self.handler.ctrl_t,
+                route=self.handler.route,
+            ) from err
         return options.name, payload
+
+    def _transform_error(self, err: MappingError) -> WebError:
+        match err:
+            case SourceNotFoundError():
+                return MissingParameterError(str(err.dest), ctrl=self.handler.ctrl_t, route=self.handler.route)
+            case DestinationNotNullableError():
+                return ParameterNotNullableError(str(err.dest), ctrl=self.handler.ctrl_t, route=self.handler.route)
+            case _:
+                raise NotImplementedError(type(err), err) from err
+
+
+class DebugErrorDetails(TypedDict):
+    type: str
+    message: str
+    stacktrace: list[str]
+
+
+class ErrorDescription(TypedDict):
+    message: str
+    code: str
+    params: dict[str, Any]
+
+
+class ErrorResponseContent(TypedDict):
+    status: int
+    reason: str
+    errors: list[ErrorDescription]
+    debug: NotRequired[DebugErrorDetails]

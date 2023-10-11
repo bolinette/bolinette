@@ -1,5 +1,5 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Any, Protocol
+from typing import Any, Final, Protocol
 
 from typing_extensions import override
 
@@ -59,7 +59,7 @@ class _CoreExtension(Extension):
         type_mapper(str, cache=cache)(StringTypeMapper)
 
 
-core_ext = _CoreExtension()
+core_ext: Final[Extension] = _CoreExtension()
 
 
 class InjectionLogger:

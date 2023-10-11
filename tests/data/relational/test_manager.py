@@ -51,7 +51,7 @@ def mock_entities(cache: Cache, name: str, base: type[DeclarativeBase]) -> type[
         (base,),
         {"__tablename__": name, "id": mapped_column(Integer, primary_key=True)},
     )
-    meta.set(entity_type, EntityMeta(name, entity_key=[getattr(entity_type, "id")]))
+    meta.set(entity_type, EntityMeta(name, entity_key=[entity_type.id]))
     cache.add(EntityMeta, entity_type)
     return entity_type
 
@@ -194,7 +194,7 @@ def test_fail_init_entities_multiple_bases() -> None:
     entity_type = type(
         "Entity", (base1, base2), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)}
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[getattr(entity_type, "id")]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
     cache.add(EntityMeta, entity_type)
 
     with pytest.raises(EntityError) as info:
@@ -241,7 +241,7 @@ def test_init_entity_composite_entity_key() -> None:
     )
     meta.set(
         entity_type,
-        EntityMeta("entity", entity_key=[getattr(entity_type, "firstname"), getattr(entity_type, "lastname")]),
+        EntityMeta("entity", entity_key=[entity_type.firstname, entity_type.lastname]),
     )
     cache.add(EntityMeta, entity_type)
 
@@ -264,7 +264,7 @@ def test_fail_init_entity_key_not_unique() -> None:
         (base,),
         {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True), "name": mapped_column(String)},
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[getattr(entity_type, "name")]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))
     cache.add(EntityMeta, entity_type)
 
     with pytest.raises(EntityError) as info:
@@ -283,7 +283,7 @@ def test_fail_init_entity_wrong_table_object() -> None:
     mock_db_manager(mock)
 
     entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
-    meta.set(entity_type, EntityMeta("entity", entity_key=[getattr(entity_type, "id")]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
     cache.add(EntityMeta, entity_type)
 
     entity_type.__table__ = object()  # type: ignore
@@ -308,7 +308,7 @@ def test_fail_init_entity_wrong_constraint_type() -> None:
         (base,),
         {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True), "name": mapped_column(String)},
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[getattr(entity_type, "name")]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))
     cache.add(EntityMeta, entity_type)
 
     assert isinstance(entity_type.__table__, Table)
@@ -351,7 +351,7 @@ def test_fail_init_repositories_unused_repository() -> None:
     base = create_entity_base(cache)
     mock_db_manager(mock)
     entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
-    meta.set(entity_type, EntityMeta("entity", entity_key=[getattr(entity_type, "id")]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
 
     @repository(entity_type, cache=cache)
     class _EntityRepository(Repository[entity_type]):
