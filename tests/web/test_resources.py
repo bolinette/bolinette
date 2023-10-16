@@ -383,6 +383,52 @@ async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
     }
 
 
+async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Payload:
+        value: str
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @post("")
+        async def create_entity(self, payload: Payload = payload()) -> str:
+            return payload.value
+
+    mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.post("/entity", json={})
+
+    assert resp.status == 400
+    assert resp.content_type == "application/json"
+    assert await resp.json() == {
+        "status": 400,
+        "reason": "Bad Request",
+        "errors": [
+            {
+                "code": "payload.parameter.missing",
+                "message": (
+                    "Controller test_fail_missing_payload_parameter.<locals>._, "
+                    "Route test_fail_missing_payload_parameter.<locals>._.create_entity, "
+                    "Parameter '<locals>.Payload.value' is missing in payload"
+                ),
+                "params": {"path": "<locals>.Payload.value"},
+            }
+        ],
+    }
+
+
 async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
@@ -417,11 +463,57 @@ async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture
         "reason": "Bad Request",
         "errors": [
             {
-                "code": "payload.parameter_not_nullable",
+                "code": "payload.parameter.not_nullable",
                 "message": (
                     "Controller test_fail_non_nullable_payload_parameter.<locals>._, "
                     "Route test_fail_non_nullable_payload_parameter.<locals>._.create_entity, "
                     "Parameter '<locals>.Payload.value' must not be null"
+                ),
+                "params": {"path": "<locals>.Payload.value"},
+            }
+        ],
+    }
+
+
+async def test_fail_wrong_type_payload_parameter(aiohttp_client: ClientFixture) -> None:
+    cache = Cache()
+
+    class Payload:
+        value: int
+
+    @controller("entity", cache=cache)
+    class _:
+        def __init__(self, mapper: Mapper) -> None:
+            self.mapper = mapper
+
+        @post("")
+        async def create_entity(self, payload: Payload = payload()) -> str:
+            return str(payload.value)
+
+    mock = Mock(cache=cache)
+    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.injection.add(Mapper, "singleton")
+    load_default_mappers(cache)
+    mock.injection.add(WebResources, "singleton")
+
+    res = mock.injection.require(WebResources)
+
+    client = await aiohttp_client(res.web_app)
+    resp = await client.post("/entity", json={"value": "not an int"})
+
+    assert resp.status == 400
+    assert resp.content_type == "application/json"
+    assert await resp.json() == {
+        "status": 400,
+        "reason": "Bad Request",
+        "errors": [
+            {
+                "code": "payload.parameter.wrong_type",
+                "message": (
+                    "Controller test_fail_wrong_type_payload_parameter.<locals>._, "
+                    "Route test_fail_wrong_type_payload_parameter.<locals>._.create_entity, "
+                    "Parameter '<locals>.Payload.value' could be converted to 'int'"
                 ),
                 "params": {"path": "<locals>.Payload.value"},
             }

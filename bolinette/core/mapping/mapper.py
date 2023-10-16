@@ -286,12 +286,12 @@ class DefaultTypeMapper(TypeMapper[object]):
                 anno_t = selected_t
             try:
                 value = ExpressionTree.get_value(src_value_expr, src)
-            except Exception:
+            except Exception as err:
                 if not self._has_default_value(dest, dest_name):
                     if not anno_t.nullable:
                         exc = SourceNotFoundError(field_src_expr, field_dest_expr, anno_t)
                         if exc_grp is None:
-                            raise exc
+                            raise exc from err
                         exc_grp.append(exc)
                         continue
                     else:

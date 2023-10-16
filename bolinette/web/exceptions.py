@@ -78,8 +78,8 @@ class MissingParameterError(BadRequestError):
     ) -> None:
         path = ".".join(path.split(".")[1:])
         super().__init__(
-            f"Parameter '{path}' missing in payload",
-            "payload.missing_parameter",
+            f"Parameter '{path}' is missing in payload",
+            "payload.parameter.missing",
             {"path": path},
             ctrl=ctrl,
             route=route,
@@ -97,7 +97,26 @@ class ParameterNotNullableError(BadRequestError):
         path = ".".join(path.split(".")[1:])
         super().__init__(
             f"Parameter '{path}' must not be null",
-            "payload.parameter_not_nullable",
+            "payload.parameter.not_nullable",
+            {"path": path},
+            ctrl=ctrl,
+            route=route,
+        )
+
+
+class WrongParameterTypeError(BadRequestError):
+    def __init__(
+        self,
+        path: str,
+        target: Type[Any],
+        *,
+        ctrl: Type[Controller] | None = None,
+        route: Function[..., Any] | None = None,
+    ) -> None:
+        path = ".".join(path.split(".")[1:])
+        super().__init__(
+            f"Parameter '{path}' could be converted to '{target}'",
+            "payload.parameter.wrong_type",
             {"path": path},
             ctrl=ctrl,
             route=route,

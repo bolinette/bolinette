@@ -11,6 +11,7 @@ from bolinette.core.injection import Injection, init_method
 from bolinette.core.injection.resolver import ArgResolverOptions
 from bolinette.core.mapping import JsonObjectEncoder, Mapper
 from bolinette.core.mapping.exceptions import (
+    ConvertionError,
     DestinationNotNullableError,
     MappingError,
     SourceNotFoundError,
@@ -26,6 +27,7 @@ from bolinette.web.exceptions import (
     MissingParameterError,
     ParameterNotNullableError,
     WebError,
+    WrongParameterTypeError,
 )
 from bolinette.web.middleware import Middleware, MiddlewareBag
 from bolinette.web.payload import PayloadMeta
@@ -165,58 +167,34 @@ class RouteHandler:
         )
         if isinstance(result, web.Response):
             return result
+        result = await scoped.call(
+            self.route.func,
+            args=[ctrl],
+            additional_resolvers=[
+                RouteParamArgResolver(self, request),
+                RoutePayloadArgResolver(self, scoped.require(Mapper), body),
+            ],
+        )
+        if isinstance(result, web.Response):
+            return result
         status: int
-        try:
-            result = await scoped.call(
-                self.route.func,
-                args=[ctrl],
-                additional_resolvers=[
-                    RouteParamArgResolver(self, request),
-                    RoutePayloadArgResolver(self, scoped.require(Mapper), body),
-                ],
-            )
-            if isinstance(result, web.Response):
-                return result
-            match result:
-                case [_, int()]:
-                    status = result[1]
-                    result = result[0]
-                case _:
-                    status = 200
-            match result:
-                case str():
-                    content = result
-                    content_type = "text/plain"
-                case int() | float() | bool():
-                    content = str(result)
-                    content_type = "text/plain"
-                case _:
-                    content = json.dumps(result, cls=JsonObjectEncoder)
-                    content_type = "application/json"
-            return web.Response(text=content, status=status, content_type=content_type)
-        except BaseException as e:
-            response: dict[str, Any]
-            if isinstance(e, WebError):
-                status = e.status
-                response = {
-                    "error": {
-                        "code": e.error_code,
-                        "params": e.error_args,
-                        "message": e.message,
-                    }
-                }
-            else:
-                status = HTTPStatus.INTERNAL_SERVER_ERROR
-                response = {
-                    "error": {
-                        "code": "global.error.internal",
-                        "params": {},
-                        "message": f"{Type.from_instance(e)}: {str(e)}",
-                    },
-                }
-            response["code"] = status
-            response["status"] = status.phrase
-            return web.Response(text=json.dumps(response), status=status, content_type="application/json")
+        match result:
+            case [_, int()]:
+                status = result[1]
+                result = result[0]
+            case _:
+                status = 200
+        match result:
+            case str():
+                content = result
+                content_type = "text/plain"
+            case int() | float() | bool():
+                content = str(result)
+                content_type = "text/plain"
+            case _:
+                content = json.dumps(result, cls=JsonObjectEncoder)
+                content_type = "application/json"
+        return web.Response(text=content, status=status, content_type=content_type)
 
     def collect_middlewares(self, scoped: Injection) -> list[Middleware[Any]]:
         bags: list[MiddlewareBag] = []
@@ -242,7 +220,7 @@ class RouteHandler:
             code = err.error_code
             params = err.error_args
         else:
-            message = "Un unexpected error has occured while processin the request"
+            message = "Un unexpected error has occured while processing the request"
             code = "internal.error"
             params = {}
         f_err: ErrorDescription = {"message": message, "code": code, "params": params}
@@ -313,6 +291,10 @@ class RoutePayloadArgResolver:
                 return MissingParameterError(str(err.dest), ctrl=self.handler.ctrl_t, route=self.handler.route)
             case DestinationNotNullableError():
                 return ParameterNotNullableError(str(err.dest), ctrl=self.handler.ctrl_t, route=self.handler.route)
+            case ConvertionError():
+                return WrongParameterTypeError(
+                    str(err.dest), err.target, ctrl=self.handler.ctrl_t, route=self.handler.route
+                )
             case _:
                 raise NotImplementedError(type(err), err) from err
 
@@ -332,5 +314,7 @@ class ErrorDescription(TypedDict):
 class ErrorResponseContent(TypedDict):
     status: int
     reason: str
+    errors: list[ErrorDescription]
+    debug: NotRequired[DebugErrorDetails]
     errors: list[ErrorDescription]
     debug: NotRequired[DebugErrorDetails]

@@ -2,11 +2,11 @@ import random
 import re
 import string
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Final
 
 
 class StringUtils:
-    __regex__ = {
+    __regex__: Final[dict[str, list[re.Pattern[str]]]] = {
         "snake": [
             re.compile(r"(.)([A-Z][a-z]+)"),
             re.compile(r"_+([A-Z])"),

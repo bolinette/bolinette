@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
 import pytest
 from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship

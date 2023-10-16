@@ -82,6 +82,7 @@ class ConvertionError(MappingError):
 
     def __init__(self, src: ExpressionNode, dest: ExpressionNode, value: Any, target: Type[Any]) -> None:
         super().__init__(f"Could not convert value '{value}' to {target}", src=src, dest=dest)
+        self.target = target
 
 
 class ValidationError(MappingError):
