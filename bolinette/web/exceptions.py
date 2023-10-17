@@ -4,6 +4,7 @@ from typing import Any
 from typing_extensions import override
 
 from bolinette.core.exceptions import BolinetteError, ParameterError
+from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.types import Function, Type
 from bolinette.web.controller import Controller
 
@@ -71,12 +72,12 @@ class BadRequestError(WebError):
 class MissingParameterError(BadRequestError):
     def __init__(
         self,
-        path: str,
+        expr: ExpressionNode,
         *,
         ctrl: Type[Controller] | None = None,
         route: Function[..., Any] | None = None,
     ) -> None:
-        path = ".".join(path.split(".")[1:])
+        path = ExpressionTree.format(expr, max_depth=1)
         super().__init__(
             f"Parameter '{path}' is missing in payload",
             "payload.parameter.missing",
@@ -89,12 +90,12 @@ class MissingParameterError(BadRequestError):
 class ParameterNotNullableError(BadRequestError):
     def __init__(
         self,
-        path: str,
+        expr: ExpressionNode,
         *,
         ctrl: Type[Controller] | None = None,
         route: Function[..., Any] | None = None,
     ) -> None:
-        path = ".".join(path.split(".")[1:])
+        path = ExpressionTree.format(expr, max_depth=1)
         super().__init__(
             f"Parameter '{path}' must not be null",
             "payload.parameter.not_nullable",
@@ -107,13 +108,13 @@ class ParameterNotNullableError(BadRequestError):
 class WrongParameterTypeError(BadRequestError):
     def __init__(
         self,
-        path: str,
+        expr: ExpressionNode,
         target: Type[Any],
         *,
         ctrl: Type[Controller] | None = None,
         route: Function[..., Any] | None = None,
     ) -> None:
-        path = ".".join(path.split(".")[1:])
+        path = ExpressionTree.format(expr, max_depth=1)
         super().__init__(
             f"Parameter '{path}' could be converted to '{target}'",
             "payload.parameter.wrong_type",

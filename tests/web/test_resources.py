@@ -421,9 +421,9 @@ async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> 
                 "message": (
                     "Controller test_fail_missing_payload_parameter.<locals>._, "
                     "Route test_fail_missing_payload_parameter.<locals>._.create_entity, "
-                    "Parameter '<locals>.Payload.value' is missing in payload"
+                    "Parameter 'value' is missing in payload"
                 ),
-                "params": {"path": "<locals>.Payload.value"},
+                "params": {"path": "value"},
             }
         ],
     }
@@ -467,9 +467,9 @@ async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture
                 "message": (
                     "Controller test_fail_non_nullable_payload_parameter.<locals>._, "
                     "Route test_fail_non_nullable_payload_parameter.<locals>._.create_entity, "
-                    "Parameter '<locals>.Payload.value' must not be null"
+                    "Parameter 'value' must not be null"
                 ),
-                "params": {"path": "<locals>.Payload.value"},
+                "params": {"path": "value"},
             }
         ],
     }
@@ -513,9 +513,9 @@ async def test_fail_wrong_type_payload_parameter(aiohttp_client: ClientFixture) 
                 "message": (
                     "Controller test_fail_wrong_type_payload_parameter.<locals>._, "
                     "Route test_fail_wrong_type_payload_parameter.<locals>._.create_entity, "
-                    "Parameter '<locals>.Payload.value' could be converted to 'int'"
+                    "Parameter 'value' could be converted to 'int'"
                 ),
-                "params": {"path": "<locals>.Payload.value"},
+                "params": {"path": "value"},
             }
         ],
     }

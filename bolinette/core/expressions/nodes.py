@@ -33,7 +33,7 @@ class ExpressionNode:
     def __expr_get_attribute__(self) -> str:
         raise ExpressionError(self, f"Cannot get attribute name of {type(self).__name__}")
 
-    def __expr_format__(self) -> str:
+    def __expr_format__(self, depth: int | None) -> str:
         raise ExpressionError(self, f"Cannot format {type(self).__name__}")
 
     def __expr_get_parents__(self) -> "Iterable[ExpressionNode]":
@@ -57,7 +57,9 @@ class RootNode(ExpressionNode):
         return obj
 
     @override
-    def __expr_format__(self) -> str:
+    def __expr_format__(self, depth: int | None) -> str:
+        if depth is not None and depth <= 0:
+            return ""
         origin = object.__getattribute__(self, "origin")
         if origin is None:
             return "$"
@@ -100,10 +102,14 @@ class AttributeNode(ChildNode):
         return object.__getattribute__(self, "attr")
 
     @override
-    def __expr_format__(self) -> str:
-        parent = object.__getattribute__(self, "parent")
+    def __expr_format__(self, depth: int | None) -> str:
         attr = object.__getattribute__(self, "attr")
-        return f"{expressions.ExpressionTree.format(parent)}.{attr}"
+        if depth is not None:
+            if depth <= 1:
+                return f"{attr}"
+            depth -= 1
+        parent = object.__getattribute__(self, "parent")
+        return f"{expressions.ExpressionTree.format(parent, max_depth=depth)}.{attr}"
 
 
 K = TypeVar("K")
@@ -127,11 +133,15 @@ class ElementNode(ChildNode, Generic[K]):
         expressions.ExpressionTree.get_value(parent, obj)[key] = value
 
     @override
-    def __expr_format__(self) -> str:
-        parent = object.__getattribute__(self, "parent")
+    def __expr_format__(self, depth: int | None) -> str:
         key = object.__getattribute__(self, "key")
         if isinstance(key, str):
             key_s = f"'{key}'"
         else:
             key_s = str(key)
-        return f"{expressions.ExpressionTree.format(parent)}[{key_s}]"
+        if depth is not None:
+            if depth <= 1:
+                return f"[{key_s}]"
+            depth -= 1
+        parent = object.__getattribute__(self, "parent")
+        return f"{expressions.ExpressionTree.format(parent, max_depth=depth)}[{key_s}]"

@@ -288,13 +288,11 @@ class RoutePayloadArgResolver:
     def _transform_error(self, err: MappingError) -> WebError:
         match err:
             case SourceNotFoundError():
-                return MissingParameterError(str(err.dest), ctrl=self.handler.ctrl_t, route=self.handler.route)
+                return MissingParameterError(err.dest, ctrl=self.handler.ctrl_t, route=self.handler.route)
             case DestinationNotNullableError():
-                return ParameterNotNullableError(str(err.dest), ctrl=self.handler.ctrl_t, route=self.handler.route)
+                return ParameterNotNullableError(err.dest, ctrl=self.handler.ctrl_t, route=self.handler.route)
             case ConvertionError():
-                return WrongParameterTypeError(
-                    str(err.dest), err.target, ctrl=self.handler.ctrl_t, route=self.handler.route
-                )
+                return WrongParameterTypeError(err.dest, err.target, ctrl=self.handler.ctrl_t, route=self.handler.route)
             case _:
                 raise NotImplementedError(type(err), err) from err
 

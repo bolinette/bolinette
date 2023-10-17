@@ -26,8 +26,8 @@ class ExpressionTree:
         return object.__getattribute__(expr, "__expr_get_attribute__")()
 
     @staticmethod
-    def format(expr: ExpressionNode) -> str:
-        return object.__getattribute__(expr, "__expr_format__")()
+    def format(expr: ExpressionNode, *, max_depth: int | None = None) -> str:
+        return object.__getattribute__(expr, "__expr_format__")(max_depth)
 
     @staticmethod
     def ensure_attribute_chain(
