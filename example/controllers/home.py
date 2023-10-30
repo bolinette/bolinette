@@ -1,4 +1,6 @@
-from bolinette.web import controller, payload
+from typing import Annotated
+
+from bolinette.web import Payload, controller
 from bolinette.web.route import get, post
 from example.controllers.payloads import HomeHelloPayload
 from example.controllers.responses import HomeResponse
@@ -11,5 +13,5 @@ class HomeController:
         return HomeResponse("Bolinette example app", "0.0.1")
 
     @post("hello")
-    async def hello(self, payload: HomeHelloPayload = payload()) -> str:
+    async def hello(self, payload: Annotated[HomeHelloPayload, Payload]) -> str:
         return f"Hello {payload.firstname} {payload.lastname}!"

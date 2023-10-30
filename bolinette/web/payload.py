@@ -1,10 +1,3 @@
-from typing import Any
-
-
-class PayloadMeta:
+class Payload:
     def __init__(self) -> None:
         pass
-
-
-def payload() -> Any:
-    return PayloadMeta()

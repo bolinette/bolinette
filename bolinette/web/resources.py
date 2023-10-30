@@ -19,7 +19,7 @@ from bolinette.core.mapping.exceptions import (
 )
 from bolinette.core.types import Function, Type
 from bolinette.core.utils import AttributeUtils
-from bolinette.web import Controller
+from bolinette.web import Controller, Payload
 from bolinette.web.controller import ControllerMeta
 from bolinette.web.exceptions import (
     BadRequestError,
@@ -30,7 +30,6 @@ from bolinette.web.exceptions import (
     WrongParameterTypeError,
 )
 from bolinette.web.middleware import Middleware, MiddlewareBag
-from bolinette.web.payload import PayloadMeta
 from bolinette.web.route import RouteBucket, RouteProps
 
 
@@ -262,7 +261,9 @@ class RoutePayloadArgResolver:
         self.body = body
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return isinstance(options.default, PayloadMeta)
+        return any(
+            isinstance(a, Payload) or (isinstance(a, type) and issubclass(a, Payload)) for a in options.t.annotated
+        )
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
         if self.body is None:

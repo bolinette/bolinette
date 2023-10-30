@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from typing import Annotated
 
 from aiohttp import web
 from aiohttp.test_utils import TestClient
@@ -15,7 +16,7 @@ from bolinette.core.mapping.mapper import (
     type_mapper,
 )
 from bolinette.core.testing import Mock
-from bolinette.web import WebResources, controller, get, payload, post, route, with_middleware, without_middleware
+from bolinette.web import Payload, WebResources, controller, get, post, route, with_middleware, without_middleware
 
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
 
@@ -284,7 +285,7 @@ async def test_expect_payload_return_status(aiohttp_client: ClientFixture) -> No
             self.mapper = mapper
 
         @post("")
-        async def create_entity(self, payload: EntityPayload = payload()) -> tuple[EntityResponse, int]:
+        async def create_entity(self, payload: Annotated[EntityPayload, Payload]) -> tuple[EntityResponse, int]:
             entity = Entity(payload.id, payload.name)
             return self.mapper.map(Entity, EntityResponse, entity), 201
 
@@ -308,7 +309,7 @@ async def test_expect_payload_return_status(aiohttp_client: ClientFixture) -> No
 async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class Payload:
+    class RoutePayload:
         value: str
 
     @controller("entity", cache=cache)
@@ -317,7 +318,7 @@ async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
             self.mapper = mapper
 
         @post("")
-        async def create_entity(self, payload: Payload | None = payload()) -> str:
+        async def create_entity(self, payload: Annotated[RoutePayload | None, Payload]) -> str:
             return "<none>" if not payload else payload.value
 
     mock = Mock(cache=cache)
@@ -340,7 +341,7 @@ async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
 async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class Payload:
+    class RoutePayload:
         value: str
 
     @controller("entity", cache=cache)
@@ -349,7 +350,7 @@ async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
             self.mapper = mapper
 
         @post("")
-        async def create_entity(self, payload: Payload = payload()) -> str:
+        async def create_entity(self, payload: Annotated[RoutePayload, Payload]) -> str:
             return payload.value
 
     mock = Mock(cache=cache)
@@ -386,7 +387,7 @@ async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
 async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class Payload:
+    class RoutePayload:
         value: str
 
     @controller("entity", cache=cache)
@@ -395,7 +396,7 @@ async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> 
             self.mapper = mapper
 
         @post("")
-        async def create_entity(self, payload: Payload = payload()) -> str:
+        async def create_entity(self, payload: Annotated[RoutePayload, Payload()]) -> str:
             return payload.value
 
     mock = Mock(cache=cache)
@@ -432,7 +433,7 @@ async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> 
 async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class Payload:
+    class RoutePayload:
         value: str
 
     @controller("entity", cache=cache)
@@ -441,7 +442,7 @@ async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture
             self.mapper = mapper
 
         @post("")
-        async def create_entity(self, payload: Payload = payload()) -> str:
+        async def create_entity(self, payload: Annotated[RoutePayload, Payload]) -> str:
             return payload.value
 
     mock = Mock(cache=cache)
@@ -478,7 +479,7 @@ async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture
 async def test_fail_wrong_type_payload_parameter(aiohttp_client: ClientFixture) -> None:
     cache = Cache()
 
-    class Payload:
+    class RoutePayload:
         value: int
 
     @controller("entity", cache=cache)
@@ -487,7 +488,7 @@ async def test_fail_wrong_type_payload_parameter(aiohttp_client: ClientFixture) 
             self.mapper = mapper
 
         @post("")
-        async def create_entity(self, payload: Payload = payload()) -> str:
+        async def create_entity(self, payload: Annotated[RoutePayload, Payload()]) -> str:
             return str(payload.value)
 
     mock = Mock(cache=cache)
