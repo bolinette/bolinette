@@ -3,7 +3,7 @@ import contextlib
 import inspect
 from inspect import Parameter
 from types import EllipsisType, NoneType, UnionType
-from typing import Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
 
 from typing_extensions import override
 
@@ -14,7 +14,7 @@ T = TypeVar("T")
 
 
 class Type(Generic[T]):
-    __slots__: list[str] = ["cls", "vars", "nullable", "union"]
+    __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated"]
 
     @staticmethod
     def from_instance(__instance: T) -> "Type[T]":
@@ -22,21 +22,27 @@ class Type(Generic[T]):
 
     def __init__(
         self,
-        __cls: type[T],
+        cls: type[T],
+        /,
         *,
         lookup: "types.TypeVarLookup[Any] | None" = None,
         raise_on_string: bool = True,
         raise_on_typevar: bool = True,
     ) -> None:
-        if get_origin(__cls) in (Union, UnionType):
-            args = get_args(__cls)
+        self.annotated: tuple[Any, ...]
+        if (origin := get_origin(cls)) is not None and origin is Annotated:
+            cls, *self.annotated = get_args(cls)
+        else:
+            self.annotated = ()
+        if get_origin(cls) in (Union, UnionType):
+            args = get_args(cls)
             self.nullable = None in args or NoneType in args
             args = tuple(a for a in args if a not in (None, NoneType))
-            __cls, *additional_cls = args
+            cls, *additional_cls = args
         else:
             additional_cls = ()
             self.nullable = False
-        self.cls, self.vars = Type.get_generics(__cls, lookup, raise_on_string, raise_on_typevar)
+        self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
         self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), self.get_param_count(self.cls))))
         self.union = tuple(Type(c) for c in additional_cls)
 

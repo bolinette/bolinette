@@ -22,7 +22,9 @@ class Function(Generic[FuncP, FuncT]):
         return {**inspect.signature(self.func).parameters}
 
     def annotations(self, *, lookup: TypeVarLookup[Any] | None = None) -> dict[str, Any]:
-        return {n: self._transform_annotation(c, lookup) for n, c in get_type_hints(self.func).items()}
+        return {
+            n: self._transform_annotation(c, lookup) for n, c in get_type_hints(self.func, include_extras=True).items()
+        }
 
     def __call__(self, *args: FuncP.args, **kwargs: FuncP.kwargs) -> FuncT:
         return self.func(*args, **kwargs)
