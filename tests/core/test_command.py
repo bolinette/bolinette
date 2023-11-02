@@ -1,14 +1,15 @@
 import sys
-from typing import Any
+from typing import Annotated, Any, Literal
 
 import pytest
 from pytest import CaptureFixture
 
-from bolinette.core import Cache, Logger, command, meta
-from bolinette.core.command import Parser
-from bolinette.core.command.command import ArgumentMeta, CommandMeta
+from bolinette.core import Cache, Logger, command
+from bolinette.core.command import Argument, Parser
+from bolinette.core.command.command import CommandMeta
 from bolinette.core.exceptions import InitError
 from bolinette.core.testing import Mock
+from bolinette.core.types import Function
 
 
 def test_decorate_command() -> None:
@@ -19,17 +20,7 @@ def test_decorate_command() -> None:
         pass
 
     assert CommandMeta in cache
-    assert cache.get(CommandMeta) == [_command]
-
-
-def test_decorate_argument() -> None:
-    @command.argument("argument", "p1")
-    async def _command():
-        pass
-
-    assert meta.has(_command, ArgumentMeta)
-    assert len(meta.get(_command, ArgumentMeta)) == 1
-    assert meta.get(_command, ArgumentMeta)[0].name == "p1"
+    assert cache.get(CommandMeta, hint=Function)[0].func == _command
 
 
 async def test_launch_command() -> None:
@@ -105,7 +96,6 @@ async def test_launch_command_not_found() -> None:
     assert value == 1
 
     assert exited
-    assert r"usage: test [-h] {command}" in error_str
 
     sys.argv = _argv
     sys.exit = _exit
@@ -199,7 +189,7 @@ async def test_launch_sub_command_not_found() -> None:
     assert value == 1
 
     assert exited
-    assert "usage: test command [-h] {inc,dec}" in error_str
+    assert "command [-h] {inc,dec}" in error_str
 
     sys.argv = _argv
     sys.exit = _exit
@@ -216,8 +206,7 @@ async def test_command_argument() -> None:
     value = 0
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument("argument", "param", value_type=int)
-    async def _(param: int):
+    async def _(param: Annotated[int, Argument()]) -> None:
         nonlocal value
         value = param
 
@@ -228,6 +217,32 @@ async def test_command_argument() -> None:
     await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
+
+    sys.argv = _argv
+
+
+async def test_command_with_injection() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Parser, "singleton")
+    mock.mock(Logger[Parser])
+
+    _argv = sys.argv
+
+    value = 0
+
+    @command("command", "This is a test command", cache=cache)
+    async def _(cache: Cache, param: Annotated[int, Argument]) -> None:
+        nonlocal value
+        value = len(cache.get(CommandMeta, hint=CommandMeta)) + param
+
+    parser = mock.injection.require(Parser)
+
+    sys.argv = ["test", "command", "42"]
+    cmd, args = parser.parse_command()
+    await mock.injection.call(cmd, named_args=args)
+
+    assert value == 43
 
     sys.argv = _argv
 
@@ -243,8 +258,7 @@ async def test_command_option() -> None:
     value = 0
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument("option", "param", value_type=int)
-    async def _(param: int):
+    async def _(param: Annotated[int, Argument("option")]) -> None:
         nonlocal value
         value = param
 
@@ -270,8 +284,7 @@ async def test_command_option_flag() -> None:
     value = 0
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument("option", "param", value_type=int, flag="p")
-    async def _(param: int):
+    async def _(param: Annotated[int, Argument("option", "p")]):
         nonlocal value
         value = param
 
@@ -297,8 +310,7 @@ async def test_command_flag() -> None:
     value = False
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument("flag", "param")
-    async def _(param: bool):
+    async def _(param: Annotated[Literal[True], Argument("option")]):
         nonlocal value
         value = param
 
@@ -308,7 +320,7 @@ async def test_command_flag() -> None:
     cmd, args = parser.parse_command()
     await mock.injection.call(cmd, named_args=args)
 
-    assert value
+    assert value is True
 
     sys.argv = _argv
 
@@ -324,8 +336,7 @@ async def test_command_flag_flag() -> None:
     value = False
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument("flag", "param", flag="p")
-    async def _(param: bool):
+    async def _(param: Annotated[Literal[True], Argument("option", "p")]):
         nonlocal value
         value = param
 
@@ -335,7 +346,7 @@ async def test_command_flag_flag() -> None:
     cmd, args = parser.parse_command()
     await mock.injection.call(cmd, named_args=args)
 
-    assert value
+    assert value is True
 
     sys.argv = _argv
 
@@ -353,8 +364,7 @@ async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
         exited = True
 
     @command("command", "This is a test command", cache=cache)
-    @command.argument("flag", "param", flag="p", summary="This a help text for param arg")
-    async def _(param: bool):
+    async def _(_: Annotated[int, Argument("option", "p", summary="This a help text for param arg")]):
         pass
 
     _argv = sys.argv
@@ -389,14 +399,87 @@ async def test_command_conflict() -> None:
     async def _() -> None:
         pass
 
-    parser = mock.injection.require(Parser)
-
-    _argv = sys.argv
-
-    sys.argv = ["test", "command", "--help"]
     with pytest.raises(InitError) as info:
-        parser.parse_command()
+        mock.injection.require(Parser)
 
     assert "Conflict with 'command sub' command" in info.value.message
 
-    sys.argv = _argv
+
+async def test_fail_non_nullable_positional_arg() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Parser, "singleton")
+    mock.mock(Logger[Parser])
+
+    @command("command sub", "This is a test command", cache=cache)
+    async def _(p1: Annotated[str | None, Argument]) -> None:
+        pass
+
+    with pytest.raises(InitError) as info:
+        mock.injection.require(Parser)
+
+    assert (
+        "Command test_fail_non_nullable_positional_arg.<locals>._, "
+        "Argument 'p1', A positional argument cannot be nullable" == info.value.message
+    )
+
+
+async def test_command_arg_types() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Parser, "singleton")
+    mock.mock(Logger[Parser])
+
+    @command("command sub", "This is a test command", cache=cache)
+    async def _(
+        p1: Annotated[str, Argument],
+        p2: Annotated[int, Argument],
+        p3: Annotated[float, Argument],
+        p4: Annotated[Literal[True], Argument],
+        p5: Annotated[Literal[False], Argument],
+        p6: Annotated[Literal[42], Argument],
+        p7: Annotated[Literal[1, 2, 3], Argument],
+        no_anno,  # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
+        p8: Annotated[Literal["one", "two"], Argument] = "one",
+    ) -> None:
+        pass
+
+    mock.injection.require(Parser)
+
+
+async def test_fail_wrong_arg_type() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Parser, "singleton")
+    mock.mock(Logger[Parser])
+
+    @command("command sub", "This is a test command", cache=cache)
+    async def _(p1: Annotated[bool, Argument]) -> None:
+        pass
+
+    with pytest.raises(InitError) as info:
+        mock.injection.require(Parser)
+
+    assert (
+        "Command test_fail_wrong_arg_type.<locals>._, Argument 'p1', Type bool is not allowed as a command argument"
+        == info.value.message
+    )
+
+
+async def test_fail_wrong_arg_literal_type() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Parser, "singleton")
+    mock.mock(Logger[Parser])
+
+    @command("command sub", "This is a test command", cache=cache)
+    async def _(p1: Annotated[Literal[1, "two"], Argument]) -> None:
+        pass
+
+    with pytest.raises(InitError) as info:
+        mock.injection.require(Parser)
+
+    assert (
+        "Command test_fail_wrong_arg_literal_type.<locals>._, "
+        "Argument 'p1', Literal[1, two] is not a valid argument type" == info.value.message
+    )

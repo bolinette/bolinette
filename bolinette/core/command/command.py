@@ -1,7 +1,8 @@
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, ParamSpec
+from typing import Any, Literal, ParamSpec, overload
 
 from bolinette.core import Cache, __user_cache__, meta
+from bolinette.core.types import Function
 
 P_Func = ParamSpec("P_Func")
 
@@ -17,67 +18,60 @@ class CommandMeta:
 
 
 class Argument:
+    @overload
     def __init__(
         self,
-        arg_type: Literal["argument", "option", "flag", "count"],
-        name: str,
+        arg_type: Literal["argument"] = "argument",
+        /,
         *,
-        flag: str | None = None,
-        summary: str | None = None,
-        value_type: type[Any] | None = None,
         default: Any | None = None,
-        choices: list[str] | None = None,
-    ):
-        self.arg_type = arg_type
-        self.name = name
-        self.flag = flag
-        self.summary = summary
-        self.value_type = value_type
-        self.default = default
-        self.choices = choices
-
-
-class ArgumentMeta(list[Argument]):
-    pass
-
-
-class _CommandDecorator:
-    def __call__(self, name: str, summary: str, *, cache: Cache | None = None):
-        def decorator(func: Callable[P_Func, Awaitable[int | None]]) -> Callable[P_Func, Awaitable[int | None]]:
-            meta.set(func, CommandMeta(name, summary))
-            (cache or __user_cache__).add(CommandMeta, func)
-            return func
-
-        return decorator
-
-    def argument(
-        self,
-        arg_type: Literal["argument", "option", "flag", "count"],
-        name: str,
-        *,
-        flag: str | None = None,
         summary: str | None = None,
-        value_type: type | None = None,
-        default: Any = None,
-        choices: list[str] | None = None,
+    ) -> None:
+        ...
+
+    @overload
+    def __init__(
+        self,
+        arg_type: Literal["option"],
+        shorthand: str | None = None,
+        /,
+        *,
+        default: Any | None = None,
+        summary: str | None = None,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        /,
+        *args: Any,
+        **kwargs: Any,
     ):
-        def decorator(func: Callable[P_Func, Awaitable[int | None]]) -> Callable[P_Func, Awaitable[int | None]]:
-            if not meta.has(func, ArgumentMeta):
-                meta.set(func, ArgumentMeta())
-            meta.get(func, ArgumentMeta).append(
-                Argument(
-                    arg_type,
-                    name,
-                    flag=flag,
-                    summary=summary,
-                    value_type=value_type,
-                    default=default,
-                    choices=choices,
-                )
-            )
-            return func
+        self.arg_type: Literal["argument", "option"]
+        self.shorthand: str | None
+        match args:
+            case ():
+                self.arg_type = "argument"
+                self.shorthand = None
+            case ("argument",):
+                self.arg_type = "argument"
+                self.shorthand = None
+            case ("option",):
+                self.arg_type = "option"
+                self.shorthand = None
+            case ("option", str() as shorthand):
+                self.arg_type = "option"
+                self.shorthand = shorthand
+            case _:
+                raise TypeError(Argument.__init__, args)
+        self.default: Any | None = kwargs.get("default", None)
+        self.summary: str | None = kwargs.get("summary", None)
 
-        return decorator
 
+def command(name: str, summary: str, *, cache: Cache | None = None):
+    def decorator(func: Callable[P_Func, Awaitable[int | None]]) -> Callable[P_Func, Awaitable[int | None]]:
+        meta.set(func, CommandMeta(name, summary))
+        (cache or __user_cache__).add(CommandMeta, Function(func))
+        return func
 
-command = _CommandDecorator()
+    return decorator

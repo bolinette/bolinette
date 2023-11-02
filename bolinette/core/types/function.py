@@ -41,7 +41,7 @@ class Function(Generic[FuncP, FuncT]):
 
     @override
     def __repr__(self) -> str:
-        return f"<Function {self!s}>"
+        return f"<Function {self}>"
 
     @override
     def __hash__(self) -> int:

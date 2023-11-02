@@ -1,0 +1,1 @@
+pytest --cov=bolinette --cov-report=xml

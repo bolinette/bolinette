@@ -3,7 +3,7 @@ import contextlib
 import inspect
 from inspect import Parameter
 from types import EllipsisType, NoneType, UnionType
-from typing import Annotated, Any, ForwardRef, Generic, TypeVar, Union, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, ForwardRef, Generic, Literal, TypeVar, Union, get_args, get_origin, get_type_hints
 
 from typing_extensions import override
 
@@ -48,14 +48,18 @@ class Type(Generic[T]):
 
     @override
     def __str__(self) -> str:
-        def _format_v(v: type[Any] | TypeVar | ForwardRef) -> str:
+        def _format_v(v: Any) -> str:
             if isinstance(v, type):
                 return v.__qualname__
             if isinstance(v, TypeVar):
                 return f"~{v.__name__}"
             if v is Ellipsis:
                 return "..."
-            return f"'{v.__forward_arg__!s}'"
+            if v is Literal:
+                return v.__name__
+            if isinstance(v, ForwardRef):
+                return f"'{v.__forward_arg__}'"
+            return str(v)
 
         if not self.vars:
             repr_str = _format_v(self.cls)
@@ -64,7 +68,7 @@ class Type(Generic[T]):
 
         if self.is_union:
             for t in self.union:
-                repr_str += f" | {t!s}"
+                repr_str += f" | {t}"
 
         if self.nullable:
             repr_str += " | None"
@@ -73,7 +77,7 @@ class Type(Generic[T]):
 
     @override
     def __repr__(self) -> str:
-        return f"<Type {self!s}>"
+        return f"<Type {self}>"
 
     @override
     def __hash__(self) -> int:

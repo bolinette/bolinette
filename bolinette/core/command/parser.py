@@ -1,12 +1,14 @@
+import inspect
 import sys
 from argparse import ArgumentParser
 from collections.abc import Awaitable, Callable
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from bolinette.core import Cache, Logger, meta
-from bolinette.core.command.command import Argument, ArgumentMeta, CommandMeta
+from bolinette.core.command.command import Argument, CommandMeta
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import init_method
+from bolinette.core.types import Function, Type
 
 
 class _SubParsersAction(Protocol):
@@ -22,44 +24,17 @@ class Parser:
     ):
         self._cache = cache
         self._logger = logger
-        self._factories = {
-            "argument": self._create_argument,
-            "option": self._create_option,
-            "flag": self._create_flag,
-        }
-        self._functions: list[Callable[..., Awaitable[None]]] = []
-        self._commands: dict[str, Callable[..., Awaitable[None]]] = {}
+        self._commands: dict[str, Function[..., Awaitable[None]]] = {}
         self._sub_commands: dict[str, Any] = {}
+        self._parser = ArgumentParser(description="Bolinette Framework")
 
     @init_method
-    def init(self):
-        if CommandMeta in self._cache:
-            self._functions = self._cache.get(CommandMeta)
-
-    def parse_command(
-        self,
-    ) -> tuple[Callable[..., Awaitable[int | None]], dict[str, Any]]:
-        tree = self._parse_commands()
-        parser = ArgumentParser(description="Bolinette Framework")
-        sub_parsers = parser.add_subparsers()
-        self._build_parsers(tree, sub_parsers, [])
-        parsed = vars(parser.parse_args())
-        if "__blnt_cmd__" in parsed:
-            cmd = parsed.pop("__blnt_cmd__")
-            if "__blnt_path__" in parsed:
-                del parsed["__blnt_path__"]
-            return (self._commands[cmd], parsed)
-        elif "__blnt_path__" in parsed:
-            self._logger.error(self._sub_commands[parsed["__blnt_path__"]].format_help())
-            sys.exit(1)
-        else:
-            self._logger.error(parser.format_help())
-            sys.exit(1)
-
-    def _parse_commands(self) -> dict[str, Any]:
+    def _parse_commands(self) -> None:
+        functions = self._cache.get(CommandMeta, hint=Function[..., Awaitable[None]], raises=False)
+        commands: dict[str, Function[..., Awaitable[None]]] = {}
         command_tree: dict[str, Any] = {}
-        for func in self._functions:
-            _cmd = meta.get(func, CommandMeta)
+        for func in functions:
+            _cmd = meta.get(func.func, CommandMeta)
             cur_node = command_tree
             path = _cmd.path.split(" ")
             for elem in path[:-1]:
@@ -70,69 +45,109 @@ class Parser:
             if elem in cur_node:
                 raise InitError(f"Conflict with '{_cmd.path}' command")
             cur_node[elem] = func
-            self._commands[_cmd.path] = func
-        return command_tree
+            commands[_cmd.path] = func
+        self._commands = commands
+        self._build_parsers(command_tree, self._parser.add_subparsers(), [])
 
     def _build_parsers(
         self,
-        command_tree: dict[str, Any],
+        command_tree: dict[str, dict[str, Any] | Function[..., Any]],
         sub_parsers: _SubParsersAction,
         path: list[str],
-    ):
+    ) -> None:
+        sub_commands: dict[str, Any] = {}
         for name, elem in command_tree.items():
-            if meta.has(elem, CommandMeta):
-                _cmd = meta.get(elem, CommandMeta)
+            if isinstance(elem, Function) and meta.has(elem.func, CommandMeta):
+                _cmd = meta.get(elem.func, CommandMeta)
                 sub_parser = sub_parsers.add_parser(name, help=_cmd.summary)
-                if meta.has(elem, ArgumentMeta):
-                    for arg in meta.get(elem, ArgumentMeta):
-                        self._factories[arg.arg_type](arg, sub_parser)
+                annotations = elem.annotations()
+                for p_name, param in elem.parameters().items():
+                    if p_name not in annotations:
+                        continue
+                    param_t: Type[Any] = annotations[p_name]
+                    for anno in param_t.annotated:
+                        if anno is Argument or isinstance(anno, Argument):
+                            if anno is Argument:
+                                anno = Argument()
+                            flags, kwargs = self._create_argument(elem, p_name, param, param_t, anno)
+                            sub_parser.add_argument(*flags, **kwargs)
                 sub_parser.set_defaults(__blnt_cmd__=_cmd.path)
-            else:
+            elif isinstance(elem, dict):
                 sub_parser = sub_parsers.add_parser(name, help=self._build_help(elem, [*path, name]))
                 sub_parser.set_defaults(__blnt_path__=name)
-                self._sub_commands[name] = sub_parser
+                sub_commands[name] = sub_parser
                 self._build_parsers(elem, sub_parser.add_subparsers(), [*path, name])
+        self._sub_commands = sub_commands
+
+    @staticmethod
+    def _create_argument(
+        func: Function[..., Any],
+        p_name: str,
+        param: inspect.Parameter,
+        type: Type[Any],
+        argument: Argument,
+    ) -> tuple[list[str], dict[str, Any]]:
+        flags: list[str]
+        kwargs: dict[str, Any] = {}
+        if param.default != inspect.Signature.empty:
+            kwargs["default"] = param.default
+        match argument.arg_type:
+            case "argument":
+                flags = [p_name]
+                if type.nullable:
+                    raise InitError(f"Command {func}, Argument '{p_name}', A positional argument cannot be nullable")
+            case "option":
+                flags = [f"--{p_name}"]
+                if argument.shorthand:
+                    flags.append(f"-{argument.shorthand}")
+                if not type.nullable and "default" not in kwargs:
+                    kwargs["required"] = True
+        if type.cls is str:
+            kwargs["type"] = str
+        elif type.cls is int:
+            kwargs["type"] = int
+        elif type.cls is float:
+            kwargs["type"] = float
+        elif type.cls is Literal:
+            if len(type.vars) == 1:
+                if type.vars == (True,):
+                    kwargs["action"] = "store_true"
+                elif type.vars == (False,):
+                    kwargs["action"] = "store_false"
+                else:
+                    kwargs["action"] = "store_const"
+                    kwargs["const"] = type.vars[0]
+            else:
+                if all(isinstance(i, str) for i in type.vars):
+                    kwargs["action"] = "store"
+                    kwargs["type"] = str
+                elif all(isinstance(i, int) for i in type.vars):
+                    kwargs["action"] = "store"
+                    kwargs["type"] = int
+                else:
+                    raise InitError(f"Command {func}, Argument '{p_name}', {type} is not a valid argument type")
+                kwargs["choices"] = type.vars
+        else:
+            raise InitError(f"Command {func}, Argument '{p_name}', Type {type} is not allowed as a command argument")
+        if argument.summary:
+            kwargs["help"] = argument.summary
+        return flags, kwargs
+
+    def parse_command(self) -> tuple[Callable[..., Awaitable[int | None]], dict[str, Any]]:
+        parsed = vars(self._parser.parse_args())
+        if "__blnt_cmd__" in parsed:
+            cmd = parsed.pop("__blnt_cmd__")
+            if "__blnt_path__" in parsed:
+                del parsed["__blnt_path__"]
+            return (self._commands[cmd].func, parsed)
+        elif "__blnt_path__" in parsed:
+            self._logger.error(self._sub_commands[parsed["__blnt_path__"]].format_help())
+            sys.exit(1)
+        else:
+            self._logger.error(self._parser.format_help())
+            sys.exit(1)
 
     @staticmethod
     def _build_help(command_tree: dict[str, Any], path: list[str]):
         commands = [f'"{" ".join([*path, x])}"' for x in command_tree]
         return "Sub-commands: " + ", ".join(commands)
-
-    @staticmethod
-    def _create_parser_arg(
-        arg: Argument,
-        *,
-        optional: bool = False,
-        use_flag: bool = False,
-        action: str | None = None,
-    ):
-        args: list[Any] = []
-        kwargs: dict[str, Any] = {}
-        if optional:
-            args.append(f"--{arg.name}")
-        else:
-            args.append(arg.name)
-        if use_flag and arg.flag is not None:
-            args.append(f"-{arg.flag}")
-        if arg.summary is not None:
-            kwargs["help"] = arg.summary
-        if action is not None:
-            kwargs["action"] = action
-        if arg.value_type is not None:
-            kwargs["type"] = arg.value_type
-        return args, kwargs
-
-    @staticmethod
-    def _create_argument(arg: Argument, parser: ArgumentParser):
-        args, kwargs = Parser._create_parser_arg(arg, optional=False, use_flag=False, action=None)
-        parser.add_argument(*args, **kwargs)
-
-    @staticmethod
-    def _create_option(arg: Argument, parser: ArgumentParser):
-        args, kwargs = Parser._create_parser_arg(arg, optional=True, use_flag=True, action=None)
-        parser.add_argument(*args, **kwargs)
-
-    @staticmethod
-    def _create_flag(arg: Argument, parser: ArgumentParser):
-        args, kwargs = Parser._create_parser_arg(arg, optional=True, use_flag=True, action="store_true")
-        parser.add_argument(*args, **kwargs)
