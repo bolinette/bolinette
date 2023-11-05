@@ -41,8 +41,8 @@ def mock_db_manager(mock: Mock, engine_type: type[RelationalDatabase] | None = N
 
     (
         mock.mock(DatabaseManager)
-        .setup(lambda m: m.has_connection, lambda _: True)
-        .setup(lambda m: m.get_connection, _get_connection)
+        .setup_callable(lambda m: m.has_connection, lambda _: True)
+        .setup_callable(lambda m: m.get_connection, _get_connection)
     )
 
 
@@ -80,7 +80,7 @@ def test_fail_init_engines_unknown_connection() -> None:
 
     create_entity_base(cache)
 
-    mock.mock(DatabaseManager).setup(lambda m: m.has_connection, lambda _: False)
+    mock.mock(DatabaseManager).setup_callable(lambda m: m.has_connection, lambda _: False)
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
@@ -101,8 +101,8 @@ def test_fail_init_engines_non_relational_system() -> None:
 
     (
         mock.mock(DatabaseManager)
-        .setup(lambda m: m.has_connection, lambda _: True)
-        .setup(lambda m: m.get_connection, _get_connection)
+        .setup_callable(lambda m: m.has_connection, lambda _: True)
+        .setup_callable(lambda m: m.get_connection, _get_connection)
     )
 
     with pytest.raises(EntityError) as info:
