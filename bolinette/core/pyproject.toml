@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette"
-version = "0.16.0"
+version = "0.16.1"
 description = "An inversion of control framework in Python"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
@@ -16,8 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
 ]
-packages = [{ include = "core", from = "bolinette" }]
-include = ["bolinette/core/py.typed"]
+packages = [{ include = "bolinette/core" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"

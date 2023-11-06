@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette-web"
-version = "0.16.0"
+version = "0.16.1"
 description = "The Bolinette web package, an async Http and Websocket framework, based on bolinette and aiohttp"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
@@ -16,10 +16,9 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
 ]
-packages = [{ include = "data", from = "bolinette" }]
-include = ["bolinette/data/py.typed"]
+packages = [{ include = "bolinette/web" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
 aiohttp = "^3.8.5"
-bolinette = "^0.16.0"
+bolinette = "^0.16.1"
