@@ -1,4 +1,3 @@
-from bolinette.core.version import __version__ as __version__
 from bolinette.core.objects import GenericMeta as GenericMeta
 from bolinette.core.metadata import meta as meta
 from bolinette.core.cache import Cache as Cache, __user_cache__ as __user_cache__

@@ -1,3 +1,40 @@
+[tool.poetry]
+name = "bolinette"
+version = "0.15.5"
+description = "An inversion of control framework in Python"
+authors = ["Pierre Chat <pierrechat@outlook.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://bolinette.org"
+repository = "https://github.com/bolinette/bolinette"
+documentation = "https://bolinette.org/docs"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.8.6"
+aiosqlite = "^0.19.0"
+asyncpg = "^0.29.0"
+pyyaml = "^6.0.1"
+sqlalchemy = "^2.0.23"
+
+[tool.poetry.dev-dependencies]
+autoflake = "^2.2.1"
+autopep8 = "^2.0.4"
+black = "^23.10.1"
+coverage = "^7.3.2"
+flake8 = "^6.1.0"
+isort = "^5.12.0"
+mypy = "^1.6.1"
+ruff = "^0.1.4"
+pytest = "^7.4.3"
+pytest-aiohttp = "^1.0.5"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.ruff]
 line-length = 120
 
@@ -52,3 +89,10 @@ profile = "black"
 [tool.black]
 line-length = 120
 target-version = ['py311']
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+asyncio_mode = "auto"
+
+[tool.coverage.report]
+exclude_lines = ['pass', 'if TYPE_CHECKING:', '\.\.\.']

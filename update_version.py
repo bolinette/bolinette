@@ -1,41 +1,56 @@
 import inspect
 import re
 import sys
+import tomllib
 from ctypes import ArgumentError
+from pathlib import Path
 from types import ModuleType
+from typing import Any
 
-from bolinette.core import version as core_version
-from bolinette.data import version as data_version
-from bolinette.web import version as web_version
+from bolinette import core, data, web
+
+
+def parse_pyproject(path: Path) -> dict[str, Any]:
+    with open(path / "pyproject.toml", "rb") as file:
+        return tomllib.load(file)
+
+
+def get_version(module: ModuleType) -> str:
+    module_path = Path(inspect.getfile(module)).parent
+    config = parse_pyproject(module_path)
+    return config["tool"]["poetry"]["version"]
 
 
 def update_version(module: ModuleType, major: int, minor: int, patch: int) -> None:
-    version = f"{major}.{minor}.{patch}"
-    file = inspect.getfile(module)
-    with open(file, "w") as stream:
-        stream.write(f'__version__ = "{version}"\n')
-
-
-def update_requirements(file: str, name: str, version: str) -> None:
-    with open(file, "r") as stream:
+    pyproject_path = Path(inspect.getfile(module)).parent / "pyproject.toml"
+    with open(pyproject_path, "r") as stream:
         content = stream.read()
-    content = re.sub(rf"{name}==(\d+)\.(\d+).(\d+)", f"{name}=={version}", content, 1)
-    with open(file, "w") as stream:
+    content = re.sub(r'version = "[^"]+"', f'version = "{major}.{minor}.{patch}"', content, 1)
+    with open(pyproject_path, "w") as stream:
+        stream.write(content)
+
+
+def update_requirements(module: ModuleType, name: str, version: str) -> None:
+    pyproject_path = Path(inspect.getfile(module)).parent / "pyproject.toml"
+    with open(pyproject_path, "r") as stream:
+        content = stream.read()
+    content = re.sub(rf'{name} = "\^[^"]+"', f'{name} = "^{version}"', content, 1)
+    with open(pyproject_path, "w") as stream:
         stream.write(content)
 
 
 def update_core(major: int, minor: int, patch: int) -> None:
-    update_version(core_version, major, minor, patch)
+    update_version(core, major, minor, patch)
 
 
 def update_data(major: int, minor: int, patch: int) -> None:
-    update_version(data_version, major, minor, patch)
-    update_requirements("requirements.data.txt", "bolinette", core_version.__version__)
+    update_version(data, major, minor, patch)
+    update_requirements(data, "bolinette", get_version(core))
 
 
 def update_web(major: int, minor: int, patch: int) -> None:
-    update_version(web_version, major, minor, patch)
-    update_requirements("requirements.web.txt", "bolinette", core_version.__version__)
+    update_version(web, major, minor, patch)
+    update_requirements(web, "bolinette", get_version(core))
 
 
 if __name__ == "__main__":

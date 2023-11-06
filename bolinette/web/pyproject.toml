@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "bolinette-web"
+version = "0.16.0"
+description = "The Bolinette web package, an async Http and Websocket framework, based on bolinette and aiohttp"
+readme = "README.md"
+authors = ["Pierre Chat <pierrechat@outlook.com>"]
+license = "MIT"
+homepage = "https://bolinette.org"
+repository = "https://github.com/bolinette/bolinette"
+documentation = "https://bolinette.org/docs"
+keywords = ["Bolinette", "Framework", "Http", "Websocket"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+]
+packages = [{ include = "bolinette.web" }]
+include = ["bolinette.web/py.typed"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.8.5"
+bolinette = "^0.16.0"

@@ -23,12 +23,11 @@ jobs:
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
       - name: Install dependencies
         run: |
-          pip install --upgrade pip setuptools wheel twine
-          pip install -r requirements.web.txt
+          cp bolinette/web/pyproject.toml pyproject.toml
+          rm poetry.lock
+          pip install --upgrade pip wheel poetry
+          poetry install
       - name: Build and publish version ${{ steps.get_version.outputs.VERSION }}
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          python setup.web.py sdist bdist_wheel
-          twine upload dist/*
+          poetry build
+          poetry publish -r pypi -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}

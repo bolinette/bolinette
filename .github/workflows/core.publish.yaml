@@ -21,14 +21,22 @@ jobs:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
-      - name: Install dependencies
+      - name: Initialize project config
         run: |
-          pip install --upgrade pip setuptools wheel twine
-          pip install -r requirements.core.txt
-      - name: Build and publish version ${{ steps.get_version.outputs.VERSION }}
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          cp bolinette/core/pyproject.toml pyproject.toml
+          rm poetry.lock
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Setup local virtual environment
         run: |
-          python setup.core.py sdist bdist_wheel
-          twine upload dist/*
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+      - name: Install project dependencies
+        run: |
+          poetry install
+      - name: Build version ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          poetry build
+      - name: Publish version ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}

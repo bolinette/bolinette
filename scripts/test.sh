@@ -1,1 +1,1 @@
-pytest --cov=bolinette --cov-report=xml
+pytest --cov=bolinette --cov-report=xml --cov-report=html

@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "bolinette-data"
+version = "0.16.0"
+description = "The Bolinette data package, an async data management framework, based on bolinette and SQLAlchemy"
+readme = "README.md"
+authors = ["Pierre Chat <pierrechat@outlook.com>"]
+license = "MIT"
+homepage = "https://bolinette.org"
+repository = "https://github.com/bolinette/bolinette"
+documentation = "https://bolinette.org/docs"
+keywords = ["Bolinette", "Framework", "ORM", "Data Management"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+]
+packages = [{ include = "bolinette.data" }]
+include = ["bolinette.data/py.typed"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiosqlite = "^0.19.0"
+asyncpg = "^0.28.0"
+bolinette = "^0.16.0"
+SQLAlchemy = "^2.0.18"

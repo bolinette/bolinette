@@ -1,4 +1,0 @@
-aiosqlite==0.19.0
-asyncpg==0.28.0
-bolinette==0.15.4
-SQLAlchemy==2.0.18

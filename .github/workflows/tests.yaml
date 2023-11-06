@@ -21,12 +21,20 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Setup local virtual environment
         run: |
-          python -m pip install --upgrade pip
-          pip install wheel
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Run Bolinette tests
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+      - uses: actions/cache@v3
+        name: Define cache for virtual environment
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+      - name: Install project dependencies
         run: |
-          echo "test" > ./env/.profile
-          pytest tests/
+          poetry install
+      - name: Run tests
+        run: |
+          poetry run pytest

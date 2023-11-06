@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "bolinette"
+version = "0.16.0"
+description = "An inversion of control framework in Python"
+readme = "README.md"
+authors = ["Pierre Chat <pierrechat@outlook.com>"]
+license = "MIT"
+homepage = "https://bolinette.org"
+repository = "https://github.com/bolinette/bolinette"
+documentation = "https://bolinette.org/docs"
+keywords = ["Bolinette", "Framework", "IoC", "Dependency Injection"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+]
+packages = [{ include = "core", from = "bolinette" }]
+include = ["bolinette/core/py.typed"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyyaml = "^6.0.1"
