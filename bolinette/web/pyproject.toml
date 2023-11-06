@@ -16,8 +16,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
 ]
-packages = [{ include = "bolinette.web" }]
-include = ["bolinette.web/py.typed"]
+packages = [{ include = "data", from = "bolinette" }]
+include = ["bolinette/data/py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.11"

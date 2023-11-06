@@ -21,13 +21,22 @@ jobs:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
-      - name: Install dependencies
+      - name: Initialize project config
         run: |
           cp bolinette/web/pyproject.toml pyproject.toml
           rm poetry.lock
-          pip install --upgrade pip wheel poetry
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Setup local virtual environment
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+      - name: Install project dependencies
+        run: |
           poetry install
-      - name: Build and publish version ${{ steps.get_version.outputs.VERSION }}
+      - name: Build version ${{ steps.get_version.outputs.VERSION }}
         run: |
           poetry build
-          poetry publish -r pypi -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
+      - name: Publish version ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
