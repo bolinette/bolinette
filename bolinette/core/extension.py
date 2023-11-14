@@ -1,5 +1,5 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Any, Final, Protocol
+from typing import Any, Final, Protocol, TypeVar
 
 from typing_extensions import override
 
@@ -14,13 +14,15 @@ from bolinette.core.mapping import Mapper, type_mapper
 from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
 from bolinette.core.types import Type
 
+ExtT = TypeVar("ExtT", bound="Extension")
 
-class _ExtensionModule(Protocol):
-    __blnt_ext__: "Extension"
+
+class ExtensionModule(Protocol[ExtT]):
+    __blnt_ext__: ExtT
 
 
 class Extension:
-    def __init__(self, name: str, dependencies: "list[_ExtensionModule] | None" = None) -> None:
+    def __init__(self, name: str, dependencies: "list[ExtensionModule[Extension]] | None" = None) -> None:
         self.name = name
         self.dependencies = [m.__blnt_ext__ for m in dependencies] if dependencies else []
 

@@ -1,7 +1,8 @@
 from typing_extensions import override
 
 from bolinette import core
-from bolinette.core import Cache, Extension, command
+from bolinette.core import Cache, command
+from bolinette.core.extension import Extension
 from bolinette.core.injection import injectable
 from bolinette.web import WebResources
 from bolinette.web.defaults.commands import run_server

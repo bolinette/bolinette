@@ -21,13 +21,17 @@ def get_version(module: ModuleType) -> str:
     return config["tool"]["poetry"]["version"]
 
 
-def update_version(module: ModuleType, major: int, minor: int, patch: int) -> None:
-    pyproject_path = Path(inspect.getfile(module)).parent / "pyproject.toml"
-    with open(pyproject_path, "r") as stream:
+def update_version(path: Path, major: int, minor: int, patch: int) -> None:
+    with open(path, "r") as stream:
         content = stream.read()
     content = re.sub(r'version = "[^"]+"', f'version = "{major}.{minor}.{patch}"', content, 1)
-    with open(pyproject_path, "w") as stream:
+    with open(path, "w") as stream:
         stream.write(content)
+
+
+def update_module_version(module: ModuleType, major: int, minor: int, patch: int) -> None:
+    pyproject_path = Path(inspect.getfile(module)).parent / "pyproject.toml"
+    update_version(pyproject_path, major, minor, patch)
 
 
 def update_requirements(module: ModuleType, name: str, version: str) -> None:
@@ -40,16 +44,17 @@ def update_requirements(module: ModuleType, name: str, version: str) -> None:
 
 
 def update_core(major: int, minor: int, patch: int) -> None:
-    update_version(core, major, minor, patch)
+    update_module_version(core, major, minor, patch)
+    update_version(Path("pyproject.toml"), major, minor, patch)
 
 
 def update_data(major: int, minor: int, patch: int) -> None:
-    update_version(data, major, minor, patch)
+    update_module_version(data, major, minor, patch)
     update_requirements(data, "bolinette", get_version(core))
 
 
 def update_web(major: int, minor: int, patch: int) -> None:
-    update_version(web, major, minor, patch)
+    update_module_version(web, major, minor, patch)
     update_requirements(web, "bolinette", get_version(core))
 
 

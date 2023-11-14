@@ -82,7 +82,7 @@ def test_set_meta_fail_type() -> None:
         pass
 
     with pytest.raises(TypeError):
-        meta.set(_TestClass(), _Meta(0), cls=_Meta(0))  # type: ignore
+        meta.set(_TestClass(), _Meta(0), cls=_Meta(0))  # pyright: ignore
 
     with pytest.raises(TypeError):
         meta.set(_TestClass(), _TestClass(), cls=_Meta)
@@ -118,7 +118,7 @@ def test_fail_container_set_item() -> None:
     _c = BolinetteMetadata()
 
     with pytest.raises(TypeError):
-        _c[_TestClass()] = 0  # type: ignore
+        _c[_TestClass()] = 0  # pyright: ignore
 
 
 def test_fail_container_set_item_wrong_type() -> None:

@@ -14,7 +14,7 @@ class Role(get_base("default")):
     __tablename__ = "roles"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column()
 
     users: Mapped[list["User"]] = relationship(back_populates="role")
 

@@ -133,8 +133,8 @@ class Parser:
             kwargs["help"] = argument.summary
         return flags, kwargs
 
-    def parse_command(self) -> tuple[Callable[..., Awaitable[int | None]], dict[str, Any]]:
-        parsed = vars(self._parser.parse_args())
+    def parse_command(self, args: list[str]) -> tuple[Callable[..., Awaitable[int | None]], dict[str, Any]]:
+        parsed = vars(self._parser.parse_args(args))
         if "__blnt_cmd__" in parsed:
             cmd = parsed.pop("__blnt_cmd__")
             if "__blnt_path__" in parsed:

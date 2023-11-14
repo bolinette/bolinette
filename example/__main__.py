@@ -1,6 +1,8 @@
 import asyncio
+import sys
 
-from example import blnt
+from example import make_bolinette
 
 if __name__ == "__main__":
-    asyncio.run(blnt.run_from_args())
+    blnt = make_bolinette()
+    asyncio.run(blnt.exec_args(sys.argv[1:]))

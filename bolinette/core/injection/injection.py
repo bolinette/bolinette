@@ -59,7 +59,7 @@ class Injection:
             if _meta.match_all:
                 type_bag.set_match_all(
                     t,
-                    _meta.strategy,  # type: ignore
+                    _meta.strategy,  # pyright: ignore
                     _meta.args,
                     _meta.named_args,
                     _meta.before_init,
@@ -69,7 +69,7 @@ class Injection:
                 type_bag.add_type(
                     t,
                     t,
-                    _meta.strategy,  # type: ignore
+                    _meta.strategy,  # pyright: ignore
                     _meta.args,
                     _meta.named_args,
                     _meta.before_init,
@@ -259,7 +259,7 @@ class Injection:
         func_args = self._resolve_args(
             r_type.t,
             t.vars,
-            r_type.strategy,  # type: ignore
+            r_type.strategy,  # pyright: ignore
             vars_lookup,
             False,
             circular_guard,
@@ -277,7 +277,7 @@ class Injection:
             callback(
                 "instantiated",
                 t,
-                r_type.strategy,  # type: ignore
+                r_type.strategy,  # pyright: ignore
                 instance,
             )
         return instance
@@ -452,7 +452,7 @@ class Injection:
             instance,
         )
         if instantiate:
-            return self.require(t.cls)  # type: ignore
+            return self.require(t.cls)
         return None
 
     def require(self, cls: type[InstanceT]) -> InstanceT:

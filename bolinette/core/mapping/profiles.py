@@ -32,7 +32,7 @@ class MappingOptions(Generic[SrcT, DestT]):
         self.step: ForAttributeMapping | None = None
 
     def map_from(self, func: Callable[[SrcT], Any]) -> MapFromOptions:
-        src_expr: ExpressionNode = func(ExpressionTree.new(self.sequence.src_t))  # type: ignore
+        src_expr: ExpressionNode = func(ExpressionTree.new(self.sequence.src_t))  # pyright: ignore
         self.step = MapFromAttribute(src_expr, self.dest_expr)
         return MapFromOptions(self.step)
 
@@ -49,7 +49,7 @@ class SequenceBuilder(Generic[SrcT, DestT]):
         func: Callable[[DestT], Any],
         options: Callable[[MappingOptions[SrcT, DestT]], MapFromOptions | None],
     ) -> Self:
-        expr: ExpressionNode = func(ExpressionTree.new(self.sequence.dest_t))  # type: ignore
+        expr: ExpressionNode = func(ExpressionTree.new(self.sequence.dest_t))  # pyright: ignore
         opt: MappingOptions[SrcT, DestT] = MappingOptions(self.sequence, expr)
         options(opt)
         if opt.step is not None:

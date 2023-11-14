@@ -287,7 +287,7 @@ def test_fail_init_entity_wrong_table_object() -> None:
     meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
     cache.add(EntityMeta, entity_type)
 
-    entity_type.__table__ = object()  # type: ignore
+    entity_type.__table__ = object()
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
@@ -313,7 +313,7 @@ def test_fail_init_entity_wrong_constraint_type() -> None:
     cache.add(EntityMeta, entity_type)
 
     assert isinstance(entity_type.__table__, Table)
-    entity_type.__table__.constraints = [object()]  # type: ignore
+    entity_type.__table__.constraints = [object()]
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)

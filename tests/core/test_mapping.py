@@ -1,3 +1,4 @@
+# pyright: reportUninitializedInstanceVariable=false
 from typing import Any, TypedDict
 
 import pytest
@@ -27,10 +28,6 @@ def load_default_mappers(mapper: Mapper) -> None:
 
 
 def test_init_type_mappers_from_cache() -> None:
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
-
     class _Source:
         def __init__(self, value: int) -> None:
             self.value = value
@@ -38,8 +35,7 @@ def test_init_type_mappers_from_cache() -> None:
     class _Destination:
         value: int
 
-    @type_mapper(_Destination, cache=cache)
-    class _:
+    class TestTypeMapper:
         def __init__(self, runner: MappingRunner) -> None:
             self.runner = runner
 
@@ -59,6 +55,10 @@ def test_init_type_mappers_from_cache() -> None:
             dest.value = src.value + 1
             return dest
 
+    cache = Cache()
+    type_mapper(_Destination, cache=cache)(TestTypeMapper)
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
 
     src = _Source(1)
@@ -77,14 +77,13 @@ def test_map_simple_attr() -> None:
     class _Destination:
         value: str
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination)
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -108,16 +107,15 @@ def test_map_with_map_from() -> None:
     class _Destination:
         content: str
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -141,14 +139,13 @@ def test_map_source_no_hint() -> None:
     class _Destination:
         value: str
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination)
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -238,14 +235,13 @@ def test_map_explicit_ignore() -> None:
     class _Destination:
         name: str | None
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(lambda dest: dest.name, lambda opt: opt.ignore())
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -269,14 +265,13 @@ def test_fail_map_ignore_non_nullable() -> None:
     class _Destination:
         name: str
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(lambda dest: dest.name, lambda opt: opt.ignore())
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -378,14 +373,13 @@ def test_map_with_custom_dest() -> None:
     class _Destination:
         name: str
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             Profile.__init__(self)
             self.register(_Source, _Destination)
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -416,24 +410,23 @@ def test_map_include_base() -> None:
     class _Destination(_ParentDestination):
         content: int
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile1(Profile):
         def __init__(self) -> None:
             Profile.__init__(self)
             self.register(_ParentSource, _ParentDestination).for_attr(
                 lambda dest: dest.id, lambda opt: opt.map_from(lambda src: src.name)
             )
 
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile2(Profile):
         def __init__(self) -> None:
             Profile.__init__(self)
             self.register(_Source, _Destination).include(_ParentSource, _ParentDestination).for_attr(
                 lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile1)
+    mapping(cache=cache)(TestProfile2)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -464,16 +457,15 @@ def test_fail_included_base_not_found() -> None:
     class _Destination(_ParentDestination):
         content: int
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             Profile.__init__(self)
             self.register(_Source, _Destination).include(_ParentSource, _ParentDestination).for_attr(
                 lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
 
@@ -497,8 +489,6 @@ def test_map_before_after() -> None:
     class _Destination:
         value: int
 
-    cache = Cache()
-
     order: list[str] = []
 
     def before_map(src: _Source, dest: _Destination) -> None:
@@ -510,12 +500,13 @@ def test_map_before_after() -> None:
         assert src.value == dest.value
         order.append("after")
 
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             Profile.__init__(self)
             self.register(_Source, _Destination).before_mapping(before_map).after_mapping(after_map)
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -567,16 +558,6 @@ def test_nested_mapping_with_profile() -> None:
     class _NestedDestination:
         content: str
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_NestedSource, _NestedDestination).for_attr(
-                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
-            )
-
     class _Source:
         def __init__(self, nested: _NestedSource) -> None:
             self.nested = nested
@@ -584,14 +565,23 @@ def test_nested_mapping_with_profile() -> None:
     class _Destination:
         content: _NestedDestination
 
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile1(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_NestedSource, _NestedDestination).for_attr(
+                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
+            )
+
+    class TestProfile2(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.nested)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile1)
+    mapping(cache=cache)(TestProfile2)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -638,10 +628,7 @@ def test_mapping_iterables() -> None:
         v2: set[int]
         v3: tuple[int]
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             (
@@ -651,6 +638,8 @@ def test_mapping_iterables() -> None:
                 .for_attr(lambda dest: dest.v3, lambda opt: opt.map_from(lambda src: src.values))
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -763,16 +752,15 @@ def test_map_to_union_type() -> None:
     class _Destination:
         n: _NestedDest1 | _NestedDest2
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest.n, lambda opt: opt.map_from(lambda src: src.n).use_type(_NestedDest2)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -839,16 +827,15 @@ def test_fail_map_use_type_not_in_union() -> None:
     class _Destination:
         n: _NestedDest1 | _NestedDest2
 
-    cache = Cache()
-
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest.n, lambda opt: opt.map_from(lambda src: src.n).use_type(_NestedDest3)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -1030,8 +1017,6 @@ def test_map_dict_to_dict() -> None:
 
 
 def test_map_attr_from_child() -> None:
-    cache = Cache()
-
     class _NestedSource:
         def __init__(self, value: int) -> None:
             self.value = value
@@ -1043,14 +1028,15 @@ def test_map_attr_from_child() -> None:
     class _Destination:
         value: int
 
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest.value, lambda opt: opt.map_from(lambda src: src.nested.value)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
@@ -1065,8 +1051,6 @@ def test_map_attr_from_child() -> None:
 
 
 def test_fail_map_from_nested() -> None:
-    cache = Cache()
-
     class _NestedSource:
         def __init__(self, value: int) -> None:
             self.value = value
@@ -1082,14 +1066,15 @@ def test_fail_map_from_nested() -> None:
     class _Destination:
         nested: _NestedDestination
 
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest.nested.value, lambda opt: opt.map_from(lambda src: src.nested.value)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
 
@@ -1103,8 +1088,6 @@ def test_fail_map_from_nested() -> None:
 
 
 def test_fail_map_from_expression() -> None:
-    cache = Cache()
-
     class _NestedSource:
         def __init__(self, value: int) -> None:
             self.value = value
@@ -1120,14 +1103,15 @@ def test_fail_map_from_expression() -> None:
     class _Destination(TypedDict):
         nested: _NestedDestination
 
-    @mapping(cache=cache)
-    class _(Profile):
+    class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
                 lambda dest: dest["nested"], lambda opt: opt.map_from(lambda src: src.nested.value)
             )
 
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
 

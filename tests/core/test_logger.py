@@ -70,7 +70,7 @@ def test_logger_generic(capsys: CaptureFixture[Any]) -> None:
         pass
 
     logger: Logger[Any] = Logger(Cache(debug=True))
-    meta.set(logger, GenericMeta([_TestClass]))  # type: ignore
+    meta.set(logger, GenericMeta([_TestClass]))  # pyright: ignore
     logger._init()  # pyright: ignore[reportPrivateUsage]
 
     d1 = datetime.utcnow()

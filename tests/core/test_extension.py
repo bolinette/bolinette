@@ -1,7 +1,7 @@
 import pytest
 
-from bolinette.core import Extension
 from bolinette.core.exceptions import InitError
+from bolinette.core.extension import Extension
 
 
 class _MockModule:

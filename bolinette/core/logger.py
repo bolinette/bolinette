@@ -54,15 +54,18 @@ class Logger(Generic[T]):
                 self._package = gen_meta[0].__name__
 
     def _log(
-            self,
-            prefix: str,
-            text: str,
-            color: str | None = None,
-            file: SupportsWrite[str] | None = None,
+        self,
+        prefix: str,
+        text: str,
+        color: str | None = None,
+        file: SupportsWrite[str] | None = None,
     ):
-        strings: list[str] = [f"{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')}",
-                              f"{ConsoleColorCode.Bright}{color}{prefix}{ConsoleColorCode.Reset}",
-                              f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]", text]
+        strings: list[str] = [
+            f"{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')}",
+            f"{ConsoleColorCode.Bright}{color}{prefix}{ConsoleColorCode.Reset}",
+            f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]",
+            text,
+        ]
         print(*strings, file=file)
 
     def warning(self, *values: str, sep: str | None = None) -> None:

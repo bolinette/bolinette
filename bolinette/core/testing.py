@@ -58,11 +58,11 @@ class _MockWrapper(Generic[MockedT]):
             return _MockWrapper._get_mocked_attr(_cls, instance, name)
 
         _t = type(f"{_cls.__name__}__Mocked", (_cls,), {})
-        _t.__init__ = lambda _: None  # type: ignore
-        _t.__repr__ = lambda _: f"<Mocked[{_cls.__name__}]>"  # type: ignore
+        _t.__init__ = lambda _: None  # pyright: ignore
+        _t.__repr__ = lambda _: f"<Mocked[{_cls.__name__}]>"  # pyright: ignore
         _t.__getattribute__ = _get_attr
         meta.set(_t, _MockedMeta(_cls))
-        return _t  # type: ignore
+        return _t  # pyright: ignore
 
     def setup_callable(
         self,
@@ -73,7 +73,7 @@ class _MockWrapper(Generic[MockedT]):
         return self.setup(func, value)
 
     def setup(self, func: Callable[[MockedT], SetupT], value: SetupT, /) -> "_MockWrapper[MockedT]":
-        expr: ExpressionNode = func(ExpressionTree.new())  # type: ignore
+        expr: ExpressionNode = func(ExpressionTree.new())  # pyright: ignore
         ExpressionTree.ensure_attribute_chain(expr)
         name = ExpressionTree.get_attribute(expr)
         _meta: _MockedMeta[Any] = meta.get(self._cls, _MockedMeta)

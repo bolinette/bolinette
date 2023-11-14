@@ -44,18 +44,15 @@ async def test_launch_command() -> None:
 
     parser = mock.injection.require(Parser)
 
-    _argv = sys.argv
     _exit = sys.exit
     sys.exit = _catch_exit
 
-    sys.argv = ["test", "command"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command"])
     await mock.injection.call(cmd, named_args=args)
     assert value == 2
 
     assert not exited
 
-    sys.argv = _argv
     sys.exit = _exit
 
 
@@ -87,17 +84,14 @@ async def test_launch_command_not_found() -> None:
 
     parser = mock.injection.require(Parser)
 
-    _argv = sys.argv
     _exit = sys.exit
     sys.exit = _catch_exit
 
-    sys.argv = ["test", "none"]
-    parser.parse_command()
+    parser.parse_command(["none"])
     assert value == 1
 
     assert exited
 
-    sys.argv = _argv
     sys.exit = _exit
 
 
@@ -127,23 +121,19 @@ async def test_launch_sub_command() -> None:
 
     parser = mock.injection.require(Parser)
 
-    _argv = sys.argv
     _exit = sys.exit
     sys.exit = _catch_exit
 
-    sys.argv = ["test", "command", "inc"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "inc"])
     await mock.injection.call(cmd, named_args=args)
     assert value == 2
 
-    sys.argv = ["test", "command", "dec"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "dec"])
     await mock.injection.call(cmd, named_args=args)
     assert value == 1
 
     assert not exited
 
-    sys.argv = _argv
     sys.exit = _exit
 
 
@@ -180,18 +170,15 @@ async def test_launch_sub_command_not_found() -> None:
 
     parser = mock.injection.require(Parser)
 
-    _argv = sys.argv
     _exit = sys.exit
     sys.exit = _catch_exit
-    sys.argv = ["test", "command", "none"]
 
-    parser.parse_command()
+    parser.parse_command(["command", "none"])
     assert value == 1
 
     assert exited
     assert "command [-h] {inc,dec}" in error_str
 
-    sys.argv = _argv
     sys.exit = _exit
 
 
@@ -200,8 +187,6 @@ async def test_command_argument() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
     mock.mock(Logger[Parser])
-
-    _argv = sys.argv
 
     value = 0
 
@@ -212,13 +197,10 @@ async def test_command_argument() -> None:
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "42"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "42"])
     await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
-
-    sys.argv = _argv
 
 
 async def test_command_with_injection() -> None:
@@ -226,8 +208,6 @@ async def test_command_with_injection() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
     mock.mock(Logger[Parser])
-
-    _argv = sys.argv
 
     value = 0
 
@@ -238,13 +218,10 @@ async def test_command_with_injection() -> None:
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "42"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "42"])
     await mock.injection.call(cmd, named_args=args)
 
     assert value == 43
-
-    sys.argv = _argv
 
 
 async def test_command_option() -> None:
@@ -252,8 +229,6 @@ async def test_command_option() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
     mock.mock(Logger[Parser])
-
-    _argv = sys.argv
 
     value = 0
 
@@ -264,13 +239,10 @@ async def test_command_option() -> None:
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "--param", "42"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "--param", "42"])
     await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
-
-    sys.argv = _argv
 
 
 async def test_command_option_flag() -> None:
@@ -278,8 +250,6 @@ async def test_command_option_flag() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
     mock.mock(Logger[Parser])
-
-    _argv = sys.argv
 
     value = 0
 
@@ -290,13 +260,10 @@ async def test_command_option_flag() -> None:
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "-p", "42"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "-p", "42"])
     await mock.injection.call(cmd, named_args=args)
 
     assert value == 42
-
-    sys.argv = _argv
 
 
 async def test_command_flag() -> None:
@@ -304,8 +271,6 @@ async def test_command_flag() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
     mock.mock(Logger[Parser])
-
-    _argv = sys.argv
 
     value = False
 
@@ -316,13 +281,10 @@ async def test_command_flag() -> None:
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "--param"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "--param"])
     await mock.injection.call(cmd, named_args=args)
 
     assert value is True
-
-    sys.argv = _argv
 
 
 async def test_command_flag_flag() -> None:
@@ -330,8 +292,6 @@ async def test_command_flag_flag() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Parser, "singleton")
     mock.mock(Logger[Parser])
-
-    _argv = sys.argv
 
     value = False
 
@@ -342,13 +302,10 @@ async def test_command_flag_flag() -> None:
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "-p"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "-p"])
     await mock.injection.call(cmd, named_args=args)
 
     assert value is True
-
-    sys.argv = _argv
 
 
 async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
@@ -367,21 +324,18 @@ async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
     async def _(_: Annotated[int, Argument("option", "p", summary="This a help text for param arg")]):
         pass
 
-    _argv = sys.argv
     _exit = sys.exit
     sys.exit = _catch_exit
 
     parser = mock.injection.require(Parser)
 
-    sys.argv = ["test", "command", "--help"]
-    cmd, args = parser.parse_command()
+    cmd, args = parser.parse_command(["command", "--help"])
     await mock.injection.call(cmd, named_args=args)
 
     assert exited
 
     assert "This a help text for param arg" in capsys.readouterr().out
 
-    sys.argv = _argv
     sys.exit = _exit
 
 

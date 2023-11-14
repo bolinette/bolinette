@@ -1,8 +1,7 @@
 import collections.abc
 import contextlib
 import inspect
-from inspect import Parameter
-from types import EllipsisType, NoneType, UnionType
+from types import NoneType, UnionType
 from typing import Annotated, Any, ForwardRef, Generic, Literal, TypeVar, Union, get_args, get_origin, get_type_hints
 
 from typing_extensions import override
@@ -30,7 +29,7 @@ class Type(Generic[T]):
         raise_on_typevar: bool = True,
     ) -> None:
         self.annotated: tuple[Any, ...]
-        if (origin := get_origin(cls)) is not None and origin is Annotated:
+        if get_origin(cls) is Annotated:
             cls, *self.annotated = get_args(cls)
         else:
             self.annotated = ()
@@ -43,7 +42,7 @@ class Type(Generic[T]):
             additional_cls = ()
             self.nullable = False
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
-        self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), self.get_param_count(self.cls))))
+        self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))))
         self.union = tuple(Type(c) for c in additional_cls)
 
     @override
@@ -106,7 +105,7 @@ class Type(Generic[T]):
     def new(self, *args: Any, **kwargs: Any) -> T:
         return self.cls(*args, **kwargs)
 
-    def parameters(self) -> dict[str, Parameter]:
+    def parameters(self) -> dict[str, inspect.Parameter]:
         return {**inspect.signature(self.cls).parameters}
 
     def annotations(self, *, lookup: "types.TypeVarLookup[Any] | None" = None) -> "dict[str, Type[Any]]":
@@ -122,18 +121,10 @@ class Type(Generic[T]):
                 annotations |= Type._get_recursive_annotations(base, lookup)
             hints: dict[str, type[Any]] = get_type_hints(_cls)
             for attr_name, hint in hints.items():
-                annotations[attr_name] = Type._transform_annotation(hint, lookup)
+                annotations[attr_name] = Type(hint, lookup=lookup)
         except (AttributeError, TypeError, NameError):
             return annotations
         return annotations
-
-    @staticmethod
-    def _transform_annotation(anno: Any, lookup: "types.TypeVarLookup[Any] | None") -> "Type[Any]":
-        if anno is NoneType:
-            return Type(NoneType)
-        if anno is Ellipsis:
-            return Type(EllipsisType)
-        return Type(anno, lookup=lookup)
 
     @staticmethod
     def get_generics(
@@ -166,49 +157,48 @@ class Type(Generic[T]):
         return _cls, ()
 
     @staticmethod
-    def get_param_count(__cls: type[Any]) -> int:
-        if __cls in _BUILTIN_PARAM_COUNT:
-            return _BUILTIN_PARAM_COUNT[__cls]
-        if hasattr(__cls, "__parameters__"):
-            return len(__cls.__parameters__)  # type: ignore
+    def get_param_count(cls_: type[Any]) -> int:
+        if cls_ in _BUILTIN_PARAM_COUNT:
+            return _BUILTIN_PARAM_COUNT[cls_]
+        if hasattr(cls_, "__parameters__"):
+            return len(cls_.__parameters__)  # pyright: ignore
         return 0
 
 
 _BUILTIN_PARAM_COUNT: dict[type[Any], int] = {
     collections.abc.Hashable: 0,
-    collections.abc.Awaitable: 1,
-    collections.abc.Coroutine: 3,
-    collections.abc.AsyncIterable: 1,
-    collections.abc.AsyncIterator: 1,
-    collections.abc.Iterable: 1,
-    collections.abc.Iterator: 1,
-    collections.abc.Reversible: 1,
+    collections.abc.Awaitable: 1,  # pyright: ignore
+    collections.abc.Coroutine: 3,  # pyright: ignore
+    collections.abc.AsyncIterable: 1,  # pyright: ignore
+    collections.abc.AsyncIterator: 1,  # pyright: ignore
+    collections.abc.Iterable: 1,  # pyright: ignore
+    collections.abc.Iterator: 1,  # pyright: ignore
+    collections.abc.Reversible: 1,  # pyright: ignore
     collections.abc.Sized: 0,
-    collections.abc.Container: 1,
-    collections.abc.Collection: 1,
-    collections.abc.Set: 1,
-    collections.abc.MutableSet: 1,
-    collections.abc.Mapping: 2,
-    collections.abc.MutableMapping: 2,
-    collections.abc.Sequence: 1,
-    collections.abc.MutableSequence: 1,
-    collections.abc.ByteString: 0,
+    collections.abc.Container: 1,  # pyright: ignore
+    collections.abc.Collection: 1,  # pyright: ignore
+    collections.abc.Set: 1,  # pyright: ignore
+    collections.abc.MutableSet: 1,  # pyright: ignore
+    collections.abc.Mapping: 2,  # pyright: ignore
+    collections.abc.MutableMapping: 2,  # pyright: ignore
+    collections.abc.Sequence: 1,  # pyright: ignore
+    collections.abc.MutableSequence: 1,  # pyright: ignore
     list: 1,
-    collections.deque: 1,
+    collections.deque: 1,  # pyright: ignore
     set: 1,
     frozenset: 1,
     collections.abc.MappingView: 1,
-    collections.abc.KeysView: 1,
-    collections.abc.ItemsView: 2,
-    collections.abc.ValuesView: 1,
-    contextlib.AbstractContextManager: 1,
-    contextlib.AbstractAsyncContextManager: 1,
+    collections.abc.KeysView: 1,  # pyright: ignore
+    collections.abc.ItemsView: 2,  # pyright: ignore
+    collections.abc.ValuesView: 1,  # pyright: ignore
+    contextlib.AbstractContextManager: 1,  # pyright: ignore
+    contextlib.AbstractAsyncContextManager: 1,  # pyright: ignore
     dict: 2,
-    collections.defaultdict: 2,
-    collections.OrderedDict: 2,
-    collections.Counter: 1,
-    collections.ChainMap: 2,
-    collections.abc.Generator: 3,
-    collections.abc.AsyncGenerator: 2,
+    collections.defaultdict: 2,  # pyright: ignore
+    collections.OrderedDict: 2,  # pyright: ignore
+    collections.Counter: 1,  # pyright: ignore
+    collections.ChainMap: 2,  # pyright: ignore
+    collections.abc.Generator: 3,  # pyright: ignore
+    collections.abc.AsyncGenerator: 2,  # pyright: ignore
     type: 1,
 }

@@ -1175,7 +1175,7 @@ def test_init_method_with_typevar() -> None:
     class _Controller(Generic[_T]):
         @init_method
         def init(self, s: _Service[_T]) -> None:
-            self.s = s
+            self.s = s  # pyright: ignore
 
     inject = Injection(Cache())
     inject.add(_Service[_Entity], "singleton")

@@ -27,7 +27,7 @@ class InjectionHook(Generic[InstanceT]):
         )
 
     def __get__(self, *_) -> InstanceT:
-        return None  # type: ignore
+        return None  # pyright: ignore
 
 
 class InjectionProxy:

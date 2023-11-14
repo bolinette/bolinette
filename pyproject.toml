@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette"
-version = "0.15.5"
+version = "0.16.1"
 description = "An inversion of control framework in Python"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
 license = "MIT"
@@ -20,12 +20,12 @@ sqlalchemy = "^2.0.23"
 [tool.poetry.dev-dependencies]
 autoflake = "^2.2.1"
 autopep8 = "^2.0.4"
-black = "^23.10.1"
+black = "^23.11.0"
 coverage = "^7.3.2"
 flake8 = "^6.1.0"
 isort = "^5.12.0"
-mypy = "^1.6.1"
-ruff = "^0.1.4"
+mypy = "^1.7.0"
+ruff = "^0.1.5"
 pytest = "^7.4.3"
 pytest-aiohttp = "^1.0.5"
 pytest-asyncio = "^0.21.1"

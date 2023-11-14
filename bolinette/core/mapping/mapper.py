@@ -155,8 +155,8 @@ class MappingRunner:
                 if exc_grp is None:
                     raise exc
                 exc_grp.append(exc)
-                return None  # type: ignore
-            return None  # type: ignore
+                return None  # pyright: ignore
+            return None  # pyright: ignore
         mapper_cls: type[TypeMapper[Any]] = self.mappers[dest_t] if dest_t in self.mappers else self.default_mapper
         mapper = mapper_cls(self)
         return mapper.map(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
@@ -334,7 +334,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             if exc_grp is None:
                 raise exc
             exc_grp.append(exc)
-            return None  # type: ignore
+            return None  # pyright: ignore
         for index, elem in enumerate(src):
             elems.append(
                 self.runner.map(
@@ -360,7 +360,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             if exc_grp is None:
                 raise exc
             exc_grp.append(exc)
-            return None  # type: ignore
+            return None  # pyright: ignore
         return dest
 
     def _map_dict(
@@ -441,13 +441,13 @@ class IntegerTypeMapper(TypeMapper[int]):
         exc_grp: list[MappingError] | None,
     ) -> int:
         try:
-            return int(src)  # type: ignore
+            return int(src)  # pyright: ignore
         except (ValueError, TypeError) as err:
             exc = ConvertionError(src_expr, dest_expr, src, Type(int))
             if exc_grp is None:
                 raise exc from err
             exc_grp.append(exc)
-            return None  # type: ignore
+            return None  # pyright: ignore
 
 
 class FloatTypeMapper(TypeMapper[float]):
@@ -468,13 +468,13 @@ class FloatTypeMapper(TypeMapper[float]):
         exc_grp: list[MappingError] | None,
     ) -> float:
         try:
-            return float(src)  # type: ignore
+            return float(src)  # pyright: ignore
         except ValueError as err:
             exc = ConvertionError(src_expr, dest_expr, src, Type(float))
             if exc_grp is None:
                 raise exc from err
             exc_grp.append(exc)
-            return None  # type: ignore
+            return None  # pyright: ignore
 
 
 class BoolTypeMapper(TypeMapper[bool]):

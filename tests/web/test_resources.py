@@ -1,3 +1,4 @@
+# pyright: reportUninitializedInstanceVariable=false
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 

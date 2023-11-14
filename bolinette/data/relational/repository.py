@@ -61,7 +61,7 @@ class Repository(Generic[EntityT]):
         query = select(self._entity)
         for col, value in zip(self._primary_key, values, strict=True):
             query = query.where(col == value)
-        return await self.first(query, raises=raises)  # type: ignore
+        return await self.first(query, raises=raises)  # pyright: ignore
 
     @overload
     async def get_by_key(self, *values: Any, raises: Literal[True] = True) -> EntityT:
@@ -77,7 +77,7 @@ class Repository(Generic[EntityT]):
         query = select(self._entity)
         for col, value in zip(self._entity_key, values, strict=True):
             query = query.where(col == value)
-        return await self.first(query, raises=raises)  # type: ignore
+        return await self.first(query, raises=raises)  # pyright: ignore
 
     def add(self, entity: EntityT) -> None:
         self._session.add(entity)
@@ -89,7 +89,7 @@ class Repository(Generic[EntityT]):
         await self._session.commit()
 
 
-RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # type: ignore
+RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # pyright: ignore
 
 
 class RepositoryMeta(Generic[EntityT]):
