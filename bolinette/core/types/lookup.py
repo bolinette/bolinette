@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar, get_origin
 
 from bolinette.core.types import Type
 
@@ -32,4 +32,11 @@ class TypeVarLookup[T]:
     def get_lookup(t: Type[Any]) -> dict[TypeVar, type[Any]] | None:
         if not hasattr(t.cls, "__parameters__"):
             return None
-        return {n: t.vars[i] for i, n in enumerate(t.cls.__parameters__)}
+        lookup: dict[TypeVar, type[Any]] = {}
+        if hasattr(t.cls, "__orig_bases__"):
+            for base in t.cls.__orig_bases__:
+                if get_origin(base) is Generic:
+                    continue
+                if (base_lookup := TypeVarLookup.get_lookup(Type(base))) is not None:
+                    lookup |= base_lookup
+        return lookup | {n: t.vars[i] for i, n in enumerate(t.cls.__parameters__)}

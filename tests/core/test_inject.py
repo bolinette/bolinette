@@ -1412,3 +1412,18 @@ def test_inject_generic_type_in_init() -> None:
     assert s.ta == Type(int)
     assert s.cb is str
     assert s.tb == Type(str)
+
+
+def test_resolve_typevar_in_super_class_init() -> None:
+    class Service[T]:
+        @init_method
+        def init(self, t: Type[T]) -> None:
+            pass
+
+    class IntService(Service[int]):
+        pass
+
+    cache = Cache()
+    inject = Injection(cache)
+    inject.add(IntService, "singleton")
+    inject.require(IntService)
