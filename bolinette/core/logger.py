@@ -1,16 +1,13 @@
 import sys
 from datetime import UTC, datetime
-from typing import Generic, Protocol, TypeVar
+from typing import Protocol
 
-from bolinette.core import Cache, GenericMeta, meta
-from bolinette.core.injection import init_method
-
-T_Contra = TypeVar("T_Contra", contravariant=True)
-T = TypeVar("T")
+from bolinette.core import Cache
+from bolinette.core.types import Type
 
 
-class SupportsWrite(Protocol[T_Contra]):
-    def write(self, __s: T_Contra) -> object:
+class SupportsWrite[T](Protocol):
+    def write(self, __s: T) -> object:
         pass
 
 
@@ -42,16 +39,10 @@ class ConsoleColorCode:
     BgWhite = "\x1b[47m"
 
 
-class Logger(Generic[T]):
-    def __init__(self, cache: Cache | None = None) -> None:
+class Logger[T]:
+    def __init__(self, t: Type[T], cache: Cache | None = None) -> None:
         self._cache = cache or Cache()
-        self._package = "<Logger>"
-
-    @init_method
-    def _init(self) -> None:
-        if gen_meta := meta.get(self, GenericMeta, default=None):
-            if len(gen_meta):
-                self._package = gen_meta[0].__name__
+        self._package = str(t)
 
     def _log(
         self,

@@ -23,11 +23,10 @@ def test_simple_type() -> None:
 
 
 def test_generic_type() -> None:
-    T = TypeVar("T")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
+    T = TypeVar("T")
     t = Type(_T[T], raise_on_typevar=False)
 
     assert t.cls is _T
@@ -39,9 +38,7 @@ def test_generic_type() -> None:
 
 
 def test_missing_generic_param_is_any() -> None:
-    T = TypeVar("T")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
     t = Type(_T)
@@ -51,12 +48,10 @@ def test_missing_generic_param_is_any() -> None:
 
 
 def test_specified_generic_type() -> None:
-    T = TypeVar("T")
-
     class _P:
         pass
 
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
     t = Type(_T[_P])
@@ -68,9 +63,7 @@ def test_specified_generic_type() -> None:
 
 
 def test_fail_forward_ref() -> None:
-    T = TypeVar("T")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
     class _P:
@@ -83,9 +76,7 @@ def test_fail_forward_ref() -> None:
 
 
 def test_forward_ref() -> None:
-    T = TypeVar("T")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
     class _P:
@@ -98,11 +89,10 @@ def test_forward_ref() -> None:
 
 
 def test_fail_typevar() -> None:
-    T = TypeVar("T")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
+    T = TypeVar("T")
     with pytest.raises(TypingError) as info:
         Type(_T[T], raise_on_typevar=True)
 
@@ -127,18 +117,16 @@ def test_typevar_lookup() -> None:
 
 
 def test_fail_typevar_not_found_in_lookup() -> None:
-    T = TypeVar("T")
-    K = TypeVar("K")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
-    class _K(Generic[K]):
+    class _K[K]:
         pass
 
     class _P:
         pass
 
+    T = TypeVar("T")
     with pytest.raises(TypingError) as info:
         Type(_T[T], lookup=TypeVarLookup(Type(_K[_P])))
 
@@ -149,18 +137,16 @@ def test_fail_typevar_not_found_in_lookup() -> None:
 
 
 def test_typevar_not_found_in_lookup() -> None:
-    T = TypeVar("T")
-    K = TypeVar("K")
-
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
-    class _K(Generic[K]):
+    class _K[K]:
         pass
 
     class _P:
         pass
 
+    T = TypeVar("T")
     k = Type(_K[_P])
     t = Type(_T[T], lookup=TypeVarLookup(k), raise_on_typevar=False)
 
@@ -196,10 +182,9 @@ def test_empty_lookup() -> None:
 
 
 def test_fail_lookup_key_not_found() -> None:
-    T = TypeVar("T")
     K = TypeVar("K")
 
-    class _T(Generic[T]):
+    class _T[T]:
         pass
 
     class _P:

@@ -1,5 +1,5 @@
 from collections.abc import Awaitable, Callable
-from typing import Any, ParamSpec, Protocol, TypeVar
+from typing import Any, Protocol
 
 from aiohttp import web
 
@@ -7,11 +7,8 @@ from bolinette.core import meta
 from bolinette.core.types import Type
 from bolinette.web import Controller
 
-MdlwInitP = ParamSpec("MdlwInitP")
-CtrlT = TypeVar("CtrlT", bound=Controller | Callable[..., Any])
 
-
-class Middleware(Protocol[MdlwInitP]):
+class Middleware[**MdlwInitP](Protocol):
     def options(self, *args: MdlwInitP.args, **kwargs: MdlwInitP.kwargs) -> None:
         ...
 
@@ -31,7 +28,7 @@ class MiddlewareBag:
         self.removed: list[Type[Middleware[...]]] = []
 
 
-def with_middleware(
+def with_middleware[CtrlT: Controller | Callable[..., Any], **MdlwInitP](
     middleware: type[Middleware[MdlwInitP]],
     *args: MdlwInitP.args,
     **kwargs: MdlwInitP.kwargs,
@@ -48,7 +45,9 @@ def with_middleware(
     return decorator
 
 
-def without_middleware(middleware: type[Middleware[...]]) -> Callable[[CtrlT], CtrlT]:
+def without_middleware[CtrlT: Controller | Callable[..., Any]](
+    middleware: type[Middleware[...]],
+) -> Callable[[CtrlT], CtrlT]:
     def decorator(func: CtrlT) -> CtrlT:
         if not meta.has(func, MiddlewareBag):
             bag = MiddlewareBag()

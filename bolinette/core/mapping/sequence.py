@@ -1,14 +1,9 @@
 from collections.abc import Callable
-from typing import Any, Generic, TypeVar
-
-from typing_extensions import override
+from typing import Any, override
 
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.types import Type
-
-SrcT = TypeVar("SrcT", bound=object)
-DestT = TypeVar("DestT", bound=object)
 
 
 class ForAttributeMapping:
@@ -34,14 +29,14 @@ class IgnoreAttribute(ForAttributeMapping):
         ForAttributeMapping.__init__(self, dest_expr)
 
 
-class MappingFunction(Generic[SrcT, DestT]):
+class MappingFunction[SrcT, DestT]:
     __slots__ = "func"
 
     def __init__(self, func: Callable[[SrcT, DestT], None]) -> None:
         self.func = func
 
 
-class IncludeFromBase(Generic[SrcT, DestT]):
+class IncludeFromBase[SrcT, DestT]:
     __slots__ = ("src_t", "dest_t")
 
     def __init__(self, src_t: Type[SrcT], dest_t: Type[DestT]) -> None:
@@ -49,7 +44,7 @@ class IncludeFromBase(Generic[SrcT, DestT]):
         self.dest_t = dest_t
 
 
-class MappingSequence(Generic[SrcT, DestT]):
+class MappingSequence[SrcT, DestT]:
     __slots__ = ("src_t", "dest_t", "head", "for_attrs", "tail", "includes")
 
     def __init__(self, src: type[SrcT], dest: type[DestT]) -> None:

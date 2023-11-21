@@ -1,9 +1,7 @@
 from collections.abc import Callable, Iterable
 from contextlib import AbstractContextManager
 from types import TracebackType
-from typing import Any, Concatenate, Literal, ParamSpec, Protocol, Self, TypeVar, overload
-
-from typing_extensions import override
+from typing import Any, Concatenate, Literal, Protocol, Self, overload, override
 
 from bolinette.core import Cache, GenericMeta, __user_cache__, meta
 from bolinette.core.exceptions import InjectionError
@@ -15,10 +13,6 @@ from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOption
 from bolinette.core.types import Function, Type, TypeVarLookup
 from bolinette.core.utils import OrderedSet
 from bolinette.core.utils.strings import StringUtils
-
-FuncP = ParamSpec("FuncP")
-FuncT = TypeVar("FuncT")
-InstanceT = TypeVar("InstanceT")
 
 
 class Injection(AbstractContextManager["Injection"]):
@@ -57,7 +51,7 @@ class Injection(AbstractContextManager["Injection"]):
             if t.cls not in types:
                 types[t.cls] = RegisteredTypeBag(t.cls)
             type_bag = types[t.cls]
-            _meta = meta.get(t.cls, InjectionParamsMeta)
+            _meta: InjectionParamsMeta[Any, ...] = meta.get(t.cls, InjectionParamsMeta)
             if _meta.match_all:
                 type_bag.set_match_all(
                     t,
@@ -104,13 +98,13 @@ class Injection(AbstractContextManager["Injection"]):
             self.instantiate(t) for t in self.cache.get(InjectionCallback, hint=type[InjectionCallback], raises=False)
         ]
 
-    def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
+    def __has_instance__(self, r_type: RegisteredType[Any]) -> bool:
         return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
 
-    def __get_instance__(self, r_type: "RegisteredType[InstanceT]") -> InstanceT:
+    def __get_instance__[InstanceT](self, r_type: RegisteredType[InstanceT]) -> InstanceT:
         return self._global_ctx.get_instance(r_type.t)
 
-    def __set_instance__(self, r_type: "RegisteredType[InstanceT]", instance: InstanceT) -> None:
+    def __set_instance__[InstanceT](self, r_type: RegisteredType[InstanceT], instance: InstanceT) -> None:
         if r_type.strategy == "singleton":
             self._global_ctx.set_instance(r_type.t, instance)
 
@@ -225,7 +219,7 @@ class Injection(AbstractContextManager["Injection"]):
             r_type = self._types[t.cls].get_type(t)
             setattr(cls, name, InjectionProxy(name, r_type, t))
 
-    def _run_init_recursive(
+    def _run_init_recursive[InstanceT](
         self,
         cls: type[InstanceT],
         instance: InstanceT,
@@ -238,9 +232,9 @@ class Injection(AbstractContextManager["Injection"]):
             if meta.has(attr, InitMethodMeta):
                 self.call(attr, args=[instance], vars_lookup=vars_lookup, circular_guard=circular_guard)
 
-    def _run_init_methods(
+    def _run_init_methods[InstanceT](
         self,
-        r_type: "RegisteredType[InstanceT]",
+        r_type: RegisteredType[InstanceT],
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
         circular_guard: OrderedSet[Any],
@@ -251,9 +245,9 @@ class Injection(AbstractContextManager["Injection"]):
         for method in r_type.after_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
 
-    def __instantiate__(
+    def __instantiate__[InstanceT](
         self,
-        r_type: "RegisteredType[InstanceT]",
+        r_type: RegisteredType[InstanceT],
         t: Type[InstanceT],
         circular_guard: OrderedSet[Any],
     ) -> InstanceT:
@@ -293,7 +287,7 @@ class Injection(AbstractContextManager["Injection"]):
             t = cls
         return t.cls in self._types and self._types[t.cls].is_registered(t)
 
-    def call(
+    def call[FuncT](
         self,
         func: Callable[..., FuncT],
         *,
@@ -316,7 +310,7 @@ class Injection(AbstractContextManager["Injection"]):
         )
         return func(**func_args)
 
-    def instantiate(
+    def instantiate[InstanceT](
         self,
         cls: type[InstanceT],
         *,
@@ -345,7 +339,7 @@ class Injection(AbstractContextManager["Injection"]):
             instance.__enter__()
         return instance
 
-    def _add_type_instance(
+    def _add_type_instance[InstanceT](
         self,
         super_t: Type[InstanceT],
         t: Type[InstanceT],
@@ -353,8 +347,8 @@ class Injection(AbstractContextManager["Injection"]):
         strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
-        before_init: list[Callable[[Any], None]],
-        after_init: list[Callable[[Any], None]],
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]],
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]],
         instance: InstanceT | None,
         *,
         safe: bool = False,
@@ -376,15 +370,15 @@ class Injection(AbstractContextManager["Injection"]):
                 self.__set_instance__(r_type, instance)
 
     @overload
-    def add(
+    def add[InstanceT](
         self,
         cls: type[InstanceT],
         strategy: AddStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
-        after_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
@@ -393,29 +387,29 @@ class Injection(AbstractContextManager["Injection"]):
         pass
 
     @overload
-    def add(
+    def add[InstanceT](
         self,
         cls: type[InstanceT],
         strategy: AddStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
-        after_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
     ) -> None:
         pass
 
-    def add(
+    def add[InstanceT](
         self,
         cls: type[InstanceT],
         strategy: AddStrategy,
         args: list[Any] | None = None,
         named_args: dict[str, Any] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
-        after_init: list[Callable[Concatenate[InstanceT, FuncP], None]] | None = None,
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
         super_cls: type[InstanceT] | None = None,
         *,
@@ -460,7 +454,7 @@ class Injection(AbstractContextManager["Injection"]):
             return self.require(t.cls)
         return None
 
-    def require(self, cls: type[InstanceT]) -> InstanceT:
+    def require[InstanceT](self, cls: type[InstanceT]) -> InstanceT:
         t = Type(cls)
         if not self.is_registered(t):
             raise InjectionError(f"Type {t} is not a registered type in the injection system")
@@ -520,13 +514,13 @@ class ScopedInjection(Injection):
         )
 
     @override
-    def __get_instance__(self, r_type: "RegisteredType[InstanceT]") -> InstanceT:
+    def __get_instance__[InstanceT](self, r_type: RegisteredType[InstanceT]) -> InstanceT:
         if self._scoped_ctx.has_instance(r_type.t):
             return self._scoped_ctx.get_instance(r_type.t)
         return self._global_ctx.get_instance(r_type.t)
 
     @override
-    def __set_instance__(self, r_type: "RegisteredType[InstanceT]", instance: InstanceT) -> None:
+    def __set_instance__[InstanceT](self, r_type: RegisteredType[InstanceT], instance: InstanceT) -> None:
         strategy = r_type.strategy
         if strategy == "scoped":
             self._scoped_ctx.set_instance(r_type.t, instance)
@@ -551,7 +545,7 @@ class ScopedInjection(Injection):
         return [*resolvers]
 
     @override
-    def call(
+    def call[FuncT](
         self,
         func: Callable[..., FuncT],
         *,
@@ -597,10 +591,7 @@ class InjectionCallback(Protocol):
         ...
 
 
-CallbackT = TypeVar("CallbackT", bound=InjectionCallback)
-
-
-def injection_callback(*, cache: Cache) -> Callable[[type[CallbackT]], type[CallbackT]]:
+def injection_callback[CallbackT](*, cache: Cache) -> Callable[[type[CallbackT]], type[CallbackT]]:
     def decorator(callback: type[CallbackT]) -> type[CallbackT]:
         (cache or __user_cache__).add(InjectionCallback, callback)
         return callback

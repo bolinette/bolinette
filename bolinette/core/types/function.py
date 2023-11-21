@@ -1,17 +1,11 @@
 import inspect
 from collections.abc import Callable
-from typing import Any, Generic, ParamSpec, TypeVar, get_type_hints
-
-from typing_extensions import override
+from typing import Any, get_type_hints, override
 
 from bolinette.core.types import Type, TypeVarLookup
 
-FuncP = ParamSpec("FuncP")
-FuncT = TypeVar("FuncT")
-InitP = ParamSpec("InitP")
 
-
-class Function(Generic[FuncP, FuncT]):
+class Function[**FuncP, FuncT]:
     __slots__: list[str] = ["func", "bound_to"]
 
     def __init__(self, func: Callable[FuncP, FuncT]) -> None:

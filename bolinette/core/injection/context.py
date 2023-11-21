@@ -1,9 +1,7 @@
 from collections.abc import Iterable
-from typing import Any, TypeVar
+from typing import Any
 
 from bolinette.core.types import Type
-
-InstanceT = TypeVar("InstanceT")
 
 
 class InjectionContext:
@@ -15,10 +13,10 @@ class InjectionContext:
     def has_instance(self, t: Type[Any]) -> bool:
         return hash(t) in self._instances
 
-    def set_instance(self, t: Type[InstanceT], instance: InstanceT) -> None:
+    def set_instance[InstanceT](self, t: Type[InstanceT], instance: InstanceT) -> None:
         self._instances[hash(t)] = instance
 
-    def get_instance(self, t: Type[InstanceT]) -> InstanceT:
+    def get_instance[InstanceT](self, t: Type[InstanceT]) -> InstanceT:
         return self._instances[hash(t)]
 
     @property

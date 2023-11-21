@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Protocol, TypeVar
+from typing import Protocol
 
 from bolinette.core import Cache, __user_cache__, meta
 
@@ -13,10 +13,12 @@ class ControllerMeta:
         self.path = path
 
 
-TCtrl = TypeVar("TCtrl", bound=Controller)
-
-
-def controller(path: str, /, *, cache: Cache | None = None) -> Callable[[type[TCtrl]], type[TCtrl]]:
+def controller[TCtrl: Controller](
+    path: str,
+    /,
+    *,
+    cache: Cache | None = None,
+) -> Callable[[type[TCtrl]], type[TCtrl]]:
     def decorator(cls: type[TCtrl]) -> type[TCtrl]:
         meta.set(cls, ControllerMeta(path))
         (cache or __user_cache__).add(ControllerMeta, cls)

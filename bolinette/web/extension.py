@@ -1,4 +1,4 @@
-from typing_extensions import override
+from typing import override
 
 from bolinette import core
 from bolinette.core import Cache, command

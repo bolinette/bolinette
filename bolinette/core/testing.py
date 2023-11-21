@@ -1,18 +1,13 @@
 from collections.abc import Callable
-from typing import Any, Generic, ParamSpec, TypeVar, get_args, get_origin
+from typing import Any, get_args, get_origin
 
 from bolinette.core import Cache, meta
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.injection import Injection
 from bolinette.core.injection.context import InjectionContext
 
-MockedT = TypeVar("MockedT")
-SetupT = TypeVar("SetupT")
-FuncT = TypeVar("FuncT")
-FuncP = ParamSpec("FuncP")
 
-
-class _MockedMeta(Generic[MockedT]):
+class _MockedMeta[MockedT]:
     def __init__(self, cls: type[MockedT]) -> None:
         self.cls = cls
         self.dummy = False
@@ -35,7 +30,7 @@ class _MockedMeta(Generic[MockedT]):
         self._attrs[key] = value
 
 
-class _MockWrapper(Generic[MockedT]):
+class _MockWrapper[MockedT]:
     def __init__(
         self,
         cls: type[MockedT],
@@ -64,7 +59,7 @@ class _MockWrapper(Generic[MockedT]):
         meta.set(_t, _MockedMeta(_cls))
         return _t  # pyright: ignore
 
-    def setup_callable(
+    def setup_callable[**FuncP, FuncT](
         self,
         func: Callable[[MockedT], Callable[FuncP, FuncT]],
         value: Callable[FuncP, FuncT],
@@ -72,7 +67,7 @@ class _MockWrapper(Generic[MockedT]):
     ) -> "_MockWrapper[MockedT]":
         return self.setup(func, value)
 
-    def setup(self, func: Callable[[MockedT], SetupT], value: SetupT, /) -> "_MockWrapper[MockedT]":
+    def setup[SetupT](self, func: Callable[[MockedT], SetupT], value: SetupT, /) -> "_MockWrapper[MockedT]":
         expr: ExpressionNode = func(ExpressionTree.new())  # pyright: ignore
         ExpressionTree.ensure_attribute_chain(expr)
         name = ExpressionTree.get_attribute(expr)
@@ -92,7 +87,7 @@ class Mock:
         self._mocked: dict[type[Any], _MockWrapper[Any]] = {}
 
     @staticmethod
-    def _get_generic_params(
+    def _get_generic_params[MockedT](
         _cls: type[MockedT],
     ) -> tuple[type[MockedT], tuple[Any, ...]]:
         if origin := get_origin(_cls):
@@ -102,7 +97,7 @@ class Mock:
             return origin, params
         return _cls, ()
 
-    def mock(self, cls: type[MockedT], *, match_all: bool = False) -> _MockWrapper[MockedT]:
+    def mock[MockedT](self, cls: type[MockedT], *, match_all: bool = False) -> _MockWrapper[MockedT]:
         origin, _ = self._get_generic_params(cls)
         if origin in self._mocked:
             mocked = self._mocked[origin]

@@ -1,5 +1,5 @@
 import sys
-from typing import NoReturn, TypeVar
+from typing import NoReturn
 
 from bolinette import core
 from bolinette.core import Logger, __user_cache__, meta
@@ -9,8 +9,6 @@ from bolinette.core.environment import Environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import Injection, require
-
-ExtT = TypeVar("ExtT", bound=Extension)
 
 
 class Bolinette:
@@ -22,7 +20,7 @@ class Bolinette:
         self._env: Environment
         self._logger: Logger[Bolinette]
 
-    def use_extension(self, ext: ExtensionModule[ExtT] | ExtT) -> ExtT:
+    def use_extension[ExtT: Extension](self, ext: ExtensionModule[ExtT] | ExtT) -> ExtT:
         if self._initialized:
             raise InitError("Cannot use extension after Bolinette startup")
         if not isinstance(ext, Extension):

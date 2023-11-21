@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol
 
 from bolinette.core import Cache, __user_cache__, injection, meta
 from bolinette.core.exceptions import InjectionError
@@ -64,11 +64,11 @@ class ArgResolverMeta:
         self.scoped = scoped
 
 
-ArgResolverT = TypeVar("ArgResolverT", bound=ArgumentResolver)
-
-
-def injection_arg_resolver(
-    *, priority: int = 0, scoped: bool = False, cache: Cache | None = None
+def injection_arg_resolver[ArgResolverT: ArgumentResolver](
+    *,
+    priority: int = 0,
+    scoped: bool = False,
+    cache: Cache | None = None,
 ) -> Callable[[type[ArgResolverT]], type[ArgResolverT]]:
     def decorator(cls: type[ArgResolverT]) -> type[ArgResolverT]:
         (cache or __user_cache__).add(ArgumentResolver, cls)

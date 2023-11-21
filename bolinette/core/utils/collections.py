@@ -1,12 +1,8 @@
 from collections.abc import Iterable, Iterator
-from typing import Generic, TypeVar
-
-from typing_extensions import override
-
-T = TypeVar("T")
+from typing import override
 
 
-class OrderedSet(Generic[T], set[T]):
+class OrderedSet[T](set[T]):
     def __init__(self, iterable: Iterable[T] | None = None, /) -> None:
         super().__init__(iterable or ())
         self._order: list[T] = []

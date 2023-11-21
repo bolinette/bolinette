@@ -1,7 +1,5 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Any, Final, Protocol, TypeVar
-
-from typing_extensions import override
+from typing import Any, Final, Protocol, TypeVar, override
 
 from bolinette.core import Cache, Logger
 from bolinette.core.command import Parser

@@ -4,7 +4,8 @@ from typing import Any
 
 from pytest import CaptureFixture
 
-from bolinette.core import Cache, GenericMeta, Logger, meta
+from bolinette.core import Cache, Logger
+from bolinette.core.types import Type
 
 output_regex = re.compile(
     r"^([\d\-T\:\.]+Z?[\+:\d]?) "  # timestamp
@@ -29,7 +30,7 @@ def _parse_output(out: str) -> _Output:
 
 
 def test_logger(capsys: CaptureFixture[Any]) -> None:
-    logger: Logger[Any] = Logger(Cache(debug=True))
+    logger: Logger[Any] = Logger(Type(Any), Cache(debug=True))
 
     d1 = datetime.now(UTC)
 
@@ -49,10 +50,10 @@ def test_logger(capsys: CaptureFixture[Any]) -> None:
     assert outputs[2].prefix == "DEBUG"
     assert outputs[3].prefix == "ERROR"
 
-    assert outputs[0].package == "<Logger>"
-    assert outputs[1].package == "<Logger>"
-    assert outputs[2].package == "<Logger>"
-    assert outputs[3].package == "<Logger>"
+    assert outputs[0].package == "Any"
+    assert outputs[1].package == "Any"
+    assert outputs[2].package == "Any"
+    assert outputs[3].package == "Any"
 
     assert d1 <= outputs[0].timestamp <= d2
     assert d1 <= outputs[1].timestamp <= d2
@@ -69,9 +70,7 @@ def test_logger_generic(capsys: CaptureFixture[Any]) -> None:
     class _TestClass:
         pass
 
-    logger: Logger[Any] = Logger(Cache(debug=True))
-    meta.set(logger, GenericMeta([_TestClass]))  # pyright: ignore
-    logger._init()  # pyright: ignore[reportPrivateUsage]
+    logger: Logger[Any] = Logger(Type(_TestClass), Cache(debug=True))
 
     d1 = datetime.now(UTC)
 
@@ -84,7 +83,7 @@ def test_logger_generic(capsys: CaptureFixture[Any]) -> None:
     outputs = list(map(lambda s: _parse_output(s), lines))
 
     assert outputs[0].prefix == "INFO"
-    assert outputs[0].package == "_TestClass"
+    assert outputs[0].package == "test_logger_generic.<locals>._TestClass"
     assert d1 <= outputs[0].timestamp <= d2
     assert outputs[0].message == "Test info message"
 
@@ -92,7 +91,7 @@ def test_logger_generic(capsys: CaptureFixture[Any]) -> None:
 def test_logger_debug(capsys: CaptureFixture[Any]) -> None:
     cache = Cache()
 
-    logger: Logger[Any] = Logger(cache)
+    logger: Logger[Any] = Logger(Type(Any), cache)
 
     logger.debug("Test 1")
     captured = capsys.readouterr()

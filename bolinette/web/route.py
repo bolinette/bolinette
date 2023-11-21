@@ -1,11 +1,9 @@
 import re
 from collections.abc import Callable
-from typing import Literal, ParamSpec, TypeVar
+from typing import Literal
 
 from bolinette.core import meta
 
-FuncP = ParamSpec("FuncP")
-FuncT = TypeVar("FuncT")
 HttpMethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
 path_re = re.compile(r"\{([^}]+)\}")
 
@@ -46,7 +44,11 @@ class RouteBucket:
         return self.routes[index]
 
 
-def route(method: HttpMethod, path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
+def route[**FuncP, FuncT](
+    method: HttpMethod,
+    path: str,
+    /,
+) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
     def decorator(func: Callable[FuncP, FuncT]) -> Callable[FuncP, FuncT]:
         if not meta.has(func, RouteBucket):
             bucket = RouteBucket(func.__name__)
@@ -59,21 +61,21 @@ def route(method: HttpMethod, path: str, /) -> Callable[[Callable[FuncP, FuncT]]
     return decorator
 
 
-def get(path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
+def get[**FuncP, FuncT](path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
     return route("GET", path)
 
 
-def post(path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
+def post[**FuncP, FuncT](path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
     return route("POST", path)
 
 
-def put(path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
+def put[**FuncP, FuncT](path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
     return route("PUT", path)
 
 
-def patch(path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
+def patch[**FuncP, FuncT](path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
     return route("PATCH", path)
 
 
-def delete(path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
+def delete[**FuncP, FuncT](path: str, /) -> Callable[[Callable[FuncP, FuncT]], Callable[FuncP, FuncT]]:
     return route("DELETE", path)

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
 from sqlalchemy.orm import ColumnProperty, DeclarativeBase, InstrumentedAttribute
 
@@ -13,10 +13,7 @@ class EntityMeta:
         self.entity_key = entity_key
 
 
-EntityT = TypeVar("EntityT", bound=DeclarativeBase)
-
-
-def entity(
+def entity[EntityT: DeclarativeBase](
     *,
     entity_key: str | list[str],
     cache: Cache | None = None,

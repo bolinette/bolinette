@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterable, Callable
-from typing import Any, Generic, Literal, TypeVar, overload
+from typing import Any, Literal, TypeVar, overload
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,10 +10,8 @@ from bolinette.core import Cache, __user_cache__, meta
 from bolinette.data.exceptions import DataError, EntityNotFoundError
 from bolinette.data.relational import DeclarativeBase, EntityMeta
 
-EntityT = TypeVar("EntityT", bound=DeclarativeBase)
 
-
-class Repository(Generic[EntityT]):
+class Repository[EntityT: DeclarativeBase]:
     def __init__(self, entity: type[EntityT], session: AsyncSession) -> None:
         self._entity = entity
         self._session = session
@@ -89,12 +87,13 @@ class Repository(Generic[EntityT]):
         await self._session.commit()
 
 
-RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # pyright: ignore
-
-
-class RepositoryMeta(Generic[EntityT]):
+class RepositoryMeta[EntityT: DeclarativeBase]:
     def __init__(self, entity: type[EntityT]) -> None:
         self.entity = entity
+
+
+EntityT = TypeVar("EntityT", bound=DeclarativeBase)
+RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # pyright: ignore
 
 
 def repository(entity: type[EntityT], *, cache: Cache | None = None) -> Callable[[type[RepoT]], type[RepoT]]:

@@ -68,7 +68,7 @@ per-file-ignores = {}
 
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.flake8-import-conventions.aliases]
 altair = "alt"
@@ -81,14 +81,14 @@ seaborn = "sns"
 max-complexity = 10
 
 [tool.isort]
-py_version = 311
+py_version = 312
 line_length = 120
 skip = ["__init__.py"]
 profile = "black"
 
 [tool.black]
 line-length = 120
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.pytest.ini_options]
 testpaths = "tests"

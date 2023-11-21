@@ -1,12 +1,10 @@
-from typing import Any, TypeVar
+from typing import Any
 
 import pytest
 
 from bolinette.core import meta
 from bolinette.core.exceptions import InternalError
 from bolinette.core.metadata import BolinetteMetadata, get_meta_container
-
-T = TypeVar("T")
 
 
 class _Meta:

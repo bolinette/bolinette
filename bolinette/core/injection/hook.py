@@ -1,6 +1,4 @@
-from typing import Any, Generic, TypeVar
-
-from typing_extensions import override
+from typing import Any, override
 
 from bolinette.core import injection, meta
 from bolinette.core.exceptions import InjectionError
@@ -8,10 +6,8 @@ from bolinette.core.injection.registration import RegisteredType
 from bolinette.core.types import Type
 from bolinette.core.utils import OrderedSet
 
-InstanceT = TypeVar("InstanceT")
 
-
-class InjectionHook(Generic[InstanceT]):
+class InjectionHook[InstanceT]:
     __slots__ = ("t",)
 
     def __init__(self, t: Type[InstanceT]) -> None:
@@ -30,7 +26,7 @@ class InjectionHook(Generic[InstanceT]):
         return None  # pyright: ignore
 
 
-class InjectionProxy:
+class InjectionProxy[InstanceT]:
     __slots__ = ("name", "r_type", "t")
 
     def __init__(

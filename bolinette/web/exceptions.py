@@ -1,7 +1,5 @@
 from http import HTTPStatus
-from typing import Any
-
-from typing_extensions import override
+from typing import Any, override
 
 from bolinette.core.exceptions import BolinetteError, ParameterError
 from bolinette.core.expressions import ExpressionNode, ExpressionTree

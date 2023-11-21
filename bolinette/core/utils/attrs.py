@@ -1,12 +1,12 @@
-from typing import Any, TypeVar
-
-InstanceT = TypeVar("InstanceT")
+from typing import Any
 
 
 class AttributeUtils:
     @staticmethod
-    def get_cls_attrs(
-        obj: type[Any], *, of_type: type[InstanceT] | tuple[type[InstanceT], ...] | None = None
+    def get_cls_attrs[InstanceT](
+        obj: type[Any],
+        *,
+        of_type: type[InstanceT] | tuple[type[InstanceT], ...] | None = None,
     ) -> dict[str, InstanceT]:
         parent_attrs: dict[str, Any] = {}
         for parent in obj.__bases__:

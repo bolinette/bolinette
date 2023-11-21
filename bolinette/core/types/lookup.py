@@ -1,12 +1,10 @@
 from collections.abc import Iterator
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from bolinette.core.types import Type
 
-T = TypeVar("T")
 
-
-class TypeVarLookup(Generic[T]):
+class TypeVarLookup[T]:
     __slots__ = ("t", "_lookup")
 
     def __init__(self, t: Type[T]) -> None:

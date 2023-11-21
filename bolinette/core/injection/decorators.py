@@ -1,13 +1,11 @@
 from collections.abc import Callable
-from typing import Any, Concatenate, ParamSpec, TypeVar, get_origin
+from typing import Any, Concatenate, get_origin
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection.hook import InjectionHook
 from bolinette.core.injection.registration import AddStrategy
 from bolinette.core.types import Type
 
-FuncP = ParamSpec("FuncP")
-InstanceT = TypeVar("InstanceT")
 InjectionSymbol = object()
 
 
@@ -15,12 +13,14 @@ class InitMethodMeta:
     pass
 
 
-def init_method(func: Callable[Concatenate[InstanceT, FuncP], None]) -> Callable[Concatenate[InstanceT, FuncP], None]:
+def init_method[InstanceT, **FuncP](
+    func: Callable[Concatenate[InstanceT, FuncP], None],
+) -> Callable[Concatenate[InstanceT, FuncP], None]:
     meta.set(func, InitMethodMeta())
     return func
 
 
-class InjectionParamsMeta:
+class InjectionParamsMeta[InstanceT, **FuncP]:
     __slots__ = ("strategy", "args", "named_args", "before_init", "after_init", "match_all")
 
     def __init__(
@@ -40,7 +40,7 @@ class InjectionParamsMeta:
         self.match_all = match_all
 
 
-def injectable(
+def injectable[InstanceT, **FuncP](
     *,
     strategy: AddStrategy = "singleton",
     args: list[Any] | None = None,
@@ -62,7 +62,7 @@ def injectable(
     return decorator
 
 
-def require(cls: type[InstanceT]) -> Callable[[Callable[..., Any]], InjectionHook[InstanceT]]:
+def require[InstanceT](cls: type[InstanceT]) -> Callable[[Callable[..., Any]], InjectionHook[InstanceT]]:
     def decorator(func: Callable[..., Any]) -> InjectionHook[InstanceT]:
         return InjectionHook(Type(cls))
 

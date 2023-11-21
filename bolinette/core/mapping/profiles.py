@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, Generic, Self, TypeVar
+from typing import Any, Self
 
 from bolinette.core import Cache, __user_cache__
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
@@ -13,9 +13,6 @@ from bolinette.core.mapping.sequence import (
 )
 from bolinette.core.types import Type
 
-SrcT = TypeVar("SrcT", bound=object)
-DestT = TypeVar("DestT", bound=object)
-
 
 class MapFromOptions:
     def __init__(self, attr: MapFromAttribute) -> None:
@@ -25,7 +22,7 @@ class MapFromOptions:
         self.step.use_type = Type(cls)
 
 
-class MappingOptions(Generic[SrcT, DestT]):
+class MappingOptions[SrcT, DestT]:
     def __init__(self, sequence: MappingSequence[SrcT, DestT], dest_expr: ExpressionNode) -> None:
         self.sequence = sequence
         self.dest_expr = dest_expr
@@ -40,7 +37,7 @@ class MappingOptions(Generic[SrcT, DestT]):
         self.step = IgnoreAttribute(self.dest_expr)
 
 
-class SequenceBuilder(Generic[SrcT, DestT]):
+class SequenceBuilder[SrcT, DestT]:
     def __init__(self, src: type[SrcT], dest: type[DestT]) -> None:
         self.sequence = MappingSequence(src, dest)
 
@@ -85,16 +82,13 @@ class Profile:
     def sequences(self) -> list[MappingSequence[Any, Any]]:
         return [*self._sequences]
 
-    def register(self, src: type[SrcT], dest: type[DestT]) -> SequenceBuilder[SrcT, DestT]:
+    def register[SrcT, DestT](self, src: type[SrcT], dest: type[DestT]) -> SequenceBuilder[SrcT, DestT]:
         builder = SequenceBuilder(src, dest)
         self._sequences.append(builder.sequence)
         return builder
 
 
-ProfileT = TypeVar("ProfileT", bound=Profile)
-
-
-def mapping(*, cache: Cache | None = None) -> Callable[[type[ProfileT]], type[ProfileT]]:
+def mapping[ProfileT: Profile](*, cache: Cache | None = None) -> Callable[[type[ProfileT]], type[ProfileT]]:
     def decorator(cls: type[ProfileT]) -> type[ProfileT]:
         (cache or __user_cache__).add(Profile, cls)
         return cls

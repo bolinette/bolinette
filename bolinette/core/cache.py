@@ -1,7 +1,4 @@
-from typing import Any, ParamSpec, TypeVar
-
-P = ParamSpec("P")
-InstanceT = TypeVar("InstanceT")
+from typing import Any
 
 
 class Cache:
@@ -12,7 +9,14 @@ class Cache:
     def __contains__(self, key: Any) -> bool:
         return key in self._bag
 
-    def get(self, key: Any, /, *, hint: type[InstanceT] | None = None, raises: bool = True) -> list[InstanceT]:
+    def get[InstanceT](
+        self,
+        key: Any,
+        /,
+        *,
+        hint: type[InstanceT] | None = None,
+        raises: bool = True,
+    ) -> list[InstanceT]:
         if key not in self:
             if raises:
                 raise KeyError(key)

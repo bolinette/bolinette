@@ -1,4 +1,4 @@
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from sqlalchemy import Table
 
@@ -6,10 +6,8 @@ from bolinette.core.mapping import Mapper
 from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
 from bolinette.data.relational import DeclarativeBase, Repository
 
-EntityT = TypeVar("EntityT", bound=DeclarativeBase)
 
-
-class Service(Generic[EntityT]):
+class Service[EntityT: DeclarativeBase]:
     def __init__(self, entity: type[EntityT], repository: Repository[EntityT], mapper: Mapper) -> None:
         self._entity = entity
         self._repository = repository

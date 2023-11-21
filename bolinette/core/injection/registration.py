@@ -1,19 +1,14 @@
 from collections.abc import Callable
-from typing import Any, Generic, Literal, TypeVar
-
-from typing_extensions import override
+from typing import Any, Concatenate, Literal, override
 
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.types import Type
-
-InstanceT = TypeVar("InstanceT")
-
 
 InjectionStrategy = Literal["singleton", "scoped", "transient", "immediate"]
 AddStrategy = Literal["singleton", "scoped", "transient"]
 
 
-class RegisteredType(Generic[InstanceT]):
+class RegisteredType[InstanceT]:
     __slots__ = ("t", "strategy", "args", "named_args", "before_init", "after_init")
 
     def __init__(
@@ -37,7 +32,7 @@ class RegisteredType(Generic[InstanceT]):
         return f"<RegisteredType {self.t}: {self.strategy}>"
 
 
-class RegisteredTypeBag(Generic[InstanceT]):
+class RegisteredTypeBag[InstanceT]:
     __slots__ = ("_cls", "_match_all", "_types")
 
     def __init__(self, cls: type[InstanceT]) -> None:
@@ -67,8 +62,8 @@ class RegisteredTypeBag(Generic[InstanceT]):
         strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
-        before_init: list[Callable[[Any], None]],
-        after_init: list[Callable[[Any], None]],
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]],
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]],
     ) -> RegisteredType[InstanceT]:
         r_type = RegisteredType(t, strategy, args, named_args, before_init, after_init)
         self._match_all = r_type
@@ -81,8 +76,8 @@ class RegisteredTypeBag(Generic[InstanceT]):
         strategy: InjectionStrategy,
         args: list[Any],
         named_args: dict[str, Any],
-        before_init: list[Callable[[Any], None]],
-        after_init: list[Callable[[Any], None]],
+        before_init: list[Callable[Concatenate[InstanceT, ...], None]],
+        after_init: list[Callable[Concatenate[InstanceT, ...], None]],
     ) -> RegisteredType[InstanceT]:
         r_type = RegisteredType(t, strategy, args, named_args, before_init, after_init)
         self._types[hash(super_t)] = r_type

@@ -6,7 +6,6 @@ from typing import (
     Annotated,
     Any,
     ForwardRef,
-    Generic,
     Literal,
     TypeGuard,
     TypeVar,
@@ -14,17 +13,14 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    override,
 )
-
-from typing_extensions import override
 
 from bolinette.core import types
 from bolinette.core.exceptions import TypingError
 
-T = TypeVar("T")
 
-
-class Type(Generic[T]):
+class Type[T]:
     __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated"]
 
     @staticmethod

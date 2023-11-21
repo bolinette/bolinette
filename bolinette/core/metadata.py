@@ -1,8 +1,6 @@
-from typing import Any, TypeVar
+from typing import Any
 
 from bolinette.core.exceptions import InternalError
-
-T = TypeVar("T")
 
 
 class BolinetteMetadata:
@@ -12,12 +10,12 @@ class BolinetteMetadata:
     def __contains__(self, key: type[Any]) -> bool:
         return key in self._data
 
-    def __getitem__(self, key: type[T]) -> T:
+    def __getitem__[T](self, key: type[T]) -> T:
         if key not in self:
             raise KeyError(key)
         return self._data[key]
 
-    def __setitem__(self, key: type[T], value: T) -> None:
+    def __setitem__[T](self, key: type[T], value: T) -> None:
         if not isinstance(value, key):
             raise TypeError(f"Type mismatch between {key} and {value}")
         self._data[key] = value
@@ -46,7 +44,7 @@ class _MetaFunctions:
         return cls in container
 
     @staticmethod
-    def set(obj: Any, _meta: T, /, *, cls: type[T] | None = None) -> None:
+    def set[T](obj: Any, _meta: T, /, *, cls: type[T] | None = None) -> None:
         if cls is None:
             cls = type(_meta)
         else:
@@ -56,7 +54,7 @@ class _MetaFunctions:
         container[cls] = _meta
 
     @staticmethod
-    def get(obj: Any, cls: type[T], /, *, default: T | None = None) -> T:
+    def get[T](obj: Any, cls: type[T], /, *, default: T | None = None) -> T:
         container = get_meta_container(obj)
         if cls not in container and default is not None:
             return default

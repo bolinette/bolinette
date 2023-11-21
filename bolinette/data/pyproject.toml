@@ -14,12 +14,12 @@ classifiers = [
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Build Tools",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 packages = [{ include = "bolinette/data" }]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 aiosqlite = "^0.19.0"
 asyncpg = "^0.28.0"
 bolinette = "^0.16.1"

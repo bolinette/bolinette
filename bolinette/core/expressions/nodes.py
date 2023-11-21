@@ -1,7 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Generic, TypeVar
-
-from typing_extensions import override
+from typing import Any, override
 
 from bolinette.core import expressions
 from bolinette.core.expressions.exceptions import ExpressionError
@@ -112,10 +110,7 @@ class AttributeNode(ChildNode):
         return f"{expressions.ExpressionTree.format(parent, max_depth=depth)}.{attr}"
 
 
-K = TypeVar("K")
-
-
-class ElementNode(ChildNode, Generic[K]):
+class ElementNode[K](ChildNode):
     def __init__(self, parent: ExpressionNode, key: K) -> None:
         ChildNode.__init__(self, parent)
         self.key = key

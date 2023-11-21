@@ -1,8 +1,9 @@
 # pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
+from typing import override
+
 import pytest
 from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from typing_extensions import override
 
 from bolinette.core import Cache, meta
 from bolinette.core.testing import Mock

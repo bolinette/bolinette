@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Protocol, TypeVar
+from typing import Protocol
 
 from bolinette.core import Cache, __user_cache__, meta
 
@@ -14,10 +14,11 @@ class EnvironmentSection(Protocol):
         pass
 
 
-EnvT = TypeVar("EnvT", bound=EnvironmentSection)
-
-
-def environment(name: str, *, cache: Cache | None = None) -> Callable[[type[EnvT]], type[EnvT]]:
+def environment[EnvT: EnvironmentSection](
+    name: str,
+    *,
+    cache: Cache | None = None,
+) -> Callable[[type[EnvT]], type[EnvT]]:
     def decorator(cls: type[EnvT]) -> type[EnvT]:
         meta.set(cls, EnvSectionMeta(name))
         (cache or __user_cache__).add(EnvironmentSection, cls)

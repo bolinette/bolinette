@@ -1,7 +1,7 @@
 import importlib
 import re
 from collections.abc import Callable
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol
 
 from bolinette.core import Cache, Logger, __user_cache__
 from bolinette.core.injection import Injection, init_method
@@ -78,10 +78,7 @@ class DatabaseSystem(Protocol):
         pass
 
 
-SystemT = TypeVar("SystemT", bound=DatabaseSystem)
-
-
-def database_system(*, cache: Cache | None = None) -> Callable[[type[SystemT]], type[SystemT]]:
+def database_system[SystemT: DatabaseSystem](*, cache: Cache | None = None) -> Callable[[type[SystemT]], type[SystemT]]:
     def decorator(cls: type[SystemT]) -> type[SystemT]:
         (cache or __user_cache__).add(DatabaseSystem, cls)
         return cls

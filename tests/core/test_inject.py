@@ -1,6 +1,6 @@
 # pyright: reportMissingParameterType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false
 from types import TracebackType
-from typing import Any, Generic, Self, TypeVar
+from typing import Any, Self, TypeVar
 
 import pytest
 
@@ -126,12 +126,10 @@ async def test_fail_injection() -> None:
 
 
 async def test_fail_injection_generic() -> None:
-    _T = TypeVar("_T")
-
     class _Param:
         pass
 
-    class _Service(Generic[_T]):
+    class _Service[T]:
         pass
 
     inject = Injection(Cache())
@@ -159,12 +157,10 @@ async def test_fail_subinjection() -> None:
 
 
 async def test_fail_subinjection_generic() -> None:
-    _T = TypeVar("_T")
-
     class _Param:
         pass
 
-    class _SubService(Generic[_T]):
+    class _SubService[T]:
         pass
 
     class _Service:
@@ -874,7 +870,7 @@ def test_optional_type_literal_bis() -> None:
 def test_generic_injection() -> None:
     _T = TypeVar("_T")
 
-    class _GenericTest(Generic[_T]):
+    class _GenericTest[T]:
         pass
 
     class _ParamClass:
@@ -890,9 +886,7 @@ def test_generic_injection() -> None:
 
 
 def test_generic_injection_from_cache() -> None:
-    _T = TypeVar("_T")
-
-    class _GenericTest(Generic[_T]):
+    class _GenericTest[T]:
         pass
 
     class _ParamClass:
@@ -911,9 +905,7 @@ def test_generic_injection_from_cache() -> None:
 
 
 def test_generic_no_direct_injection_literal() -> None:
-    _T = TypeVar("_T")
-
-    class _GenericTest(Generic[_T]):
+    class _GenericTest[T]:
         pass
 
     inject = Injection(Cache())
@@ -928,9 +920,7 @@ def test_generic_no_direct_injection_literal() -> None:
 
 
 def test_generic_sub_injection() -> None:
-    _T = TypeVar("_T")
-
-    class _GenericTest(Generic[_T]):
+    class _GenericTest[_T]:
         pass
 
     class _ParamClass:
@@ -951,9 +941,7 @@ def test_generic_sub_injection() -> None:
 
 
 def test_generic_sub_injection_literal() -> None:
-    _T = TypeVar("_T")
-
-    class _GenericTest(Generic[_T]):
+    class _GenericTest[T]:
         pass
 
     class _TestClass:
@@ -1029,9 +1017,7 @@ def test_fail_immediate_instantiate() -> None:
 
 
 def test_register_with_super_type() -> None:
-    _T = TypeVar("_T")
-
-    class _Service(Generic[_T]):
+    class _Service[T]:
         pass
 
     class _User:
@@ -1058,9 +1044,7 @@ def test_register_with_super_type() -> None:
 
 
 def test_register_with_super_type_complete() -> None:
-    _T = TypeVar("_T")
-
-    class _Service(Generic[_T]):
+    class _Service[T]:
         pass
 
     class _User:
@@ -1097,15 +1081,13 @@ def test_register_with_super_type_complete() -> None:
 
 
 def test_register_match_all() -> None:
-    _T = TypeVar("_T")
-
     class _ServiceA:
         pass
 
     class _ServiceB:
         pass
 
-    class _Logger(Generic[_T]):
+    class _Logger[T]:
         pass
 
     class _LoggerA(_Logger[_ServiceA]):
@@ -1134,18 +1116,14 @@ def test_require_from_typevar() -> None:
     class _SpecificResource(_Resource):
         pass
 
-    _TS = TypeVar("_TS", bound=_Resource)
-
-    class _Service(Generic[_TS]):
+    class _Service[TS: _Resource]:
         pass
 
     class _SpecificService(_Service[_SpecificResource]):
         pass
 
-    _TC = TypeVar("_TC", bound=_Resource)
-
-    class _Controller(Generic[_TC]):
-        def __init__(self, sub: _Service[_TC]) -> None:
+    class _Controller[TC: _Resource]:
+        def __init__(self, sub: _Service[TC]) -> None:
             self.sub = sub
 
     inject = Injection(Cache())
@@ -1168,14 +1146,12 @@ def test_init_method_with_typevar() -> None:
     class _Entity:
         pass
 
-    _T = TypeVar("_T", bound=_Entity)
-
-    class _Service(Generic[_T]):
+    class _Service[T: _Entity]:
         pass
 
-    class _Controller(Generic[_T]):
+    class _Controller[T: _Entity]:
         @init_method
-        def init(self, s: _Service[_T]) -> None:
+        def init(self, s: _Service[T]) -> None:
             self.s = s  # pyright: ignore
 
     inject = Injection(Cache())
@@ -1192,10 +1168,10 @@ def test_fail_require_from_typevar_non_generic_parent() -> None:
     class _Entity:
         pass
 
-    _T = TypeVar("_T", bound=_Entity)
-
-    class _Service(Generic[_T]):
+    class _Service[T: _Entity]:
         pass
+
+    _T = TypeVar("_T", bound=_Entity)
 
     class _Controller:
         def __init__(self, s: _Service[_T]) -> None:
@@ -1224,10 +1200,10 @@ def test_fail_require_from_typevar_different_names() -> None:
     _T1 = TypeVar("_T1", bound=_Entity1)
     _T2 = TypeVar("_T2", bound=_Entity2)
 
-    class _Service(Generic[_T1]):
+    class _Service[_T1: _Entity1]:
         pass
 
-    class _Controller(Generic[_T2]):
+    class _Controller[_T2: _Entity2]:
         def __init__(self, s: _Service[_T1]) -> None:
             pass
 

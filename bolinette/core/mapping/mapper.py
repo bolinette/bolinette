@@ -1,7 +1,5 @@
 from collections.abc import Callable, Iterable
-from typing import Any, Protocol, TypeGuard, TypeVar, overload
-
-from typing_extensions import override
+from typing import Any, Protocol, TypeGuard, overload, override
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
@@ -29,12 +27,6 @@ class NoInitDestination(Protocol):
         pass
 
 
-SrcT = TypeVar("SrcT", bound=object)
-DestT = TypeVar("DestT", bound=object)
-NoInitDestT = TypeVar("NoInitDestT", bound=NoInitDestination)
-TargetT = TypeVar("TargetT")
-
-
 class Mapper:
     def __init__(self) -> None:
         self._sequences: dict[int, MappingSequence[Any, Any]] = {}
@@ -59,27 +51,27 @@ class Mapper:
             mappers[_m.t] = cls
         self._type_mappers = mappers
 
-    def add_type_mapper(self, t: Type[TargetT], mapper: "type[TypeMapper[TargetT]]") -> None:
+    def add_type_mapper[TargetT](self, t: Type[TargetT], mapper: "type[TypeMapper[TargetT]]") -> None:
         self._type_mappers[t] = mapper
 
     def set_default_type_mapper(self, mapper: "type[TypeMapper[object]]") -> None:
         self._default_mapper = mapper
 
     @overload
-    def map(
+    def map[SrcT, DestT: NoInitDestination](
         self,
         src_cls: type[SrcT],
-        dest_cls: type[NoInitDestT],
+        dest_cls: type[DestT],
         src: SrcT,
         *,
         src_expr: ExpressionNode | None = None,
         dest_expr: ExpressionNode | None = None,
         validate: bool = False,
-    ) -> NoInitDestT:
+    ) -> DestT:
         pass
 
     @overload
-    def map(
+    def map[SrcT, DestT](
         self,
         src_cls: type[SrcT],
         dest_cls: type[DestT],
@@ -92,7 +84,7 @@ class Mapper:
     ) -> DestT:
         pass
 
-    def map(
+    def map[SrcT, DestT](
         self,
         src_cls: type[SrcT],
         dest_cls: type[DestT],
@@ -139,7 +131,7 @@ class MappingRunner:
         self.mappers = mappers
         self.default_mapper = default_mapper
 
-    def map(
+    def map[SrcT, DestT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -162,7 +154,7 @@ class MappingRunner:
         return mapper.map(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 
 
-class TypeMapper(Protocol[TargetT]):
+class TypeMapper[TargetT](Protocol):
     def __init__(self, runner: MappingRunner) -> None:
         pass
 
@@ -179,9 +171,6 @@ class TypeMapper(Protocol[TargetT]):
         ...
 
 
-TypeMapperT = TypeVar("TypeMapperT", bound=TypeMapper[Any])
-
-
 class TypeMapperMeta:
     __slots__ = "t"
 
@@ -189,7 +178,7 @@ class TypeMapperMeta:
         self.t = t
 
 
-def type_mapper(
+def type_mapper[TypeMapperT](
     map_for: type[Any], /, *, cache: Cache | None = None
 ) -> Callable[[type[TypeMapperT]], type[TypeMapperT]]:
     def decorator(cls: type[TypeMapperT]) -> type[TypeMapperT]:
@@ -207,7 +196,7 @@ class DefaultTypeMapper(TypeMapper[object]):
         self.runner = runner
 
     @override
-    def map(
+    def map[SrcT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -223,7 +212,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             return self._map_dict(src_expr, dest_expr, dest_t, src, dest, exc_grp)
         return self._map_object(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 
-    def _map_object(
+    def _map_object[SrcT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -318,7 +307,7 @@ class DefaultTypeMapper(TypeMapper[object]):
                 func.func(src, dest)
         return dest
 
-    def _map_iterable(
+    def _map_iterable[SrcT, DestT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -363,7 +352,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             return None  # pyright: ignore
         return dest
 
-    def _map_dict(
+    def _map_dict[DestT](
         self,
         src_expr: ExpressionNode,
         dest_expr: ExpressionNode,
@@ -430,7 +419,7 @@ class IntegerTypeMapper(TypeMapper[int]):
         self.runner = runner
 
     @override
-    def map(
+    def map[SrcT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -457,7 +446,7 @@ class FloatTypeMapper(TypeMapper[float]):
         self.runner = runner
 
     @override
-    def map(
+    def map[SrcT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -484,7 +473,7 @@ class BoolTypeMapper(TypeMapper[bool]):
         self.runner = runner
 
     @override
-    def map(
+    def map[SrcT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
@@ -504,7 +493,7 @@ class StringTypeMapper(TypeMapper[str]):
         self.runner = runner
 
     @override
-    def map(
+    def map[SrcT](
         self,
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
