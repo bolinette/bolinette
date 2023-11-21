@@ -8,6 +8,7 @@ from bolinette.core import Cache, GenericMeta, meta
 from bolinette.core.exceptions import InjectionError, TypingError
 from bolinette.core.injection import Injection, init_method, injectable, require
 from bolinette.core.injection.resolver import ArgResolverOptions, injection_arg_resolver
+from bolinette.core.types.type import Type
 
 
 class InjectableClassB:
@@ -1391,3 +1392,23 @@ def test_context_manager_subinject() -> None:
             assert check == ["enter1", "enter2"]
         assert check == ["enter1", "enter2", "exit2"]
     assert check == ["enter1", "enter2", "exit2", "exit1"]
+
+
+def test_inject_generic_type_in_init() -> None:
+    class Service[A, B]:
+        def __init__(self, ca: type[A], ta: Type[A], cb: type[B], tb: Type[B]) -> None:
+            self.ca = ca
+            self.ta = ta
+            self.cb = cb
+            self.tb = tb
+
+    cache = Cache()
+    inject = Injection(cache)
+    inject.add(Service[int, str], "singleton")
+
+    s = inject.require(Service[int, str])
+
+    assert s.ca is int
+    assert s.ta == Type(int)
+    assert s.cb is str
+    assert s.tb == Type(str)
