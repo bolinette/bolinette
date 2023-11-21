@@ -1,5 +1,7 @@
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, Concatenate, Literal, ParamSpec, Protocol, TypeVar, overload
+from contextlib import AbstractContextManager
+from types import TracebackType
+from typing import Any, Concatenate, Literal, ParamSpec, Protocol, Self, TypeVar, overload
 
 from typing_extensions import override
 
@@ -19,7 +21,7 @@ FuncT = TypeVar("FuncT")
 InstanceT = TypeVar("InstanceT")
 
 
-class Injection:
+class Injection(AbstractContextManager["Injection"]):
     __slots__: list[str] = ["cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers", "_callbacks"]
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
     _REQUIREABLE_STRATEGIES = ("singleton", "transient")
@@ -273,6 +275,8 @@ class Injection:
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_methods(r_type, instance, vars_lookup, circular_guard)
         self.__set_instance__(r_type, instance)
+        if Type(AbstractContextManager[Any]).isinstance(instance):
+            instance.__enter__()
         for callback in self._callbacks:
             callback(
                 "instantiated",
@@ -337,6 +341,8 @@ class Injection:
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_recursive(cls, instance, None, None)
+        if Type(AbstractContextManager[Any]).isinstance(instance):
+            instance.__enter__()
         return instance
 
     def _add_type_instance(
@@ -419,11 +425,10 @@ class Injection:
             super_cls = cls
         t = Type(cls)
         if hasattr(t.cls, "__parameters__"):
-            if TYPE_CHECKING:
-                assert isinstance(t.cls, _GenericOrigin)
-            if len(t.cls.__parameters__) != len(t.vars) and not match_all:
+            if len(t.cls.__parameters__) != len(t.vars) and not match_all:  # pyright: ignore
                 raise InjectionError(
-                    f"Type {t} requires {len(t.cls.__parameters__)} generic parameters and {len(t.vars)} were given"
+                    f"Type {t} requires {len(t.cls.__parameters__)} "  # pyright: ignore
+                    f"generic parameters and {len(t.vars)} were given"
                 )
         super_t: Type[InstanceT] = Type(super_cls)
         if not issubclass(t.cls, super_t.cls):
@@ -471,6 +476,24 @@ class Injection:
 
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)
+
+    @override
+    def __enter__(self) -> Self:
+        return self
+
+    @override
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None:
+        for instance in self._global_ctx.instances:
+            if isinstance(instance, Injection):
+                continue
+            if isinstance(instance, AbstractContextManager):
+                instance.__exit__(exc_type, exc_value, traceback)
 
 
 class ScopedInjection(Injection):
@@ -551,6 +574,20 @@ class ScopedInjection(Injection):
         )
         return func(**func_args)
 
+    @override
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None:
+        for instance in self._scoped_ctx.instances:
+            if isinstance(instance, Injection):
+                continue
+            if isinstance(instance, AbstractContextManager):
+                instance.__exit__(exc_type, exc_value, traceback)
+
 
 InjectionEvent = Literal["instantiated"]
 
@@ -569,7 +606,3 @@ def injection_callback(*, cache: Cache) -> Callable[[type[CallbackT]], type[Call
         return callback
 
     return decorator
-
-
-class _GenericOrigin(Protocol):
-    __parameters__: tuple[TypeVar, ...]

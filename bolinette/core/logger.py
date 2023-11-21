@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Generic, Protocol, TypeVar
 
 from bolinette.core import Cache, GenericMeta, meta
@@ -61,7 +61,7 @@ class Logger(Generic[T]):
         file: SupportsWrite[str] | None = None,
     ):
         strings: list[str] = [
-            f"{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')}",
+            f"{datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S.%fZ')}",
             f"{ConsoleColorCode.Bright}{color}{prefix}{ConsoleColorCode.Reset}",
             f"[{ConsoleColorCode.FgGreen}{self._package}{ConsoleColorCode.Reset}]",
             text,

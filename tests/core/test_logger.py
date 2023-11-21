@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pytest import CaptureFixture
@@ -7,7 +7,7 @@ from pytest import CaptureFixture
 from bolinette.core import Cache, GenericMeta, Logger, meta
 
 output_regex = re.compile(
-    r"^([\d\-T\:\.]+) "  # timestamp
+    r"^([\d\-T\:\.]+Z?[\+:\d]?) "  # timestamp
     r"(?:\x1b\[\d+m)+([A-Z]+) *(?:\x1b\[\d+m)+ "  # prefix
     r"+\[(?:\x1b\[\d+m)+([^ \]]+) *(?:\x1b\[\d+m)+\] "  # package
     r"(.*)"  # message
@@ -18,7 +18,7 @@ class _Output:
     def __init__(self, timestamp: str, prefix: str, package: str, message: str) -> None:
         self.prefix = prefix
         self.package = package
-        self.timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f")
+        self.timestamp = datetime.fromisoformat(timestamp)
         self.message = message
 
 
@@ -31,14 +31,14 @@ def _parse_output(out: str) -> _Output:
 def test_logger(capsys: CaptureFixture[Any]) -> None:
     logger: Logger[Any] = Logger(Cache(debug=True))
 
-    d1 = datetime.utcnow()
+    d1 = datetime.now(UTC)
 
     logger.info("Test info message")
     logger.error("Test error message")
     logger.warning("Test warning message")
     logger.debug("Test debug message")
 
-    d2 = datetime.utcnow()
+    d2 = datetime.now(UTC)
 
     captured = capsys.readouterr()
     lines = filter(lambda s: s, [*captured.out.split("\n"), *captured.err.split("\n")])
@@ -73,11 +73,11 @@ def test_logger_generic(capsys: CaptureFixture[Any]) -> None:
     meta.set(logger, GenericMeta([_TestClass]))  # pyright: ignore
     logger._init()  # pyright: ignore[reportPrivateUsage]
 
-    d1 = datetime.utcnow()
+    d1 = datetime.now(UTC)
 
     logger.info("Test info message")
 
-    d2 = datetime.utcnow()
+    d2 = datetime.now(UTC)
 
     captured = capsys.readouterr()
     lines = filter(lambda s: s, [*captured.out.split("\n"), *captured.err.split("\n")])

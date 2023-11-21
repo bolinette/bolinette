@@ -2,7 +2,19 @@ import collections.abc
 import contextlib
 import inspect
 from types import NoneType, UnionType
-from typing import Annotated, Any, ForwardRef, Generic, Literal, TypeVar, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Annotated,
+    Any,
+    ForwardRef,
+    Generic,
+    Literal,
+    TypeGuard,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from typing_extensions import override
 
@@ -110,6 +122,9 @@ class Type(Generic[T]):
 
     def annotations(self, *, lookup: "types.TypeVarLookup[Any] | None" = None) -> "dict[str, Type[Any]]":
         return self._get_recursive_annotations(self.cls, lookup)
+
+    def isinstance(self, instance: Any) -> TypeGuard[T]:
+        return isinstance(instance, self.cls)
 
     @staticmethod
     def _get_recursive_annotations(

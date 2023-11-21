@@ -1,5 +1,6 @@
 # pyright: reportMissingParameterType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false
-from typing import Any, Generic, TypeVar
+from types import TracebackType
+from typing import Any, Generic, Self, TypeVar
 
 import pytest
 
@@ -1343,3 +1344,74 @@ def test_before_after_init() -> None:
     _s = inject.require(_Service)
 
     assert order == [("before", _s), ("init", _s), ("after", _s)]
+
+
+def test_context_manager() -> None:
+    cache = Cache()
+
+    check: list[str] = []
+
+    class Service:
+        def __enter__(self) -> Self:
+            check.append("enter")
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_value: BaseException | None,
+            traceback: TracebackType | None,
+            /,
+        ) -> None:
+            check.append("exit")
+
+    with Injection(cache) as inject:
+        inject.add(Service, "singleton")
+        inject.require(Service)
+        assert check == ["enter"]
+    assert check == ["enter", "exit"]
+
+
+def test_context_manager_subinject() -> None:
+    cache = Cache()
+
+    check: list[str] = []
+
+    class Service1:
+        def __enter__(self) -> Self:
+            check.append("enter1")
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_value: BaseException | None,
+            traceback: TracebackType | None,
+            /,
+        ) -> None:
+            check.append("exit1")
+
+    class Service2:
+        def __enter__(self) -> Self:
+            check.append("enter2")
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_value: BaseException | None,
+            traceback: TracebackType | None,
+            /,
+        ) -> None:
+            check.append("exit2")
+
+    with Injection(cache) as inject:
+        inject.add(Service1, "singleton")
+        inject.add(Service2, "scoped")
+        inject.require(Service1)
+        assert check == ["enter1"]
+        with inject.get_scoped_session() as subinject:
+            subinject.require(Service2)
+            assert check == ["enter1", "enter2"]
+        assert check == ["enter1", "enter2", "exit2"]
+    assert check == ["enter1", "enter2", "exit2", "exit1"]
