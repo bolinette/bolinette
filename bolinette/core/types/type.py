@@ -21,7 +21,7 @@ from bolinette.core.exceptions import TypingError
 
 
 class Type[T]:
-    __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated"]
+    __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated", "_hash"]
 
     @staticmethod
     def from_instance(__instance: T) -> "Type[T]":
@@ -52,6 +52,7 @@ class Type[T]:
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
         self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))))
         self.union = tuple(Type(c) for c in additional_cls)
+        self._hash = hash((self.cls, self.vars))
 
     @override
     def __str__(self) -> str:
@@ -88,7 +89,7 @@ class Type[T]:
 
     @override
     def __hash__(self) -> int:
-        return hash((self.cls, self.vars))
+        return self._hash
 
     @override
     def __eq__(self, __value: object) -> bool:
@@ -147,6 +148,7 @@ class Type[T]:
         if origin := get_origin(_cls):
             type_vars: tuple[Any, ...] = ()
             for arg in get_args(_cls):
+                arg: Any
                 if isinstance(arg, ForwardRef) and raise_on_string:
                     raise TypingError(
                         f"Generic parameter '{arg.__forward_arg__}' cannot be a string", cls=origin.__qualname__
@@ -163,6 +165,8 @@ class Type[T]:
                         raise TypingError(
                             f"Generic parameter ~{arg.__name__} cannot be a TypeVar", cls=origin.__qualname__
                         )
+                if isinstance(arg, list):
+                    arg = tuple(*arg)  # pyright: ignore[reportUnknownArgumentType]
                 type_vars = (*type_vars, arg)
             return origin, type_vars
         return _cls, ()

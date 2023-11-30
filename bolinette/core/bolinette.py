@@ -1,5 +1,7 @@
+import asyncio
 import sys
-from typing import NoReturn
+from collections.abc import Callable
+from typing import Any, NoReturn
 
 from bolinette import core
 from bolinette.core import Logger, __user_cache__, meta
@@ -9,6 +11,7 @@ from bolinette.core.environment import Environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import Injection, require
+from bolinette.core.startup import STARTUP_CACHE_KEY
 
 
 class Bolinette:
@@ -37,6 +40,13 @@ class Bolinette:
     def _parser(self):
         ...
 
+    async def _run_startup_funcs(self) -> None:
+        funcs = self._cache.get(STARTUP_CACHE_KEY, hint=Callable[..., Any], raises=False)
+        async with self._inject.get_scoped_session() as scoped_inject:
+            for func in funcs:
+                if asyncio.iscoroutine(res := scoped_inject.call(func)):
+                    await res
+
     async def startup(self) -> None:
         if self._initialized:
             raise InitError("Bolinette has already been initialized")
@@ -53,6 +63,8 @@ class Bolinette:
 
         self._inject.add(Bolinette, "singleton", instance=self)
         self._inject.__hook_proxies__(self)
+
+        await self._run_startup_funcs()
 
         self._logger = self._inject.require(Logger[Bolinette])
         self._logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self._extensions)}")

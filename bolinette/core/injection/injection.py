@@ -1,7 +1,6 @@
 from collections.abc import Callable, Iterable
-from contextlib import AbstractContextManager
 from types import TracebackType
-from typing import Any, Concatenate, Literal, Protocol, Self, overload, override
+from typing import Any, Concatenate, Literal, Protocol, Self, overload, override, runtime_checkable
 
 from bolinette.core import Cache, GenericMeta, __user_cache__, meta
 from bolinette.core.exceptions import InjectionError
@@ -15,7 +14,7 @@ from bolinette.core.utils import OrderedSet
 from bolinette.core.utils.strings import StringUtils
 
 
-class Injection(AbstractContextManager["Injection"]):
+class Injection:
     __slots__: list[str] = ["cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers", "_callbacks"]
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
     _REQUIREABLE_STRATEGIES = ("singleton", "transient")
@@ -269,7 +268,7 @@ class Injection(AbstractContextManager["Injection"]):
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_methods(r_type, instance, vars_lookup, circular_guard)
         self.__set_instance__(r_type, instance)
-        if Type(AbstractContextManager[Any]).isinstance(instance):
+        if isinstance(instance, HasEnter):
             instance.__enter__()
         for callback in self._callbacks:
             callback(
@@ -335,7 +334,7 @@ class Injection(AbstractContextManager["Injection"]):
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
         self._run_init_recursive(cls, instance, None, None)
-        if Type(AbstractContextManager[Any]).isinstance(instance):
+        if isinstance(instance, HasEnter):
             instance.__enter__()
         return instance
 
@@ -471,23 +470,15 @@ class Injection(AbstractContextManager["Injection"]):
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)
 
-    @override
     def __enter__(self) -> Self:
         return self
 
-    @override
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-        /,
-    ) -> None:
-        for instance in self._global_ctx.instances:
+    def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
+        for _, instance in self._global_ctx.instances:
             if isinstance(instance, Injection):
                 continue
-            if isinstance(instance, AbstractContextManager):
-                instance.__exit__(exc_type, exc_value, traceback)
+            if isinstance(instance, HasExit):
+                instance.__exit__(*args)
 
 
 class ScopedInjection(Injection):
@@ -569,18 +560,29 @@ class ScopedInjection(Injection):
         return func(**func_args)
 
     @override
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-        /,
-    ) -> None:
-        for instance in self._scoped_ctx.instances:
+    def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
+        for t, instance in self._scoped_ctx.instances:
             if isinstance(instance, Injection):
                 continue
-            if isinstance(instance, AbstractContextManager):
-                instance.__exit__(exc_type, exc_value, traceback)
+            if isinstance(instance, HasExit):
+                instance.__exit__(*args)
+            if isinstance(instance, HasAsyncExit):
+                raise InjectionError(f"Asynchronous context manager {t} should be closed with an asynchronous session")
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None],
+    ) -> None:
+        for _, instance in self._scoped_ctx.instances:
+            if isinstance(instance, Injection):
+                continue
+            if isinstance(instance, HasExit):
+                instance.__exit__(*args)
+            if isinstance(instance, HasAsyncExit):
+                await instance.__aexit__(*args)
 
 
 InjectionEvent = Literal["instantiated"]
@@ -597,3 +599,29 @@ def injection_callback[CallbackT](*, cache: Cache) -> Callable[[type[CallbackT]]
         return callback
 
     return decorator
+
+
+@runtime_checkable
+class HasEnter(Protocol):
+    def __enter__(self) -> Self:
+        ...
+
+
+@runtime_checkable
+class HasAsyncEnter(Protocol):
+    def __aenter__(self) -> Self:
+        ...
+
+
+@runtime_checkable
+class HasExit(Protocol):
+    def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> Self:
+        ...
+
+
+@runtime_checkable
+class HasAsyncExit(Protocol):
+    async def __aexit__(
+        self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]
+    ) -> Self:
+        ...
