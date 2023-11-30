@@ -7,7 +7,7 @@ from bolinette.core.extension import Extension
 from bolinette.core.injection import injectable, injection_arg_resolver
 from bolinette.data import DatabaseManager, DataSection, database_system
 from bolinette.data.defaults import AsyncSessionArgResolver, SQLite
-from bolinette.data.relational import EntityManager, SessionManager
+from bolinette.data.relational import AsyncTransaction, EntityManager
 
 
 class _DataExtension(Extension):
@@ -19,7 +19,7 @@ class _DataExtension(Extension):
         environment("data", cache=cache)(DataSection)
         injectable(strategy="singleton", cache=cache)(DatabaseManager)
         injectable(strategy="singleton", cache=cache)(EntityManager)
-        injectable(strategy="scoped", cache=cache)(SessionManager)
+        injectable(strategy="scoped", cache=cache)(AsyncTransaction)
         injection_arg_resolver(scoped=True, cache=cache)(AsyncSessionArgResolver)
         database_system(cache=cache)(SQLite)
 

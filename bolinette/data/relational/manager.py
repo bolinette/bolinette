@@ -2,8 +2,9 @@ from typing import Any
 
 from sqlalchemy import PrimaryKeyConstraint, Table, UniqueConstraint
 
-from bolinette.core import Cache, meta
+from bolinette.core import Cache, meta, startup
 from bolinette.core.injection import Injection, init_method
+from bolinette.core.logger import Logger
 from bolinette.data import DatabaseManager
 from bolinette.data.exceptions import DataError, EntityError
 from bolinette.data.relational import (
@@ -12,7 +13,6 @@ from bolinette.data.relational import (
     EntityMeta,
     RelationalDatabase,
     Repository,
-    SessionManager,
 )
 from bolinette.data.relational.repository import RepositoryMeta
 
@@ -88,6 +88,10 @@ class EntityManager:
         for engine in self._engines.values():
             await engine.create_all()
 
-    def open_sessions(self, sessions: SessionManager) -> None:
-        for engine in self._engines.values():
-            engine.open_session(sessions)
+
+@startup
+async def create_tables_for_memory_db(entities: EntityManager, logger: Logger[EntityManager]) -> None:
+    for engine in entities.engines.values():
+        if engine.in_memory:
+            logger.info(f"Creating tables for connection {engine.uri}")
+            await engine.create_all()

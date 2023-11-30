@@ -1,7 +1,9 @@
 import json
 import traceback
+from collections.abc import Callable
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict
+from types import TracebackType
+from typing import Any, NotRequired, Self, TypedDict
 
 from aiohttp import web
 
@@ -35,14 +37,14 @@ from bolinette.web.route import RouteBucket, RouteProps
 
 class WebResources:
     def __init__(self, inject: Injection, logger: "Logger[WebResources]", core_section: CoreSection) -> None:
-        self.web_app = web.Application()
         self.inject = inject
         self.logger = logger
         self.core_section = core_section
+        self.web_app: web.Application
+        self._route_handlers: list[RouteHandler] = []
 
     @init_method
-    def _init_ctrls(self, cache: Cache, inject: Injection) -> None:
-        routes: list[web.RouteDef] = []
+    def _init_ctrls(self, cache: Cache) -> None:
         for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller], raises=False):
             ctrl_meta = meta.get(ctrl_cls, ControllerMeta)
             attr: Any
@@ -71,35 +73,56 @@ class WebResources:
                             handler = web.delete
                         case _:
                             raise NotImplementedError()
-                    routes.append(handler(path, RouteHandler(self, Type(ctrl_cls), props, Function(attr)).handle))
-        self.web_app.add_routes(routes)
+                    self.add_route(RouteHandler(path, self, Type(ctrl_cls), props, Function(attr), handler))
+
+    def add_route(self, handler: "RouteHandler") -> None:
+        self._route_handlers.append(handler)
+
+    def __enter__(self) -> Self:
+        self.web_app = web.Application()
+        self.web_app.add_routes(h.handler_func(h.path, h.handle) for h in self._route_handlers)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None:
+        pass
 
 
 class RouteHandler:
-    __slots__ = ("resources", "ctrl_t", "props", "route")
+    __slots__: list[str] = ["path", "resources", "ctrl_t", "props", "route", "handler_func"]
 
     def __init__(
         self,
+        path: str,
         resources: WebResources,
         ctrl_t: Type[Controller],
         props: RouteProps,
         func: Function[..., Any],
+        handler_func: Callable[..., web.RouteDef],
     ) -> None:
+        self.path = path
         self.resources = resources
         self.ctrl_t = ctrl_t
         self.props = props
         self.route = func
+        self.handler_func = handler_func
 
     @staticmethod
     def prepare_session(inject: Injection, request: web.Request) -> None:
         inject.add(web.Request, "scoped", instance=request)
 
     async def handle(self, request: web.Request) -> web.Response:
+        self.resources.logger.info(f"Received request on {request.path}")
         try:
-            scoped_inject = self.resources.inject.get_scoped_session()
-            self.prepare_session(scoped_inject, request)
-            mdlws = self.collect_middlewares(scoped_inject)
-            return await self.middleware_chain(request, scoped_inject, mdlws, 0)
+            async with self.resources.inject.get_scoped_session() as scoped_inject:
+                self.prepare_session(scoped_inject, request)
+                mdlws = self.collect_middlewares(scoped_inject)
+                return await self.middleware_chain(request, scoped_inject, mdlws, 0)
         except Exception as err:
             self.resources.logger.error(str(type(err)), str(err))
             if isinstance(err, WebError):
@@ -144,6 +167,7 @@ class RouteHandler:
             return await self.call_controller(request, scoped)
         else:
             mdlw = mdlws[index]
+            self.resources.logger.debug(f"Calling middleware {mdlw}")
             return await scoped.call(mdlw.handle, args=[_next_handle])
 
     async def call_controller(
@@ -156,16 +180,7 @@ class RouteHandler:
         except json.JSONDecodeError:
             body = None
         ctrl = scoped.instantiate(self.ctrl_t.cls)
-        result = await scoped.call(
-            self.route.func,
-            args=[ctrl],
-            additional_resolvers=[
-                RouteParamArgResolver(self, request),
-                RoutePayloadArgResolver(self, scoped.require(Mapper), body),
-            ],
-        )
-        if isinstance(result, web.Response):
-            return result
+        self.resources.logger.debug(f"Calling controller route {self.route.func.__qualname__}(...)")
         result = await scoped.call(
             self.route.func,
             args=[ctrl],

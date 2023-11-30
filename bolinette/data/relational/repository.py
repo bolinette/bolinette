@@ -2,17 +2,16 @@ from collections.abc import AsyncIterable, Callable
 from typing import Any, Literal, TypeVar, overload
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import NamedColumn
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.data.exceptions import DataError, EntityNotFoundError
-from bolinette.data.relational import DeclarativeBase, EntityMeta
+from bolinette.data.relational import AsyncSession, DeclarativeBase, EntityMeta
 
 
 class Repository[EntityT: DeclarativeBase]:
-    def __init__(self, entity: type[EntityT], session: AsyncSession) -> None:
+    def __init__(self, entity: type[EntityT], session: AsyncSession[EntityT]) -> None:
         self._entity = entity
         self._session = session
         self._primary_key = self._entity.__table__.primary_key

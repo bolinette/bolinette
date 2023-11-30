@@ -1,4 +1,3 @@
-# pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
 from typing import override
 
 import pytest
@@ -6,18 +5,19 @@ from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from bolinette.core import Cache, meta
+from bolinette.core.logger import Logger
 from bolinette.core.testing import Mock
 from bolinette.core.utils import StringUtils
 from bolinette.data import DatabaseManager
 from bolinette.data.databases import DatabaseConnection
 from bolinette.data.exceptions import DataError, EntityError
 from bolinette.data.relational import (
+    AsyncTransaction,
     DeclarativeMeta,
     EntityManager,
     EntityMeta,
     RelationalDatabase,
     Repository,
-    SessionManager,
     entity,
     get_base,
     repository,
@@ -42,7 +42,7 @@ def mock_db_manager(mock: Mock, engine_type: type[RelationalDatabase] | None = N
 
     (
         mock.mock(DatabaseManager)
-        .setup_callable(lambda m: m.has_connection, lambda _: True)
+        .setup_callable(lambda m: m.has_connection, lambda name: True)
         .setup_callable(lambda m: m.get_connection, _get_connection)
     )
 
@@ -53,7 +53,7 @@ def mock_entities(cache: Cache, name: str, base: type[DeclarativeBase]) -> type[
         (base,),
         {"__tablename__": name, "id": mapped_column(Integer, primary_key=True)},
     )
-    meta.set(entity_type, EntityMeta(name, entity_key=[entity_type.id]))
+    meta.set(entity_type, EntityMeta(name, entity_key=[entity_type.id]))  # pyright: ignore
     cache.add(EntityMeta, entity_type)
     return entity_type
 
@@ -81,7 +81,7 @@ def test_fail_init_engines_unknown_connection() -> None:
 
     create_entity_base(cache)
 
-    mock.mock(DatabaseManager).setup_callable(lambda m: m.has_connection, lambda _: False)
+    mock.mock(DatabaseManager).setup_callable(lambda m: m.has_connection, lambda name: False)
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
@@ -102,7 +102,7 @@ def test_fail_init_engines_non_relational_system() -> None:
 
     (
         mock.mock(DatabaseManager)
-        .setup_callable(lambda m: m.has_connection, lambda _: True)
+        .setup_callable(lambda m: m.has_connection, lambda name: True)
         .setup_callable(lambda m: m.get_connection, _get_connection)
     )
 
@@ -138,11 +138,13 @@ async def test_create_all() -> None:
     assert visited == ["test"]
 
 
-def test_open_sessions() -> None:
+async def test_open_sessions() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
     mock.injection.add(EntityManager, "singleton")
+    mock.injection.add(AsyncTransaction, "scoped")
+    mock.mock(Logger[AsyncTransaction]).dummy()
 
     visited: list[str] = []
 
@@ -151,15 +153,14 @@ def test_open_sessions() -> None:
             self._name = name
 
         @override
-        def open_session(self, sessions: SessionManager) -> None:
+        def open_session(self, sessions: AsyncTransaction, /) -> None:
             visited.append(self._name)
 
     create_entity_base(cache)
     mock_db_manager(mock, _MockedRelationalDatabase)
 
-    manager = mock.injection.require(EntityManager)
-
-    manager.open_sessions(SessionManager())
+    async with mock.injection.get_scoped_session() as scoped_inject:
+        scoped_inject.require(AsyncTransaction)
 
     assert visited == ["test"]
 
@@ -196,7 +197,7 @@ def test_fail_init_entities_multiple_bases() -> None:
     entity_type = type(
         "Entity", (base1, base2), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)}
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))  # pyright: ignore
     cache.add(EntityMeta, entity_type)
 
     with pytest.raises(EntityError) as info:
@@ -243,7 +244,7 @@ def test_init_entity_composite_entity_key() -> None:
     )
     meta.set(
         entity_type,
-        EntityMeta("entity", entity_key=[entity_type.firstname, entity_type.lastname]),
+        EntityMeta("entity", entity_key=[entity_type.firstname, entity_type.lastname]),  # pyright: ignore
     )
     cache.add(EntityMeta, entity_type)
 
@@ -266,7 +267,7 @@ def test_fail_init_entity_key_not_unique() -> None:
         (base,),
         {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True), "name": mapped_column(String)},
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))  # pyright: ignore
     cache.add(EntityMeta, entity_type)
 
     with pytest.raises(EntityError) as info:
@@ -285,10 +286,10 @@ def test_fail_init_entity_wrong_table_object() -> None:
     mock_db_manager(mock)
 
     entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))  # pyright: ignore
     cache.add(EntityMeta, entity_type)
 
-    entity_type.__table__ = object()
+    entity_type.__table__ = object()  # pyright: ignore
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
@@ -310,11 +311,11 @@ def test_fail_init_entity_wrong_constraint_type() -> None:
         (base,),
         {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True), "name": mapped_column(String)},
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))  # pyright: ignore
     cache.add(EntityMeta, entity_type)
 
     assert isinstance(entity_type.__table__, Table)
-    entity_type.__table__.constraints = [object()]
+    entity_type.__table__.constraints = [object()]  # pyright: ignore
 
     with pytest.raises(EntityError) as info:
         mock.injection.require(EntityManager)
@@ -353,7 +354,7 @@ def test_fail_init_repositories_unused_repository() -> None:
     base = create_entity_base(cache)
     mock_db_manager(mock)
     entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))
+    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))  # pyright: ignore
 
     @repository(entity_type, cache=cache)
     class _EntityRepository(Repository[entity_type]):

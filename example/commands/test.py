@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from bolinette.core import command
 from bolinette.core.command.command import Argument
 from bolinette.core.injection import Injection
-from bolinette.data.relational import EntityManager, Repository, SessionManager
+from bolinette.data.relational import EntityManager, Repository
 from example.entities import Role, User
 
 
@@ -33,12 +33,7 @@ async def test_command(
 
     async def run_in_scope(func: Callable[..., Awaitable[None]], *, commit: bool = False):
         s_inject = inject.get_scoped_session()
-        sessions = s_inject.require(SessionManager)
-        entities.open_sessions(sessions)
         await s_inject.call(func)
-        if commit:
-            await sessions.commit()
-        await sessions.close()
 
     await run_in_scope(create_role, commit=True)
     await run_in_scope(create_users, commit=True)
