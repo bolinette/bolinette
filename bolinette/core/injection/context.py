@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Literal, overload
 
 from bolinette.core.types import Type
 
@@ -19,6 +19,15 @@ class InjectionContext:
     def get_instance[InstanceT](self, t: Type[InstanceT]) -> InstanceT:
         return self._instances[t]
 
-    @property
-    def instances(self) -> Iterable[tuple[Type[Any], Any]]:
-        return ((t, i) for t, i in self._instances.items())
+    @overload
+    def get_instances(self) -> Iterable[Any]:
+        ...
+
+    @overload
+    def get_instances(self, *, with_types: Literal[True]) -> Iterable[tuple[type[Any], Any]]:
+        ...
+
+    def get_instances(self, **kwargs: Any) -> Iterable[tuple[type[Any], Any]] | Iterable[Any]:
+        if "with_types" in kwargs:
+            return [(t, i) for t, i in self._instances.items()]
+        return [i for i in self._instances.values()]

@@ -470,11 +470,14 @@ class Injection:
     def get_scoped_session(self) -> "ScopedInjection":
         return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types)
 
+    def get_async_scoped_session(self) -> "AsyncScopedSession":
+        return AsyncScopedSession(self.cache, self._global_ctx, InjectionContext(), self._types)
+
     def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
-        for _, instance in self._global_ctx.instances:
+        for instance in self._global_ctx.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):
@@ -561,13 +564,22 @@ class ScopedInjection(Injection):
 
     @override
     def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
-        for t, instance in self._scoped_ctx.instances:
+        for instance in self._scoped_ctx.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):
                 instance.__exit__(*args)
-            if isinstance(instance, HasAsyncExit):
-                raise InjectionError(f"Asynchronous context manager {t} should be closed with an asynchronous session")
+
+
+class AsyncScopedSession(ScopedInjection):
+    def __init__(
+        self,
+        cache: Cache,
+        global_ctx: InjectionContext,
+        scoped_ctx: InjectionContext,
+        types: dict[type, RegisteredTypeBag[Any]],
+    ) -> None:
+        super().__init__(cache, global_ctx, scoped_ctx, types)
 
     async def __aenter__(self) -> Self:
         return self
@@ -576,7 +588,7 @@ class ScopedInjection(Injection):
         self,
         *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None],
     ) -> None:
-        for _, instance in self._scoped_ctx.instances:
+        for instance in self._scoped_ctx.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):

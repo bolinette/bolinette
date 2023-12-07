@@ -42,7 +42,7 @@ class Bolinette:
 
     async def _run_startup_funcs(self) -> None:
         funcs = self._cache.get(STARTUP_CACHE_KEY, hint=Callable[..., Any], raises=False)
-        async with self._inject.get_scoped_session() as scoped_inject:
+        async with self._inject.get_async_scoped_session() as scoped_inject:
             for func in funcs:
                 if asyncio.iscoroutine(res := scoped_inject.call(func)):
                     await res

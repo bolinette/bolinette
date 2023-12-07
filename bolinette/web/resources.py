@@ -9,7 +9,7 @@ from aiohttp import web
 
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.environment import CoreSection
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, ScopedInjection, init_method
 from bolinette.core.injection.resolver import ArgResolverOptions
 from bolinette.core.mapping import JsonObjectEncoder, Mapper
 from bolinette.core.mapping.exceptions import (
@@ -119,7 +119,7 @@ class RouteHandler:
     async def handle(self, request: web.Request) -> web.Response:
         self.resources.logger.info(f"Received request on {request.path}")
         try:
-            async with self.resources.inject.get_scoped_session() as scoped_inject:
+            async with self.resources.inject.get_async_scoped_session() as scoped_inject:
                 self.prepare_session(scoped_inject, request)
                 mdlws = self.collect_middlewares(scoped_inject)
                 return await self.middleware_chain(request, scoped_inject, mdlws, 0)
@@ -156,7 +156,7 @@ class RouteHandler:
     async def middleware_chain(
         self,
         request: web.Request,
-        scoped: Injection,
+        scoped: ScopedInjection,
         mdlws: list[Middleware[Any]],
         index: int,
     ) -> web.Response:

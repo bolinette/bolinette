@@ -159,7 +159,7 @@ async def test_open_sessions() -> None:
     create_entity_base(cache)
     mock_db_manager(mock, _MockedRelationalDatabase)
 
-    async with mock.injection.get_scoped_session() as scoped_inject:
+    async with mock.injection.get_async_scoped_session() as scoped_inject:
         scoped_inject.require(AsyncTransaction)
 
     assert visited == ["test"]

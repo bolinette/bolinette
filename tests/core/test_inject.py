@@ -1428,36 +1428,11 @@ async def test_async_context_manager_subinject() -> None:
         inject.add(Service2, "scoped")
         inject.require(Service1)
         assert check == ["enter1"]
-        async with inject.get_scoped_session() as subinject:
+        async with inject.get_async_scoped_session() as subinject:
             subinject.require(Service2)
             assert check == ["enter1"]
         assert check == ["enter1", "exit2"]
     assert check == ["enter1", "exit2", "exit1"]
-
-
-def test_fail_async_context_manager_in_sync_scope() -> None:
-    cache = Cache()
-
-    class Service:
-        async def __aexit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc_value: BaseException | None,
-            traceback: TracebackType | None,
-            /,
-        ) -> None:
-            pass
-
-    with Injection(cache) as inject:
-        inject.add(Service, "scoped")
-        with pytest.raises(InjectionError) as info:
-            with inject.get_scoped_session() as subinject:
-                subinject.require(Service)
-
-    assert (
-        "Asynchronous context manager test_fail_async_context_manager_in_sync_scope.<locals>.Service "
-        "should be closed with an asynchronous session" == info.value.message
-    )
 
 
 def test_inject_generic_type_in_init() -> None:
