@@ -8,10 +8,10 @@ from bolinette.core.logger import Logger
 from bolinette.data import DatabaseManager
 from bolinette.data.exceptions import DataError, EntityError
 from bolinette.data.relational import (
+    AbstractDatabase,
     DeclarativeBase,
     DeclarativeMeta,
     EntityMeta,
-    RelationalDatabase,
     Repository,
 )
 from bolinette.data.relational.repository import RepositoryMeta
@@ -20,14 +20,14 @@ from bolinette.data.relational.repository import RepositoryMeta
 class EntityManager:
     def __init__(self) -> None:
         self._entities: list[type[DeclarativeBase]] = []
-        self._engines: dict[type[DeclarativeBase], RelationalDatabase] = {}
+        self._engines: dict[type[DeclarativeBase], AbstractDatabase] = {}
 
     @property
     def entities(self) -> list[type[DeclarativeBase]]:
         return list(self._entities)
 
     @property
-    def engines(self) -> dict[type[DeclarativeBase], RelationalDatabase]:
+    def engines(self) -> dict[type[DeclarativeBase], AbstractDatabase]:
         return dict(self._engines)
 
     @init_method
@@ -37,7 +37,7 @@ class EntityManager:
             if not databases.has_connection(_m.name):
                 raise EntityError(f"No '{_m.name}' database connection defined in environment")
             conn = databases.get_connection(_m.name)
-            if not issubclass(conn.manager, RelationalDatabase):
+            if not issubclass(conn.manager, AbstractDatabase):
                 raise EntityError(f"Database connection '{_m.name}' is not a relational system")
             self._engines[base] = conn.manager(base, conn.name, conn.url, conn.echo)
 
@@ -50,7 +50,7 @@ class EntityManager:
                 if issubclass(entity, base):
                     if found:
                         raise EntityError(f"Entity {entity} cannot inherit from multiple declarative bases")
-                    meta.set(entity, engine, cls=RelationalDatabase)
+                    meta.set(entity, engine, cls=AbstractDatabase)
                     found = True
             if not found:
                 raise EntityError(f"Entity {entity} has no known bases as its parents")

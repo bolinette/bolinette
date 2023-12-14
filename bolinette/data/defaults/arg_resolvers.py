@@ -3,7 +3,7 @@ from typing import Any
 from bolinette.core import meta
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.injection.resolver import ArgResolverOptions
-from bolinette.data.relational import AsyncSession, AsyncTransaction, EntityManager, RelationalDatabase
+from bolinette.data.relational import AbstractDatabase, AsyncTransaction, EntityManager, EntitySession
 
 
 class AsyncSessionArgResolver:
@@ -12,7 +12,7 @@ class AsyncSessionArgResolver:
         self.transaction = transaction
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return options.t.cls is AsyncSession
+        return options.t.cls is EntitySession
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
         if options.caller_type_vars is None:
@@ -24,5 +24,5 @@ class AsyncSessionArgResolver:
             raise InjectionError(
                 f"Type {entity_type} is not registered as an entity", func=options.caller, param=options.name
             )
-        engine = meta.get(entity_type, RelationalDatabase)
+        engine = meta.get(entity_type, AbstractDatabase)
         return options.name, self.transaction.get(engine.name)

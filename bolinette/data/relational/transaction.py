@@ -2,31 +2,26 @@ from types import TracebackType
 from typing import Self
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionBase
 
 from bolinette.core import Logger
 from bolinette.core.injection import init_method
 from bolinette.data import relational
-from bolinette.data.relational import DeclarativeBase
-
-
-class AsyncSession[EntityT: DeclarativeBase](AsyncSessionBase):
-    pass
+from bolinette.data.relational import DeclarativeBase, EntitySession
 
 
 class AsyncTransaction:
     def __init__(self, entities: "relational.EntityManager", logger: "Logger[AsyncTransaction]") -> None:
         self._entities = entities
         self._logger = logger
-        self._sessions: dict[str, AsyncSession[DeclarativeBase]] = {}
+        self._sessions: dict[str, EntitySession[DeclarativeBase]] = {}
 
-    def add(self, key: str, session: AsyncSession[DeclarativeBase]) -> None:
+    def add(self, key: str, session: EntitySession[DeclarativeBase]) -> None:
         self._sessions[key] = session
 
     def __contains__(self, key: str) -> bool:
         return key in self._sessions
 
-    def get(self, key: str) -> AsyncSession[DeclarativeBase]:
+    def get(self, key: str) -> EntitySession[DeclarativeBase]:
         return self._sessions[key]
 
     @init_method

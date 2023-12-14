@@ -7,11 +7,11 @@ from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.data.exceptions import DataError, EntityNotFoundError
-from bolinette.data.relational import AsyncSession, DeclarativeBase, EntityMeta
+from bolinette.data.relational import DeclarativeBase, EntityMeta, EntitySession
 
 
 class Repository[EntityT: DeclarativeBase]:
-    def __init__(self, entity: type[EntityT], session: AsyncSession[EntityT]) -> None:
+    def __init__(self, entity: type[EntityT], session: EntitySession[EntityT]) -> None:
         self._entity = entity
         self._session = session
         self._primary_key = self._entity.__table__.primary_key

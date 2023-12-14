@@ -12,11 +12,12 @@ from bolinette.data import DatabaseManager
 from bolinette.data.databases import DatabaseConnection
 from bolinette.data.exceptions import DataError, EntityError
 from bolinette.data.relational import (
+    AbstractDatabase,
+    AsyncRelationalDatabase,
     AsyncTransaction,
     DeclarativeMeta,
     EntityManager,
     EntityMeta,
-    RelationalDatabase,
     Repository,
     entity,
     get_base,
@@ -24,7 +25,7 @@ from bolinette.data.relational import (
 )
 
 
-class _MockedRelationalDatabase(RelationalDatabase):
+class _MockedRelationalDatabase(AsyncRelationalDatabase):
     def __init__(self, base: type[DeclarativeBase], name: str, uri: str, echo: bool):
         pass
 
@@ -36,7 +37,7 @@ def create_entity_base(cache: Cache, name: str = "TestDatabase") -> type[Declara
     return base
 
 
-def mock_db_manager(mock: Mock, engine_type: type[RelationalDatabase] | None = None) -> None:
+def mock_db_manager(mock: Mock, engine_type: type[AsyncRelationalDatabase] | None = None) -> None:
     def _get_connection(name: str) -> DatabaseConnection:
         return DatabaseConnection(name, "protocol://", False, engine_type or _MockedRelationalDatabase)
 
@@ -120,7 +121,7 @@ async def test_create_all() -> None:
 
     visited: list[str] = []
 
-    class _MockedRelationalDatabase(RelationalDatabase):
+    class _MockedRelationalDatabase(AsyncRelationalDatabase):
         def __init__(self, base: type[DeclarativeBase], name: str, uri: str, echo: bool):
             self._name = name
 
@@ -148,7 +149,7 @@ async def test_open_sessions() -> None:
 
     visited: list[str] = []
 
-    class _MockedRelationalDatabase(RelationalDatabase):
+    class _MockedRelationalDatabase(AsyncRelationalDatabase):
         def __init__(self, base: type[DeclarativeBase], name: str, uri: str, echo: bool):
             self._name = name
 
@@ -179,7 +180,7 @@ def test_init_entities() -> None:
 
     assert len(manager.entities) == 1
     assert entity_type in manager.entities
-    assert meta.has(entity_type, RelationalDatabase)
+    assert meta.has(entity_type, AbstractDatabase)
     assert manager.is_entity_type(entity_type)
     assert not manager.is_entity_type(object)
 

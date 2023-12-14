@@ -6,7 +6,7 @@ from bolinette.core.testing import Mock
 from bolinette.data import DatabaseManager, DataSection, database_system
 from bolinette.data.exceptions import DatabaseError
 from bolinette.data.objects import DatabaseSection
-from bolinette.data.relational import RelationalDatabase
+from bolinette.data.relational import AsyncRelationalDatabase
 
 
 def test_init_systems() -> None:
@@ -15,7 +15,7 @@ def test_init_systems() -> None:
     class _SQLite:
         scheme = "sqlite+aiosqlite://"
         python_package = "aiosqlite"
-        manager = RelationalDatabase
+        manager = AsyncRelationalDatabase
 
     database_system(cache=cache)(_SQLite)
     mock = Mock(cache=cache)
@@ -31,7 +31,7 @@ def test_init_systems() -> None:
     system = manager.get_system("sqlite+aiosqlite://")
     assert system.scheme == "sqlite+aiosqlite://"
     assert system.python_package == "aiosqlite"
-    assert system.manager is RelationalDatabase
+    assert system.manager is AsyncRelationalDatabase
 
 
 def test_fail_init_systems_no_system() -> None:
@@ -52,7 +52,7 @@ def test_fail_init_systems_python_package_not_found() -> None:
     class _SQLite:
         scheme = "sqlite+aiosqlite://"
         python_package = "some-package"
-        manager = RelationalDatabase
+        manager = AsyncRelationalDatabase
 
     database_system(cache=cache)(_SQLite)
     mock = Mock(cache=cache)
@@ -69,7 +69,7 @@ def test_fail_init_systems_python_package_not_found() -> None:
 class SQLite:
     scheme = "sqlite+aiosqlite://"
     python_package = "aiosqlite"
-    manager = RelationalDatabase
+    manager = AsyncRelationalDatabase
 
 
 def test_init_connections() -> None:
@@ -97,7 +97,7 @@ def test_init_connections() -> None:
     assert conn.name == "test-connection"
     assert conn.url == "sqlite+aiosqlite://"
     assert conn.echo is False
-    assert conn.manager is RelationalDatabase
+    assert conn.manager is AsyncRelationalDatabase
 
 
 def test_fail_init_connections_invalid_url() -> None:

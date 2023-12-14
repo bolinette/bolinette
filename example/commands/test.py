@@ -32,8 +32,8 @@ async def test_command(
             print(user.username, user.role.name)
 
     async def run_in_scope(func: Callable[..., Awaitable[None]], *, commit: bool = False):
-        s_inject = inject.get_scoped_session()
-        await s_inject.call(func)
+        async with inject.get_async_scoped_session() as s_inject:
+            await s_inject.call(func)
 
     await run_in_scope(create_role, commit=True)
     await run_in_scope(create_users, commit=True)
