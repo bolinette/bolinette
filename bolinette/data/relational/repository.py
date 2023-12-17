@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterable, Callable
+from collections.abc import AsyncIterable, Callable, Iterable
 from typing import Any, Literal, TypeVar, overload
 
 from sqlalchemy import select
@@ -6,16 +6,22 @@ from sqlalchemy.sql.elements import NamedColumn
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette.core import Cache, __user_cache__, meta
+from bolinette.core.injection import init_method
 from bolinette.data.exceptions import DataError, EntityNotFoundError
-from bolinette.data.relational import DeclarativeBase, EntityMeta, EntitySession
+from bolinette.data.relational import DeclarativeBase, EntitySession
 
 
 class Repository[EntityT: DeclarativeBase]:
-    def __init__(self, entity: type[EntityT], session: EntitySession[EntityT]) -> None:
+    def __init__(self) -> None:
+        self._entity: type[EntityT]
+        self._session: EntitySession[EntityT]
+        self._primary_key: Iterable[NamedColumn[Any]]
+
+    @init_method
+    def _init_session(self, entity: type[EntityT], session: EntitySession[EntityT]) -> None:
         self._entity = entity
         self._session = session
         self._primary_key = self._entity.__table__.primary_key
-        self._entity_key = meta.get(self._entity, EntityMeta).entity_key
 
     @property
     def primary_key(self) -> list[NamedColumn[Any]]:
@@ -57,22 +63,6 @@ class Repository[EntityT: DeclarativeBase]:
             raise DataError(f"Primary key of {self._entity} has {prim_l} columns, but {val_l} values were provided")
         query = select(self._entity)
         for col, value in zip(self._primary_key, values, strict=True):
-            query = query.where(col == value)
-        return await self.first(query, raises=raises)  # pyright: ignore
-
-    @overload
-    async def get_by_key(self, *values: Any, raises: Literal[True] = True) -> EntityT:
-        pass
-
-    @overload
-    async def get_by_key(self, *values: Any, raises: Literal[False]) -> EntityT | None:
-        pass
-
-    async def get_by_key(self, *values: Any, raises: bool = True) -> EntityT | None:
-        if (val_l := len(values)) != (key_l := len(list(self._entity_key))):
-            raise DataError(f"Entity key of {self._entity} has {key_l} columns, but {val_l} values were provided")
-        query = select(self._entity)
-        for col, value in zip(self._entity_key, values, strict=True):
             query = query.where(col == value)
         return await self.first(query, raises=raises)  # pyright: ignore
 

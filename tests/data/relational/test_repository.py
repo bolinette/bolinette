@@ -15,7 +15,7 @@ from bolinette.data.relational.repository import RepositoryMeta
 def test_init_repo() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -33,7 +33,7 @@ def test_init_repo() -> None:
 async def test_iterate() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -65,7 +65,7 @@ async def test_iterate() -> None:
 async def test_find_all() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -97,7 +97,7 @@ async def test_find_all() -> None:
 async def test_first() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -126,7 +126,7 @@ async def test_first() -> None:
 async def test_first_none() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -153,7 +153,7 @@ async def test_first_none() -> None:
 async def test_fail_first_none() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -181,7 +181,7 @@ async def test_fail_first_none() -> None:
 async def test_get_by_primary() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -210,7 +210,7 @@ async def test_get_by_primary() -> None:
 async def test_get_by_primary_none() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -237,7 +237,7 @@ async def test_get_by_primary_none() -> None:
 async def test_fail_get_by_primary_none() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -265,7 +265,7 @@ async def test_fail_get_by_primary_none() -> None:
 async def test_fail_get_by_primary_values_mismatch() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -283,115 +283,10 @@ async def test_fail_get_by_primary_values_mismatch() -> None:
     assert f"Primary key of {Entity} has 1 columns, but 2 values were provided" == info.value.message
 
 
-async def test_get_by_key() -> None:
-    cache = Cache()
-
-    @entity(entity_key="id", cache=cache)
-    class Entity(get_base("tests", cache=cache)):
-        __tablename__ = "entities"
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    mock = Mock(cache=cache)
-
-    e1 = Entity()
-
-    class _MockedResult:
-        def scalar_one_or_none(self):
-            return e1
-
-    async def _execute(*_: Any):
-        return _MockedResult()
-
-    mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
-
-    repo = mock.injection.require(Repository[Entity])
-
-    res = await repo.get_by_key(1)
-
-    assert res == e1
-
-
-async def test_get_by_key_none() -> None:
-    cache = Cache()
-
-    @entity(entity_key="id", cache=cache)
-    class Entity(get_base("tests", cache=cache)):
-        __tablename__ = "entities"
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    mock = Mock(cache=cache)
-
-    class _MockedResult:
-        def scalar_one_or_none(self):
-            return None
-
-    async def _execute(*_: Any):
-        return _MockedResult()
-
-    mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
-
-    repo = mock.injection.require(Repository[Entity])
-
-    res = await repo.get_by_key(1, raises=False)
-
-    assert res is None
-
-
-async def test_fail_get_by_key_none() -> None:
-    cache = Cache()
-
-    @entity(entity_key="id", cache=cache)
-    class Entity(get_base("tests", cache=cache)):
-        __tablename__ = "entities"
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    mock = Mock(cache=cache)
-
-    class _MockedResult:
-        def scalar_one_or_none(self):
-            return None
-
-    async def _execute(*_: Any):
-        return _MockedResult()
-
-    mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
-
-    repo = mock.injection.require(Repository[Entity])
-
-    with pytest.raises(EntityNotFoundError) as info:
-        await repo.get_by_key(1)
-
-    assert f"Entity {Entity} not found" == info.value.message
-
-
-async def test_fail_get_by_key_values_mismatch() -> None:
-    cache = Cache()
-
-    @entity(entity_key="id", cache=cache)
-    class Entity(get_base("tests", cache=cache)):
-        __tablename__ = "entities"
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    mock = Mock(cache=cache)
-
-    mock.mock(EntitySession[Entity])
-    mock.injection.add(Repository[Entity], "singleton")
-
-    repo = mock.injection.require(Repository[Entity])
-
-    with pytest.raises(DataError) as info:
-        await repo.get_by_key(1, "test")
-
-    assert f"Entity key of {Entity} has 1 columns, but 2 values were provided" == info.value.message
-
-
 async def test_add() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -417,7 +312,7 @@ async def test_add() -> None:
 async def test_delete() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -443,7 +338,7 @@ async def test_delete() -> None:
 async def test_commit() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -469,7 +364,7 @@ async def test_commit() -> None:
 def test_custom_repo() -> None:
     cache = Cache()
 
-    @entity(entity_key="id", cache=cache)
+    @entity(cache=cache)
     class Entity(get_base("tests", cache=cache)):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from bolinette.data.relational import entity, get_base
 
 
-@entity(entity_key="id")
+@entity()
 class Item(get_base("default")):
     __tablename__ = "items"
 

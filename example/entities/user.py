@@ -5,7 +5,7 @@ from bolinette.data.relational import entity, get_base
 from example.entities import Role
 
 
-@entity(entity_key="id")
+@entity()
 class User(get_base("default")):
     __tablename__ = "users"
 

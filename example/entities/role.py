@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from example.entities import User
 
 
-@entity(entity_key="name")
+@entity()
 class Role(get_base("default")):
     __tablename__ = "roles"
 

@@ -1,8 +1,8 @@
 from typing import override
 
 import pytest
-from sqlalchemy import ForeignKey, Integer, String, Table, UniqueConstraint
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import Integer, String, Table, UniqueConstraint
+from sqlalchemy.orm import DeclarativeBase, mapped_column
 
 from bolinette.core import Cache, meta
 from bolinette.core.logger import Logger
@@ -19,8 +19,6 @@ from bolinette.data.relational import (
     EntityManager,
     EntityMeta,
     Repository,
-    entity,
-    get_base,
     repository,
 )
 
@@ -54,7 +52,7 @@ def mock_entities(cache: Cache, name: str, base: type[DeclarativeBase]) -> type[
         (base,),
         {"__tablename__": name, "id": mapped_column(Integer, primary_key=True)},
     )
-    meta.set(entity_type, EntityMeta(name, entity_key=[entity_type.id]))  # pyright: ignore
+    meta.set(entity_type, EntityMeta(name))
     cache.add(EntityMeta, entity_type)
     return entity_type
 
@@ -198,7 +196,7 @@ def test_fail_init_entities_multiple_bases() -> None:
     entity_type = type(
         "Entity", (base1, base2), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)}
     )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))  # pyright: ignore
+    meta.set(entity_type, EntityMeta("entity"))
     cache.add(EntityMeta, entity_type)
 
     with pytest.raises(EntityError) as info:
@@ -245,83 +243,13 @@ def test_init_entity_composite_entity_key() -> None:
     )
     meta.set(
         entity_type,
-        EntityMeta("entity", entity_key=[entity_type.firstname, entity_type.lastname]),  # pyright: ignore
+        EntityMeta("entity"),
     )
     cache.add(EntityMeta, entity_type)
 
     assert isinstance(entity_type.__table__, Table)
 
     mock.injection.require(EntityManager)
-
-
-def test_fail_init_entity_key_not_unique() -> None:
-    cache = Cache()
-
-    mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
-
-    base = create_entity_base(cache, "TestDatabase")
-    mock_db_manager(mock)
-
-    entity_type = type(
-        "Entity",
-        (base,),
-        {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True), "name": mapped_column(String)},
-    )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))  # pyright: ignore
-    cache.add(EntityMeta, entity_type)
-
-    with pytest.raises(EntityError) as info:
-        mock.injection.require(EntityManager)
-
-    assert f"Entity {entity_type}, Entity key does not match with any unique constraint" == info.value.message
-
-
-def test_fail_init_entity_wrong_table_object() -> None:
-    cache = Cache()
-
-    mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
-
-    base = create_entity_base(cache, "TestDatabase")
-    mock_db_manager(mock)
-
-    entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))  # pyright: ignore
-    cache.add(EntityMeta, entity_type)
-
-    entity_type.__table__ = object()  # pyright: ignore
-
-    with pytest.raises(EntityError) as info:
-        mock.injection.require(EntityManager)
-
-    assert f"Entity {entity_type}, Could not determine entity key" == info.value.message
-
-
-def test_fail_init_entity_wrong_constraint_type() -> None:
-    cache = Cache()
-
-    mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
-
-    base = create_entity_base(cache, "TestDatabase")
-    mock_db_manager(mock)
-
-    entity_type = type(
-        "Entity",
-        (base,),
-        {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True), "name": mapped_column(String)},
-    )
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.name]))  # pyright: ignore
-    cache.add(EntityMeta, entity_type)
-
-    assert isinstance(entity_type.__table__, Table)
-    entity_type.__table__.constraints = [object()]  # pyright: ignore
-
-    with pytest.raises(EntityError) as info:
-        mock.injection.require(EntityManager)
-
-    assert f"Entity {entity_type}, Entity key does not match with any unique constraint" == info.value.message
 
 
 def test_init_repositories() -> None:
@@ -355,7 +283,7 @@ def test_fail_init_repositories_unused_repository() -> None:
     base = create_entity_base(cache)
     mock_db_manager(mock)
     entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
-    meta.set(entity_type, EntityMeta("entity", entity_key=[entity_type.id]))  # pyright: ignore
+    meta.set(entity_type, EntityMeta("entity"))
 
     @repository(entity_type, cache=cache)
     class _EntityRepository(Repository[entity_type]):
@@ -365,35 +293,3 @@ def test_fail_init_repositories_unused_repository() -> None:
         mock.injection.require(EntityManager)
 
     assert f"Repository {_EntityRepository} was not used with any registered entity" == info.value.message
-
-
-def test_fail_declare_entity_attribute_not_found() -> None:
-    cache = Cache()
-
-    class _Entity(get_base("test", cache=cache)):
-        __tablename__ = "entity"
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    with pytest.raises(EntityError) as info:
-        entity(entity_key=["none"])(_Entity)
-
-    assert f"Entity {_Entity}, Attribute 'none' not found" == info.value.message
-
-
-def test_fail_declare_entity_attribute_not_column() -> None:
-    cache = Cache()
-
-    class _Parent(get_base("test", cache=cache)):
-        __tablename__ = "parent"
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    class _Child(get_base("test", cache=cache)):
-        __tablename__ = "child"
-        id: Mapped[int] = mapped_column(primary_key=True)
-        parent_id: Mapped[int] = mapped_column(ForeignKey("parent.id"))
-        parent: Mapped[_Parent] = relationship()
-
-    with pytest.raises(EntityError) as info:
-        entity(entity_key=["parent"])(_Child)
-
-    assert f"Entity {_Child}, Attribute 'parent' is not an SQLAlchemy mapped column" == info.value.message
