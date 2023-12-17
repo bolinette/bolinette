@@ -22,9 +22,9 @@ def get_version(module: ModuleType) -> str:
 
 
 def update_version(path: Path, major: int, minor: int, patch: int) -> None:
-    with open(path, "r") as stream:
+    with open(path) as stream:
         content = stream.read()
-    content = re.sub(r'version = "[^"]+"', f'version = "{major}.{minor}.{patch}"', content, 1)
+    content = re.sub(r'version = "[^"]+"', f'version = "{major}.{minor}.{patch}"', content, count=1)
     with open(path, "w") as stream:
         stream.write(content)
 
@@ -36,9 +36,9 @@ def update_module_version(module: ModuleType, major: int, minor: int, patch: int
 
 def update_requirements(module: ModuleType, name: str, version: str) -> None:
     pyproject_path = Path(inspect.getfile(module)).parent / "pyproject.toml"
-    with open(pyproject_path, "r") as stream:
+    with open(pyproject_path) as stream:
         content = stream.read()
-    content = re.sub(rf'{name} = "\^[^"]+"', f'{name} = "^{version}"', content, 1)
+    content = re.sub(rf'{name} = "\^[^"]+"', f'{name} = "^{version}"', content, count=1)
     with open(pyproject_path, "w") as stream:
         stream.write(content)
 
