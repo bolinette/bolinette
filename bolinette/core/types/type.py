@@ -176,44 +176,44 @@ class Type[T]:
         if cls_ in _BUILTIN_PARAM_COUNT:
             return _BUILTIN_PARAM_COUNT[cls_]
         if hasattr(cls_, "__parameters__"):
-            return len(cls_.__parameters__)  # pyright: ignore
+            return len(cls_.__parameters__)
         return 0
 
 
 _BUILTIN_PARAM_COUNT: dict[type[Any], int] = {
     collections.abc.Hashable: 0,
-    collections.abc.Awaitable: 1,  # pyright: ignore
-    collections.abc.Coroutine: 3,  # pyright: ignore
-    collections.abc.AsyncIterable: 1,  # pyright: ignore
-    collections.abc.AsyncIterator: 1,  # pyright: ignore
-    collections.abc.Iterable: 1,  # pyright: ignore
-    collections.abc.Iterator: 1,  # pyright: ignore
-    collections.abc.Reversible: 1,  # pyright: ignore
+    collections.abc.Awaitable: 1,
+    collections.abc.Coroutine: 3,
+    collections.abc.AsyncIterable: 1,
+    collections.abc.AsyncIterator: 1,
+    collections.abc.Iterable: 1,
+    collections.abc.Iterator: 1,
+    collections.abc.Reversible: 1,
     collections.abc.Sized: 0,
-    collections.abc.Container: 1,  # pyright: ignore
-    collections.abc.Collection: 1,  # pyright: ignore
-    collections.abc.Set: 1,  # pyright: ignore
-    collections.abc.MutableSet: 1,  # pyright: ignore
-    collections.abc.Mapping: 2,  # pyright: ignore
-    collections.abc.MutableMapping: 2,  # pyright: ignore
-    collections.abc.Sequence: 1,  # pyright: ignore
-    collections.abc.MutableSequence: 1,  # pyright: ignore
+    collections.abc.Container: 1,
+    collections.abc.Collection: 1,
+    collections.abc.Set: 1,
+    collections.abc.MutableSet: 1,
+    collections.abc.Mapping: 2,
+    collections.abc.MutableMapping: 2,
+    collections.abc.Sequence: 1,
+    collections.abc.MutableSequence: 1,
     list: 1,
-    collections.deque: 1,  # pyright: ignore
+    collections.deque: 1,
     set: 1,
     frozenset: 1,
     collections.abc.MappingView: 1,
-    collections.abc.KeysView: 1,  # pyright: ignore
-    collections.abc.ItemsView: 2,  # pyright: ignore
-    collections.abc.ValuesView: 1,  # pyright: ignore
-    contextlib.AbstractContextManager: 1,  # pyright: ignore
-    contextlib.AbstractAsyncContextManager: 1,  # pyright: ignore
+    collections.abc.KeysView: 1,
+    collections.abc.ItemsView: 2,
+    collections.abc.ValuesView: 1,
+    contextlib.AbstractContextManager: 1,
+    contextlib.AbstractAsyncContextManager: 1,
     dict: 2,
-    collections.defaultdict: 2,  # pyright: ignore
-    collections.OrderedDict: 2,  # pyright: ignore
-    collections.Counter: 1,  # pyright: ignore
-    collections.ChainMap: 2,  # pyright: ignore
-    collections.abc.Generator: 3,  # pyright: ignore
-    collections.abc.AsyncGenerator: 2,  # pyright: ignore
+    collections.defaultdict: 2,
+    collections.OrderedDict: 2,
+    collections.Counter: 1,
+    collections.ChainMap: 2,
+    collections.abc.Generator: 3,
+    collections.abc.AsyncGenerator: 2,
     type: 1,
 }

@@ -178,7 +178,7 @@ class TypeMapperMeta:
         self.t = t
 
 
-def type_mapper[TypeMapperT](
+def type_mapper[TypeMapperT: TypeMapper[Any]](
     map_for: type[Any], /, *, cache: Cache | None = None
 ) -> Callable[[type[TypeMapperT]], type[TypeMapperT]]:
     def decorator(cls: type[TypeMapperT]) -> type[TypeMapperT]:

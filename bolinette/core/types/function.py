@@ -12,6 +12,10 @@ class Function[**FuncP, FuncT]:
         self.func = func
         self.bound_to = getattr(self.func, "__self__", None)
 
+    @property
+    def name(self) -> str:
+        return self.func.__name__ if hasattr(self.func, "__name__") else str(self.func)
+
     def parameters(self) -> dict[str, inspect.Parameter]:
         return {**inspect.signature(self.func).parameters}
 

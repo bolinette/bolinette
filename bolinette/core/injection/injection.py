@@ -45,7 +45,7 @@ class Injection:
         if InjectionSymbol not in cache:
             return {}
         types: dict[type[Any], RegisteredTypeBag[Any]] = {}
-        for cls in cache.get(InjectionSymbol, hint=type):
+        for cls in cache.get(InjectionSymbol, hint=type[Any]):
             t = Type(cls)
             if t.cls not in types:
                 types[t.cls] = RegisteredTypeBag(t.cls)

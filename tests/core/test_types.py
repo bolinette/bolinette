@@ -1,11 +1,19 @@
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
 # pyright: reportUnknownVariableType=false, reportGeneralTypeIssues=false
-from typing import Any, ForwardRef, Generic, TypeVar
+from typing import Any, ForwardRef, Generic, TypedDict, TypeVar
 
 import pytest
 
 from bolinette.core.exceptions import TypingError
+from bolinette.core.testing import Mock
 from bolinette.core.types import Type, TypeVarLookup
+from bolinette.core.types.checker import (
+    DefaultTypeChecker,
+    ProtocolTypeChecker,
+    TypeChecker,
+    TypedDictChecker,
+    type_checker,
+)
 
 
 def test_simple_type() -> None:
@@ -221,3 +229,36 @@ def test_nullable_union() -> None:
     assert t.is_union
     assert t.union == (Type(int),)
     assert t.nullable
+
+
+def _setup_type_checkers(mock: Mock):
+    mock.injection.add(TypeChecker, "singleton")
+    type_checker(priority=-800, cache=mock.injection.cache)(ProtocolTypeChecker)
+    type_checker(priority=-900, cache=mock.injection.cache)(TypedDictChecker)
+    type_checker(priority=-1000, cache=mock.injection.cache)(DefaultTypeChecker)
+
+
+def test_type_checker() -> None:
+    mock = Mock()
+    _setup_type_checkers(mock)
+
+    checker = mock.injection.require(TypeChecker)
+
+    assert checker.instanceof(1, int)
+    assert not checker.instanceof(1, str)
+
+
+def test_typed_dict_type_checker() -> None:
+    mock = Mock()
+    _setup_type_checkers(mock)
+
+    checker = mock.injection.require(TypeChecker)
+
+    class TestDict(TypedDict):
+        name: str
+        age: int
+
+    assert checker.instanceof({"name": "Bob", "age": 42}, TestDict)
+    assert not checker.instanceof({"name": "Bob"}, TestDict)
+    assert not checker.instanceof({"name": 42}, TestDict)
+    assert not checker.instanceof("Bob", TestDict)

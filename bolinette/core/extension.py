@@ -11,6 +11,13 @@ from bolinette.core.injection.registration import InjectionStrategy
 from bolinette.core.mapping import Mapper, type_mapper
 from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
 from bolinette.core.types import Type
+from bolinette.core.types.checker import (
+    DefaultTypeChecker,
+    ProtocolTypeChecker,
+    TypeChecker,
+    TypedDictChecker,
+    type_checker,
+)
 
 ExtT = TypeVar("ExtT", bound="Extension")
 
@@ -51,6 +58,11 @@ class _CoreExtension(Extension):
         injectable(strategy="singleton", cache=cache)(Parser)
         injectable(strategy="transient", match_all=True, cache=cache)(Logger)
         injectable(strategy="singleton", cache=cache)(Environment)
+
+        injectable(strategy="singleton", cache=cache)(TypeChecker)
+        type_checker(priority=-800, cache=cache)(ProtocolTypeChecker)
+        type_checker(priority=-900, cache=cache)(TypedDictChecker)
+        type_checker(priority=-1000, cache=cache)(DefaultTypeChecker)
 
         injectable(strategy="singleton", cache=cache)(Mapper)
         type_mapper(int, cache=cache)(IntegerTypeMapper)

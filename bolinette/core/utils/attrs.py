@@ -1,12 +1,22 @@
-from typing import Any
+from typing import Any, overload
 
 
 class AttributeUtils:
+    @overload
+    @staticmethod
+    def get_cls_attrs(obj: type[Any], *, of_type: None = None) -> dict[str, Any]:
+        ...
+
+    @overload
+    @staticmethod
+    def get_cls_attrs[InstanceT](obj: type[Any], *, of_type: type[InstanceT]) -> dict[str, InstanceT]:
+        ...
+
     @staticmethod
     def get_cls_attrs[InstanceT](
         obj: type[Any],
         *,
-        of_type: type[InstanceT] | tuple[type[InstanceT], ...] | None = None,
+        of_type: type[InstanceT] | None = None,
     ) -> dict[str, InstanceT]:
         parent_attrs: dict[str, Any] = {}
         for parent in obj.__bases__:
