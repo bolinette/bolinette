@@ -128,6 +128,10 @@ class ElementNode[K](ChildNode):
         expressions.ExpressionTree.get_value(parent, obj)[key] = value
 
     @override
+    def __expr_get_attribute__(self) -> str:
+        return object.__getattribute__(self, "key")
+
+    @override
     def __expr_format__(self, depth: int | None) -> str:
         key = object.__getattribute__(self, "key")
         if isinstance(key, str):

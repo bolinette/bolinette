@@ -4,8 +4,7 @@ from typing import Annotated, Literal
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from bolinette.core import command
-from bolinette.core.command.command import Argument
+from bolinette.core.command import Argument, command
 from bolinette.core.injection import Injection
 from bolinette.data.relational import EntityManager, Repository
 from example.entities import Role, User
@@ -31,10 +30,10 @@ async def test_command(
         async for user in user_repo.iterate(select(User).options(selectinload(User.role))):
             print(user.username, user.role.name)
 
-    async def run_in_scope(func: Callable[..., Awaitable[None]], *, commit: bool = False):
+    async def run_in_scope(func: Callable[..., Awaitable[None]]):
         async with inject.get_async_scoped_session() as s_inject:
             await s_inject.call(func)
 
-    await run_in_scope(create_role, commit=True)
-    await run_in_scope(create_users, commit=True)
+    await run_in_scope(create_role)
+    await run_in_scope(create_users)
     await run_in_scope(select_users)

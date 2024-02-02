@@ -1,7 +1,7 @@
 from typing import Any
 
 from bolinette.core.expressions.exceptions import AttributeChainError, MaxDepthExpressionError
-from bolinette.core.expressions.nodes import AttributeNode, ExpressionNode, RootNode
+from bolinette.core.expressions.nodes import AttributeNode, ElementNode, ExpressionNode, RootNode
 from bolinette.core.types import Type
 
 
@@ -40,7 +40,7 @@ class ExpressionTree:
             if max_depth == 0:
                 if object.__getattribute__(expr, "__class__") != RootNode:
                     raise MaxDepthExpressionError(origin or expr)
-            elif object.__getattribute__(expr, "__class__") != AttributeNode:
+            elif object.__getattribute__(expr, "__class__") not in (AttributeNode, ElementNode):
                 raise AttributeChainError(origin or expr)
         parents: list[ExpressionNode] = object.__getattribute__(expr, "__expr_get_parents__")()
         for parent in parents:

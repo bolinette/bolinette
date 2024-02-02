@@ -1,5 +1,6 @@
 from collections.abc import Callable, Iterable
 from typing import Any, Protocol, TypeGuard, overload, override
+from typing import TypedDict as TypedDict
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
@@ -206,9 +207,9 @@ class DefaultTypeMapper(TypeMapper[object]):
         dest: Any | None,
         exc_grp: list[MappingError] | None,
     ) -> Any:
-        if dest_t.cls in (list, tuple, set):
+        if issubclass(dest_t.cls, list | tuple | set | frozenset):
             return self._map_iterable(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
-        if dest_t.cls is dict:
+        if issubclass(dest_t.cls, dict) and not hasattr(dest_t.cls, "__total__"):
             return self._map_dict(src_expr, dest_expr, dest_t, src, dest, exc_grp)
         return self._map_object(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 
@@ -275,7 +276,9 @@ class DefaultTypeMapper(TypeMapper[object]):
                 anno_t = selected_t
             try:
                 value = ExpressionTree.get_value(src_value_expr, src)
-            except Exception as err:
+            except (AttributeError, KeyError) as err:
+                if not anno_t.required or not dest_t.total:
+                    continue
                 if not self._has_default_value(dest, dest_name):
                     if not anno_t.nullable:
                         exc = SourceNotFoundError(field_src_expr, field_dest_expr, anno_t)
@@ -289,19 +292,16 @@ class DefaultTypeMapper(TypeMapper[object]):
                 else:
                     setattr(dest, dest_name, self._get_default_value(dest, dest_name))
                     continue
-            setattr(
-                dest,
-                dest_name,
-                self.runner.map(
-                    field_src_expr,
-                    Type(type(value)),
-                    field_dest_expr,
-                    anno_t,
-                    value,
-                    None,
-                    exc_grp,
-                ),
+            new_value = self.runner.map(
+                field_src_expr,
+                Type(type(value)),
+                field_dest_expr,
+                anno_t,
+                value,
+                None,
+                exc_grp,
             )
+            self._set_attr(dest, dest_name, new_value)
         if sequence is not None:
             for func in sequence.tail:
                 func.func(src, dest)
@@ -312,11 +312,11 @@ class DefaultTypeMapper(TypeMapper[object]):
         src_expr: ExpressionNode,
         src_t: Type[SrcT],
         dest_expr: ExpressionNode,
-        dest_t: Type[list[DestT]] | Type[set[DestT]] | Type[tuple[DestT]],
+        dest_t: Type[list[DestT]] | Type[tuple[DestT]] | Type[set[DestT]] | Type[frozenset[DestT]],
         src: SrcT,
-        dest: list[DestT] | set[DestT] | tuple[DestT] | None,
+        dest: list[DestT] | tuple[DestT] | set[DestT] | frozenset[DestT] | None,
         exc_grp: list[MappingError] | None,
-    ) -> list[DestT] | set[DestT] | tuple[DestT]:
+    ) -> list[DestT] | tuple[DestT] | set[DestT] | frozenset[DestT]:
         elems: list[DestT] = []
         if not self._is_iterable(src):
             exc = TypeNotIterableError(src_expr, dest_expr, src_t, dest_t)
@@ -376,24 +376,12 @@ class DefaultTypeMapper(TypeMapper[object]):
         return dest
 
     @staticmethod
-    def _has_attr(obj: object, attr: str) -> bool:
-        if isinstance(obj, dict):
-            return attr in obj
-        return hasattr(obj, attr)
-
-    @staticmethod
     def _has_default_value(obj: object, attr: str) -> bool:
         return hasattr(type(obj), attr)
 
     @staticmethod
     def _get_default_value(obj: object, attr: str) -> Any:
         return getattr(type(obj), attr)
-
-    @staticmethod
-    def _get_value(obj: object, attr: str) -> Any:
-        if isinstance(obj, dict):
-            return obj[attr]  # pyright: ignore[reportUnknownVariableType]
-        return getattr(obj, attr)
 
     @staticmethod
     def _get_expr(path: ExpressionNode, obj: Any, attr: str) -> ExpressionNode:
@@ -410,6 +398,13 @@ class DefaultTypeMapper(TypeMapper[object]):
     @staticmethod
     def _is_iterable(obj: Any) -> TypeGuard[Iterable[Any]]:
         return hasattr(obj, "__iter__")
+
+    @staticmethod
+    def _set_attr(obj: Any | dict[str, Any], key: str, value: Any) -> None:
+        if isinstance(obj, dict):
+            obj[key] = value
+        else:
+            setattr(obj, key, value)
 
 
 class IntegerTypeMapper(TypeMapper[int]):

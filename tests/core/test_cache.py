@@ -31,3 +31,40 @@ def test_cache_use() -> None:
 
     c.delete(_TestClass)
     assert _TestClass not in c
+
+
+def test_equality() -> None:
+    c1 = Cache()
+    c1.add(1, "a")
+    c1.add(2, "a")
+
+    c2 = Cache()
+    c2.add(1, "a")
+
+    c3 = Cache()
+    c3.add(2, "b")
+
+    c4 = Cache()
+    c4.add(1, "b")
+
+    assert c1 != c2
+    assert c2 != c3
+    assert c1 != c3
+    assert c2 != c4
+    assert c1 != object()
+
+
+def test_merge_cache() -> None:
+    c1 = Cache()
+    c1.add(1, "a")
+
+    c2 = Cache()
+    c2.add(1, "b")
+    c2.add(2, "a")
+
+    c3 = c1 | c2
+
+    assert c3.get(1) == ["a", "b"]
+    assert c3.get(2) == ["a"]
+
+    assert c3 == c1.__ror__(c2)

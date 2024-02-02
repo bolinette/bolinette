@@ -1,11 +1,11 @@
 # pyright: reportUninitializedInstanceVariable=false
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import pytest
 
 from bolinette.core import Cache
 from bolinette.core.expressions import ExpressionNode
-from bolinette.core.expressions.exceptions import AttributeChainError, MaxDepthExpressionError
+from bolinette.core.expressions.exceptions import MaxDepthExpressionError
 from bolinette.core.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
 from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.mapping.mapper import (
@@ -1087,12 +1087,36 @@ def test_fail_map_from_nested() -> None:
     )
 
 
-def test_fail_map_from_expression() -> None:
-    class _NestedSource:
+def test_map_typed_dict() -> None:
+    class _Source:
         def __init__(self, value: int) -> None:
             self.value = value
 
-    class _NestedDestination:
+    class _Destination(TypedDict):
+        content: int
+
+    class TestProfile(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest["content"], lambda opt: opt.map_from(lambda src: src.value)
+            )
+
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source(4)
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest["content"] == 4
+
+
+def test_map_typed_dict_from_nested() -> None:
+    class _NestedSource:
         def __init__(self, value: int) -> None:
             self.value = value
 
@@ -1101,13 +1125,44 @@ def test_fail_map_from_expression() -> None:
             self.nested = nested
 
     class _Destination(TypedDict):
+        content: int
+
+    class TestProfile(Profile):
+        def __init__(self) -> None:
+            super().__init__()
+            self.register(_Source, _Destination).for_attr(
+                lambda dest: dest["content"], lambda opt: opt.map_from(lambda src: src.nested.value)
+            )
+
+    cache = Cache()
+    mapping(cache=cache)(TestProfile)
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source(_NestedSource(4))
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest["content"] == 4
+
+
+def test_fail_map_from_nested_typed_dict() -> None:
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _NestedDestination:
+        value: int
+
+    class _Destination(TypedDict):
         nested: _NestedDestination
 
     class TestProfile(Profile):
         def __init__(self) -> None:
             super().__init__()
             self.register(_Source, _Destination).for_attr(
-                lambda dest: dest["nested"], lambda opt: opt.map_from(lambda src: src.nested.value)
+                lambda dest: dest["nested"].value, lambda opt: opt.map_from(lambda src: src.value)
             )
 
     cache = Cache()
@@ -1115,10 +1170,54 @@ def test_fail_map_from_expression() -> None:
     mock = Mock(cache=cache)
     mock.injection.add(Mapper, "singleton")
 
-    with pytest.raises(AttributeChainError) as info:
+    with pytest.raises(MaxDepthExpressionError) as info:
         mock.injection.require(Mapper)
 
     assert (
-        info.value.message == "Expression test_fail_map_from_expression.<locals>._Destination['nested'], "
-        "Expression is excepted to be a chain of attribute access"
+        info.value.message == "Expression test_fail_map_from_nested_typed_dict.<locals>._Destination['nested'].value, "
+        "Expression exceeds allowed depth"
     )
+
+
+def test_map_typed_dict_not_required_attr() -> None:
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Destination(TypedDict):
+        value: int
+        content: NotRequired[int]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source(4)
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert dest["value"] == 4
+    assert "content" not in dest
+
+
+def test_map_typed_dict_non_total_dict() -> None:
+    class _Source:
+        def __init__(self, value: int) -> None:
+            self.value = value
+
+    class _Destination(TypedDict, total=False):
+        value: int
+        content: int
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add(Mapper, "singleton")
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    src = _Source(4)
+    dest = mapper.map(_Source, _Destination, src)
+
+    assert "value" in dest and dest["value"] == 4
+    assert "content" not in dest

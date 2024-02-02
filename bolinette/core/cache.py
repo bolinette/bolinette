@@ -1,13 +1,10 @@
-from typing import Any
+from typing import Any, override
 
 
 class Cache:
     def __init__(self, debug: bool = False) -> None:
         self.debug = debug
         self._bag: dict[Any, list[Any]] = {}
-
-    def __contains__(self, key: Any) -> bool:
-        return key in self._bag
 
     def get[InstanceT](
         self,
@@ -52,15 +49,29 @@ class Cache:
                 c3.add(key, value)
         return c3
 
-    def __or__(self, __t: Any) -> "Cache":
-        if isinstance(__t, Cache):
-            return self._merge(self, __t)
-        return NotImplemented
+    def __contains__(self, key: Any) -> bool:
+        return key in self._bag
 
-    def __ror__(self, __t: Any) -> "Cache":
-        if isinstance(__t, Cache):
-            return self._merge(self, __t)
-        return NotImplemented
+    def __or__(self, other: "Cache", /) -> "Cache":
+        return self._merge(self, other)
+
+    def __ror__(self, other: "Cache", /) -> "Cache":
+        return self._merge(self, other)
+
+    @override
+    def __eq__(self, other: object, /) -> bool:
+        if not isinstance(other, Cache):
+            return NotImplemented
+        if len(self._bag) != len(other._bag):
+            return False
+        for key, self_bag in self._bag.items():
+            if key not in other._bag:
+                return False
+            other_bag = other._bag[key]
+            for self_value, other_value in zip(self_bag, other_bag, strict=True):
+                if self_value != other_value:
+                    return False
+        return True
 
 
 __user_cache__ = Cache()

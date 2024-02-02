@@ -1,6 +1,6 @@
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
 # pyright: reportUnknownVariableType=false, reportGeneralTypeIssues=false
-from typing import Any, ForwardRef, Generic, TypedDict, TypeVar
+from typing import Any, ForwardRef, Generic, NotRequired, TypedDict, TypeVar
 
 import pytest
 
@@ -229,6 +229,24 @@ def test_nullable_union() -> None:
     assert t.is_union
     assert t.union == (Type(int),)
     assert t.nullable
+
+
+def test_typed_dict() -> None:
+    class TestDict(TypedDict, total=False):
+        name: str
+        description: NotRequired[str]
+
+    t_int = Type(int)
+    assert t_int.total
+
+    t_dict = Type(TestDict)
+    assert t_dict.cls is TestDict
+    assert not t_dict.total
+
+    annotations = t_dict.annotations()
+    assert set(annotations.keys()) == {"name", "description"}
+    assert annotations["name"].required
+    assert not annotations["description"].required
 
 
 def _setup_type_checkers(mock: Mock):

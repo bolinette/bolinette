@@ -7,9 +7,9 @@ from typing import (
     Any,
     ForwardRef,
     Literal,
+    NotRequired,
     TypeGuard,
     TypeVar,
-    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -21,7 +21,7 @@ from bolinette.core.exceptions import TypingError
 
 
 class Type[T]:
-    __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated", "_hash"]
+    __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated", "_hash", "required", "total"]
 
     @staticmethod
     def from_instance(__instance: T) -> "Type[T]":
@@ -36,23 +36,32 @@ class Type[T]:
         raise_on_string: bool = True,
         raise_on_typevar: bool = True,
     ) -> None:
-        self.annotated: tuple[Any, ...]
-        if get_origin(cls) is Annotated:
+        self.annotated: tuple[Any, ...] = ()
+        self.required = True
+        self.nullable = False
+        self.union: tuple[Type[Any], ...] = ()
+        cls = self._unpack_annotations(cls)
+        self.total: bool = getattr(cls, "__total__", True)
+        self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
+        self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))))
+        self._hash = hash((self.cls, self.vars))
+
+    def _unpack_annotations(self, cls: type[T]) -> type[T]:
+        origin = get_origin(cls)
+        if origin is Annotated:
             cls, *self.annotated = get_args(cls)
-        else:
-            self.annotated = ()
-        if get_origin(cls) in (Union, UnionType):
+            return self._unpack_annotations(cls)
+        if origin is NotRequired:
+            self.required = False
+            return self._unpack_annotations(get_args(cls)[0])
+        if origin is UnionType:
             args = get_args(cls)
             self.nullable = None in args or NoneType in args
             args = tuple(a for a in args if a not in (None, NoneType))
             cls, *additional_cls = args
-        else:
-            additional_cls = ()
-            self.nullable = False
-        self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
-        self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))))
-        self.union = tuple(Type(c) for c in additional_cls)
-        self._hash = hash((self.cls, self.vars))
+            self.union = tuple(Type(c) for c in additional_cls)
+            return self._unpack_annotations(cls)
+        return cls
 
     @override
     def __str__(self) -> str:
@@ -131,7 +140,7 @@ class Type[T]:
         try:
             for base in _cls.__bases__:
                 annotations |= Type._get_recursive_annotations(base, lookup)
-            hints: dict[str, type[Any]] = get_type_hints(_cls)
+            hints: dict[str, type[Any]] = get_type_hints(_cls, include_extras=True)
             for attr_name, hint in hints.items():
                 annotations[attr_name] = Type(hint, lookup=lookup)
         except (AttributeError, TypeError, NameError):
