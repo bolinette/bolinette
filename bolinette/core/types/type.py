@@ -43,7 +43,10 @@ class Type[T]:
         cls = self._unpack_annotations(cls)
         self.total: bool = getattr(cls, "__total__", True)
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
-        self.vars = (*self.vars, *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))))
+        self.vars: tuple[Any, ...] = (
+            *self.vars,
+            *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))),
+        )
         self._hash = hash((self.cls, self.vars))
 
     def _unpack_annotations(self, cls: type[T]) -> type[T]:

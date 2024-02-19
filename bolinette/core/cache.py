@@ -1,4 +1,4 @@
-from typing import Any, override
+from typing import Any, overload, override
 
 
 class Cache:
@@ -6,14 +6,22 @@ class Cache:
         self.debug = debug
         self._bag: dict[Any, list[Any]] = {}
 
-    def get[InstanceT](
+    @overload
+    def get(self, key: Any, /, *, raises: bool = True) -> list[Any]:
+        ...
+
+    @overload
+    def get[InstanceT](self, key: Any, /, *, hint: type[InstanceT], raises: bool = True) -> list[InstanceT]:
+        ...
+
+    def get(
         self,
         key: Any,
         /,
         *,
-        hint: type[InstanceT] | None = None,
+        hint: Any | None = None,
         raises: bool = True,
-    ) -> list[InstanceT]:
+    ) -> list[Any]:
         if key not in self:
             if raises:
                 raise KeyError(key)

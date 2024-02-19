@@ -13,6 +13,7 @@ from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, Integ
 from bolinette.core.types import Type
 from bolinette.core.types.checker import (
     DefaultTypeChecker,
+    LiteralTypeChecker,
     ProtocolTypeChecker,
     TypeChecker,
     TypedDictChecker,
@@ -60,8 +61,9 @@ class _CoreExtension(Extension):
         injectable(strategy="singleton", cache=cache)(Environment)
 
         injectable(strategy="singleton", cache=cache)(TypeChecker)
-        type_checker(priority=-800, cache=cache)(ProtocolTypeChecker)
-        type_checker(priority=-900, cache=cache)(TypedDictChecker)
+        type_checker(priority=-700, cache=cache)(ProtocolTypeChecker)
+        type_checker(priority=-800, cache=cache)(TypedDictChecker)
+        type_checker(priority=-900, cache=cache)(LiteralTypeChecker)
         type_checker(priority=-1000, cache=cache)(DefaultTypeChecker)
 
         injectable(strategy="singleton", cache=cache)(Mapper)

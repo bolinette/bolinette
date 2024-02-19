@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, Protocol, TypeGuard, overload
+from typing import Any, Literal, Protocol, TypeGuard, overload
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection import init_method
@@ -87,10 +87,21 @@ class ProtocolTypeChecker:
         self.checker = checker
 
     def supports(self, of_type: Type[Any], /) -> bool:
-        return issubclass(of_type.cls, Protocol)
+        return isinstance(of_type.cls, type) and issubclass(of_type.cls, Protocol)
 
     def validate(self, value: Any, of_type: Type[Any], /) -> bool:
         raise NotImplementedError()
+
+
+class LiteralTypeChecker:
+    def __init__(self, checker: TypeChecker) -> None:
+        self.checker = checker
+
+    def supports(self, of_type: Type[Any], /) -> bool:
+        return of_type.cls is Literal
+
+    def validate(self, value: Any, of_type: Type[Any], /) -> bool:
+        return value in of_type.vars
 
 
 class DefaultTypeChecker:
