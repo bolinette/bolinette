@@ -206,7 +206,7 @@ def test_fail_lookup_key_not_found() -> None:
 
 
 def test_nullable_type() -> None:
-    t = Type(None | int)
+    t = Type(None | int)  # pyright: ignore[reportArgumentType]
 
     assert t.cls is int
     assert not t.is_union
@@ -214,7 +214,7 @@ def test_nullable_type() -> None:
 
 
 def test_union() -> None:
-    t = Type(str | int)
+    t = Type(str | int)  # pyright: ignore[reportArgumentType]
 
     assert t.cls is str
     assert t.is_union
@@ -223,7 +223,7 @@ def test_union() -> None:
 
 
 def test_nullable_union() -> None:
-    t = Type(str | None | int)
+    t = Type(str | None | int)  # pyright: ignore[reportArgumentType]
 
     assert t.cls is str
     assert t.is_union
