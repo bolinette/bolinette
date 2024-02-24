@@ -112,4 +112,4 @@ class DefaultTypeChecker:
         return True
 
     def validate(self, value: Any, of_type: Type[Any], /) -> bool:
-        return isinstance(value, of_type.cls)
+        return isinstance(value, of_type.cls) or any(isinstance(value, t.cls) for t in of_type.union)

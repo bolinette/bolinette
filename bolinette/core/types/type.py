@@ -21,7 +21,18 @@ from bolinette.core.exceptions import TypingError
 
 
 class Type[T]:
-    __slots__: list[str] = ["cls", "vars", "nullable", "union", "annotated", "_hash", "required", "total"]
+    __slots__: list[str] = [
+        "origin",
+        "cls",
+        "vars",
+        "lookup",
+        "nullable",
+        "union",
+        "annotated",
+        "required",
+        "total",
+        "_hash",
+    ]
 
     @staticmethod
     def from_instance(__instance: T) -> "Type[T]":
@@ -29,10 +40,10 @@ class Type[T]:
 
     def __init__(
         self,
-        cls: type[T],
+        origin: type[T],
         /,
         *,
-        lookup: "types.TypeVarLookup[Any] | None" = None,
+        lookup: "types.TypeVarMapping | None" = None,
         raise_on_string: bool = True,
         raise_on_typevar: bool = True,
     ) -> None:
@@ -40,13 +51,14 @@ class Type[T]:
         self.required = True
         self.nullable = False
         self.union: tuple[Type[Any], ...] = ()
-        cls = self._unpack_annotations(cls)
+        cls = self._unpack_annotations(origin)
         self.total: bool = getattr(cls, "__total__", True)
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
         self.vars: tuple[Any, ...] = (
             *self.vars,
             *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))),
         )
+        self.lookup = types.TypeVarLookup(self)
         self._hash = hash((self.cls, self.vars))
 
     def _unpack_annotations(self, cls: type[T]) -> type[T]:
@@ -66,25 +78,30 @@ class Type[T]:
             return self._unpack_annotations(cls)
         return cls
 
+    @staticmethod
+    def _format_type(v: Any) -> str:
+        if isinstance(v, type):
+            return v.__qualname__
+        if isinstance(v, TypeVar):
+            return f"~{v.__name__}"
+        if v is Ellipsis:
+            return "..."
+        if v is Literal:
+            return v.__name__
+        if isinstance(v, ForwardRef):
+            return f"'{v.__forward_arg__}'"
+        return str(v)
+
+    @property
+    def base_name(self) -> str:
+        return self._format_type(self.cls)
+
     @override
     def __str__(self) -> str:
-        def _format_v(v: Any) -> str:
-            if isinstance(v, type):
-                return v.__qualname__
-            if isinstance(v, TypeVar):
-                return f"~{v.__name__}"
-            if v is Ellipsis:
-                return "..."
-            if v is Literal:
-                return v.__name__
-            if isinstance(v, ForwardRef):
-                return f"'{v.__forward_arg__}'"
-            return str(v)
-
         if not self.vars:
-            repr_str = _format_v(self.cls)
+            repr_str = self._format_type(self.cls)
         else:
-            repr_str = f"{_format_v(self.cls)}[{', '.join(map(_format_v, self.vars))}]"
+            repr_str = f"{self._format_type(self.cls)}[{', '.join(map(self._format_type, self.vars))}]"
 
         if self.is_union:
             for t in self.union:
@@ -129,23 +146,28 @@ class Type[T]:
     def parameters(self) -> dict[str, inspect.Parameter]:
         return {**inspect.signature(self.cls).parameters}
 
-    def annotations(self, *, lookup: "types.TypeVarLookup[Any] | None" = None) -> "dict[str, Type[Any]]":
-        return self._get_recursive_annotations(self.cls, lookup)
+    def annotations(self) -> "dict[str, Type[Any]]":
+        return self._get_recursive_annotations(self.cls)
 
     def isinstance(self, instance: Any) -> TypeGuard[T]:
         return isinstance(instance, self.cls)
 
-    @staticmethod
-    def _get_recursive_annotations(
-        _cls: type[Any], lookup: "types.TypeVarLookup[Any] | None"
-    ) -> "dict[str, Type[Any]]":
+    def _get_recursive_annotations(self, _cls: type[Any]) -> "dict[str, Type[Any]]":
         annotations: dict[str, Type[Any]] = {}
         try:
             for base in _cls.__bases__:
-                annotations |= Type._get_recursive_annotations(base, lookup)
-            hints: dict[str, type[Any]] = get_type_hints(_cls, include_extras=True)
+                annotations |= self._get_recursive_annotations(base)
+            hints: dict[str, type[Any] | TypeVar] = get_type_hints(_cls, include_extras=True)
             for attr_name, hint in hints.items():
-                annotations[attr_name] = Type(hint, lookup=lookup)
+                if isinstance(hint, TypeVar):
+                    if hint in self.lookup:
+                        annotations[attr_name] = Type(self.lookup[hint])
+                    else:
+                        raise TypingError(
+                            f"TypeVar ~{hint.__name__} could not be found in lookup", cls=_cls.__qualname__
+                        )
+                else:
+                    annotations[attr_name] = Type(hint, lookup=self.lookup)
         except (AttributeError, TypeError, NameError):
             return annotations
         return annotations
@@ -153,7 +175,7 @@ class Type[T]:
     @staticmethod
     def get_generics(
         _cls: type[T],
-        lookup: "types.TypeVarLookup[Any] | None",
+        lookup: "types.TypeVarMapping | None",
         raise_on_string: bool,
         raise_on_typevar: bool,
     ) -> tuple[type[T], tuple[Any, ...]]:

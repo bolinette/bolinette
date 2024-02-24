@@ -1,5 +1,6 @@
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
 # pyright: reportUnknownVariableType=false, reportGeneralTypeIssues=false
+from dataclasses import dataclass
 from typing import Any, ForwardRef, Generic, NotRequired, TypedDict, TypeVar
 
 import pytest
@@ -49,7 +50,7 @@ def test_missing_generic_param_is_any() -> None:
     class _T[T]:
         pass
 
-    t = Type(_T)
+    t: Type[_T[Any]] = Type(_T)
 
     assert t.cls is _T
     assert t.vars == (Any,)
@@ -174,7 +175,7 @@ def test_lookup() -> None:
     lookup = TypeVarLookup(t)
 
     assert not lookup.empty
-    assert [*lookup] == [(T, _P)]
+    assert [*lookup.items()] == [(T, _P)]
     assert lookup[T] is _P
 
 
@@ -205,8 +206,40 @@ def test_fail_lookup_key_not_found() -> None:
         lookup[K]
 
 
+def test_generic_typevar_in_annotations() -> None:
+    @dataclass
+    class C[T]:
+        id: int
+        value: T
+
+    t = Type(C[str])
+
+    assert t.annotations() == {"id": Type(int), "value": Type(str)}
+
+
+def test_generic_typevar_in_annotations_from_parent() -> None:
+    @dataclass
+    class Base[T]:
+        id: int
+        value: T
+
+    @dataclass
+    class Child1[U](Base[str]):
+        subvalue: U
+
+    @dataclass
+    class Child2[T, U](Base[T]):
+        subvalue: U
+
+    t1 = Type(Child1[int])
+    assert t1.annotations() == {"id": Type(int), "value": Type(str), "subvalue": Type(int)}
+
+    t2 = Type(Child2[bool, float])
+    assert t2.annotations() == {"id": Type(int), "value": Type(bool), "subvalue": Type(float)}
+
+
 def test_nullable_type() -> None:
-    t = Type(None | int)  # pyright: ignore[reportArgumentType]
+    t: Type[int] = Type(None | int)  # pyright: ignore[reportArgumentType]
 
     assert t.cls is int
     assert not t.is_union
@@ -214,7 +247,7 @@ def test_nullable_type() -> None:
 
 
 def test_union() -> None:
-    t = Type(str | int)  # pyright: ignore[reportArgumentType]
+    t: Type[str] = Type(str | int)  # pyright: ignore[reportArgumentType]
 
     assert t.cls is str
     assert t.is_union
@@ -223,7 +256,7 @@ def test_union() -> None:
 
 
 def test_nullable_union() -> None:
-    t = Type(str | None | int)  # pyright: ignore[reportArgumentType]
+    t: Type[str] = Type(str | None | int)  # pyright: ignore[reportArgumentType]
 
     assert t.cls is str
     assert t.is_union
@@ -280,3 +313,18 @@ def test_typed_dict_type_checker() -> None:
     assert not checker.instanceof({"name": "Bob"}, TestDict)
     assert not checker.instanceof({"name": 42}, TestDict)
     assert not checker.instanceof("Bob", TestDict)
+
+
+def test_genric_typed_dict_type_checker() -> None:
+    mock = Mock()
+    _setup_type_checkers(mock)
+
+    checker = mock.injection.require(TypeChecker)
+
+    class TestDict[T](TypedDict):
+        id: int
+        value: T
+
+    assert checker.instanceof({"id": 1, "value": "test"}, TestDict[str])
+    assert not checker.instanceof({"id": 1, "value": 42}, TestDict[str])
+    assert checker.instanceof({"id": 1, "value": "test"}, TestDict[int | str])
