@@ -5,7 +5,12 @@ from typing import Any, Concatenate, Literal, Protocol, Self, overload, override
 from bolinette.core import Cache, GenericMeta, __user_cache__, meta
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.injection.context import InjectionContext
-from bolinette.core.injection.decorators import InitMethodMeta, InjectionParamsMeta, InjectionSymbol
+from bolinette.core.injection.decorators import (
+    InitMethodMeta,
+    InjectionInitFuncMeta,
+    InjectionParamsMeta,
+    InjectionSymbol,
+)
 from bolinette.core.injection.hook import InjectionHook, InjectionProxy
 from bolinette.core.injection.registration import AddStrategy, InjectionStrategy, RegisteredType, RegisteredTypeBag
 from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
@@ -50,25 +55,34 @@ class Injection:
             if t.cls not in types:
                 types[t.cls] = RegisteredTypeBag(t.cls)
             type_bag = types[t.cls]
-            _meta: InjectionParamsMeta[Any, ...] = meta.get(t.cls, InjectionParamsMeta)
-            if _meta.match_all:
+            inject_meta: InjectionParamsMeta = meta.get(t.cls, InjectionParamsMeta)
+
+            if meta.has(t.cls, InjectionInitFuncMeta):
+                func_meta: InjectionInitFuncMeta[Any] = meta.get(t.cls, InjectionInitFuncMeta)
+                before_init = func_meta.before_init
+                after_init = func_meta.after_init
+            else:
+                before_init = []
+                after_init = []
+
+            if inject_meta.match_all:
                 type_bag.set_match_all(
                     t,
-                    _meta.strategy,  # pyright: ignore
-                    _meta.args,
-                    _meta.named_args,
-                    _meta.before_init,
-                    _meta.after_init,
+                    inject_meta.strategy,  # pyright: ignore[reportArgumentType]
+                    inject_meta.args,
+                    inject_meta.named_args,
+                    before_init,
+                    after_init,
                 )
             else:
                 type_bag.add_type(
                     t,
                     t,
-                    _meta.strategy,  # pyright: ignore
-                    _meta.args,
-                    _meta.named_args,
-                    _meta.before_init,
-                    _meta.after_init,
+                    inject_meta.strategy,  # pyright: ignore[reportArgumentType]
+                    inject_meta.args,
+                    inject_meta.named_args,
+                    before_init,
+                    after_init,
                 )
         return types
 

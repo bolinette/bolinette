@@ -209,7 +209,7 @@ class DefaultTypeMapper(TypeMapper[object]):
     ) -> Any:
         if issubclass(dest_t.cls, list | tuple | set | frozenset):
             return self._map_iterable(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
-        if issubclass(dest_t.cls, dict) and not hasattr(dest_t.cls, "__total__"):
+        if issubclass(dest_t.cls, dict) and not hasattr(dest_t.cls, "__total__"):  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
             return self._map_dict(src_expr, dest_expr, dest_t, src, dest, exc_grp)
         return self._map_object(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 

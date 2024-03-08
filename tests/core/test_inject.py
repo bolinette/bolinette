@@ -6,7 +6,7 @@ import pytest
 
 from bolinette.core import Cache, GenericMeta, meta
 from bolinette.core.exceptions import InjectionError, TypingError
-from bolinette.core.injection import Injection, init_method, injectable, require
+from bolinette.core.injection import Injection, after_init, before_init, init_method, injectable, require
 from bolinette.core.injection.resolver import ArgResolverOptions, injection_arg_resolver
 from bolinette.core.types.type import Type
 
@@ -1456,10 +1456,12 @@ def test_inject_generic_type_in_init() -> None:
 
 
 def test_resolve_typevar_in_super_class_init() -> None:
+    data: list[Type[Any]] = []
+
     class Service[T]:
         @init_method
         def init(self, t: Type[T]) -> None:
-            pass
+            data.append(t)
 
     class IntService(Service[int]):
         pass
@@ -1468,3 +1470,30 @@ def test_resolve_typevar_in_super_class_init() -> None:
     inject = Injection(cache)
     inject.add(IntService, "singleton")
     inject.require(IntService)
+
+    assert data == [Type(int)]
+
+
+def test_before_and_after_init() -> None:
+    cache = Cache()
+    order: list[str] = []
+
+    @injectable(cache=cache)
+    class Service:
+        @init_method
+        def init(self) -> None:
+            order.append("init")
+
+    def before_service_init(s: Service) -> None:
+        order.append("before")
+
+    def after_service_init(s: Service) -> None:
+        order.append("after")
+
+    after_init(after_service_init)(Service)
+    before_init(before_service_init)(Service)
+
+    inject = Injection(cache)
+    inject.require(Service)
+
+    assert order == ["before", "init", "after"]
