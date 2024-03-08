@@ -37,8 +37,7 @@ class Bolinette:
         return ext
 
     @require(Parser)
-    def _parser(self):
-        ...
+    def _parser(self): ...
 
     async def _run_startup_funcs(self) -> None:
         funcs: list[Callable[..., Any]] = self._cache.get(STARTUP_CACHE_KEY, raises=False)

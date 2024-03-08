@@ -7,12 +7,10 @@ class Cache:
         self._bag: dict[Any, list[Any]] = {}
 
     @overload
-    def get(self, key: Any, /, *, raises: bool = True) -> list[Any]:
-        ...
+    def get(self, key: Any, /, *, raises: bool = True) -> list[Any]: ...
 
     @overload
-    def get[InstanceT](self, key: Any, /, *, hint: type[InstanceT], raises: bool = True) -> list[InstanceT]:
-        ...
+    def get[InstanceT](self, key: Any, /, *, hint: type[InstanceT], raises: bool = True) -> list[InstanceT]: ...
 
     def get(
         self,

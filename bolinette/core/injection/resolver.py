@@ -49,11 +49,9 @@ class ArgResolverOptions:
 
 
 class ArgumentResolver(Protocol):
-    def supports(self, options: ArgResolverOptions) -> bool:
-        ...
+    def supports(self, options: ArgResolverOptions) -> bool: ...
 
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        ...
+    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]: ...
 
 
 class ArgResolverMeta:

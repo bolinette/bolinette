@@ -9,11 +9,9 @@ from bolinette.web import Controller
 
 
 class Middleware[**MdlwInitP](Protocol):
-    def options(self, *args: MdlwInitP.args, **kwargs: MdlwInitP.kwargs) -> None:
-        ...
+    def options(self, *args: MdlwInitP.args, **kwargs: MdlwInitP.kwargs) -> None: ...
 
-    async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-        ...
+    async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response: ...
 
 
 class MiddlewareMeta:

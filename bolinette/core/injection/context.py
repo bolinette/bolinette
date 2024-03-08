@@ -20,12 +20,10 @@ class InjectionContext:
         return self._instances[t]
 
     @overload
-    def get_instances(self) -> Iterable[Any]:
-        ...
+    def get_instances(self) -> Iterable[Any]: ...
 
     @overload
-    def get_instances(self, *, with_types: Literal[True]) -> Iterable[tuple[type[Any], Any]]:
-        ...
+    def get_instances(self, *, with_types: Literal[True]) -> Iterable[tuple[type[Any], Any]]: ...
 
     def get_instances(self, **kwargs: Any) -> Iterable[tuple[type[Any], Any]] | Iterable[Any]:
         if "with_types" in kwargs:

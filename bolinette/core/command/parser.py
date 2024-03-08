@@ -12,8 +12,7 @@ from bolinette.core.types import Function, Type
 
 
 class _SubParsersAction(Protocol):
-    def add_parser(self, name: str, *, help: str | None = None) -> ArgumentParser:
-        ...
+    def add_parser(self, name: str, *, help: str | None = None) -> ArgumentParser: ...
 
 
 class Parser:

@@ -615,8 +615,7 @@ InjectionEvent = Literal["instantiated"]
 
 
 class InjectionCallback(Protocol):
-    def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None:
-        ...
+    def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None: ...
 
 
 def injection_callback[CallbackT](*, cache: Cache) -> Callable[[type[CallbackT]], type[CallbackT]]:
@@ -629,25 +628,23 @@ def injection_callback[CallbackT](*, cache: Cache) -> Callable[[type[CallbackT]]
 
 @runtime_checkable
 class HasEnter(Protocol):
-    def __enter__(self) -> Self:
-        ...
+    def __enter__(self) -> Self: ...
 
 
 @runtime_checkable
 class HasAsyncEnter(Protocol):
-    def __aenter__(self) -> Self:
-        ...
+    def __aenter__(self) -> Self: ...
 
 
 @runtime_checkable
 class HasExit(Protocol):
-    def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> Self:
-        ...
+    def __exit__(
+        self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]
+    ) -> Self: ...
 
 
 @runtime_checkable
 class HasAsyncExit(Protocol):
     async def __aexit__(
         self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]
-    ) -> Self:
-        ...
+    ) -> Self: ...

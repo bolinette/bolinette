@@ -4,13 +4,11 @@ from typing import Any, overload
 class AttributeUtils:
     @overload
     @staticmethod
-    def get_cls_attrs(obj: type[Any], *, of_type: None = None) -> dict[str, Any]:
-        ...
+    def get_cls_attrs(obj: type[Any], *, of_type: None = None) -> dict[str, Any]: ...
 
     @overload
     @staticmethod
-    def get_cls_attrs[InstanceT](obj: type[Any], *, of_type: type[InstanceT]) -> dict[str, InstanceT]:
-        ...
+    def get_cls_attrs[InstanceT](obj: type[Any], *, of_type: type[InstanceT]) -> dict[str, InstanceT]: ...
 
     @staticmethod
     def get_cls_attrs[InstanceT](

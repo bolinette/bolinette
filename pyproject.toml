@@ -12,19 +12,16 @@ documentation = "https://bolinette.org/docs"
 [tool.poetry.dependencies]
 python = "^3.12"
 aiohttp = "^3.9.3"
-aiosqlite = "^0.19.0"
+aiosqlite = "^0.20.0"
 asyncpg = "^0.29.0"
 pyyaml = "^6.0.1"
-sqlalchemy = "^2.0.27"
+sqlalchemy = "^2.0.28"
+autoflake8 = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
-autoflake = "^2.3.0"
-autopep8 = "^2.0.4"
 black = "^24.2.0"
-flake8 = "^7.0.0"
-isort = "^5.13.2"
-mypy = "^1.8.0"
-ruff = "^0.2.2"
+mypy = "^1.9.0"
+ruff = "^0.3.1"
 
 [tool.poetry.group.test.dependencies]
 coverage = "^7.4.1"
@@ -39,10 +36,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 120
-
-select = ["E", "W", "F", "B", "Q", "I", "N", "RUF", "UP"]
-ignore = ["B010"]
-fixable = ["ALL"]
 
 exclude = [
     ".bzr",
@@ -66,20 +59,23 @@ exclude = [
     "venv",
     "__init__.py",
 ]
-per-file-ignores = {}
-
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 target-version = "py312"
 
-[tool.ruff.flake8-import-conventions.aliases]
+[tool.ruff.lint]
+select = ["E", "W", "F", "B", "Q", "I", "N", "RUF", "UP"]
+ignore = ["B010"]
+fixable = ["ALL"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.flake8-import-conventions.aliases]
 altair = "alt"
 "matplotlib.pyplot" = "plt"
 numpy = "np"
 pandas = "pd"
 seaborn = "sns"
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 10
 
 [tool.isort]

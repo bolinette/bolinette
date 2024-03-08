@@ -1282,8 +1282,7 @@ def test_service_in_arg_resolver() -> None:
         def supports(self, options: ArgResolverOptions):
             return False
 
-        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-            ...
+        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]: ...
 
     injection_arg_resolver(priority=1, cache=cache, scoped=True)(_Resolver)
 

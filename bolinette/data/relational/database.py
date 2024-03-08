@@ -33,12 +33,10 @@ class AbstractDatabase(ABC):
         transaction.add(self._name, session)
 
     @abstractmethod
-    async def create_all(self) -> None:
-        ...
+    async def create_all(self) -> None: ...
 
     @abstractmethod
-    async def dispose(self) -> None:
-        ...
+    async def dispose(self) -> None: ...
 
 
 class RelationalDatabase(AbstractDatabase):

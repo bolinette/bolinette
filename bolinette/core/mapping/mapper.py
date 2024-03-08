@@ -168,8 +168,7 @@ class TypeMapper[TargetT](Protocol):
         src: Any,
         dest: TargetT | None,
         exc_grp: list[MappingError] | None,
-    ) -> TargetT:
-        ...
+    ) -> TargetT: ...
 
 
 class TypeMapperMeta:

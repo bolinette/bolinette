@@ -26,8 +26,7 @@ class Argument:
         *,
         default: Any | None = None,
         summary: str | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -38,8 +37,7 @@ class Argument:
         *,
         default: Any | None = None,
         summary: str | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
