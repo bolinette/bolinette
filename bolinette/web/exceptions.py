@@ -120,3 +120,24 @@ class WrongParameterTypeError(BadRequestError):
             ctrl=ctrl,
             route=route,
         )
+
+
+class DispatchError(BolinetteError, ParameterError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        route: str | None = None,
+    ) -> None:
+        ParameterError.__init__(self, route="Route {}")
+        BolinetteError.__init__(self, self._format_params(message, route=route))
+
+
+class NotFoundDispatchError(DispatchError):
+    def __init__(self, route: str) -> None:
+        super().__init__("Route not found", route=route)
+
+
+class MethodNotAllowedDispatchError(DispatchError):
+    def __init__(self, route: str) -> None:
+        super().__init__("Route not found", route=route)

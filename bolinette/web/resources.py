@@ -1,11 +1,7 @@
 import json
 import traceback
-from collections.abc import Callable
 from http import HTTPStatus
-from types import TracebackType
-from typing import Any, NotRequired, Self, TypedDict
-
-from aiohttp import web
+from typing import Any, NotRequired, TypedDict
 
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.environment import CoreSection
@@ -21,18 +17,21 @@ from bolinette.core.mapping.exceptions import (
 )
 from bolinette.core.types import Function, Type
 from bolinette.core.utils import AttributeUtils
-from bolinette.web import Controller, Payload
-from bolinette.web.controller import ControllerMeta
+from bolinette.web import Payload, Response
+from bolinette.web.abstract import Request
+from bolinette.web.controller import Controller, ControllerMeta
 from bolinette.web.exceptions import (
     BadRequestError,
     GroupedWebError,
+    MethodNotAllowedDispatchError,
     MissingParameterError,
+    NotFoundDispatchError,
     ParameterNotNullableError,
     WebError,
     WrongParameterTypeError,
 )
 from bolinette.web.middleware import Middleware, MiddlewareBag
-from bolinette.web.route import RouteBucket, RouteProps
+from bolinette.web.routing import Route, RouteBucket, Router
 
 
 class WebResources:
@@ -40,8 +39,7 @@ class WebResources:
         self.inject = inject
         self.logger = logger
         self.core_section = core_section
-        self.web_app: web.Application
-        self._route_handlers: list[RouteHandler] = []
+        self.router = Router()
 
     @init_method
     def _init_ctrls(self, cache: Cache) -> None:
@@ -53,78 +51,50 @@ class WebResources:
                     continue
                 bucket = meta.get(attr, RouteBucket)
                 for props in bucket.routes:
-                    path = props.anon_path
-                    if not path:
-                        path = ctrl_meta.path
-                    elif not path.startswith("/"):
-                        path = f"{ctrl_meta.path}/{path}"
-                    if path and not path.startswith("/"):
-                        path = f"/{path}"
-                    match props.method:
-                        case "GET":
-                            handler = web.get
-                        case "POST":
-                            handler = web.post
-                        case "PUT":
-                            handler = web.put
-                        case "PATCH":
-                            handler = web.patch
-                        case "DELETE":
-                            handler = web.delete
-                        case _:
-                            raise NotImplementedError()
-                    self.add_route(RouteHandler(path, self, Type(ctrl_cls), props, Function(attr), handler))
+                    path = props.path
+                    if not path.is_absolute:
+                        path = ctrl_meta.path / path
+                    if not path.is_absolute:
+                        path.origin = f"/{path.origin}"
+                    self.router.add_route(Route(props.method, path, Type(ctrl_cls), Function(attr)))
 
-    def add_route(self, handler: "RouteHandler") -> None:
-        self._route_handlers.append(handler)
-
-    def __enter__(self) -> Self:
-        self.web_app = web.Application()
-        self.web_app.add_routes(h.handler_func(h.path, h.handle) for h in self._route_handlers)
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-        /,
-    ) -> None:
-        pass
+    async def dispatch(self, request: Request) -> Response:
+        try:
+            route = self.router.dispatch(request)
+        except NotFoundDispatchError:
+            return Response(status=404)
+        except MethodNotAllowedDispatchError:
+            return Response(status=405)
+        handler = self.inject.instantiate(RouteHandler, named_args={"route": route})
+        return await handler.handle(request)
 
 
 class RouteHandler:
-    __slots__: list[str] = ["path", "resources", "ctrl_t", "props", "route", "handler_func"]
-
     def __init__(
         self,
-        path: str,
-        resources: WebResources,
-        ctrl_t: Type[Controller],
-        props: RouteProps,
-        func: Function[..., Any],
-        handler_func: Callable[..., web.RouteDef],
+        route: Route[..., Any],
+        inject: Injection,
+        core_section: CoreSection,
+        logger: "Logger[RouteHandler]",
     ) -> None:
-        self.path = path
-        self.resources = resources
-        self.ctrl_t = ctrl_t
-        self.props = props
-        self.route = func
-        self.handler_func = handler_func
+        self.route = route
+        self.inject = inject
+        self.core_section = core_section
+        self.logger = logger
 
     @staticmethod
-    def prepare_session(inject: Injection, request: web.Request) -> None:
-        inject.add(web.Request, "scoped", instance=request)
+    def prepare_session(inject: Injection, request: Request) -> None:
+        inject.add(Request, "scoped", instance=request)
 
-    async def handle(self, request: web.Request) -> web.Response:
-        self.resources.logger.info(f"Received request on {request.path}")
+    async def handle(self, request: Request) -> Response:
+        self.logger.info(f"Received request on {request.path}")
         try:
-            async with self.resources.inject.get_async_scoped_session() as scoped_inject:
+            async with self.inject.get_async_scoped_session() as scoped_inject:
                 self.prepare_session(scoped_inject, request)
                 mdlws = self.collect_middlewares(scoped_inject)
                 return await self.middleware_chain(request, scoped_inject, mdlws, 0)
         except Exception as err:
-            self.resources.logger.error(str(type(err)), str(err))
+            self.logger.error(str(type(err)), str(err))
             if isinstance(err, WebError):
                 status = err.status.value
                 reason = err.status.phrase
@@ -141,13 +111,13 @@ class RouteHandler:
                 "reason": reason,
                 "errors": [self._format_error(e) for e in errors],
             }
-            if self.resources.core_section.debug:
+            if self.core_section.debug:
                 content["debug"] = {
                     "type": str(type(err)),
                     "message": str(err),
                     "stacktrace": traceback.format_exc().split("\n"),
                 }
-            return web.Response(
+            return Response(
                 body=json.dumps(content),
                 content_type="application/json",
                 status=status,
@@ -155,41 +125,41 @@ class RouteHandler:
 
     async def middleware_chain(
         self,
-        request: web.Request,
+        request: Request,
         scoped: ScopedInjection,
         mdlws: list[Middleware[Any]],
         index: int,
-    ) -> web.Response:
-        async def _next_handle() -> web.Response:
+    ) -> Response:
+        async def _next_handle() -> Response:
             return await self.middleware_chain(request, scoped, mdlws, index + 1)
 
         if index >= len(mdlws):
             return await self.call_controller(request, scoped)
         else:
             mdlw = mdlws[index]
-            self.resources.logger.debug(f"Calling middleware {mdlw}")
+            self.logger.debug(f"Calling middleware {mdlw}")
             return await scoped.call(mdlw.handle, args=[_next_handle])
 
     async def call_controller(
         self,
-        request: web.Request,
+        request: Request,
         scoped: Injection,
-    ) -> web.Response:
+    ) -> Response:
         try:
             body = await request.json()
         except json.JSONDecodeError:
             body = None
-        ctrl = scoped.instantiate(self.ctrl_t.cls)
-        self.resources.logger.debug(f"Calling controller route {self.route.func.__qualname__}(...)")
+        ctrl = scoped.instantiate(self.route.controller.cls)
+        self.logger.debug(f"Calling controller route {self.route.func}(...)")
         result = await scoped.call(
-            self.route.func,
+            self.route.func.func,
             args=[ctrl],
             additional_resolvers=[
-                RouteParamArgResolver(self, request),
-                RoutePayloadArgResolver(self, scoped.require(Mapper), body),
+                RouteParamArgResolver(self.route, request),
+                RoutePayloadArgResolver(self.route, scoped.require(Mapper), body),
             ],
         )
-        if isinstance(result, web.Response):
+        if isinstance(result, Response):
             return result
         status: int
         match result:
@@ -208,12 +178,12 @@ class RouteHandler:
             case _:
                 content = json.dumps(result, cls=JsonObjectEncoder)
                 content_type = "application/json"
-        return web.Response(text=content, status=status, content_type=content_type)
+        return Response(body=content, status=status, content_type=content_type)
 
     def collect_middlewares(self, scoped: Injection) -> list[Middleware[Any]]:
         bags: list[MiddlewareBag] = []
-        if meta.has(self.ctrl_t.cls, MiddlewareBag):
-            bags.append(meta.get(self.ctrl_t.cls, MiddlewareBag))
+        if meta.has(self.route.controller.cls, MiddlewareBag):
+            bags.append(meta.get(self.route.controller.cls, MiddlewareBag))
         if meta.has(self.route.func, MiddlewareBag):
             bags.append(meta.get(self.route.func, MiddlewareBag))
         mdlws: dict[Type[Middleware[...]], Middleware[...]] = {}
@@ -242,18 +212,15 @@ class RouteHandler:
 
 
 class RouteParamArgResolver:
-    def __init__(self, handler: RouteHandler, request: web.Request) -> None:
-        self.handler = handler
+    def __init__(self, route: Route[..., Any], request: Request) -> None:
+        self.route = route
         self.request = request
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return (
-            options.name in self.handler.props.func_to_url_args
-            and self.handler.props.func_to_url_args[options.name] in self.request.match_info
-        )
+        return options.name in self.route.path.params
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        value = self.request.match_info[self.handler.props.func_to_url_args[options.name]]
+        value = self.request.path_params[options.name]
         t = options.t
         match t.cls:
             case cls if cls is int:
@@ -270,8 +237,8 @@ class RouteParamArgResolver:
 
 
 class RoutePayloadArgResolver:
-    def __init__(self, handler: RouteHandler, mapper: Mapper, body: Any | None) -> None:
-        self.handler = handler
+    def __init__(self, route: Route[..., Any], mapper: Mapper, body: Any | None) -> None:
+        self.route = route
         self.mapper = mapper
         self.body = body
 
@@ -287,8 +254,8 @@ class RoutePayloadArgResolver:
             raise BadRequestError(
                 "Payload expected but none provided",
                 "payload.expected",
-                ctrl=self.handler.ctrl_t,
-                route=self.handler.route,
+                ctrl=self.route.controller,
+                route=self.route.func,
             )
         try:
             payload = self.mapper.map(type(self.body), options.t.cls, self.body, validate=True)
@@ -296,19 +263,32 @@ class RoutePayloadArgResolver:
             raise GroupedWebError(
                 [self._transform_error(e) for e in err.errors],
                 HTTPStatus.BAD_REQUEST,
-                ctrl=self.handler.ctrl_t,
-                route=self.handler.route,
+                ctrl=self.route.controller,
+                route=self.route.func,
             ) from err
         return options.name, payload
 
     def _transform_error(self, err: MappingError) -> WebError:
         match err:
             case SourceNotFoundError():
-                return MissingParameterError(err.dest, ctrl=self.handler.ctrl_t, route=self.handler.route)
+                return MissingParameterError(
+                    err.dest,
+                    ctrl=self.route.controller,
+                    route=self.route.func,
+                )
             case DestinationNotNullableError():
-                return ParameterNotNullableError(err.dest, ctrl=self.handler.ctrl_t, route=self.handler.route)
+                return ParameterNotNullableError(
+                    err.dest,
+                    ctrl=self.route.controller,
+                    route=self.route.func,
+                )
             case ConvertionError():
-                return WrongParameterTypeError(err.dest, err.target, ctrl=self.handler.ctrl_t, route=self.handler.route)
+                return WrongParameterTypeError(
+                    err.dest,
+                    err.target,
+                    ctrl=self.route.controller,
+                    route=self.route.func,
+                )
             case _:
                 raise NotImplementedError(type(err), err) from err
 

@@ -1,4 +1,6 @@
-from bolinette.web.route import (
+from bolinette.web.response import Response as Response
+from bolinette.web.controller import Controller as Controller, controller as controller
+from bolinette.web.routing import (
     route as route,
     get as get,
     post as post,
@@ -6,7 +8,6 @@ from bolinette.web.route import (
     patch as patch,
     delete as delete,
 )
-from bolinette.web.controller import Controller as Controller, controller as controller
 from bolinette.web.middleware import (
     with_middleware as with_middleware,
     without_middleware as without_middleware,

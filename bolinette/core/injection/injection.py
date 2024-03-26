@@ -300,6 +300,12 @@ class Injection:
             t = cls
         return t.cls in self._types and self._types[t.cls].is_registered(t)
 
+    @staticmethod
+    def _wrap_function[**FuncP, FuncT](func: Callable[FuncP, FuncT]) -> Function[FuncP, FuncT]:
+        if isinstance(func, Function):
+            return func  # pyright: ignore[reportUnknownVariableType]
+        return Function(func)
+
     def call[FuncT](
         self,
         func: Callable[..., FuncT],
@@ -311,7 +317,7 @@ class Injection:
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            Function(func),
+            self._wrap_function(func),
             None,
             "singleton",
             vars_lookup,
@@ -438,15 +444,11 @@ class Injection:
                     f"generic parameters and {len(t.vars)} were given"
                 )
         super_t: Type[InstanceT] = Type(super_cls)
-        if not issubclass(t.cls, super_t.cls):
-            raise InjectionError(f"Type {t} does not inherit from type {super_t}")
         if instance is not None:
             if instantiate:
                 raise InjectionError(
                     f"Cannot instantiate {t.cls} if an instance is provided",
                 )
-            if not isinstance(instance, t.cls):
-                raise InjectionError(f"Object provided must an instance of type {t.cls}")
             if strategy not in self._ADD_INSTANCE_STRATEGIES:
                 formatted_strategies = StringUtils.format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
                 raise InjectionError(
@@ -564,7 +566,7 @@ class ScopedInjection(Injection):
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            Function(func),
+            self._wrap_function(func),
             None,
             "scoped",
             vars_lookup,

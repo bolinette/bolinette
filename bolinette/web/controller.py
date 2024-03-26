@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Protocol
 
 from bolinette.core import Cache, __user_cache__, meta
+from bolinette.web.abstract import WebPath
 
 
 class Controller(Protocol):
@@ -10,7 +11,7 @@ class Controller(Protocol):
 
 class ControllerMeta:
     def __init__(self, path: str) -> None:
-        self.path = path
+        self.path = WebPath(path)
 
 
 def controller[TCtrl: Controller](
