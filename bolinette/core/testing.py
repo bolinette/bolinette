@@ -50,11 +50,11 @@ class _MockWrapper[MockedT]:
     @staticmethod
     def _setup_mocked_cls(_cls: type[MockedT]) -> type[MockedT]:
         def _get_attr(instance: object, name: str) -> Any:
-            return _MockWrapper._get_mocked_attr(_cls, instance, name)
+            return _MockWrapper._get_mocked_attr(_cls, instance, name)  # pyright: ignore[reportUnknownMemberType]
 
         _t = type(f"{_cls.__name__}__Mocked", (_cls,), {})
-        _t.__init__ = lambda _: None  # pyright: ignore
-        _t.__repr__ = lambda _: f"<Mocked[{_cls.__name__}]>"  # pyright: ignore
+        _t.__init__ = lambda _: None  # pyright: ignore[reportAttributeAccessIssue]
+        _t.__repr__ = lambda _: f"<Mocked[{_cls.__name__}]>"  # pyright: ignore[reportAttributeAccessIssue]
         _t.__getattribute__ = _get_attr
         meta.set(_t, _MockedMeta(_cls))
         return _t  # pyright: ignore

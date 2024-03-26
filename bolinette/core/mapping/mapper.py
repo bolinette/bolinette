@@ -156,8 +156,7 @@ class MappingRunner:
 
 
 class TypeMapper[TargetT](Protocol):
-    def __init__(self, runner: MappingRunner) -> None:
-        pass
+    def __init__(self, runner: MappingRunner) -> None: ...
 
     def map(
         self,
@@ -327,7 +326,7 @@ class DefaultTypeMapper(TypeMapper[object]):
             elems.append(
                 self.runner.map(
                     src_expr[index],
-                    Type.from_instance(elem),
+                    Type.from_instance(elem),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                     dest_expr[index],
                     Type(dest_t.vars[0]),
                     elem,
@@ -365,7 +364,7 @@ class DefaultTypeMapper(TypeMapper[object]):
         for src_name, src_value in self._iter_obj(src):
             dest[src_name] = self.runner.map(
                 src_expr[src_name],
-                Type.from_instance(src_value),
+                Type.from_instance(src_value),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                 getattr(dest_expr, src_name),
                 Type(dest_t.vars[1]),
                 src_value,

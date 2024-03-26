@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "bolinette-data"
 version = "0.17.0"
-description = "The Bolinette data package, an async data management framework, based on bolinette and SQLAlchemy"
+description = "The Bolinette data package, an async data management framework, based on Bolinette and SQLAlchemy"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
 license = "MIT"

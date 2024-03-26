@@ -8,6 +8,7 @@ from typing import (
     ForwardRef,
     Literal,
     NotRequired,
+    TypeAliasType,
     TypeGuard,
     TypeVar,
     get_args,
@@ -34,6 +35,16 @@ class Type[T]:
         "_hash",
     ]
 
+    origin: type[T]
+    annotated: tuple[Any, ...]
+    required: bool
+    nullable: bool
+    union: "tuple[Type[Any], ...]"
+    total: bool
+    cls: type[T]
+    vars: tuple[Any, ...]
+    lookup: "types.TypeVarLookup[T]"
+
     @staticmethod
     def from_instance(__instance: T) -> "Type[T]":
         return Type(type(__instance))
@@ -47,14 +58,15 @@ class Type[T]:
         raise_on_string: bool = True,
         raise_on_typevar: bool = True,
     ) -> None:
-        self.annotated: tuple[Any, ...] = ()
+        self.origin = origin
+        self.annotated = ()
         self.required = True
         self.nullable = False
-        self.union: tuple[Type[Any], ...] = ()
+        self.union = ()
         cls = self._unpack_annotations(origin)
-        self.total: bool = getattr(cls, "__total__", True)
+        self.total = getattr(cls, "__total__", True)
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
-        self.vars: tuple[Any, ...] = (
+        self.vars = (
             *self.vars,
             *map(lambda _: Any, range(len(self.vars), Type.get_param_count(self.cls))),
         )
@@ -62,6 +74,8 @@ class Type[T]:
         self._hash = hash((self.cls, self.vars))
 
     def _unpack_annotations(self, cls: type[T]) -> type[T]:
+        if isinstance(cls, TypeAliasType):
+            return self._unpack_annotations(cls.__value__)
         origin = get_origin(cls)
         if origin is Annotated:
             cls, *self.annotated = get_args(cls)
@@ -173,12 +187,12 @@ class Type[T]:
         return annotations
 
     @staticmethod
-    def get_generics(
-        _cls: type[T],
+    def get_generics[GenT](
+        _cls: type[GenT],
         lookup: "types.TypeVarMapping | None",
         raise_on_string: bool,
         raise_on_typevar: bool,
-    ) -> tuple[type[T], tuple[Any, ...]]:
+    ) -> tuple[type[GenT], tuple[Any, ...]]:
         if origin := get_origin(_cls):
             type_vars: tuple[Any, ...] = ()
             for arg in get_args(_cls):

@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterable
 from types import TracebackType
-from typing import Any, Concatenate, Literal, Protocol, Self, overload, override, runtime_checkable
+from typing import Any, Concatenate, Literal, Protocol, Self, TypedDict, overload, override, runtime_checkable
 
 from bolinette.core import Cache, GenericMeta, __user_cache__, meta
 from bolinette.core.exceptions import InjectionError
@@ -110,6 +110,10 @@ class Injection:
         return [
             self.instantiate(t) for t in self.cache.get(InjectionCallback, hint=type[InjectionCallback], raises=False)
         ]
+
+    def _notify_callbacks(self, event: "InjectionEvent") -> None:
+        for callback in self._callbacks:
+            callback(event)
 
     def __has_instance__(self, r_type: RegisteredType[Any]) -> bool:
         return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
@@ -284,13 +288,7 @@ class Injection:
         self.__set_instance__(r_type, instance)
         if isinstance(instance, HasEnter):
             instance.__enter__()
-        for callback in self._callbacks:
-            callback(
-                "instantiated",
-                t,
-                r_type.strategy,  # pyright: ignore
-                instance,
-            )
+        self._notify_callbacks({"event": "instantiated", "strategy": r_type.strategy, "type": t, "instance": instance})  # pyright: ignore[reportArgumentType]
         return instance
 
     def is_registered(self, cls: type[Any] | Type[Any]) -> bool:
@@ -299,6 +297,12 @@ class Injection:
         else:
             t = cls
         return t.cls in self._types and self._types[t.cls].is_registered(t)
+
+    @staticmethod
+    def _wrap_function[**FuncP, FuncT](func: Callable[FuncP, FuncT]) -> Function[FuncP, FuncT]:
+        if isinstance(func, Function):
+            return func  # pyright: ignore[reportUnknownVariableType]
+        return Function(func)
 
     def call[FuncT](
         self,
@@ -311,7 +315,7 @@ class Injection:
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            Function(func),
+            self._wrap_function(func),
             None,
             "singleton",
             vars_lookup,
@@ -438,15 +442,11 @@ class Injection:
                     f"generic parameters and {len(t.vars)} were given"
                 )
         super_t: Type[InstanceT] = Type(super_cls)
-        if not issubclass(t.cls, super_t.cls):
-            raise InjectionError(f"Type {t} does not inherit from type {super_t}")
         if instance is not None:
             if instantiate:
                 raise InjectionError(
                     f"Cannot instantiate {t.cls} if an instance is provided",
                 )
-            if not isinstance(instance, t.cls):
-                raise InjectionError(f"Object provided must an instance of type {t.cls}")
             if strategy not in self._ADD_INSTANCE_STRATEGIES:
                 formatted_strategies = StringUtils.format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
                 raise InjectionError(
@@ -564,7 +564,7 @@ class ScopedInjection(Injection):
         circular_guard: OrderedSet[Any] | None = None,
     ) -> FuncT:
         func_args = self._resolve_args(
-            Function(func),
+            self._wrap_function(func),
             None,
             "scoped",
             vars_lookup,
@@ -577,12 +577,18 @@ class ScopedInjection(Injection):
         return func(**func_args)
 
     @override
+    def __enter__(self) -> Self:
+        return super().__enter__()
+        self._notify_callbacks({"event": "session_open"})
+
+    @override
     def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
         for instance in self._scoped_ctx.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):
                 instance.__exit__(*args)
+        self._notify_callbacks({"event": "session_closed"})
 
 
 class AsyncScopedSession(ScopedInjection):
@@ -596,6 +602,7 @@ class AsyncScopedSession(ScopedInjection):
         super().__init__(cache, global_ctx, scoped_ctx, types)
 
     async def __aenter__(self) -> Self:
+        self._notify_callbacks({"event": "async_session_open"})
         return self
 
     async def __aexit__(
@@ -609,16 +616,42 @@ class AsyncScopedSession(ScopedInjection):
                 instance.__exit__(*args)
             if isinstance(instance, HasAsyncExit):
                 await instance.__aexit__(*args)
+        self._notify_callbacks({"event": "async_session_closed"})
 
 
-InjectionEvent = Literal["instantiated"]
+class InstanceEvent[T](TypedDict):
+    event: Literal["instantiated"]
+    type: Type[T]
+    strategy: InjectionStrategy
+    instance: T
+
+
+class SessionOpenEvent(TypedDict):
+    event: Literal["session_open"]
+
+
+class SessionClosedEvent(TypedDict):
+    event: Literal["session_closed"]
+
+
+class AsyncSessionOpenEvent(TypedDict):
+    event: Literal["async_session_open"]
+
+
+class AsyncSessionClosedEvent(TypedDict):
+    event: Literal["async_session_closed"]
+
+
+type InjectionEvent = (
+    InstanceEvent[Any] | SessionOpenEvent | SessionClosedEvent | AsyncSessionOpenEvent | AsyncSessionClosedEvent
+)
 
 
 class InjectionCallback(Protocol):
-    def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None: ...
+    def __call__(self, event: InjectionEvent) -> None: ...
 
 
-def injection_callback[CallbackT](*, cache: Cache) -> Callable[[type[CallbackT]], type[CallbackT]]:
+def injection_callback[CallbackT: InjectionCallback](*, cache: Cache) -> Callable[[type[CallbackT]], type[CallbackT]]:
     def decorator(callback: type[CallbackT]) -> type[CallbackT]:
         (cache or __user_cache__).add(InjectionCallback, callback)
         return callback

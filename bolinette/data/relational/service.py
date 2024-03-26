@@ -1,5 +1,3 @@
-from typing import Any
-
 from sqlalchemy import Table
 
 from bolinette.core.mapping import Mapper
@@ -13,13 +11,13 @@ class Service[EntityT: DeclarativeBase]:
         self._repository = repository
         self._mapper = mapper
 
-    def create(self, payload: Any) -> EntityT:
+    def create(self, payload: object) -> EntityT:
         entity = self._mapper.map(type(payload), self._entity, payload)
         self._repository.add(entity)
         self.validate_entity(entity)
         return entity
 
-    def update(self, entity: EntityT, payload: Any) -> EntityT:
+    def update(self, entity: EntityT, payload: object) -> EntityT:
         self._mapper.map(type(payload), self._entity, payload, entity)
         self.validate_entity(entity)
         return entity

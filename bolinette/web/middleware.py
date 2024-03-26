@@ -1,8 +1,6 @@
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
 
-from aiohttp import web
-
 from bolinette.core import meta
 from bolinette.core.types import Type
 from bolinette.web import Controller
@@ -11,7 +9,7 @@ from bolinette.web import Controller
 class Middleware[**MdlwInitP](Protocol):
     def options(self, *args: MdlwInitP.args, **kwargs: MdlwInitP.kwargs) -> None: ...
 
-    async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response: ...
+    async def handle(self, next: Callable[[], Awaitable[Any]]) -> Any: ...
 
 
 class MiddlewareMeta:

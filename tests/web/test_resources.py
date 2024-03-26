@@ -1,523 +1,568 @@
-# pyright: reportUninitializedInstanceVariable=false
-from collections.abc import Awaitable, Callable
-from typing import Annotated
+import json
+from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
+from dataclasses import dataclass
+from http import HTTPStatus
+from io import BytesIO
+from typing import Annotated, Any
 
-from aiohttp import web
-from aiohttp.test_utils import TestClient
-
-from bolinette.core import Cache
-from bolinette.core.environment.sections import CoreSection
-from bolinette.core.logger import Logger
+from bolinette.core import Cache, Logger
+from bolinette.core.environment import CoreSection
 from bolinette.core.mapping import Mapper
-from bolinette.core.mapping.mapper import (
-    BoolTypeMapper,
-    FloatTypeMapper,
-    IntegerTypeMapper,
-    StringTypeMapper,
-    type_mapper,
-)
 from bolinette.core.testing import Mock
-from bolinette.web import Payload, WebResources, controller, get, post, route, with_middleware, without_middleware
-
-ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
-
-
-def load_default_mappers(cache: Cache) -> None:
-    type_mapper(int, cache=cache)(IntegerTypeMapper)
-    type_mapper(str, cache=cache)(StringTypeMapper)
-    type_mapper(float, cache=cache)(FloatTypeMapper)
-    type_mapper(bool, cache=cache)(BoolTypeMapper)
+from bolinette.core.types import TypeChecker
+from bolinette.web import Payload, controller, delete, get, patch, post, put
+from bolinette.web.abstract import ResponseState
+from bolinette.web.config import WebConfig
+from bolinette.web.resources import HttpHeaders, ResponseData, WebResources
 
 
-async def test_call_basic_route(aiohttp_client: ClientFixture) -> None:
+class MockRequest:
+    def __init__(
+        self,
+        method: str,
+        path: str,
+        headers: dict[str, str] | None = None,
+        query_params: dict[str, str] | None = None,
+        path_params: dict[str, str] | None = None,
+        payload: bytes | None = None,
+    ):
+        self.method = method
+        self.path = path
+        self.headers = headers or {}
+        self.query_params = query_params or {}
+        self.path_params = path_params or {}
+        self._payload = payload
+
+    async def raw(self) -> bytes:
+        return self._payload or b""
+
+    async def text(self, *, encoding: str = "utf-8") -> str:
+        return "" if self._payload is None else self._payload.decode(encoding)
+
+    async def json(self, *, cls: type[json.JSONDecoder] | None = None) -> Any:
+        return None if self._payload is None else json.loads(self._payload, cls=cls)
+
+
+class MockResponse:
+    def __init__(self, buffer: BytesIO | None = None) -> None:
+        self.buffer = buffer
+        self._headers: dict[str, str] = {}
+        self._status: int = 200
+        self._state: ResponseState = ResponseState.Idle
+
+    @property
+    def status(self) -> int:
+        return self._status
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return {**self._headers}
+
+    @property
+    def state(self) -> ResponseState:
+        return self._state
+
+    async def open(self) -> None:
+        self._state = ResponseState.Started
+
+    async def close(self) -> None:
+        self._state = ResponseState.Closed
+
+    async def write(self, raw: bytes) -> None:
+        if self.buffer:
+            self.buffer.write(raw)
+        self._state = ResponseState.Sending
+
+    def set_status(self, status: int, /) -> None:
+        self._status = status
+
+    def set_header(self, key: str, value: str, /) -> None:
+        self._headers[key] = value
+
+    def has_header(self, key: str, /) -> bool:
+        return key in self._headers
+
+    def unset_header(self, key: str, /) -> None:
+        del self._headers[key]
+
+
+async def test_call_route_returns_str() -> None:
     cache = Cache()
-
-    class _TestCtrl:
-        @route("GET", "route")
-        async def get_by_id(self) -> web.Response:
-            return web.Response(status=200, body="ok")
-
-    controller("test", cache=cache)(_TestCtrl)
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(Logger[WebResources]).dummy()
     mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
-
-    client = await aiohttp_client(res.web_app)
-    resp = await client.get("/test/route")
-
-    assert resp.status == 200
-    assert await resp.text() == "ok"
-
-
-async def test_call_route_with_args(aiohttp_client: ClientFixture) -> None:
-    cache = Cache()
-
-    class _TestCtrl:
-        @route("GET", "{id}")
-        async def get_by_id(self, id: int) -> web.Response:
-            return web.Response(status=200, body=f"{id}: {type(id)}")
-
-    controller("test", cache=cache)(_TestCtrl)
-
-    mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    mock.injection.add(WebResources, "singleton")
-
-    res = mock.injection.require(WebResources)
-
-    client = await aiohttp_client(res.web_app)
-    resp = await client.get("/test/42")
-
-    assert resp.status == 200
-    assert await resp.text() == f"42: {int}"
-
-
-async def test_call_route_with_middleware(aiohttp_client: ClientFixture) -> None:
-    cache = Cache()
-
-    order: list[str] = []
-
-    class _CtrlMdlw:
-        def options(self) -> None:
-            pass
-
-        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-            order.append("ctrl")
-            return await next()
-
-    class _RouteMdlw1:
-        def options(self) -> None:
-            pass
-
-        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-            order.append("route1")
-            return await next()
-
-    class _RouteMdlw2:
-        def options(self) -> None:
-            pass
-
-        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-            order.append("route2")
-            return await next()
-
-    @controller("test", cache=cache)
-    @with_middleware(_CtrlMdlw)
-    class _:
-        @route("GET", "")
-        @with_middleware(_RouteMdlw1)
-        @with_middleware(_RouteMdlw2)
-        async def get_by_id(self) -> web.Response:
-            return web.Response(status=200, body="ok")
-
-    mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    mock.injection.add(WebResources, "singleton")
-
-    res = mock.injection.require(WebResources)
-
-    client = await aiohttp_client(res.web_app)
-    resp = await client.get("/test")
-
-    assert resp.status == 200
-    assert await resp.text() == "ok"
-
-    assert order == ["ctrl", "route1", "route2"]
-
-
-async def test_remove_middleware_from_route(aiohttp_client: ClientFixture) -> None:
-    cache = Cache()
-
-    order: list[str] = []
-
-    class _Mdlw1:
-        def options(self) -> None:
-            pass
-
-        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-            order.append("1")
-            return await next()
-
-    class _Mdlw2:
-        def options(self) -> None:
-            pass
-
-        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-            order.append("2")
-            return await next()
-
-    @controller("test", cache=cache)
-    @with_middleware(_Mdlw1)
-    @with_middleware(_Mdlw2)
-    class _:
-        @route("GET", "1")
-        async def get1(self) -> web.Response:
-            return web.Response(status=200, body="ok")
-
-        @route("GET", "2")
-        @without_middleware(_Mdlw1)
-        async def get2(self) -> web.Response:
-            return web.Response(status=200, body="ok")
-
-    mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    mock.injection.add(WebResources, "singleton")
-
-    res = mock.injection.require(WebResources)
-
-    client = await aiohttp_client(res.web_app)
-    resp = await client.get("/test/1")
-    assert resp.status == 200
-    assert await resp.text() == "ok"
-    assert order == ["1", "2"]
-
-    order.clear()
-    resp = await client.get("/test/2")
-    assert resp.status == 200
-    assert await resp.text() == "ok"
-    assert order == ["2"]
-
-
-async def test_intercept_request(aiohttp_client: ClientFixture) -> None:
-    class _Auth:
-        def __init__(self, request: web.Request) -> None:
-            self.request = request
-
-        def options(self) -> None:
-            pass
-
-        async def handle(self, next: Callable[[], Awaitable[web.Response]]) -> web.Response:
-            if "x" not in self.request.headers:
-                return web.Response(status=401)
-            return await next()
-
-    cache = Cache()
-
-    @controller("test", cache=cache)
-    @with_middleware(_Auth)
-    class _:
+    class Controller:
         @get("")
-        async def get_by_id(self) -> web.Response:
-            return web.Response(status=200, body="ok")
+        async def test_route(self) -> str:
+            return "test"
 
-    mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    mock.injection.add(WebResources, "singleton")
+    controller("/", cache=cache)(Controller)
 
-    res = mock.injection.require(WebResources)
+    mock.injection.add(WebResources, strategy="singleton")
+    resources = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.get("/test")
+    resp = MockResponse(buffer)
+    await resources.dispatch(MockRequest("GET", "/"), resp)
 
-    assert resp.status == 401
-
-
-async def test_return_mapped_json(aiohttp_client: ClientFixture) -> None:
-    cache = Cache()
-
-    class Entity:
-        def __init__(self, id: int, name: str) -> None:
-            self.id = id
-            self.name = name
-
-    class EntityResponse:
-        id: int
-        name: str
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @get("{id}/{name}")
-        async def get_entity(self, id: int, name: str) -> EntityResponse:
-            entity = Entity(id, name)
-            return self.mapper.map(Entity, EntityResponse, entity)
-
-    mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
-
-    res = mock.injection.require(WebResources)
-
-    client = await aiohttp_client(res.web_app)
-    resp = await client.get("/entity/1/test")
-
+    buffer.seek(0)
+    assert buffer.read() == b"test"
     assert resp.status == 200
-    assert resp.content_type == "application/json"
-    assert await resp.json() == {"id": 1, "name": "test"}
+    assert resp.headers[HttpHeaders.ContentType] == "text/plain"
 
 
-async def test_expect_payload_return_status(aiohttp_client: ClientFixture) -> None:
+async def test_call_route_returns_int() -> None:
     cache = Cache()
-
-    class Entity:
-        def __init__(self, id: int, name: str) -> None:
-            self.id = id
-            self.name = name
-
-    class EntityPayload:
-        id: int
-        name: str
-
-    class EntityResponse:
-        id: int
-        name: str
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @post("")
-        async def create_entity(self, payload: Annotated[EntityPayload, Payload]) -> tuple[EntityResponse, int]:
-            entity = Entity(payload.id, payload.name)
-            return self.mapper.map(Entity, EntityResponse, entity), 201
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(Logger[WebResources]).dummy()
     mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
+    class Controller:
+        @get("")
+        async def test_route(self) -> int:
+            return 1
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.post("/entity", json={"id": 1, "name": "test"})
+    controller("/", cache=cache)(Controller)
 
-    assert resp.status == 201
-    assert resp.content_type == "application/json"
-    assert await resp.json() == {"id": 1, "name": "test"}
+    mock.injection.add(WebResources, strategy="singleton")
+    resources = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    resp = MockResponse(buffer)
+    await resources.dispatch(MockRequest("GET", "/"), resp)
+
+    buffer.seek(0)
+    assert buffer.read() == b"1"
+    assert resp.headers[HttpHeaders.ContentType] == "application/json"
 
 
-async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
+async def test_call_route_returns_bytes() -> None:
     cache = Cache()
-
-    class RoutePayload:
-        value: str
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @post("")
-        async def create_entity(self, payload: Annotated[RoutePayload | None, Payload]) -> str:
-            return "<none>" if not payload else payload.value
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(Logger[WebResources]).dummy()
     mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
+    class Controller:
+        @get("")
+        async def test_route(self) -> bytes:
+            return b"test"
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.post("/entity")
+    controller("/", cache=cache)(Controller)
 
-    assert resp.status == 200
-    assert resp.content_type == "text/plain"
-    assert await resp.text() == "<none>"
+    mock.injection.add(WebResources, strategy="singleton")
+    resources = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    resp = MockResponse(buffer)
+    await resources.dispatch(MockRequest("GET", "/"), resp)
+
+    buffer.seek(0)
+    assert buffer.read() == b"test"
+    assert resp.headers[HttpHeaders.ContentType] == "application/octet-stream"
 
 
-async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
+async def test_call_route_int_param() -> None:
     cache = Cache()
-
-    class RoutePayload:
-        value: str
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @post("")
-        async def create_entity(self, payload: Annotated[RoutePayload, Payload]) -> str:
-            return payload.value
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
+    mock.mock(Logger[WebResources]).dummy()
     mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
+    class Controller:
+        @get(r"{id}")
+        async def test_route(self, id: int) -> int:
+            return id + 1
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.post("/entity")
+    controller("/", cache=cache)(Controller)
 
-    assert resp.status == 400
-    assert resp.content_type == "application/json"
-    assert await resp.json() == {
-        "status": 400,
-        "reason": "Bad Request",
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    await res.dispatch(MockRequest("GET", "/1"), MockResponse(buffer))
+
+    buffer.seek(0)
+    assert buffer.read() == b"2"
+
+
+async def test_call_route_int_asyncgenerator() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get(r"")
+        async def test_route(self) -> AsyncGenerator[int, None]:
+            yield 1
+            yield 2
+            yield 3
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    await res.dispatch(MockRequest("GET", "/"), MockResponse(buffer))
+
+    buffer.seek(0)
+    assert buffer.read() == b"[1, 2, 3]"
+
+
+async def test_call_route_int_generator() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get(r"")
+        def test_route(self) -> Generator[int, None, None]:
+            yield 1
+            yield 2
+            yield 3
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    await res.dispatch(MockRequest("GET", "/"), MockResponse(buffer))
+
+    buffer.seek(0)
+    assert buffer.read() == b"[1, 2, 3]"
+
+
+async def test_call_route_returns_coroutine() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get(r"")
+        def test_route(self) -> Callable[[], Coroutine[Any, Any, list[int]]]:
+            async def route() -> list[int]:
+                return [1, 2, 3]
+
+            return route
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    await res.dispatch(MockRequest("GET", "/"), MockResponse(buffer))
+
+    buffer.seek(0)
+    assert buffer.read() == b"[1, 2, 3]"
+
+
+async def test_call_route_returns_asyncgen() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get(r"")
+        def test_route(self) -> Callable[[], AsyncGenerator[int, None]]:
+            async def route() -> AsyncGenerator[int, None]:
+                yield 1
+                yield 2
+                yield 3
+
+            return route
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    await res.dispatch(MockRequest("GET", "/"), MockResponse(buffer))
+
+    buffer.seek(0)
+    assert buffer.read() == b"[1, 2, 3]"
+
+
+async def test_fail_route_not_found() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller: ...
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    response = MockResponse(buffer)
+    await res.dispatch(MockRequest("GET", "/"), response)
+
+    buffer.seek(0)
+    assert buffer.read() == b"404 Not Found"
+    assert response.status == 404
+
+
+async def test_fail_route_method_not_allowed() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get(r"")
+        def test_route(self) -> None: ...
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    response = MockResponse(buffer)
+    await res.dispatch(MockRequest("POST", "/"), response)
+
+    buffer.seek(0)
+    assert buffer.read() == b"405 Method Not Allowed"
+    assert response.status == 405
+
+
+async def test_fail_route_raises_exception() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).setup(lambda c: c.debug, False)
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get(r"")
+        def test_route(self) -> None:
+            raise Exception()
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    response = MockResponse(buffer)
+    await res.dispatch(MockRequest("GET", "/"), response)
+
+    buffer.seek(0)
+    assert json.loads(buffer.read()) == {
+        "status": 500,
+        "reason": "Internal Server Error",
         "errors": [
             {
-                "code": "payload.expected",
-                "message": (
-                    "Controller test_fail_required_payload.<locals>._, "
-                    "Route test_fail_required_payload.<locals>._.create_entity, "
-                    "Payload expected but none provided"
-                ),
+                "message": "Un unexpected error has occured while processing the request",
+                "code": "internal.error",
                 "params": {},
             }
         ],
     }
+    assert response.status == 500
 
 
-async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> None:
+async def test_fail_route_raises_exception_debug() -> None:
     cache = Cache()
-
-    class RoutePayload:
-        value: str
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @post("")
-        async def create_entity(self, payload: Annotated[RoutePayload, Payload()]) -> str:
-            return payload.value
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).setup(lambda c: c.debug, True)
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
+    class CustomError(Exception): ...
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.post("/entity", json={})
+    class Controller:
+        @get(r"")
+        def test_route(self) -> None:
+            raise CustomError("An error has been encountered :(")
 
-    assert resp.status == 400
-    assert resp.content_type == "application/json"
-    assert await resp.json() == {
-        "status": 400,
-        "reason": "Bad Request",
-        "errors": [
-            {
-                "code": "payload.parameter.missing",
-                "message": (
-                    "Controller test_fail_missing_payload_parameter.<locals>._, "
-                    "Route test_fail_missing_payload_parameter.<locals>._.create_entity, "
-                    "Parameter 'value' is missing in payload"
-                ),
-                "params": {"path": "value"},
-            }
-        ],
-    }
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    response = MockResponse(buffer)
+    await res.dispatch(MockRequest("GET", "/"), response)
+
+    buffer.seek(0)
+    message = json.loads(buffer.read())
+    assert message["status"] == 500
+    assert message["reason"] == "Internal Server Error"
+    assert message["errors"] == [
+        {
+            "message": "Un unexpected error has occured while processing the request",
+            "code": "internal.error",
+            "params": {},
+        }
+    ]
+    assert message["debug"]["message"] == "An error has been encountered :("
+    assert message["debug"]["type"] == str(CustomError)
+    assert len(message["debug"]["stacktrace"]) > 0
+
+    assert response.status == 500
 
 
-async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture) -> None:
+async def test_call_many_routes() -> None:
     cache = Cache()
-
-    class RoutePayload:
-        value: str
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @post("")
-        async def create_entity(self, payload: Annotated[RoutePayload, Payload]) -> str:
-            return payload.value
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).setup(lambda c: c.debug, True)
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
+    order: list[str] = []
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.post("/entity", json={"value": None})
+    class Controller:
+        @get("entity/get")
+        def route_1(self) -> None:
+            order.append("1")
 
-    assert resp.status == 400
-    assert resp.content_type == "application/json"
-    assert await resp.json() == {
-        "status": 400,
-        "reason": "Bad Request",
-        "errors": [
-            {
-                "code": "payload.parameter.not_nullable",
-                "message": (
-                    "Controller test_fail_non_nullable_payload_parameter.<locals>._, "
-                    "Route test_fail_non_nullable_payload_parameter.<locals>._.create_entity, "
-                    "Parameter 'value' must not be null"
-                ),
-                "params": {"path": "value"},
-            }
-        ],
-    }
+        @post("entity/post")
+        def route_2(self) -> None:
+            order.append("2")
+
+        @put("entity/put")
+        def route_3(self) -> None:
+            order.append("3")
+
+        @patch("entity/patch")
+        def route_4(self) -> None:
+            order.append("4")
+
+        @delete("entity/delete")
+        def route_5(self) -> None:
+            order.append("5")
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+
+    await res.dispatch(MockRequest("GET", "/entity/get"), MockResponse())
+    await res.dispatch(MockRequest("POST", "/entity/post"), MockResponse())
+    await res.dispatch(MockRequest("PUT", "/entity/put"), MockResponse())
+    await res.dispatch(MockRequest("PATCH", "/entity/patch"), MockResponse())
+    await res.dispatch(MockRequest("DELETE", "/entity/delete"), MockResponse())
+
+    assert order == ["1", "2", "3", "4", "5"]
 
 
-async def test_fail_wrong_type_payload_parameter(aiohttp_client: ClientFixture) -> None:
+async def test_call_route_with_class_payload() -> None:
     cache = Cache()
-
-    class RoutePayload:
-        value: int
-
-    @controller("entity", cache=cache)
-    class _:
-        def __init__(self, mapper: Mapper) -> None:
-            self.mapper = mapper
-
-        @post("")
-        async def create_entity(self, payload: Annotated[RoutePayload, Payload()]) -> str:
-            return str(payload.value)
-
     mock = Mock(cache=cache)
-    mock.mock(Logger, match_all=True).dummy()
-    mock.mock(CoreSection).dummy()
-    mock.injection.add(Mapper, "singleton")
-    load_default_mappers(cache)
-    mock.injection.add(WebResources, "singleton")
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).setup(lambda c: c.debug, True)
+    mock.mock(TypeChecker).dummy()
+    mock.mock(WebConfig).dummy()
 
-    res = mock.injection.require(WebResources)
+    @dataclass()
+    class TestPayload:
+        name: str
+        quantity: int
 
-    client = await aiohttp_client(res.web_app)
-    resp = await client.post("/entity", json={"value": "not an int"})
+    class Controller:
+        @post("")
+        def route_1(self, payload: Annotated[TestPayload, Payload]) -> str:
+            assert isinstance(payload, TestPayload)
+            return f"Ordered {payload.quantity} of {payload.name}."
 
-    assert resp.status == 400
-    assert resp.content_type == "application/json"
-    assert await resp.json() == {
-        "status": 400,
-        "reason": "Bad Request",
-        "errors": [
-            {
-                "code": "payload.parameter.wrong_type",
-                "message": (
-                    "Controller test_fail_wrong_type_payload_parameter.<locals>._, "
-                    "Route test_fail_wrong_type_payload_parameter.<locals>._.create_entity, "
-                    "Parameter 'value' could be converted to 'int'"
-                ),
-                "params": {"path": "value"},
-            }
-        ],
-    }
+    controller("/", cache=cache)(Controller)
+
+    def mock_map(
+        src_cls: type[dict[str, Any]],
+        dest_cls: type[TestPayload],
+        src: dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> TestPayload:
+        return dest_cls(**src)
+
+    mock.mock(Mapper).setup(lambda m: m.map, mock_map)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    payload = json.dumps({"name": "Item", "quantity": 2}).encode()
+    response = MockResponse(buffer)
+    await res.dispatch(MockRequest("POST", "/", payload=payload), response)
+
+    buffer.seek(0)
+    message = buffer.read()
+    assert message == b"Ordered 2 of Item."
+    assert response.status == 200
+
+
+async def test_set_response_status() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).setup(lambda c: c.debug, True)
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+
+    class Controller:
+        @get("")
+        async def test_route(self, response: ResponseData) -> str:
+            response.set_status(HTTPStatus.CREATED)
+            return "test"
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add(WebResources, strategy="singleton")
+    resources = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    resp = MockResponse(buffer)
+    await resources.dispatch(MockRequest("GET", "/"), resp)
+
+    buffer.seek(0)
+    assert buffer.read() == b"test"
+    assert resp.status == 201
+    assert resp.headers[HttpHeaders.ContentType] == "text/plain"

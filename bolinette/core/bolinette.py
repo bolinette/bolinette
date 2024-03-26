@@ -69,6 +69,10 @@ class Bolinette:
         self._logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self._extensions)}")
         self._initialized = True
 
+    @property
+    def injection(self) -> Injection:
+        return self._inject
+
     async def exec_args(self, args: list[str]) -> NoReturn:
         if not self._initialized:
             await self.startup()

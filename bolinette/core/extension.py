@@ -1,5 +1,5 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Any, Final, Protocol, TypeVar, override
+from typing import Final, Protocol, TypeVar, override
 
 from bolinette.core import Cache, Logger
 from bolinette.core.command import Parser
@@ -7,10 +7,8 @@ from bolinette.core.environment import CoreSection, Environment, environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, injectable
 from bolinette.core.injection.injection import InjectionEvent, injection_callback
-from bolinette.core.injection.registration import InjectionStrategy
 from bolinette.core.mapping import Mapper, type_mapper
 from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
-from bolinette.core.types import Type
 from bolinette.core.types.checker import (
     DefaultTypeChecker,
     LiteralTypeChecker,
@@ -80,7 +78,15 @@ class InjectionLogger:
     def __init__(self, logger: Logger[Injection]) -> None:
         self.logger = logger
 
-    def __call__(self, event: InjectionEvent, type: Type[Any], strategy: InjectionStrategy, instance: Any) -> None:
-        match event:
+    def __call__(self, event: InjectionEvent) -> None:
+        match event["event"]:
             case "instantiated":
-                self.logger.debug(f"Instantiated {type} with strategy '{strategy}'")
+                self.logger.debug(f"Instantiated {event['type']} with strategy '{event['strategy']}'")
+            case "session_open":
+                self.logger.debug("Scoped session open")
+            case "session_closed":
+                self.logger.debug("Scoped session closed")
+            case "async_session_open":
+                self.logger.debug("Async scoped session open")
+            case "async_session_closed":
+                self.logger.debug("Async scoped session closed")

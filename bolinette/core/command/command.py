@@ -44,7 +44,7 @@ class Argument:
         /,
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> None:
         self.arg_type: Literal["argument", "option"]
         self.shorthand: str | None
         match args:

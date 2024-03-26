@@ -218,17 +218,6 @@ def test_add_instance_no_singleton() -> None:
     )
 
 
-def test_add_instance_wrong_type() -> None:
-    inject = Injection(Cache())
-
-    b = InjectableClassB()
-
-    with pytest.raises(InjectionError) as info:
-        inject.add(InjectableClassA, "singleton", instance=b)
-
-    assert f"Object provided must an instance of type {InjectableClassA}" == info.value.message
-
-
 def test_add_instance() -> None:
     inject = Injection(Cache())
 

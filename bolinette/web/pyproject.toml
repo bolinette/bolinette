@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "bolinette-web"
 version = "0.17.0"
-description = "The Bolinette web package, an async Http and Websocket framework, based on bolinette and aiohttp"
+description = "The Bolinette web package, an async Http and Websocket framework, based on Bolinette"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
 license = "MIT"
