@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "**"
+      - "!wip/**"
   pull_request:
     branches:
       - "**"
