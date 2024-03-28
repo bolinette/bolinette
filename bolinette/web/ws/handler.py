@@ -2,22 +2,21 @@ import inspect
 import json
 from typing import Any, TypeGuard
 
-from aiohttp.web import Request, Response, StreamResponse, WebSocketResponse, WSMsgType
-
 from bolinette.core import Cache, Logger, meta
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.mapping.json import JsonObjectEncoder
 from bolinette.core.types import Type, TypeChecker
 from bolinette.core.utils import AttributeUtils
-from bolinette.web.ws import WebSocketMessage, WebSocketSubscription, WebSocketTopic
+from bolinette.web.abstract import WebSocketRequest, WebSocketResponse
+from bolinette.web.ws import ChannelMessage, WebSocketSubscription, WebSocketTopic
 from bolinette.web.ws.channel import WebSocketChannelMeta
 from bolinette.web.ws.requests import (
+    ChannelCloseRequest,
+    ChannelRequest,
+    ChannelSendRequest,
+    ChannelSubscribeRequest,
+    ChannelUnsubscribeRequest,
     SocketContent,
-    WebSocketCloseRequest,
-    WebSocketRequest,
-    WebSocketSendRequest,
-    WebSocketSubscribeRequest,
-    WebSocketUnsubscribeRequest,
 )
 from bolinette.web.ws.topic import WebSocketTopicMeta
 
@@ -38,54 +37,32 @@ class WebSocketHandler:
             topics[topic_meta.name] = _WSTypeBag(Type(cls))
         self.topics = topics
 
-    async def handle(self, request: Request) -> Response | StreamResponse:
-        ws = WebSocketResponse()
-        await ws.prepare(request)
-        self.logger.info(f"Accepted websocket connection #{hash(ws)}")
-        async for msg in ws:
-            match msg.type:
-                case WSMsgType.CONTINUATION:
-                    raise NotImplementedError()
-                case WSMsgType.TEXT | WSMsgType.text:
-                    content = msg.json()
-                    if not self.is_message(content):
-                        raise Exception()  # TODO
-                    match content["action"]:
-                        case "sub":
-                            if not self.checker.instanceof(content, WebSocketSubscribeRequest):
-                                raise Exception()  # TODO
-                            await self._subscribe(content, ws)
-                        case "unsub":
-                            if not self.checker.instanceof(content, WebSocketUnsubscribeRequest):
-                                raise Exception()  # TODO
-                            await self._unsubscribe(content, ws)
-                        case "send":
-                            if not self.checker.instanceof(content, WebSocketSendRequest[SocketContent]):
-                                raise Exception()  # TODO
-                            await self._send(content, ws)
-                        case "close":
-                            if not self.checker.instanceof(content, WebSocketCloseRequest):
-                                raise Exception()  # TODO
-                            await self._close(ws)
-                case WSMsgType.BINARY | WSMsgType.binary:
-                    raise NotImplementedError()
-                case WSMsgType.PING | WSMsgType.ping:
-                    await ws.pong(msg.data)
-                case WSMsgType.PONG | WSMsgType.pong:
-                    pass
-                case WSMsgType.CLOSE | WSMsgType.close:
-                    raise NotImplementedError()
-                case WSMsgType.CLOSING | WSMsgType.closing:
-                    raise NotImplementedError()
-                case WSMsgType.CLOSED | WSMsgType.closed:
-                    raise NotImplementedError()
-                case WSMsgType.ERROR | WSMsgType.error:
-                    raise NotImplementedError()
-        await self._close(ws)
-        self.logger.info(f"Closed websocket connection #{hash(ws)}")
-        return ws
+    async def handle(self, request: WebSocketRequest, response: WebSocketResponse) -> None:
+        content = request.json()
+        if not self.is_message(content):
+            raise Exception()  # TODO
+        match content["action"]:
+            case "sub":
+                if not self.checker.instanceof(content, ChannelSubscribeRequest):
+                    raise Exception()  # TODO
+                await self._subscribe(content, response)
+            case "unsub":
+                if not self.checker.instanceof(content, ChannelUnsubscribeRequest):
+                    raise Exception()  # TODO
+                await self._unsubscribe(content, response)
+            case "send":
+                if not self.checker.instanceof(content, ChannelSendRequest[SocketContent]):
+                    raise Exception()  # TODO
+                await self._send(content, response)
+            case "close":
+                if not self.checker.instanceof(content, ChannelCloseRequest):
+                    raise Exception()  # TODO
+                await self._close(response)
 
-    async def _subscribe(self, request: WebSocketSubscribeRequest, ws: WebSocketResponse) -> None:
+    async def remove_connection(self, response: WebSocketResponse) -> None:
+        await self._close(response)
+
+    async def _subscribe(self, request: ChannelSubscribeRequest, response: WebSocketResponse) -> None:
         topic_name = request["topic"]
         channel_name = request["channel"]
         if topic_name not in self.topics:
@@ -97,19 +74,19 @@ class WebSocketHandler:
             result = await topic_instance.subscribe(WebSocketSubscription(channel_name))
             if not result:
                 raise Exception()  # TODO
-            topic.add_subscription(channel_name, ws)
-            self._add_subscription(ws, topic_name, channel_name)
+            topic.add_subscription(channel_name, response)
+            self._add_subscription(response, topic_name, channel_name)
 
-    async def _unsubscribe(self, request: WebSocketUnsubscribeRequest, ws: WebSocketResponse) -> None:
+    async def _unsubscribe(self, request: ChannelUnsubscribeRequest, response: WebSocketResponse) -> None:
         topic_name = request["topic"]
         channel_name = request["channel"]
         if topic_name not in self.topics:
             raise Exception()  # TODO
         topic = self.topics[topic_name]
-        topic.remove_subscription(channel_name, ws)
-        self._remove_subscription(ws, topic_name, channel_name)
+        topic.remove_subscription(channel_name, response)
+        self._remove_subscription(response, topic_name, channel_name)
 
-    async def _send(self, request: WebSocketSendRequest[SocketContent], ws: WebSocketResponse) -> None:
+    async def _send(self, request: ChannelSendRequest[SocketContent], response: WebSocketResponse) -> None:
         if request["topic"] not in self.topics:
             raise Exception()  # TODO
         topic = self.topics[request["topic"]]
@@ -117,16 +94,16 @@ class WebSocketHandler:
             async with self.inject.get_async_scoped_session() as subinject:
                 subinject.add(WebSocketContext, "scoped", [self])
                 topic_instance = subinject.instantiate(topic.t.cls)
-                message = WebSocketMessage(request["channel"], request["data"], ws)
+                message = ChannelMessage(request["channel"], request["data"], response)
                 if inspect.isawaitable(res := subinject.call(channel.func, args=[topic_instance, message])):
                     await res
 
-    async def _close(self, ws: WebSocketResponse) -> None:
-        await ws.close()
-        if ws in self.subscriptions:
-            for topic_name, channels in self.subscriptions[ws].items():
+    async def _close(self, response: WebSocketResponse) -> None:
+        if response in self.subscriptions:
+            for topic_name, channels in self.subscriptions[response].items():
                 for channel_name in channels:
-                    self.topics[topic_name].remove_subscription(channel_name, ws)
+                    self.topics[topic_name].remove_subscription(channel_name, response)
+            del self.subscriptions[response]
 
     def _add_subscription(self, ws: WebSocketResponse, topic: str, channel: str) -> None:
         if ws not in self.subscriptions:
@@ -145,7 +122,7 @@ class WebSocketHandler:
         resp_subs[topic].remove(channel)
 
     @staticmethod
-    def is_message(content: Any) -> TypeGuard[WebSocketRequest]:
+    def is_message(content: Any) -> TypeGuard[ChannelRequest]:
         return (
             isinstance(content, dict)
             and ("action" in content)
@@ -195,4 +172,4 @@ class WebSocketContext:
         if channel not in topic_t.subs:
             return
         for ws in topic_t.subs[channel]:
-            await ws.send_json(content, dumps=lambda o: json.dumps(o, cls=JsonObjectEncoder))
+            await ws.send(json=content, encoder=lambda o: json.dumps(o, cls=JsonObjectEncoder))

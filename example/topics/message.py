@@ -1,6 +1,6 @@
 from bolinette.web.ws import (
+    ChannelMessage,
     WebSocketContext,
-    WebSocketMessage,
     WebSocketSubResult,
     WebSocketSubscription,
     channel,
@@ -19,5 +19,5 @@ class MessageTopic:
         return sub.accept()
 
     @channel("to:.*")
-    async def receive_message(self, message: WebSocketMessage[str]) -> None:
+    async def receive_message(self, message: ChannelMessage[str]) -> None:
         await self.ctx.send("message", message.channel, message.value)

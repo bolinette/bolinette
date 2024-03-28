@@ -2,14 +2,13 @@ import re
 from collections.abc import Callable
 from typing import Concatenate
 
-from aiohttp.web import WebSocketResponse
-
 from bolinette.core import meta
+from bolinette.web.abstract import WebSocketResponse
 from bolinette.web.ws import WebSocketTopic
 from bolinette.web.ws.requests import SocketContent
 
 
-class WebSocketMessage[T: SocketContent]:
+class ChannelMessage[T: SocketContent]:
     def __init__(self, channel: str, value: T, response: WebSocketResponse) -> None:
         self.channel = channel
         self.type = type(value)
@@ -17,7 +16,7 @@ class WebSocketMessage[T: SocketContent]:
         self.response = response
 
 
-type ChannelFunc[W: WebSocketTopic[...], M: SocketContent, **P, T] = Callable[Concatenate[W, WebSocketMessage[M], P], T]
+type ChannelFunc[W: WebSocketTopic[...], M: SocketContent, **P, T] = Callable[Concatenate[W, ChannelMessage[M], P], T]
 
 
 class WebSocketChannelMeta[W: WebSocketTopic[...], M: SocketContent, **P, T]:

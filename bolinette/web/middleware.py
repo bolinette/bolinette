@@ -3,7 +3,8 @@ from typing import Any, Protocol
 
 from bolinette.core import meta
 from bolinette.core.types import Type
-from bolinette.web import Controller, Response
+from bolinette.web import Controller
+from bolinette.web.abstract import Response
 
 
 class Middleware[**MdlwInitP](Protocol):

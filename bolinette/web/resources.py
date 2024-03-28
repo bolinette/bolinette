@@ -17,8 +17,8 @@ from bolinette.core.mapping.exceptions import (
 )
 from bolinette.core.types import Function, Type
 from bolinette.core.utils import AttributeUtils
-from bolinette.web import Payload, Response
-from bolinette.web.abstract import Request
+from bolinette.web import Payload
+from bolinette.web.abstract import Request, Response
 from bolinette.web.config import WebConfig
 from bolinette.web.controller import Controller, ControllerMeta
 from bolinette.web.exceptions import (

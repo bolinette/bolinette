@@ -5,7 +5,9 @@ from bolinette.core.bolinette import Bolinette
 from bolinette.web import WebResources
 from bolinette.web.asgi import (
     AsgiCallable,
-    AsgiWebRequest,
+    AsgiRequest,
+    AsgiSocketRequest,
+    AsgiSocketResponse,
     HttpReceivedEvent,
     HttpRequestEvent,
     HttpResponseResult,
@@ -20,12 +22,14 @@ from bolinette.web.asgi import (
     WebSocketResult,
     WebSocketScope,
 )
+from bolinette.web.ws import WebSocketHandler
 
 
 class AsgiApplication:
     def __init__(self, blnt: Bolinette) -> None:
         self._blnt = blnt
         self._resources: WebResources | None = None
+        self._ws_handler: WebSocketHandler | None = None
 
     async def _handle_startup(
         self,
@@ -69,7 +73,7 @@ class AsgiApplication:
         if self._resources is None:
             self._resources = self._blnt.injection.require(WebResources)
 
-        request = AsgiWebRequest(scope["method"], scope["path"], {}, {}, received, receive)
+        request = AsgiRequest(scope["method"], scope["path"], {}, {}, received, receive)
         response = await self._resources.dispatch(request)
 
         match response.body:
@@ -117,14 +121,19 @@ class AsgiApplication:
         receive: Callable[[], Awaitable[WebSocketReceivedEvent]],
         send: Callable[[WebSocketResult], Awaitable[None]],
     ) -> None:
+        response = AsgiSocketResponse(send)
+        if self._ws_handler is None:
+            self._ws_handler = self._blnt.injection.require(WebSocketHandler)
         while True:
             received = await receive()
             match received["type"]:
                 case "websocket.connect":
                     await self._handle_ws_connect(send)
                 case "websocket.receive":
-                    pass
+                    request = AsgiSocketRequest(received.get("bytes", None), received.get("text", None))
+                    await self._ws_handler.handle(request, response)
                 case "websocket.disconnect":
+                    await self._ws_handler.remove_connection(response)
                     break
 
     def get_app(self) -> AsgiCallable:

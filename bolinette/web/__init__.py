@@ -1,4 +1,3 @@
-from bolinette.web.response import Response as Response
 from bolinette.web.controller import Controller as Controller, controller as controller
 from bolinette.web.routing import (
     route as route,

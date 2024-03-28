@@ -15,5 +15,6 @@ from bolinette.web.asgi.types import (
     WebSocketConnectResult as WebSocketConnectResult,
     WebSocketResult as WebSocketResult,
 )
-from bolinette.web.asgi.requests import AsgiWebRequest as AsgiWebRequest
+from bolinette.web.asgi.requests import AsgiRequest as AsgiRequest, AsgiSocketRequest as AsgiSocketRequest
+from bolinette.web.asgi.responses import AsgiSocketResponse as AsgiSocketResponse
 from bolinette.web.asgi.app import AsgiApplication as AsgiApplication
