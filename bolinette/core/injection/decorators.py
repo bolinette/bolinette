@@ -13,9 +13,9 @@ class InitMethodMeta:
     pass
 
 
-def init_method[InstanceT, **FuncP](
-    func: Callable[Concatenate[InstanceT, FuncP], None],
-) -> Callable[Concatenate[InstanceT, FuncP], None]:
+def init_method[InstanceT](
+    func: Callable[Concatenate[InstanceT, ...], None],
+) -> Callable[Concatenate[InstanceT, ...], None]:
     meta.set(func, InitMethodMeta())
     return func
 

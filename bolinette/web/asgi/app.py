@@ -1,4 +1,3 @@
-import json
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -6,6 +5,7 @@ from bolinette.core.bolinette import Bolinette
 from bolinette.web import WebResources
 from bolinette.web.asgi import (
     AsgiCallable,
+    AsgiWebRequest,
     HttpReceivedEvent,
     HttpRequestEvent,
     HttpResponseResult,
@@ -15,12 +15,17 @@ from bolinette.web.asgi import (
     LifespanShutdownResult,
     LifespanStartupResult,
     Scope,
+    WebSocketConnectResult,
+    WebSocketReceivedEvent,
+    WebSocketResult,
+    WebSocketScope,
 )
 
 
 class AsgiApplication:
     def __init__(self, blnt: Bolinette) -> None:
         self._blnt = blnt
+        self._resources: WebResources | None = None
 
     async def _handle_startup(
         self,
@@ -61,10 +66,11 @@ class AsgiApplication:
         receive: Callable[[], Awaitable[HttpReceivedEvent]],
         send: Callable[[HttpResponseResult], Awaitable[None]],
     ) -> None:
-        resources = self._blnt.injection.require(WebResources)
-        request = AsgiRequest(scope["method"], scope["path"], {}, {}, AsgiAsyncBody(received, receive))
+        if self._resources is None:
+            self._resources = self._blnt.injection.require(WebResources)
 
-        response = await resources.dispatch(request)
+        request = AsgiWebRequest(scope["method"], scope["path"], {}, {}, received, receive)
+        response = await self._resources.dispatch(request)
 
         match response.body:
             case bytes():
@@ -94,7 +100,32 @@ class AsgiApplication:
             case "http.request":
                 await self._handle_http_request(scope, received, receive, send)
             case "http.disconnect":
-                ...
+                raise NotImplementedError()
+
+    async def _handle_ws_connect(
+        self,
+        send: Callable[[WebSocketConnectResult], Awaitable[None]],
+    ) -> None:
+        try:
+            await send({"type": "websocket.accept"})
+        except BaseException:
+            await send({"type": "websocket.close"})
+
+    async def _handle_ws(
+        self,
+        scope: WebSocketScope,
+        receive: Callable[[], Awaitable[WebSocketReceivedEvent]],
+        send: Callable[[WebSocketResult], Awaitable[None]],
+    ) -> None:
+        while True:
+            received = await receive()
+            match received["type"]:
+                case "websocket.connect":
+                    await self._handle_ws_connect(send)
+                case "websocket.receive":
+                    pass
+                case "websocket.disconnect":
+                    break
 
     def get_app(self) -> AsgiCallable:
         async def app(
@@ -107,49 +138,7 @@ class AsgiApplication:
                     await self._handle_lifespan(receive, send)
                 case "http":
                     await self._handle_http(scope, receive, send)
+                case "websocket":
+                    await self._handle_ws(scope, receive, send)
 
         return app
-
-
-class AsgiAsyncBody:
-    def __init__(
-        self,
-        received: HttpRequestEvent,
-        receive: Callable[[], Awaitable[HttpReceivedEvent]],
-    ) -> None:
-        self.chunks = [received.get("body", b"")]
-        self.more = received.get("more_body", False)
-        self.receive = receive
-
-    async def read(self) -> bytes:
-        while self.more:
-            received = await self.receive()
-            self.chunks.append(received.get("body", b""))
-            self.more = received.get("more_body", False)
-        return b"".join(self.chunks)
-
-
-class AsgiRequest:
-    def __init__(
-        self,
-        method: str,
-        path: str,
-        headers: dict[str, str],
-        query_params: dict[str, str],
-        body: AsgiAsyncBody,
-    ) -> None:
-        self.method = method
-        self.path = path
-        self.headers = headers
-        self.query_params = query_params
-        self.path_params: dict[str, str] = {}
-        self.body = body
-
-    async def bytes(self) -> bytes:
-        return await self.body.read()
-
-    async def text(self, encoding: str = "utf-8") -> str:
-        return (await self.body.read()).decode(encoding)
-
-    async def json(self) -> Any:
-        return json.loads(await self.body.read())

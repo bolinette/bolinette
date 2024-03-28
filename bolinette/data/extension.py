@@ -1,7 +1,7 @@
 from typing import override
 
 from bolinette import core
-from bolinette.core import Cache
+from bolinette.core import Cache, startup
 from bolinette.core.command import command
 from bolinette.core.environment import environment
 from bolinette.core.extension import Extension
@@ -16,6 +16,7 @@ from bolinette.data.defaults import (
     create_db_tables,
 )
 from bolinette.data.relational import AsyncTransaction, EntityManager
+from bolinette.data.relational.manager import create_tables_for_memory_db
 
 
 class _DataExtension(Extension):
@@ -35,6 +36,8 @@ class _DataExtension(Extension):
         database_system(cache=cache)(AsyncSQLite)
         database_system(cache=cache)(PostgreSQL)
         database_system(cache=cache)(AsyncPostgreSQL)
+
+        startup(cache=cache)(create_tables_for_memory_db)
 
         command("db init", summary="Creates the tables in database", cache=cache)(create_db_tables)
 

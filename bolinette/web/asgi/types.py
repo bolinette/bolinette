@@ -12,8 +12,7 @@ class LifespanScope(TypedDict):
     asgi: ASGIVersion
 
 
-class HttpScope(TypedDict):
-    type: Literal["http"]
+class WebMessageScope(TypedDict):
     asgi: ASGIVersion
     http_version: Literal["1.0", "1.1", "2", "3"]
     server: NotRequired[tuple[str, int] | tuple[str, None]]
@@ -28,7 +27,13 @@ class HttpScope(TypedDict):
     state: NotRequired[dict[str, Any]]
 
 
-type Scope = LifespanScope | HttpScope
+class HttpScope(WebMessageScope):
+    type: Literal["http"]
+
+
+class WebSocketScope(WebMessageScope):
+    type: Literal["websocket"]
+    subprotocols: NotRequired[list[str]]
 
 
 class LifespanStartupEvent(TypedDict):
@@ -37,9 +42,6 @@ class LifespanStartupEvent(TypedDict):
 
 class LifespanShutdownEvent(TypedDict):
     type: Literal["lifespan.shutdown"]
-
-
-type LifespanReceivedEvent = LifespanStartupEvent | LifespanShutdownEvent
 
 
 class LifespanStartupComplete(TypedDict):
@@ -58,11 +60,6 @@ class LifespanShutdownFailed(TypedDict):
     type: Literal["lifespan.shutdown.failed"]
 
 
-type LifespanStartupResult = LifespanStartupComplete | LifespanStartupFailed
-type LifespanShutdownResult = LifespanShutdownComplete | LifespanShutdownFailed
-type LifespanResult = LifespanStartupResult | LifespanShutdownResult
-
-
 class HttpRequestEvent(TypedDict):
     type: Literal["http.request"]
     body: NotRequired[bytes]
@@ -71,9 +68,6 @@ class HttpRequestEvent(TypedDict):
 
 class HttpDisconectEvent(TypedDict):
     type: Literal["http.disconnect"]
-
-
-type HttpReceivedEvent = HttpRequestEvent | HttpDisconectEvent
 
 
 class HttpResponseStart(TypedDict):
@@ -89,6 +83,66 @@ class HttpResponseBody(TypedDict):
     more_body: NotRequired[bool]
 
 
+class WebSocketConnectEvent(TypedDict):
+    type: Literal["websocket.connect"]
+
+
+class WebSocketReceiveBytesEvent(TypedDict):
+    type: Literal["websocket.receive"]
+    bytes: bytes
+    text: NotRequired[None]
+
+
+class WebSocketReceiveTextEvent(TypedDict):
+    type: Literal["websocket.receive"]
+    bytes: NotRequired[None]
+    text: str
+
+
+class WebSocketDisconnectEvent(TypedDict):
+    type: Literal["websocket.disconnect"]
+    code: int
+
+
+class WebSocketAcceptResult(TypedDict):
+    type: Literal["websocket.accept"]
+    subprotocol: NotRequired[str]
+    headers: NotRequired[list[tuple[bytes, bytes]]]
+
+
+class WebSocketSendBytesResult(TypedDict):
+    type: Literal["websocket.send"]
+    bytes: bytes
+    text: NotRequired[None]
+
+
+class WebSocketSendTextResult(TypedDict):
+    type: Literal["websocket.send"]
+    bytes: NotRequired[None]
+    text: str
+
+
+class WebSocketCloseResult(TypedDict):
+    type: Literal["websocket.close"]
+    code: NotRequired[int]
+    reason: NotRequired[str | None]
+
+
+type Scope = LifespanScope | HttpScope | WebSocketScope
+
+type LifespanReceivedEvent = LifespanStartupEvent | LifespanShutdownEvent
+type LifespanStartupResult = LifespanStartupComplete | LifespanStartupFailed
+type LifespanShutdownResult = LifespanShutdownComplete | LifespanShutdownFailed
+type LifespanResult = LifespanStartupResult | LifespanShutdownResult
+
+type HttpReceivedEvent = HttpRequestEvent | HttpDisconectEvent
 type HttpResponseResult = HttpResponseStart | HttpResponseBody
+
+type WebSocketReceivedEvent = (
+    WebSocketConnectEvent | WebSocketReceiveBytesEvent | WebSocketReceiveTextEvent | WebSocketDisconnectEvent
+)
+type WebSocketConnectResult = WebSocketAcceptResult | WebSocketCloseResult
+type WebSocketSendResult = WebSocketSendBytesResult | WebSocketSendTextResult
+type WebSocketResult = WebSocketConnectResult | WebSocketSendResult
 
 type AsgiCallable = Callable[[Scope, Callable[[], Awaitable[Any]], Callable[[Any], Awaitable[None]]], Awaitable[Any]]

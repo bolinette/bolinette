@@ -156,8 +156,7 @@ class MappingRunner:
 
 
 class TypeMapper[TargetT](Protocol):
-    def __init__(self, runner: MappingRunner) -> None:
-        pass
+    def __init__(self, runner: MappingRunner) -> None: ...
 
     def map(
         self,

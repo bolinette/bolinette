@@ -19,6 +19,7 @@ from bolinette.core.types import Function, Type
 from bolinette.core.utils import AttributeUtils
 from bolinette.web import Payload, Response
 from bolinette.web.abstract import Request
+from bolinette.web.config import WebConfig
 from bolinette.web.controller import Controller, ControllerMeta
 from bolinette.web.exceptions import (
     BadRequestError,
@@ -32,6 +33,7 @@ from bolinette.web.exceptions import (
 )
 from bolinette.web.middleware import Middleware, MiddlewareBag
 from bolinette.web.routing import Route, RouteBucket, Router
+from bolinette.web.ws import WebSocketHandler
 
 
 class WebResources:
@@ -40,6 +42,7 @@ class WebResources:
         self.logger = logger
         self.core_section = core_section
         self.router = Router()
+        self.ws_handler: WebSocketHandler | None
 
     @init_method
     def _init_ctrls(self, cache: Cache) -> None:
@@ -57,6 +60,11 @@ class WebResources:
                     if not path.is_absolute:
                         path.origin = f"/{path.origin}"
                     self.router.add_route(Route(props.method, path, Type(ctrl_cls), Function(attr)))
+
+    @init_method
+    def _init_sockets(self, config: WebConfig, inject: Injection) -> None:
+        if config.use_sockets:
+            self.ws_handler = inject.add(WebSocketHandler, "singleton", instantiate=True)
 
     async def dispatch(self, request: Request) -> Response:
         try:

@@ -77,14 +77,7 @@ def test_map_simple_attr() -> None:
     class _Destination:
         value: str
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination)
-
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
+    mock = Mock()
     mock.injection.add(Mapper, "singleton")
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)

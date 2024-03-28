@@ -18,6 +18,7 @@ from bolinette.core.mapping.mapper import (
 )
 from bolinette.core.testing import Mock
 from bolinette.web import Payload, WebResources, controller, get, post, route, with_middleware, without_middleware
+from bolinette.web.config import WebConfig
 
 ClientFixture = Callable[[web.Application], Awaitable[TestClient]]
 
@@ -42,6 +43,7 @@ async def test_call_basic_route(aiohttp_client: ClientFixture) -> None:
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -67,6 +69,7 @@ async def test_call_route_with_args(aiohttp_client: ClientFixture) -> None:
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -120,6 +123,7 @@ async def test_call_route_with_middleware(aiohttp_client: ClientFixture) -> None
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -171,6 +175,7 @@ async def test_remove_middleware_from_route(aiohttp_client: ClientFixture) -> No
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -214,6 +219,7 @@ async def test_intercept_request(aiohttp_client: ClientFixture) -> None:
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     mock.injection.add(WebResources, "singleton")
 
@@ -250,6 +256,7 @@ async def test_return_mapped_json(aiohttp_client: ClientFixture) -> None:
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -293,6 +300,7 @@ async def test_expect_payload_return_status(aiohttp_client: ClientFixture) -> No
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -325,6 +333,7 @@ async def test_nullable_payload(aiohttp_client: ClientFixture) -> None:
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -357,6 +366,7 @@ async def test_fail_required_payload(aiohttp_client: ClientFixture) -> None:
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -403,6 +413,7 @@ async def test_fail_missing_payload_parameter(aiohttp_client: ClientFixture) -> 
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -449,6 +460,7 @@ async def test_fail_non_nullable_payload_parameter(aiohttp_client: ClientFixture
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")
@@ -495,6 +507,7 @@ async def test_fail_wrong_type_payload_parameter(aiohttp_client: ClientFixture) 
     mock = Mock(cache=cache)
     mock.mock(Logger, match_all=True).dummy()
     mock.mock(CoreSection).dummy()
+    mock.mock(WebConfig).dummy()
     mock.injection.add(Mapper, "singleton")
     load_default_mappers(cache)
     mock.injection.add(WebResources, "singleton")

@@ -8,6 +8,7 @@ from typing import (
     ForwardRef,
     Literal,
     NotRequired,
+    TypeAliasType,
     TypeGuard,
     TypeVar,
     get_args,
@@ -47,6 +48,7 @@ class Type[T]:
         raise_on_string: bool = True,
         raise_on_typevar: bool = True,
     ) -> None:
+        self.origin = origin
         self.annotated: tuple[Any, ...] = ()
         self.required = True
         self.nullable = False
@@ -62,6 +64,8 @@ class Type[T]:
         self._hash = hash((self.cls, self.vars))
 
     def _unpack_annotations(self, cls: type[T]) -> type[T]:
+        if isinstance(cls, TypeAliasType):
+            return self._unpack_annotations(cls.__value__)
         origin = get_origin(cls)
         if origin is Annotated:
             cls, *self.annotated = get_args(cls)

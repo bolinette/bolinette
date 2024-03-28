@@ -1,6 +1,6 @@
 from typing import Any
 
-from bolinette.core import Cache, meta, startup
+from bolinette.core import Cache, meta
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.logger import Logger
 from bolinette.data import DatabaseManager
@@ -77,7 +77,6 @@ class EntityManager:
             await engine.create_all()
 
 
-@startup
 async def create_tables_for_memory_db(entities: EntityManager, logger: Logger[EntityManager]) -> None:
     for engine in entities.engines.values():
         if engine.in_memory:

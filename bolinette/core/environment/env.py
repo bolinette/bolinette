@@ -89,7 +89,7 @@ class Environment:
             return {}
 
 
-def init_section(section: object, env: Environment, mapper: Mapper) -> None:
+def init_section(section: Any, env: Environment, mapper: Mapper) -> None:
     section_name = meta.get(type(section), EnvSectionMeta).name
     if section_name not in env.config:
         raise EnvironmentError(f"No '{section_name}' section was found in the environment files")
