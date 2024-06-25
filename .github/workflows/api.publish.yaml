@@ -1,4 +1,4 @@
-name: Publish Bolinette Core to pypi.org
+name: Publish Bolinette API to pypi.org
 
 on:
   push:
@@ -31,11 +31,6 @@ jobs:
         run: |
           poetry config virtualenvs.create true --local
           poetry config virtualenvs.in-project true --local
-      - uses: actions/cache@v4
-        name: Define cache for virtual environment
-        with:
-          path: ./.venv
-          key: venv-${{ hashFiles('poetry.lock') }}
       - name: Install project dependencies
         run: |
           poetry install
