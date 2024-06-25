@@ -1,8 +1,7 @@
 import inspect
 import json
 from collections.abc import AsyncIterator, Callable, Coroutine, Iterator
-from types import TracebackType
-from typing import Any, Protocol, Self
+from typing import Any, Protocol
 
 from bolinette.core.injection import Injection
 from bolinette.core.mapping import JsonObjectEncoder
@@ -15,15 +14,7 @@ class ResponseWriter:
         self.inject = inject
         self.response = response
 
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_t: type[BaseException] | None,
-        exc_val: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
+    async def close(self) -> None:
         await self.response.close()
 
     async def _open_response(self, data: ResponseData) -> None:
