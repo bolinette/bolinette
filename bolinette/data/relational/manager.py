@@ -1,10 +1,11 @@
 from typing import Any
 
 from bolinette.core import Cache, meta
+from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.logger import Logger
 from bolinette.data import DatabaseManager
-from bolinette.data.exceptions import DataError, EntityError
+from bolinette.data.exceptions import EntityError
 from bolinette.data.relational import (
     AbstractDatabase,
     DeclarativeBase,
@@ -13,20 +14,21 @@ from bolinette.data.relational import (
     Repository,
 )
 from bolinette.data.relational.repository import RepositoryMeta
+from bolinette.data.relational.service import Service, ServiceMeta
 
 
 class EntityManager:
     def __init__(self) -> None:
-        self._entities: list[type[DeclarativeBase]] = []
+        self._entities: set[type[DeclarativeBase]] = set()
         self._engines: dict[type[DeclarativeBase], AbstractDatabase] = {}
 
     @property
-    def entities(self) -> list[type[DeclarativeBase]]:
-        return list(self._entities)
+    def entities(self) -> set[type[DeclarativeBase]]:
+        return {*self._entities}
 
     @property
     def engines(self) -> dict[type[DeclarativeBase], AbstractDatabase]:
-        return dict(self._engines)
+        return {**self._engines}
 
     @init_method
     def _init_engines(self, cache: Cache, databases: DatabaseManager) -> None:
@@ -42,7 +44,7 @@ class EntityManager:
     @init_method
     def _init_entities(self, cache: Cache) -> None:
         for entity in cache.get(EntityMeta, hint=type[DeclarativeBase], raises=False):
-            self._entities.append(entity)
+            self._entities.add(entity)
             found = False
             for base, engine in self._engines.items():
                 if issubclass(entity, base):
@@ -56,18 +58,42 @@ class EntityManager:
     @init_method
     def _init_repositories(self, cache: Cache, inject: Injection) -> None:
         repo_classes = cache.get(RepositoryMeta, hint=type[Repository[Any]], raises=False)
-        used_classes: set[type[Repository[Any]]] = set()
+        custom_repos: set[type[DeclarativeBase]] = set()
+        for repo_cls in repo_classes:
+            repo_meta: RepositoryMeta[Any] = meta.get(repo_cls, RepositoryMeta)
+            base_t = next((b for b in repo_meta.repo_t.bases if b.cls is Repository), None)
+            if base_t is None:
+                raise InitError(f"Repository {repo_meta.repo_t}, class must inherit from Repository[Entity]")
+            entity_cls = base_t.vars[0]
+            if entity_cls not in self._entities:
+                raise InitError(f"Repository {repo_cls}, entity {entity_cls} is not a registered entity type")
+            inject.add(repo_cls, "scoped")
+            inject.add(repo_cls, "scoped", super_cls=Repository[entity_cls])
+            custom_repos.add(entity_cls)
+
         for entity in self._entities:
-            for repo_class in repo_classes:
-                repo_meta: RepositoryMeta[Any] = meta.get(repo_class, RepositoryMeta)
-                if repo_meta.entity is entity:
-                    inject.add(repo_class, "scoped")
-                    inject.add(repo_class, "scoped", super_cls=Repository[entity])
-                    used_classes.add(repo_class)
-            else:
+            if entity not in custom_repos:
                 inject.add(Repository[entity], "scoped")
-        if len(used_classes) != len(repo_classes):
-            raise DataError(f"Repository {repo_classes[0]} was not used with any registered entity")
+
+    @init_method
+    def _init_services(self, cache: Cache, inject: Injection) -> None:
+        service_classes = cache.get(ServiceMeta, hint=type[Service[Any]], raises=False)
+        custom_services: set[type[DeclarativeBase]] = set()
+        for service_cls in service_classes:
+            service_meta: ServiceMeta[Any] = meta.get(service_cls, ServiceMeta)
+            base_t = next((b for b in service_meta.service_t.bases if b.cls is Service), None)
+            if base_t is None:
+                raise InitError(f"Service {service_meta.service_t}, class must inherit from Service[Entity]")
+            entity_cls = base_t.vars[0]
+            if entity_cls not in self._entities:
+                raise InitError(f"Service {service_cls}, entity {entity_cls} is not a registered entity type")
+            inject.add(service_cls, "scoped")
+            inject.add(service_cls, "scoped", super_cls=Service[entity_cls])
+            custom_services.add(entity_cls)
+
+        for entity in self._entities:
+            if entity not in custom_services:
+                inject.add(Service[entity], "scoped")
 
     def is_entity_type(self, cls: type[Any]) -> bool:
         return cls in self._entities

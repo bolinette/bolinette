@@ -5,12 +5,13 @@ from sqlalchemy import Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, mapped_column
 
 from bolinette.core import Cache, meta
+from bolinette.core.exceptions import InitError
 from bolinette.core.logger import Logger
 from bolinette.core.testing import Mock
 from bolinette.core.utils import StringUtils
 from bolinette.data import DatabaseManager
 from bolinette.data.databases import DatabaseConnection
-from bolinette.data.exceptions import DataError, EntityError
+from bolinette.data.exceptions import EntityError
 from bolinette.data.relational import (
     AbstractDatabase,
     AsyncRelationalDatabase,
@@ -263,7 +264,7 @@ def test_init_repositories() -> None:
     entity_type1 = mock_entities(cache, "entity1", base)
     entity_type2 = mock_entities(cache, "entity2", base)
 
-    @repository(entity_type2, cache=cache)
+    @repository(cache=cache)
     class _Entity2Repository(Repository[entity_type2]):
         pass
 
@@ -285,11 +286,11 @@ def test_fail_init_repositories_unused_repository() -> None:
     entity_type = type("Entity", (base,), {"__tablename__": "entity", "id": mapped_column(Integer, primary_key=True)})
     meta.set(entity_type, EntityMeta("entity"))
 
-    @repository(entity_type, cache=cache)
+    @repository(cache=cache)
     class _EntityRepository(Repository[entity_type]):
         pass
 
-    with pytest.raises(DataError) as info:
+    with pytest.raises(InitError) as info:
         mock.injection.require(EntityManager)
 
-    assert f"Repository {_EntityRepository} was not used with any registered entity" == info.value.message
+    assert f"Repository {_EntityRepository}, entity {entity_type} is not a registered entity type" == info.value.message

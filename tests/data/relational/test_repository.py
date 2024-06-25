@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from bolinette.core import Cache, meta
 from bolinette.core.testing import Mock
+from bolinette.core.types import Type
 from bolinette.data.exceptions import DataError, EntityNotFoundError
 from bolinette.data.relational import EntitySession, Repository, entity, get_base, repository
 from bolinette.data.relational.repository import RepositoryMeta
@@ -371,10 +372,11 @@ def test_custom_repo() -> None:
 
     cache = Cache()
 
-    @repository(Entity, cache=cache)
+    @repository(cache=cache)
     class _EntityRepo(Repository[Entity]):
         pass
 
     res: list[RepositoryMeta[Any]] = cache.get(RepositoryMeta)
     assert res == [_EntityRepo]
-    assert meta.get(res[0], RepositoryMeta).entity is Entity
+    assert meta.get(res[0], RepositoryMeta).repo_t == Type(_EntityRepo)
+    assert meta.get(res[0], RepositoryMeta).repo_t.bases[0] == Type(Repository[Entity])

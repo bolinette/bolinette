@@ -15,10 +15,6 @@ class AsyncSessionArgResolver:
         return options.t.cls is EntitySession
 
     def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        if options.caller_type_vars is None:
-            raise InjectionError(
-                "Cannot inject session in non generic context", func=options.caller, param=options.name
-            )
         entity_type = options.t.vars[0]
         if not self.entities.is_entity_type(entity_type):
             raise InjectionError(

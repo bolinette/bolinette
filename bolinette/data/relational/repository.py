@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterable, Callable, Iterable
-from typing import Any, Literal, TypeVar, overload
+from typing import Any, Literal, overload
 
 from sqlalchemy import select
 from sqlalchemy.sql.elements import NamedColumn
@@ -7,6 +7,7 @@ from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection import init_method
+from bolinette.core.types import Type
 from bolinette.data.exceptions import DataError, EntityNotFoundError
 from bolinette.data.relational import DeclarativeBase, EntitySession
 
@@ -76,18 +77,14 @@ class Repository[EntityT: DeclarativeBase]:
         await self._session.commit()
 
 
-class RepositoryMeta[EntityT: DeclarativeBase]:
-    def __init__(self, entity: type[EntityT]) -> None:
-        self.entity = entity
+class RepositoryMeta[RepoT: Repository[Any]]:
+    def __init__(self, repo_t: Type[RepoT]) -> None:
+        self.repo_t = repo_t
 
 
-EntityT = TypeVar("EntityT", bound=DeclarativeBase)
-RepoT = TypeVar("RepoT", bound=Repository[EntityT])  # pyright: ignore
-
-
-def repository(entity: type[EntityT], *, cache: Cache | None = None) -> Callable[[type[RepoT]], type[RepoT]]:
+def repository[RepoT: Repository[Any]](*, cache: Cache | None = None) -> Callable[[type[RepoT]], type[RepoT]]:
     def decorator(cls: type[RepoT]) -> type[RepoT]:
-        meta.set(cls, RepositoryMeta(entity))
+        meta.set(cls, RepositoryMeta(Type(cls)))
         (cache or __user_cache__).add(RepositoryMeta, cls)
         return cls
 

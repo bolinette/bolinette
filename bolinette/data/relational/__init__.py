@@ -13,4 +13,4 @@ from bolinette.data.relational.database import (
 )
 from bolinette.data.relational.repository import Repository as Repository, repository as repository
 from bolinette.data.relational.manager import EntityManager as EntityManager
-from bolinette.data.relational.service import Service as Service
+from bolinette.data.relational.service import Service as Service, service as service
