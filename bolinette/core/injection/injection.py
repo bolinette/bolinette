@@ -242,12 +242,16 @@ class Injection:
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
         circular_guard: OrderedSet[Any] | None,
+        init_meth_guard: set[Callable[..., Any]],
     ) -> None:
         for base in cls.__bases__:
-            self._run_init_recursive(base, instance, vars_lookup, circular_guard)
+            if base is object:
+                continue
+            self._run_init_recursive(base, instance, vars_lookup, circular_guard, init_meth_guard)
         for _, attr in vars(cls).items():
-            if meta.has(attr, InitMethodMeta):
+            if meta.has(attr, InitMethodMeta) and attr not in init_meth_guard:
                 self.call(attr, args=[instance], vars_lookup=vars_lookup, circular_guard=circular_guard)
+                init_meth_guard.add(attr)
 
     def _run_init_methods[InstanceT](
         self,
@@ -258,7 +262,7 @@ class Injection:
     ):
         for method in r_type.before_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
-        self._run_init_recursive(r_type.t.cls, instance, vars_lookup, circular_guard)
+        self._run_init_recursive(r_type.t.cls, instance, vars_lookup, circular_guard, set())
         for method in r_type.after_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
 
@@ -336,11 +340,12 @@ class Injection:
         additional_resolvers: list[ArgumentResolver] | None = None,
     ) -> InstanceT:
         t = Type(cls)
+        vars_lookup = TypeVarLookup(t)
         init_args = self._resolve_args(
             t,
             t.vars,
             "immediate",
-            None,
+            vars_lookup,
             True,
             OrderedSet(),
             args or [],
@@ -351,7 +356,7 @@ class Injection:
         self.__hook_proxies__(instance)
         meta.set(instance, self, cls=Injection)
         meta.set(instance, GenericMeta(t.vars))
-        self._run_init_recursive(cls, instance, None, None)
+        self._run_init_recursive(cls, instance, vars_lookup, None, set())
         if isinstance(instance, HasEnter):
             instance.__enter__()
         return instance

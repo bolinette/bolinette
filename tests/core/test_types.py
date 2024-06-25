@@ -1,5 +1,6 @@
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
 # pyright: reportUnknownVariableType=false, reportGeneralTypeIssues=false
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, ForwardRef, Generic, NotRequired, TypedDict, TypeVar
 
@@ -315,7 +316,7 @@ def test_typed_dict_type_checker() -> None:
     assert not checker.instanceof("Bob", TestDict)
 
 
-def test_genric_typed_dict_type_checker() -> None:
+def test_generic_typed_dict_type_checker() -> None:
     mock = Mock()
     _setup_type_checkers(mock)
 
@@ -328,3 +329,39 @@ def test_genric_typed_dict_type_checker() -> None:
     assert checker.instanceof({"id": 1, "value": "test"}, TestDict[str])
     assert not checker.instanceof({"id": 1, "value": 42}, TestDict[str])
     assert checker.instanceof({"id": 1, "value": "test"}, TestDict[int | str])
+
+
+def test_matching_types() -> None:
+    assert Type(int).matches(Type(int))
+    assert Type(Sequence[int]).matches(Type(Sequence[int]))
+    assert not Type(int).matches(Type(str))
+    assert not Type(Sequence[str]).matches(Type(Sequence[int]))
+    assert Type(Sequence[Any]).matches(Type(Sequence[int]))
+    assert Type(Sequence[int]).matches(Type(Sequence[Any]))
+
+
+def test_get_bases() -> None:
+    class Parent: ...
+
+    class Child(Parent): ...
+
+    c_t = Type(Child)
+    assert c_t.bases == (Type(Parent),)
+
+
+def test_get_bases_generic_parent() -> None:
+    class Parent[T]: ...
+
+    class Child(Parent[int]): ...
+
+    c_t = Type(Child)
+    assert c_t.bases == (Type(Parent[int]),)
+
+
+def test_get_bases_generic_child() -> None:
+    class Parent[T]: ...
+
+    class Child[T](Parent[T]): ...
+
+    c_t = Type(Child[str])
+    assert c_t.bases == (Type(Parent[str]),)

@@ -7,7 +7,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from bolinette import core, data, web
+from bolinette import api, core, data, web
 
 
 def parse_pyproject(path: Path) -> dict[str, Any]:
@@ -58,6 +58,12 @@ def update_web(major: int, minor: int, patch: int) -> None:
     update_requirements(web, "bolinette", get_version(core))
 
 
+def update_api(major: int, minor: int, patch: int) -> None:
+    update_module_version(api, major, minor, patch)
+    update_requirements(api, "bolinette-data", get_version(data))
+    update_requirements(api, "bolinette-web", get_version(web))
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         raise ArgumentError("Only accepts 3 argument")
@@ -72,5 +78,7 @@ if __name__ == "__main__":
             update_data(int(match.group(1)), int(match.group(2)), int(match.group(3)))
         case "web":
             update_web(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        case "api":
+            update_api(int(match.group(1)), int(match.group(2)), int(match.group(3)))
         case _:
             raise ArgumentError("Unknown package")

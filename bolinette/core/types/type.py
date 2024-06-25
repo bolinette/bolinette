@@ -6,6 +6,7 @@ from typing import (
     Annotated,
     Any,
     ForwardRef,
+    Generic,
     Literal,
     NotRequired,
     TypeAliasType,
@@ -33,6 +34,7 @@ class Type[T]:
         "required",
         "total",
         "_hash",
+        "_bases",
     ]
 
     origin: type[T]
@@ -72,6 +74,7 @@ class Type[T]:
         )
         self.lookup = types.TypeVarLookup(self)
         self._hash = hash((self.cls, self.vars))
+        self._bases: tuple[Type[Any], ...] | None = None
 
     def _unpack_annotations(self, cls: type[T]) -> type[T]:
         if isinstance(cls, TypeAliasType):
@@ -109,6 +112,19 @@ class Type[T]:
     @property
     def base_name(self) -> str:
         return self._format_type(self.cls)
+
+    @property
+    def bases(self) -> "tuple[Type[Any], ...]":
+        if self._bases is None:
+            if hasattr(self.cls, "__orig_bases__"):
+                self._bases = tuple(
+                    Type(c, lookup=self.lookup)
+                    for c in self.cls.__orig_bases__  # pyright: ignore
+                    if get_origin(c) is not Generic  # pyright: ignore
+                )
+            else:
+                self._bases = tuple(Type(c, lookup=self.lookup) for c in self.cls.__bases__)
+        return self._bases
 
     @override
     def __str__(self) -> str:
@@ -185,6 +201,14 @@ class Type[T]:
         except (AttributeError, TypeError, NameError):
             return annotations
         return annotations
+
+    def matches(self, t: "Type[Any]") -> bool:
+        if self.cls is not t.cls or len(self.vars) != len(t.vars):
+            return False
+        for v1, v2 in zip(self.vars, t.vars, strict=True):
+            if v1 is not Any and v2 is not Any and v1 != v2:
+                return False
+        return True
 
     @staticmethod
     def get_generics[GenT](

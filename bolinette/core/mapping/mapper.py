@@ -150,7 +150,13 @@ class MappingRunner:
                 exc_grp.append(exc)
                 return None  # pyright: ignore
             return None  # pyright: ignore
-        mapper_cls: type[TypeMapper[Any]] = self.mappers[dest_t] if dest_t in self.mappers else self.default_mapper
+        mapper_cls: type[TypeMapper[Any]]
+        for mapped_type, _mapper_cls in self.mappers.items():
+            if mapped_type.matches(dest_t):
+                mapper_cls = _mapper_cls
+                break
+        else:
+            mapper_cls = self.default_mapper
         mapper = mapper_cls(self)
         return mapper.map(src_expr, src_t, dest_expr, dest_t, src, dest, exc_grp)
 

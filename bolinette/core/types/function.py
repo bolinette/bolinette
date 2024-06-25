@@ -1,5 +1,6 @@
 import inspect
 from collections.abc import Callable
+from types import NoneType
 from typing import Any, get_type_hints, override
 
 from bolinette.core.types import Type, TypeVarLookup
@@ -31,7 +32,9 @@ class Function[**FuncP, FuncT]:
 
     @staticmethod
     def _transform_annotation(anno: Any, lookup: TypeVarLookup[Any] | None) -> Any:
-        if anno in (None, Ellipsis):
+        if lookup is not None and anno in lookup:
+            return Type(lookup[anno], lookup=lookup)
+        if anno in (NoneType, Ellipsis):
             return anno
         return Type(anno, lookup=lookup)
 

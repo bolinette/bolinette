@@ -1485,3 +1485,28 @@ def test_before_and_after_init() -> None:
     inject.require(Service)
 
     assert order == ["before", "init", "after"]
+
+
+def test_init_method_called_once() -> None:
+    cache = Cache()
+    passed = {"count": 0}
+
+    class BaseService:
+        @init_method
+        def init(self) -> None:
+            passed["count"] += 1
+
+    class SubBase1(BaseService):
+        pass
+
+    class SubBase2(BaseService):
+        pass
+
+    @injectable(cache=cache)
+    class Service(SubBase1, SubBase2):
+        pass
+
+    inject = Injection(cache)
+    inject.require(Service)
+
+    assert passed["count"] == 1

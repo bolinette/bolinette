@@ -15,9 +15,9 @@ aiosqlite = "^0.20.0"
 asyncpg = "^0.29.0"
 pyyaml = "^6.0.1"
 sqlalchemy = "^2.0.28"
-autoflake8 = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
+autoflake8 = "^0.4.1"
 black = "^24.3.0"
 mypy = "^1.9.0"
 ruff = "^0.3.4"
