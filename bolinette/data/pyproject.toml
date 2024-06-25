@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette-data"
-version = "0.17.0"
+version = "0.18.0"
 description = "The Bolinette data package, an async data management framework, based on Bolinette and SQLAlchemy"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
@@ -22,5 +22,5 @@ packages = [{ include = "bolinette/data" }]
 python = "^3.12"
 aiosqlite = "^0.19.0"
 asyncpg = "^0.28.0"
-bolinette = "^0.17.0"
+bolinette = "^0.18.0"
 sqlalchemy = "^2.0.18"
