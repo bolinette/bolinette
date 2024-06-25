@@ -1,9 +1,9 @@
-name: Publish Bolinette Data to pypi.org
+name: Publish Bolinette Core to pypi.org
 
 on:
   push:
     tags:
-      - data-*
+      - api-*
 
 jobs:
   deploy:
@@ -23,7 +23,7 @@ jobs:
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
       - name: Initialize project config
         run: |
-          cp bolinette/data/pyproject.toml pyproject.toml
+          cp bolinette/api/pyproject.toml pyproject.toml
           rm poetry.lock
       - name: Install poetry
         uses: abatilo/actions-poetry@v2
