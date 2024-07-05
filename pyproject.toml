@@ -9,6 +9,9 @@ homepage = "https://bolinette.org"
 repository = "https://github.com/bolinette/bolinette"
 documentation = "https://bolinette.org/docs"
 
+[tool.poetry.scripts]
+blnt = "bolinette.core.__main__:main"
+
 [tool.poetry.dependencies]
 python = "^3.12"
 aiosqlite = "^0.20.0"
@@ -93,3 +96,6 @@ asyncio_mode = "auto"
 
 [tool.coverage.report]
 exclude_lines = ['pass', 'if TYPE_CHECKING:', '\.\.\.$']
+
+[tool.bolinette]
+app_factory = "example.app:make_bolinette"

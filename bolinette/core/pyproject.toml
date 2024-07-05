@@ -18,6 +18,9 @@ classifiers = [
 ]
 packages = [{ include = "bolinette/core" }]
 
+[tool.poetry.scripts]
+blnt = "bolinette.core.__main__:main"
+
 [tool.poetry.dependencies]
 python = "^3.12"
 pyyaml = "^6.0.1"
