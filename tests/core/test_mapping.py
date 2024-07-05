@@ -794,8 +794,7 @@ def test_fail_map_to_union_type() -> None:
 
     assert (
         "Destination path 'test_fail_map_to_union_type.<locals>._Destination.n', "
-        "Destination type test_fail_map_to_union_type.<locals>._NestedDest1 | "
-        "test_fail_map_to_union_type.<locals>._NestedDest2 is a union,"
+        f"Destination type {Type(_NestedDest1 | _NestedDest2)} is a union,"
         " please use use_type(...) in profile" == info.value.message
     )
 
@@ -842,8 +841,7 @@ def test_fail_map_use_type_not_in_union() -> None:
         "Destination path 'test_fail_map_use_type_not_in_union.<locals>._Destination.n', "
         "From source path 'test_fail_map_use_type_not_in_union.<locals>._Source.n', "
         "Selected type test_fail_map_use_type_not_in_union.<locals>._NestedDest3 is not assignable to "
-        "test_fail_map_use_type_not_in_union.<locals>._NestedDest1 | "
-        "test_fail_map_use_type_not_in_union.<locals>._NestedDest2" == info.value.message
+        f"{Type(_NestedDest1 | _NestedDest2)}" == info.value.message
     )
 
 

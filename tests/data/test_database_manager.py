@@ -1,7 +1,7 @@
 import pytest
 
 from bolinette.core import Cache
-from bolinette.core.logger import Logger
+from bolinette.core.logging import Logger
 from bolinette.core.testing import Mock
 from bolinette.data import DatabaseManager, DataSection, database_system
 from bolinette.data.exceptions import DatabaseError

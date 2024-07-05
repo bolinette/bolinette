@@ -6,7 +6,7 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column
 
 from bolinette.core import Cache, meta
 from bolinette.core.exceptions import InitError
-from bolinette.core.logger import Logger
+from bolinette.core.logging import Logger
 from bolinette.core.testing import Mock
 from bolinette.core.utils import StringUtils
 from bolinette.data import DatabaseManager

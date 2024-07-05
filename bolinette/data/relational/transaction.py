@@ -3,8 +3,8 @@ from typing import Self
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from bolinette.core import Logger
 from bolinette.core.injection import init_method
+from bolinette.core.logging import Logger
 from bolinette.data import relational
 from bolinette.data.relational import DeclarativeBase, EntitySession
 

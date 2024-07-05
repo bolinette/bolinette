@@ -2,9 +2,10 @@ import inspect
 import json
 from typing import Any, TypeGuard
 
-from bolinette.core import Cache, Logger, meta
+from bolinette.core import Cache, meta
 from bolinette.core.environment import CoreSection
 from bolinette.core.injection import Injection, init_method
+from bolinette.core.logging import Logger
 from bolinette.core.mapping.json import JsonObjectEncoder
 from bolinette.core.types import Type, TypeChecker
 from bolinette.core.utils import AttributeUtils

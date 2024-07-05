@@ -4,13 +4,14 @@ from collections.abc import Callable
 from typing import Any, NoReturn
 
 from bolinette import core
-from bolinette.core import Logger, __user_cache__, meta
+from bolinette.core import __user_cache__, meta
 from bolinette.core.cache import Cache
 from bolinette.core.command import Parser
 from bolinette.core.environment import Environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import Injection, require
+from bolinette.core.logging import Logger
 from bolinette.core.startup import STARTUP_CACHE_KEY
 
 
@@ -21,7 +22,7 @@ class Bolinette:
         self._extensions: list[Extension] = [core.__blnt_ext__]
         self._inject: Injection
         self._env: Environment
-        self._logger: Logger[Bolinette]
+        self.logger: Logger[Bolinette]
 
     def use_extension[ExtT: Extension](self, ext: ExtensionModule[ExtT] | ExtT) -> ExtT:
         if self._initialized:
@@ -65,8 +66,8 @@ class Bolinette:
 
         await self._run_startup_funcs()
 
-        self._logger = self._inject.require(Logger[Bolinette])
-        self._logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self._extensions)}")
+        self.logger = self._inject.require(Logger[Bolinette])
+        self.logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self._extensions)}")
         self._initialized = True
 
     @property

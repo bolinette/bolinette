@@ -28,6 +28,11 @@ class TypeVarLookup[T]:
             raise KeyError(key)
         return self._lookup[key]
 
+    def get[DefT](self, key: TypeVar, /, default: DefT | None = None) -> type[Any] | DefT | None:
+        if key not in self._lookup:
+            return default
+        return self._lookup[key]
+
     def __contains__(self, key: TypeVar, /) -> bool:
         return key in self._lookup
 

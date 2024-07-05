@@ -3,7 +3,7 @@ from typing import Any
 from bolinette.core import Cache, meta
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, init_method
-from bolinette.core.logger import Logger
+from bolinette.core.logging import Logger
 from bolinette.data import DatabaseManager
 from bolinette.data.exceptions import EntityError
 from bolinette.data.relational import (

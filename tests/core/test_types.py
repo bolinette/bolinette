@@ -240,28 +240,29 @@ def test_generic_typevar_in_annotations_from_parent() -> None:
 
 
 def test_nullable_type() -> None:
-    t: Type[int] = Type(None | int)  # pyright: ignore[reportArgumentType]
+    t: Type[int] = Type(None | int)
 
     assert t.cls is int
     assert not t.is_union
+    assert t.union == set()
     assert t.nullable
 
 
 def test_union() -> None:
-    t: Type[str] = Type(str | int)  # pyright: ignore[reportArgumentType]
+    t: Type[str] = Type(str | int)
 
     assert t.cls is str
     assert t.is_union
-    assert t.union == (Type(int),)
+    assert t.union == {Type(int), Type(str)}
     assert not t.nullable
 
 
 def test_nullable_union() -> None:
-    t: Type[str] = Type(str | None | int)  # pyright: ignore[reportArgumentType]
+    t: Type[str] = Type(str | None | int)
 
     assert t.cls is str
     assert t.is_union
-    assert t.union == (Type(int),)
+    assert t.union == {Type(int), Type(str)}
     assert t.nullable
 
 

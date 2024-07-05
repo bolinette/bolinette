@@ -3,8 +3,9 @@ import re
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from bolinette.core import Cache, Logger, __user_cache__
+from bolinette.core import Cache, __user_cache__
 from bolinette.core.injection import Injection, init_method
+from bolinette.core.logging import Logger
 from bolinette.data import DataSection
 from bolinette.data.exceptions import DatabaseError
 

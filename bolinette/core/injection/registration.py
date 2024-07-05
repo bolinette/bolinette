@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any, Concatenate, Literal, override
 
 from bolinette.core.exceptions import InjectionError
@@ -39,6 +39,14 @@ class RegisteredTypeBag[InstanceT]:
         self._cls = cls
         self._match_all: RegisteredType[InstanceT] | None = None
         self._types: dict[int, RegisteredType[InstanceT]] = {}
+
+    @property
+    def match_all_type(self) -> RegisteredType[Any] | None:
+        return self._match_all
+
+    @property
+    def types(self) -> Iterable[RegisteredType[Any]]:
+        return self._types.values()
 
     def has_type(self, t: Type[InstanceT]) -> bool:
         return hash(t) in self._types

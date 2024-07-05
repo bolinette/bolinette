@@ -4,10 +4,11 @@ from argparse import ArgumentParser
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal, Protocol
 
-from bolinette.core import Cache, Logger, meta
+from bolinette.core import Cache, meta
 from bolinette.core.command.command import Argument, CommandMeta
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import init_method
+from bolinette.core.logging import Logger
 from bolinette.core.types import Function, Type
 
 

@@ -21,12 +21,13 @@ class ArgResolverOptions:
         "default",
         "immediate",
         "circular_guard",
+        "additional_resolvers",
     )
 
     def __init__(
         self,
         injection: "injection.Injection",
-        caller: Function[..., Any] | Type[Any],
+        caller: Function[..., Any] | Type[Any] | None,
         caller_type_vars: tuple[Any, ...] | None,
         caller_strategy: InjectionStrategy,
         name: str,
@@ -35,6 +36,7 @@ class ArgResolverOptions:
         default: Any | None,
         immediate: bool,
         circular_guard: OrderedSet[Any],
+        additional_resolvers: "list[ArgumentResolver]",
     ) -> None:
         self.injection = injection
         self.caller = caller
@@ -46,6 +48,7 @@ class ArgResolverOptions:
         self.default = default
         self.immediate = immediate
         self.circular_guard = circular_guard
+        self.additional_resolvers = additional_resolvers
 
 
 class ArgumentResolver(Protocol):
@@ -77,8 +80,6 @@ def injection_arg_resolver[ArgResolverT: ArgumentResolver](
 
 
 class DefaultArgResolver:
-    __slots__ = ()
-
     def supports(self, options: "ArgResolverOptions") -> bool:
         return True
 
@@ -108,12 +109,23 @@ class DefaultArgResolver:
                     func=options.caller,
                     param=options.name,
                 )
+            if not options.injection.is_scoped:
+                raise InjectionError(
+                    "Cannot instantiate a scoped service from a non scoped injection context",
+                    func=options.caller,
+                    param=options.name,
+                )
 
         if options.injection.__has_instance__(r_type):
             return (options.name, options.injection.__get_instance__(r_type))
         if options.immediate:
             return (
                 options.name,
-                options.injection.__instantiate__(r_type, options.t, options.circular_guard),
+                options.injection.__instantiate__(
+                    r_type,
+                    options.t,
+                    options.circular_guard,
+                    options.additional_resolvers,
+                ),
             )
         return (options.name, InjectionHook(options.t))

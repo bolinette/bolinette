@@ -570,10 +570,7 @@ def test_scoped_injection_fail_no_scope() -> None:
     with pytest.raises(InjectionError) as info:
         inject.require(_C1)
 
-    assert (
-        "Injection strategy for test_scoped_injection_fail_no_scope.<locals>._C1 "
-        "must be singleton or transient to be required in this context" == info.value.message
-    )
+    assert "Cannot instantiate a scoped service from a non scoped injection context" == info.value.message
 
 
 def test_scoped_injection_fail_no_scope_in_func() -> None:
@@ -1223,33 +1220,23 @@ def test_arg_resolver() -> None:
     _s = _Service()
     order: list[int] = []
 
-    class _Resolver2:
-        def supports(self, options: ArgResolverOptions):
-            order.append(3)
-            return True
-
-        def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-            order.append(4)
-            return (options.name, _s)
-
-    class _Resolver1:
+    class ServiceResolver:
         def supports(self, options: ArgResolverOptions):
             order.append(1)
-            return False
+            return options.t.cls is _Service
 
         def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
             order.append(2)
-            return ("", 0)
+            return (options.name, _s)
 
-    injection_arg_resolver(priority=2, cache=cache)(_Resolver2)
-    injection_arg_resolver(priority=1, cache=cache)(_Resolver1)
+    injection_arg_resolver(cache=cache)(ServiceResolver)
 
     inject = Injection(cache)
     inject.add(_Controller, "singleton")
 
     ctrl = inject.require(_Controller)
 
-    assert order == [1, 3, 4]
+    assert order == [1, 1, 2]
     assert ctrl.s is _s
 
 

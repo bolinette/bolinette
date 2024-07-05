@@ -1,8 +1,9 @@
 import json
 from typing import Any, Literal
 
-from bolinette.core import Cache, Logger
+from bolinette.core import Cache
 from bolinette.core.environment.sections import CoreSection
+from bolinette.core.logging import Logger
 from bolinette.core.testing import Mock
 from bolinette.core.types import TypeChecker
 from bolinette.web.ws import (

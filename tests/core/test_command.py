@@ -4,10 +4,11 @@ from typing import Annotated, Any, Literal
 import pytest
 from pytest import CaptureFixture
 
-from bolinette.core import Cache, Logger, command
+from bolinette.core import Cache, command
 from bolinette.core.command import Argument, Parser
 from bolinette.core.command.command import CommandMeta
 from bolinette.core.exceptions import InitError
+from bolinette.core.logging import Logger
 from bolinette.core.testing import Mock
 from bolinette.core.types import Function
 

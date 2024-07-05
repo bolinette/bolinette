@@ -5,8 +5,9 @@ from http import HTTPStatus
 from io import BytesIO
 from typing import Annotated, Any
 
-from bolinette.core import Cache, Logger
+from bolinette.core import Cache
 from bolinette.core.environment import CoreSection
+from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.testing import Mock
 from bolinette.core.types import TypeChecker

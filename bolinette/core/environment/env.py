@@ -4,11 +4,12 @@ from typing import Any
 
 import yaml
 
-from bolinette.core import Cache, Logger, meta
+from bolinette.core import Cache, meta
 from bolinette.core.environment.sections import EnvironmentSection, EnvSectionMeta
 from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.expressions import ExpressionTree
 from bolinette.core.injection import Injection, init_method
+from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.types import Type
 

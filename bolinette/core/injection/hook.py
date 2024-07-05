@@ -44,6 +44,6 @@ class InjectionProxy[InstanceT]:
         if inject.__has_instance__(self.r_type):
             obj = inject.__get_instance__(self.r_type)
         else:
-            obj = inject.__instantiate__(self.r_type, self.t, OrderedSet())
+            obj = inject.__instantiate__(self.r_type, self.t, OrderedSet(), [])
         setattr(instance, self.name, obj)
         return obj

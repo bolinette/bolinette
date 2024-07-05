@@ -3,9 +3,10 @@ from collections.abc import Callable
 from http import HTTPStatus
 from typing import Any
 
-from bolinette.core import Cache, Logger, meta
+from bolinette.core import Cache, meta
 from bolinette.core.environment import CoreSection
 from bolinette.core.injection import Injection, ScopedInjection, init_method
+from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.types import Function, Type, TypeChecker, TypeVarLookup
 from bolinette.core.utils import AttributeUtils

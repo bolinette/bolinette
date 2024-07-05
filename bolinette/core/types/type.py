@@ -15,6 +15,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    overload,
     override,
 )
 
@@ -37,11 +38,11 @@ class Type[T]:
         "_bases",
     ]
 
-    origin: type[T]
+    origin: type[T] | UnionType
     annotated: tuple[Any, ...]
     required: bool
     nullable: bool
-    union: "tuple[Type[Any], ...]"
+    union: "set[Type[Any]]"
     total: bool
     cls: type[T]
     vars: tuple[Any, ...]
@@ -51,9 +52,33 @@ class Type[T]:
     def from_instance(__instance: T) -> "Type[T]":
         return Type(type(__instance))
 
+    @overload
     def __init__(
         self,
         origin: type[T],
+        /,
+        *,
+        lookup: "types.TypeVarMapping | None" = None,
+        raise_on_string: bool = True,
+        raise_on_typevar: bool = True,
+    ) -> None:
+        pass
+
+    @overload
+    def __init__(
+        self,
+        origin: UnionType,
+        /,
+        *,
+        lookup: "types.TypeVarMapping | None" = None,
+        raise_on_string: bool = True,
+        raise_on_typevar: bool = True,
+    ) -> None:
+        pass
+
+    def __init__(
+        self,
+        origin: type[T] | UnionType,
         /,
         *,
         lookup: "types.TypeVarMapping | None" = None,
@@ -64,7 +89,7 @@ class Type[T]:
         self.annotated = ()
         self.required = True
         self.nullable = False
-        self.union = ()
+        self.union = set()
         cls = self._unpack_annotations(origin)
         self.total = getattr(cls, "__total__", True)
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
@@ -76,7 +101,7 @@ class Type[T]:
         self._hash = hash((self.cls, self.vars))
         self._bases: tuple[Type[Any], ...] | None = None
 
-    def _unpack_annotations(self, cls: type[T]) -> type[T]:
+    def _unpack_annotations(self, cls: type[T] | UnionType) -> type[T]:
         if isinstance(cls, TypeAliasType):
             return self._unpack_annotations(cls.__value__)
         origin = get_origin(cls)
@@ -91,9 +116,10 @@ class Type[T]:
             self.nullable = None in args or NoneType in args
             args = tuple(a for a in args if a not in (None, NoneType))
             cls, *additional_cls = args
-            self.union = tuple(Type(c) for c in additional_cls)
+            if len(additional_cls):
+                self.union.update([Type(cls)], (Type(c) for c in additional_cls))
             return self._unpack_annotations(cls)
-        return cls
+        return cls  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def _format_type(v: Any) -> str:
@@ -128,14 +154,13 @@ class Type[T]:
 
     @override
     def __str__(self) -> str:
-        if not self.vars:
-            repr_str = self._format_type(self.cls)
-        else:
-            repr_str = f"{self._format_type(self.cls)}[{', '.join(map(self._format_type, self.vars))}]"
-
         if self.is_union:
-            for t in self.union:
-                repr_str += f" | {t}"
+            repr_str = " | ".join(str(t) for t in self.union)
+        else:
+            if not self.vars:
+                repr_str = self._format_type(self.cls)
+            else:
+                repr_str = f"{self._format_type(self.cls)}[{', '.join(map(self._format_type, self.vars))}]"
 
         if self.nullable:
             repr_str += " | None"
