@@ -120,8 +120,6 @@ class Mapper:
 
 
 class MappingRunner:
-    __slots__ = ("sequences", "mappers", "default_mapper")
-
     def __init__(
         self,
         sequences: dict[int, MappingSequence[Any, Any]],
@@ -177,8 +175,6 @@ class TypeMapper[TargetT](Protocol):
 
 
 class TypeMapperMeta:
-    __slots__ = "t"
-
     def __init__(self, t: Type[Any]) -> None:
         self.t = t
 
@@ -195,8 +191,6 @@ def type_mapper[TypeMapperT: TypeMapper[Any]](
 
 
 class DefaultTypeMapper(TypeMapper[object]):
-    __slots__ = "runner"
-
     def __init__(self, runner: MappingRunner) -> None:
         self.runner = runner
 
@@ -412,8 +406,6 @@ class DefaultTypeMapper(TypeMapper[object]):
 
 
 class IntegerTypeMapper(TypeMapper[int]):
-    __slots__ = "runner"
-
     def __init__(self, runner: MappingRunner) -> None:
         self.runner = runner
 
@@ -439,8 +431,6 @@ class IntegerTypeMapper(TypeMapper[int]):
 
 
 class FloatTypeMapper(TypeMapper[float]):
-    __slots__ = "runner"
-
     def __init__(self, runner: MappingRunner) -> None:
         self.runner = runner
 
@@ -466,8 +456,6 @@ class FloatTypeMapper(TypeMapper[float]):
 
 
 class BoolTypeMapper(TypeMapper[bool]):
-    __slots__ = "runner"
-
     def __init__(self, runner: MappingRunner) -> None:
         self.runner = runner
 
@@ -486,8 +474,6 @@ class BoolTypeMapper(TypeMapper[bool]):
 
 
 class StringTypeMapper(TypeMapper[str]):
-    __slots__ = "runner"
-
     def __init__(self, runner: MappingRunner) -> None:
         self.runner = runner
 

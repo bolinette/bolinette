@@ -12,9 +12,11 @@ class CommandMeta:
         self,
         path: str,
         summary: str,
+        run_startup: bool,
     ):
         self.path = path
         self.summary = summary
+        self.run_startup = run_startup
 
 
 class Argument:
@@ -66,9 +68,15 @@ class Argument:
         self.summary: str | None = kwargs.get("summary", None)
 
 
-def command(name: str, summary: str, *, cache: Cache | None = None):
+def command(
+    name: str,
+    summary: str,
+    *,
+    cache: Cache | None = None,
+    run_startup: bool = True,
+):
     def decorator(func: Callable[P_Func, Awaitable[int | None]]) -> Callable[P_Func, Awaitable[int | None]]:
-        meta.set(func, CommandMeta(name, summary))
+        meta.set(func, CommandMeta(name, summary, run_startup))
         (cache or __user_cache__).add(CommandMeta, Function(func))
         return func
 

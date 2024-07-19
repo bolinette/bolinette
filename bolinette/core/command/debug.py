@@ -40,6 +40,8 @@ def _print_type_tree(tree: dict[str, Any], current_depth: int = 0) -> None:
             _print_type_tree(value, current_depth + 1)
         else:
             if match_all := value.match_all_type:
-                print(" " * 2 * (current_depth + 1), match_all.t, ": ", match_all.strategy, " (match all)", sep="")
+                print(
+                    " " * 2 * (current_depth + 1), match_all.implmt_t, ": ", match_all.strategy, " (match all)", sep=""
+                )
             for type in value.types:
-                print(" " * 2 * (current_depth + 1), type.t, ": ", type.strategy, sep="")
+                print(" " * 2 * (current_depth + 1), type.implmt_t, ": ", type.strategy, sep="")

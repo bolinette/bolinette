@@ -94,6 +94,6 @@ def after_init[InstanceT](
 
 def require[InstanceT](cls: type[InstanceT]) -> Callable[[Callable[..., Any]], InjectionHook[InstanceT]]:
     def decorator(func: Callable[..., Any]) -> InjectionHook[InstanceT]:
-        return InjectionHook(Type(cls))
+        return InjectionHook(Type(cls), False, None)
 
     return decorator

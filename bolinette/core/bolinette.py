@@ -13,6 +13,7 @@ from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import Injection, require
 from bolinette.core.logging import Logger
 from bolinette.core.startup import STARTUP_CACHE_KEY
+from bolinette.core.types.type import Type
 
 
 class Bolinette:
@@ -59,12 +60,10 @@ class Bolinette:
         self._inject = Injection(self._cache)
         meta.set(self, self._inject)
         self._env = self._inject.require(Environment)
-        self._cache.debug = self._env.config["core"]["debug"]
+        self._cache.debug = self._env.config.get("core", {}).get("debug", False)
 
-        self._inject.add(Bolinette, "singleton", instance=self)
-        self._inject.__hook_proxies__(self)
-
-        await self._run_startup_funcs()
+        self._inject.add_singleton(Bolinette, instance=self)
+        self._inject.__hook_proxies__(Type(Bolinette), "singleton", self)
 
         self.logger = self._inject.require(Logger[Bolinette])
         self.logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self._extensions)}")
@@ -78,5 +77,7 @@ class Bolinette:
         if not self._initialized:
             await self.startup()
         cmd, cmd_args = self._parser.parse_command(args)
-        result = await self._inject.call(cmd, named_args=cmd_args)
+        if cmd.run_startup:
+            await self._run_startup_funcs()
+        result = await self._inject.call(cmd.func, named_args=cmd_args)
         sys.exit(result or 0)

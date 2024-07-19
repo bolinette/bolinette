@@ -1,8 +1,7 @@
 import json
 from typing import Any, Literal
 
-from bolinette.core import Cache
-from bolinette.core.environment.sections import CoreSection
+from bolinette.core import Cache, CoreSection
 from bolinette.core.logging import Logger
 from bolinette.core.testing import Mock
 from bolinette.core.types import TypeChecker
@@ -58,7 +57,7 @@ async def test_send_str_message() -> None:
 
     mock.mock(TypeChecker).setup(lambda tc: tc.instanceof, mock_check)
 
-    mock.injection.add(WebSocketHandler, strategy="singleton")
+    mock.injection.add_singleton(WebSocketHandler)
 
     class TestTopic:
         async def subscribe(self, sub: WebSocketSubscription) -> WebSocketSubResult:
@@ -90,7 +89,7 @@ async def test_fail_bad_message() -> None:
 
     mock.mock(TypeChecker).setup(lambda tc: tc.instanceof, mock_check)
 
-    mock.injection.add(WebSocketHandler, strategy="singleton")
+    mock.injection.add_singleton(WebSocketHandler)
 
     class TestTopic:
         async def subscribe(self, sub: WebSocketSubscription) -> WebSocketSubResult:
@@ -130,7 +129,7 @@ async def test_subscribe_and_receiveand_unsub() -> None:
 
     mock.mock(TypeChecker).setup(lambda tc: tc.instanceof, mock_check)
 
-    mock.injection.add(WebSocketHandler, strategy="singleton")
+    mock.injection.add_singleton(WebSocketHandler)
 
     class TestTopic:
         async def subscribe(self, sub: WebSocketSubscription) -> WebSocketSubResult:

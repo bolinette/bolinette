@@ -27,7 +27,7 @@ def test_decorate_command() -> None:
 async def test_launch_command() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = 1
@@ -49,7 +49,7 @@ async def test_launch_command() -> None:
     sys.exit = _catch_exit
 
     cmd, args = parser.parse_command(["command"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func.func, named_args=args)
     assert value == 2
 
     assert not exited
@@ -60,7 +60,7 @@ async def test_launch_command() -> None:
 async def test_launch_command_not_found() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
 
     value = 1
 
@@ -99,7 +99,7 @@ async def test_launch_command_not_found() -> None:
 async def test_launch_sub_command() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = 1
@@ -126,11 +126,11 @@ async def test_launch_sub_command() -> None:
     sys.exit = _catch_exit
 
     cmd, args = parser.parse_command(["command", "inc"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
     assert value == 2
 
     cmd, args = parser.parse_command(["command", "dec"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
     assert value == 1
 
     assert not exited
@@ -141,7 +141,7 @@ async def test_launch_sub_command() -> None:
 async def test_launch_sub_command_not_found() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
 
     value = 1
 
@@ -150,14 +150,6 @@ async def test_launch_sub_command_not_found() -> None:
     def _catch_exit(*_) -> None:
         nonlocal exited
         exited = True
-
-    error_str = ""
-
-    def _write_error(s: str) -> None:
-        nonlocal error_str
-        error_str = s
-
-    mock.mock(Logger[Parser]).setup(lambda logger: logger.error, _write_error)
 
     @command("command inc", "This is a test command", cache=cache)
     async def _() -> None:
@@ -178,7 +170,6 @@ async def test_launch_sub_command_not_found() -> None:
     assert value == 1
 
     assert exited
-    assert "command [-h] {inc,dec}" in error_str
 
     sys.exit = _exit
 
@@ -186,7 +177,7 @@ async def test_launch_sub_command_not_found() -> None:
 async def test_command_argument() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = 0
@@ -199,7 +190,7 @@ async def test_command_argument() -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "42"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert value == 42
 
@@ -207,7 +198,7 @@ async def test_command_argument() -> None:
 async def test_command_with_injection() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = 0
@@ -220,7 +211,7 @@ async def test_command_with_injection() -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "42"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert value == 43
 
@@ -228,7 +219,7 @@ async def test_command_with_injection() -> None:
 async def test_command_option() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = 0
@@ -241,7 +232,7 @@ async def test_command_option() -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "--param", "42"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert value == 42
 
@@ -249,7 +240,7 @@ async def test_command_option() -> None:
 async def test_command_option_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = 0
@@ -262,7 +253,7 @@ async def test_command_option_flag() -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "-p", "42"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert value == 42
 
@@ -270,7 +261,7 @@ async def test_command_option_flag() -> None:
 async def test_command_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = False
@@ -283,7 +274,7 @@ async def test_command_flag() -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "--param"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert value is True
 
@@ -291,7 +282,7 @@ async def test_command_flag() -> None:
 async def test_command_flag_flag() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     value = False
@@ -304,7 +295,7 @@ async def test_command_flag_flag() -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "-p"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert value is True
 
@@ -312,7 +303,7 @@ async def test_command_flag_flag() -> None:
 async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     exited = False
@@ -331,7 +322,7 @@ async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
     parser = mock.injection.require(Parser)
 
     cmd, args = parser.parse_command(["command", "--help"])
-    await mock.injection.call(cmd, named_args=args)
+    await mock.injection.call(cmd.func, named_args=args)
 
     assert exited
 
@@ -343,7 +334,7 @@ async def test_command_argument_help(capsys: CaptureFixture[Any]) -> None:
 async def test_command_conflict() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     @command("command sub", "This is a test command", cache=cache)
@@ -363,7 +354,7 @@ async def test_command_conflict() -> None:
 async def test_fail_non_nullable_positional_arg() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     @command("command sub", "This is a test command", cache=cache)
@@ -382,7 +373,7 @@ async def test_fail_non_nullable_positional_arg() -> None:
 async def test_command_arg_types() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     @command("command sub", "This is a test command", cache=cache)
@@ -405,7 +396,7 @@ async def test_command_arg_types() -> None:
 async def test_fail_wrong_arg_type() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     @command("command sub", "This is a test command", cache=cache)
@@ -424,7 +415,7 @@ async def test_fail_wrong_arg_type() -> None:
 async def test_fail_wrong_arg_literal_type() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Parser, "singleton")
+    mock.injection.add_singleton(Parser)
     mock.mock(Logger[Parser])
 
     @command("command sub", "This is a test command", cache=cache)

@@ -29,10 +29,11 @@ class RouteParamArgResolver:
         self.request = request
 
     def supports(self, options: ArgResolverOptions) -> bool:
-        return options.name in self.request.path_params
+        return options.context is not None and options.context.arg_name in self.request.path_params
 
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        value = self.request.path_params[options.name]
+    def resolve(self, options: ArgResolverOptions) -> Any:
+        assert options.context
+        value = self.request.path_params[options.context.arg_name]
         t = options.t
         match t.cls:
             case cls if cls is int:
@@ -45,7 +46,7 @@ class RouteParamArgResolver:
                 raise Exception()  # TODO: Lever une vraie exception
             case _:
                 pass
-        return (options.name, value)
+        return value
 
 
 class RoutePayloadArgResolver:
@@ -59,10 +60,10 @@ class RoutePayloadArgResolver:
             isinstance(a, Payload) or (isinstance(a, type) and issubclass(a, Payload)) for a in options.t.annotated
         )
 
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+    def resolve(self, options: ArgResolverOptions) -> Any:
         if self.body is None:
             if options.t.nullable:
-                return options.name, None
+                return None
             raise BadRequestError(
                 "Payload expected but none provided",
                 "payload.expected",
@@ -78,7 +79,7 @@ class RoutePayloadArgResolver:
                 ctrl=self.route.controller,
                 route=self.route.func,
             ) from err
-        return options.name, payload
+        return payload
 
     def _transform_error(self, err: MappingError) -> WebError:
         match err:

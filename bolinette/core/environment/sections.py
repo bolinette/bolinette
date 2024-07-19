@@ -25,7 +25,3 @@ def environment[EnvT: EnvironmentSection](
         return cls
 
     return decorator
-
-
-class CoreSection:
-    debug: bool = False

@@ -24,7 +24,7 @@ def test_init_repo() -> None:
     mock = Mock(cache=cache)
 
     mock.mock(EntitySession[Entity])
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -52,7 +52,7 @@ async def test_iterate() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -84,7 +84,7 @@ async def test_find_all() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -115,7 +115,7 @@ async def test_first() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -142,7 +142,7 @@ async def test_first_none() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -169,7 +169,7 @@ async def test_fail_first_none() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -199,7 +199,7 @@ async def test_get_by_primary() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -226,7 +226,7 @@ async def test_get_by_primary_none() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -253,7 +253,7 @@ async def test_fail_get_by_primary_none() -> None:
         return _MockedResult()
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.execute, _execute)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -274,7 +274,7 @@ async def test_fail_get_by_primary_values_mismatch() -> None:
     mock = Mock(cache=cache)
 
     mock.mock(EntitySession[Entity])
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -301,7 +301,7 @@ async def test_add() -> None:
         entities.append(entity)
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.add, _add)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -327,7 +327,7 @@ async def test_delete() -> None:
         entities.remove(entity)
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.delete, _delete)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 
@@ -353,7 +353,7 @@ async def test_commit() -> None:
         commit = True
 
     mock.mock(EntitySession[Entity]).setup(lambda s: s.commit, _commit)
-    mock.injection.add(Repository[Entity], "singleton")
+    mock.injection.add_singleton(Repository[Entity])
 
     repo = mock.injection.require(Repository[Entity])
 

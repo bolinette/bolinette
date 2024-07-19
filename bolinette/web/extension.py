@@ -30,5 +30,5 @@ web_ext = WebExtension()
 
 
 async def init_web_ext(inject: Injection) -> None:
-    inject.add(WebExtension, strategy="singleton", instance=web_ext)
-    inject.add(WebConfig, strategy="singleton", instance=web_ext.config)
+    inject.add_singleton(WebExtension, instance=web_ext)
+    inject.add_singleton(WebConfig, instance=web_ext.config)

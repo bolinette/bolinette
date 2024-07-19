@@ -3,8 +3,7 @@ from collections.abc import Callable
 from http import HTTPStatus
 from typing import Any
 
-from bolinette.core import Cache, meta
-from bolinette.core.environment import CoreSection
+from bolinette.core import Cache, CoreSection, meta
 from bolinette.core.injection import Injection, ScopedInjection, init_method
 from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
@@ -60,7 +59,8 @@ class WebResources:
     @init_method
     def _init_sockets(self, config: WebConfig, inject: Injection) -> None:
         if config.use_sockets:
-            self.ws_handler = inject.add(WebSocketHandler, "singleton", instantiate=True)
+            inject.add_singleton(WebSocketHandler)
+            self.ws_handler = inject.require(WebSocketHandler)
 
     def add_route(
         self,
@@ -98,8 +98,8 @@ class WebResources:
 
     @staticmethod
     def _prepare_session(inject: Injection, request: Request, data: ResponseData) -> None:
-        inject.add(Request, "scoped", instance=request)
-        inject.add(ResponseData, "scoped", instance=data)
+        inject.add_scoped(Request, instance=request)
+        inject.add_scoped(ResponseData, instance=data)
 
     async def _handle_request(
         self,

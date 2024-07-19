@@ -21,7 +21,7 @@ def test_init_systems() -> None:
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, [])
     mock.mock(Logger[DatabaseManager])
-    mock.injection.add(DatabaseManager, "singleton")
+    mock.injection.add_singleton(DatabaseManager)
 
     manager = mock.injection.require(DatabaseManager)
 
@@ -38,7 +38,7 @@ def test_fail_init_systems_no_system() -> None:
     mock = Mock(cache=Cache())
     mock.mock(DataSection).setup(lambda s: s.databases, [])
     mock.mock(Logger[DatabaseManager])
-    mock.injection.add(DatabaseManager, "singleton")
+    mock.injection.add_singleton(DatabaseManager)
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)
@@ -58,7 +58,7 @@ def test_fail_init_systems_python_package_not_found() -> None:
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, [])
     mock.mock(Logger[DatabaseManager])
-    mock.injection.add(DatabaseManager, "singleton")
+    mock.injection.add_singleton(DatabaseManager)
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)
@@ -86,7 +86,7 @@ def test_init_connections() -> None:
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, get_sections())
     mock.mock(Logger[DatabaseManager]).dummy()
-    mock.injection.add(DatabaseManager, "singleton")
+    mock.injection.add_singleton(DatabaseManager)
 
     manager = mock.injection.require(DatabaseManager)
 
@@ -114,7 +114,7 @@ def test_fail_init_connections_invalid_url() -> None:
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, get_sections())
     mock.mock(Logger[DatabaseManager])
-    mock.injection.add(DatabaseManager, "singleton")
+    mock.injection.add_singleton(DatabaseManager)
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)
@@ -136,7 +136,7 @@ def test_fail_init_connections_system_not_found() -> None:
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, get_sections())
     mock.mock(Logger[DatabaseManager])
-    mock.injection.add(DatabaseManager, "singleton")
+    mock.injection.add_singleton(DatabaseManager)
 
     with pytest.raises(DatabaseError) as info:
         mock.injection.require(DatabaseManager)

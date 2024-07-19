@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable
-from typing import Any, Concatenate, Literal, override
+from typing import Any, Concatenate, Literal, NotRequired, TypedDict, override
 
 from bolinette.core.exceptions import InjectionError
 from bolinette.core.types import Type
@@ -8,33 +8,36 @@ InjectionStrategy = Literal["singleton", "scoped", "transient", "immediate"]
 AddStrategy = Literal["singleton", "scoped", "transient"]
 
 
-class RegisteredType[InstanceT]:
-    __slots__ = ("t", "strategy", "args", "named_args", "before_init", "after_init")
+class RegistrationOptions[InstanceT](TypedDict):
+    args: NotRequired[list[Any]]
+    named_args: NotRequired[dict[str, Any]]
+    before_init: NotRequired[list[Callable[Concatenate[InstanceT, ...], None]]]
+    after_init: NotRequired[list[Callable[Concatenate[InstanceT, ...], None]]]
 
+
+class RegisteredType[InstanceT]:
     def __init__(
         self,
-        t: Type[InstanceT],
+        intrfc_t: Type[InstanceT],
+        implmt_t: Type[Any],
         strategy: InjectionStrategy,
-        args: list[Any],
-        named_args: dict[str, Any],
-        before_init: list[Callable[..., None]],
-        after_init: list[Callable[..., None]],
+        options: RegistrationOptions[InstanceT],
     ) -> None:
-        self.t = t
+        self.intrfc_t = intrfc_t
+        self.implmt_t = implmt_t
         self.strategy = strategy
-        self.args = args
-        self.named_args = named_args
-        self.before_init = before_init
-        self.after_init = after_init
+        self.options = options
+        self.args = options.get("args", [])
+        self.named_args = options.get("named_args", {})
+        self.before_init = options.get("before_init", [])
+        self.after_init = options.get("after_init", [])
 
     @override
     def __repr__(self) -> str:
-        return f"<RegisteredType {self.t}: {self.strategy}>"
+        return f"<RegisteredType {self.intrfc_t} -> {self.implmt_t} ({self.strategy})>"
 
 
 class RegisteredTypeBag[InstanceT]:
-    __slots__ = ("_cls", "_match_all", "_types")
-
     def __init__(self, cls: type[InstanceT]) -> None:
         self._cls = cls
         self._match_all: RegisteredType[InstanceT] | None = None
@@ -57,38 +60,38 @@ class RegisteredTypeBag[InstanceT]:
     def is_registered(self, t: Type[InstanceT]) -> bool:
         return self.has_type(t) or self.has_match_all()
 
-    def get_type(self, t: Type[Any]) -> RegisteredType[InstanceT]:
+    def get_type(self, t: Type[InstanceT]) -> RegisteredType[InstanceT]:
         if (h := hash(t)) in self._types:
             return self._types[h]
         if self._match_all is not None:
-            return self._match_all
+            return RegisteredType(
+                self._match_all.intrfc_t,
+                t,
+                self._match_all.strategy,  # pyright: ignore[reportArgumentType]
+                self._match_all.options,
+            )
         raise InjectionError(f"Type {self._cls} has not been registered with parameters {t.vars}")
 
     def set_match_all(
         self,
-        t: Type[InstanceT],
+        intrfc_t: Type[InstanceT],
+        implmt_t: Type[Any],
         strategy: InjectionStrategy,
-        args: list[Any],
-        named_args: dict[str, Any],
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]],
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]],
+        options: RegistrationOptions[InstanceT],
     ) -> RegisteredType[InstanceT]:
-        r_type = RegisteredType(t, strategy, args, named_args, before_init, after_init)
+        r_type = RegisteredType(intrfc_t, implmt_t, strategy, options)
         self._match_all = r_type
         return r_type
 
     def add_type(
         self,
-        super_t: Type[InstanceT],
-        t: Type[InstanceT],
+        intrfc_t: Type[InstanceT],
+        implmt_t: Type[Any],
         strategy: InjectionStrategy,
-        args: list[Any],
-        named_args: dict[str, Any],
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]],
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]],
+        options: RegistrationOptions[InstanceT],
     ) -> RegisteredType[InstanceT]:
-        r_type = RegisteredType(t, strategy, args, named_args, before_init, after_init)
-        self._types[hash(super_t)] = r_type
+        r_type = RegisteredType(intrfc_t, implmt_t, strategy, options)
+        self._types[hash(intrfc_t)] = r_type
         return r_type
 
     @override

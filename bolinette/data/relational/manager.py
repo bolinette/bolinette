@@ -67,13 +67,13 @@ class EntityManager:
             entity_cls = base_t.vars[0]
             if entity_cls not in self._entities:
                 raise InitError(f"Repository {repo_cls}, entity {entity_cls} is not a registered entity type")
-            inject.add(repo_cls, "scoped")
-            inject.add(repo_cls, "scoped", super_cls=Repository[entity_cls])
+            inject.add_scoped(repo_cls)
+            inject.add_scoped(Repository[entity_cls], repo_cls)
             custom_repos.add(entity_cls)
 
         for entity in self._entities:
             if entity not in custom_repos:
-                inject.add(Repository[entity], "scoped")
+                inject.add_scoped(Repository[entity])
 
     @init_method
     def _init_services(self, cache: Cache, inject: Injection) -> None:
@@ -87,13 +87,13 @@ class EntityManager:
             entity_cls = base_t.vars[0]
             if entity_cls not in self._entities:
                 raise InitError(f"Service {service_cls}, entity {entity_cls} is not a registered entity type")
-            inject.add(service_cls, "scoped")
-            inject.add(service_cls, "scoped", super_cls=Service[entity_cls])
+            inject.add_scoped(service_cls)
+            inject.add_scoped(Service[entity_cls], service_cls)
             custom_services.add(entity_cls)
 
         for entity in self._entities:
             if entity not in custom_services:
-                inject.add(Service[entity], "scoped")
+                inject.add_scoped(Service[entity])
 
     def is_entity_type(self, cls: type[Any]) -> bool:
         return cls in self._entities

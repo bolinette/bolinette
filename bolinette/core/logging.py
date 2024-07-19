@@ -1,8 +1,6 @@
 import logging
 from datetime import UTC, datetime
-from typing import Any, ClassVar, Protocol, override
-
-from bolinette.core.injection.resolver import ArgResolverOptions
+from typing import ClassVar, Protocol, override
 
 
 class SupportsWrite[T](Protocol):
@@ -66,17 +64,3 @@ class ColorFormatter(logging.Formatter):
 
 
 class Logger[T](logging.Logger): ...
-
-
-class LoggerArgResolver:
-    def supports(self, options: ArgResolverOptions) -> bool:
-        return options.t.cls is Logger
-
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
-        logger = logging.getLogger(f"__blnt_logger__.{options.t}")
-        if not logger.hasHandlers():
-            handler = logging.StreamHandler()
-            handler.setFormatter(ColorFormatter(options.t.vars[0].__qualname__))
-            logger.addHandler(handler)
-            logger.setLevel(logging.DEBUG)
-        return options.name, logger

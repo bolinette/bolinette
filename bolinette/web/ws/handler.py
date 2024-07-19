@@ -2,8 +2,7 @@ import inspect
 import json
 from typing import Any, TypeGuard
 
-from bolinette.core import Cache, meta
-from bolinette.core.environment import CoreSection
+from bolinette.core import Cache, CoreSection, meta
 from bolinette.core.injection import Injection, init_method
 from bolinette.core.logging import Logger
 from bolinette.core.mapping.json import JsonObjectEncoder
@@ -47,7 +46,7 @@ class WebSocketHandler:
 
     @init_method
     def _add_context_to_inject(self) -> None:
-        self.inject.add(WebSocketContext, "singleton", [self])
+        self.inject.add_singleton(WebSocketContext, options={"args": [self]})
 
     def add_topic(self, name: str, cls: type[WebSocketTopic[...]]) -> None:
         self.topics[name] = _WSTypeBag(Type(cls))

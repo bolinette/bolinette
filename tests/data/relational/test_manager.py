@@ -62,7 +62,7 @@ def test_init_engines() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base = create_entity_base(cache)
     mock_db_manager(mock)
@@ -77,7 +77,7 @@ def test_fail_init_engines_unknown_connection() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     create_entity_base(cache)
 
@@ -93,7 +93,7 @@ def test_fail_init_engines_non_relational_system() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     create_entity_base(cache)
 
@@ -116,7 +116,7 @@ async def test_create_all() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     visited: list[str] = []
 
@@ -142,8 +142,8 @@ async def test_open_sessions() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
-    mock.injection.add(AsyncTransaction, "scoped")
+    mock.injection.add_singleton(EntityManager)
+    mock.injection.add_scoped(AsyncTransaction)
     mock.mock(Logger[AsyncTransaction]).dummy()
 
     visited: list[str] = []
@@ -169,7 +169,7 @@ def test_init_entities() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base = create_entity_base(cache)
     mock_db_manager(mock)
@@ -188,7 +188,7 @@ def test_fail_init_entities_multiple_bases() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base1 = create_entity_base(cache, "TestDatabase1")
     base2 = create_entity_base(cache, "TestDatabase2")
@@ -210,7 +210,7 @@ def test_fail_init_entities_unknown_base() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base = type("TestDatabase", (DeclarativeBase,), {})
     mock_db_manager(mock)
@@ -226,7 +226,7 @@ def test_init_entity_composite_entity_key() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base = create_entity_base(cache, "TestDatabase")
     mock_db_manager(mock)
@@ -257,7 +257,7 @@ def test_init_repositories() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base = create_entity_base(cache)
     mock_db_manager(mock)
@@ -279,7 +279,7 @@ def test_fail_init_repositories_unused_repository() -> None:
     cache = Cache()
 
     mock = Mock(cache=cache)
-    mock.injection.add(EntityManager, "singleton")
+    mock.injection.add_singleton(EntityManager)
 
     base = create_entity_base(cache)
     mock_db_manager(mock)

@@ -58,7 +58,7 @@ def test_init_type_mappers_from_cache() -> None:
     cache = Cache()
     type_mapper(_Destination, cache=cache)(TestTypeMapper)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
 
     src = _Source(1)
@@ -78,7 +78,7 @@ def test_map_simple_attr() -> None:
         value: str
 
     mock = Mock()
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -110,7 +110,7 @@ def test_map_with_map_from() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -140,7 +140,7 @@ def test_map_source_no_hint() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -163,7 +163,7 @@ def test_map_default_value_none() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -185,7 +185,7 @@ def test_fail_no_default_value() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -209,7 +209,7 @@ def test_map_default_value() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -236,7 +236,7 @@ def test_map_explicit_ignore() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -266,7 +266,7 @@ def test_fail_map_ignore_non_nullable() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -291,7 +291,7 @@ def test_fail_invalid_int_cast() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -317,7 +317,7 @@ def test_fail_invalid_float_cast() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -345,7 +345,7 @@ def test_cast_to_bool() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -374,7 +374,7 @@ def test_map_with_custom_dest() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -421,7 +421,7 @@ def test_map_include_base() -> None:
     mapping(cache=cache)(TestProfile1)
     mapping(cache=cache)(TestProfile2)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -460,7 +460,7 @@ def test_fail_included_base_not_found() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
 
     with pytest.raises(MappingError) as info:
         mock.injection.require(Mapper)
@@ -501,7 +501,7 @@ def test_map_before_after() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -529,7 +529,7 @@ def test_nested_mapping_no_profile() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -576,7 +576,7 @@ def test_nested_mapping_with_profile() -> None:
     mapping(cache=cache)(TestProfile1)
     mapping(cache=cache)(TestProfile2)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -600,7 +600,7 @@ def test_mapping_list() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -634,7 +634,7 @@ def test_mapping_iterables() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -658,7 +658,7 @@ def test_map_to_str_dict() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -680,7 +680,7 @@ def test_map_to_dict_mixed() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -713,7 +713,7 @@ def test_map_to_any() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -755,7 +755,7 @@ def test_map_to_union_type() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -784,7 +784,7 @@ def test_fail_map_to_union_type() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -829,7 +829,7 @@ def test_fail_map_use_type_not_in_union() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -855,7 +855,7 @@ def test_map_collection() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -880,7 +880,7 @@ def test_fail_map_collection_from_not_iter() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -899,7 +899,7 @@ def test_fail_map_collection_from_not_iter() -> None:
 def test_map_existing_collection() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -931,7 +931,7 @@ def test_map_from_dict() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -948,7 +948,7 @@ def test_fail_map_from_dict() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -974,7 +974,7 @@ def test_map_from_dict_nested() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -997,7 +997,7 @@ def test_map_from_dict_nested() -> None:
 def test_map_dict_to_dict() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -1029,7 +1029,7 @@ def test_map_attr_from_child() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -1067,7 +1067,7 @@ def test_fail_map_from_nested() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
 
     with pytest.raises(MaxDepthExpressionError) as info:
         mock.injection.require(Mapper)
@@ -1096,7 +1096,7 @@ def test_map_typed_dict() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -1128,7 +1128,7 @@ def test_map_typed_dict_from_nested() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -1159,7 +1159,7 @@ def test_fail_map_from_nested_typed_dict() -> None:
     cache = Cache()
     mapping(cache=cache)(TestProfile)
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
 
     with pytest.raises(MaxDepthExpressionError) as info:
         mock.injection.require(Mapper)
@@ -1181,7 +1181,7 @@ def test_map_typed_dict_not_required_attr() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 
@@ -1203,7 +1203,7 @@ def test_map_typed_dict_non_total_dict() -> None:
 
     cache = Cache()
     mock = Mock(cache=cache)
-    mock.injection.add(Mapper, "singleton")
+    mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
     load_default_mappers(mapper)
 

@@ -1,15 +1,21 @@
 from graphlib import CycleError, TopologicalSorter
 from typing import Final, Protocol, TypeVar, override
 
-from bolinette.core import Cache, command
+from bolinette.core import Cache, CoreSection, command
 from bolinette.core.command import Parser, debug_injection_command
-from bolinette.core.environment import CoreSection, Environment, environment
+from bolinette.core.environment import Environment, environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, injectable, injection_arg_resolver
 from bolinette.core.injection.injection import InjectionEvent, injection_callback
-from bolinette.core.logging import Logger, LoggerArgResolver
+from bolinette.core.injection.resolver import LoggerArgResolver
+from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper, type_mapper
-from bolinette.core.mapping.mapper import BoolTypeMapper, FloatTypeMapper, IntegerTypeMapper, StringTypeMapper
+from bolinette.core.mapping.mapper import (
+    BoolTypeMapper,
+    FloatTypeMapper,
+    IntegerTypeMapper,
+    StringTypeMapper,
+)
 from bolinette.core.types.checker import (
     DefaultTypeChecker,
     LiteralTypeChecker,
@@ -71,10 +77,14 @@ class _CoreExtension(Extension):
         type_mapper(float, cache=cache)(FloatTypeMapper)
         type_mapper(bool, cache=cache)(BoolTypeMapper)
         type_mapper(str, cache=cache)(StringTypeMapper)
+        type_mapper(str, cache=cache)(StringTypeMapper)
 
-        command("debug injection", "Debug command that lists all registered types", cache=cache)(
-            debug_injection_command
-        )
+        command(
+            "debug injection",
+            "Debug command that lists all registered types",
+            cache=cache,
+            run_startup=False,
+        )(debug_injection_command)
 
 
 core_ext: Final[Extension] = _CoreExtension()

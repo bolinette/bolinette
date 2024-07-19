@@ -4,7 +4,7 @@ from typing import Any, get_args, get_origin
 from bolinette.core import Cache, meta
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
 from bolinette.core.injection import Injection
-from bolinette.core.injection.context import InjectionContext
+from bolinette.core.injection.pool import InstancePool
 
 
 class _MockedMeta[MockedT]:
@@ -83,7 +83,7 @@ class _MockWrapper[MockedT]:
 
 class Mock:
     def __init__(self, *, inject: Injection | None = None, cache: Cache | None = None) -> None:
-        self._inject = inject or Injection(cache or Cache(), InjectionContext())
+        self._inject = inject or Injection(cache or Cache(), InstancePool())
         self._mocked: dict[type[Any], _MockWrapper[Any]] = {}
 
     @staticmethod
@@ -104,7 +104,7 @@ class Mock:
         else:
             mocked = _MockWrapper(origin)
             self._mocked[origin] = mocked
-            self._inject.add(cls, "singleton", instance=mocked.instance, match_all=match_all)
+            self._inject.add_singleton(cls, instance=mocked.instance, match_all=match_all)
         return mocked
 
     @property

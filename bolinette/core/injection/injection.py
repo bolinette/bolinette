@@ -1,9 +1,10 @@
 from collections.abc import Callable, Iterable
 from types import TracebackType
-from typing import Any, Concatenate, Generic, Literal, Protocol, Self, TypedDict, overload, override, runtime_checkable
+from typing import Any, Generic, Literal, Protocol, Self, TypedDict, overload, override, runtime_checkable
 
-from bolinette.core import Cache, GenericMeta, __user_cache__, meta
+from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.exceptions import InjectionError
+from bolinette.core.injection import RegistrationOptions
 from bolinette.core.injection.context import InjectionContext
 from bolinette.core.injection.decorators import (
     InitMethodMeta,
@@ -12,33 +13,31 @@ from bolinette.core.injection.decorators import (
     InjectionSymbol,
 )
 from bolinette.core.injection.hook import InjectionHook, InjectionProxy
+from bolinette.core.injection.pool import InstancePool
 from bolinette.core.injection.registration import AddStrategy, InjectionStrategy, RegisteredType, RegisteredTypeBag
-from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver, DefaultArgResolver
+from bolinette.core.injection.resolver import ArgResolverMeta, ArgResolverOptions, ArgumentResolver
 from bolinette.core.types import Function, Type, TypeVarLookup
 from bolinette.core.utils import OrderedSet
-from bolinette.core.utils.strings import StringUtils
 
 
 class Injection:
-    __slots__: list[str] = ["cache", "_global_ctx", "_types", "_default_resolver", "_arg_resolvers", "_callbacks"]
     _ADD_INSTANCE_STRATEGIES = ("singleton",)
     _REQUIREABLE_STRATEGIES = ("singleton", "transient")
 
     def __init__(
         self,
         cache: Cache,
-        global_ctx: InjectionContext | None = None,
+        global_pool: InstancePool | None = None,
         types: "dict[type[Any], RegisteredTypeBag[Any]] | None" = None,
         resolvers: list[ArgumentResolver] | None = None,
     ) -> None:
         self.cache = cache
         self._callbacks: Iterable[InjectionCallback] = []
-        self._global_ctx = global_ctx or InjectionContext()
+        self._global_pool = global_pool or InstancePool()
         self._types = types if types is not None else self._pickup_types(cache)
         self._arg_resolvers: list[ArgumentResolver] = []
-        self._default_resolver: ArgumentResolver = DefaultArgResolver()
-        self._add_type_instance(Type(Cache), Type(Cache), False, "singleton", [], {}, [], [], cache, safe=True)
-        self._add_type_instance(Type(Injection), Type(Injection), False, "singleton", [], {}, [], [], self, safe=True)
+        self._register_type(Type(Cache), Type(Cache), False, "singleton", {}, instance=cache, safe=True)
+        self._register_type(Type(Injection), Type(Injection), False, "singleton", {}, instance=self, safe=True)
         self._arg_resolvers = self._pickup_resolvers(cache, resolvers or [])
         self._callbacks = self._pickup_callbacks()
 
@@ -73,21 +72,26 @@ class Injection:
             if inject_meta.match_all:
                 type_bag.set_match_all(
                     t,
+                    t,
                     inject_meta.strategy,  # pyright: ignore[reportArgumentType]
-                    inject_meta.args,
-                    inject_meta.named_args,
-                    before_init,
-                    after_init,
+                    {
+                        "args": inject_meta.args,
+                        "named_args": inject_meta.named_args,
+                        "before_init": before_init,
+                        "after_init": after_init,
+                    },
                 )
             else:
                 type_bag.add_type(
                     t,
                     t,
                     inject_meta.strategy,  # pyright: ignore[reportArgumentType]
-                    inject_meta.args,
-                    inject_meta.named_args,
-                    before_init,
-                    after_init,
+                    {
+                        "args": inject_meta.args,
+                        "named_args": inject_meta.named_args,
+                        "before_init": before_init,
+                        "after_init": after_init,
+                    },
                 )
         return types
 
@@ -128,20 +132,19 @@ class Injection:
         for callback in self._callbacks:
             callback(event)
 
-    def __has_instance__(self, r_type: RegisteredType[Any]) -> bool:
-        return r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
+    def _has_instance(self, t: Type[Any]) -> bool:
+        return self._global_pool.has_instance(t)
 
-    def __get_instance__[InstanceT](self, r_type: RegisteredType[InstanceT]) -> InstanceT:
-        return self._global_ctx.get_instance(r_type.t)
+    def _get_instance[InstanceT](self, t: Type[InstanceT]) -> InstanceT:
+        return self._global_pool.get_instance(t)
 
-    def __set_instance__[InstanceT](self, r_type: RegisteredType[InstanceT], instance: InstanceT) -> None:
+    def _set_instance[InstanceT](self, r_type: RegisteredType[InstanceT], instance: InstanceT) -> None:
         if r_type.strategy == "singleton":
-            self._global_ctx.set_instance(r_type.t, instance)
+            self._global_pool.set_instance(r_type.implmt_t, instance)
 
     def _resolve_args(
         self,
         obj: Type[Any] | Function[..., Any],
-        type_vars: tuple[Any, ...] | None,
         strategy: InjectionStrategy,
         vars_lookup: TypeVarLookup[Any] | None,
         immediate: bool,
@@ -205,19 +208,17 @@ class Injection:
             if hint.is_union:
                 raise InjectionError("Type unions are not allowed", func=obj, param=p_name)
 
-            arg_name, arg_value = self._resolve_type(
-                obj,
-                type_vars,
-                strategy,
-                immediate,
-                circular_guard,
-                additional_resolvers,
-                p_name,
-                hint,
-                default_set,
-                default,
-            )
-            f_args[arg_name] = arg_value
+            if immediate:
+                arg_value = self._resolve_type(
+                    hint,
+                    InjectionContext(obj, strategy, p_name, default_set, default),
+                    circular_guard,
+                    additional_resolvers,
+                )
+            else:
+                arg_value = InjectionHook(hint, default_set, default)
+
+            f_args[p_name] = arg_value
 
         if _args or _named_args:
             raise InjectionError(
@@ -229,52 +230,84 @@ class Injection:
 
     def _resolve_type(
         self,
-        origin: Type[Any] | Function[..., Any] | None,
-        type_vars: tuple[Any, ...] | None,
-        strategy: InjectionStrategy,
-        immediate: bool,
+        t: Type[Any],
+        context: InjectionContext | None,
         circular_guard: OrderedSet[Any],
         additional_resolvers: list[ArgumentResolver],
-        p_name: str,
-        hint: Type[Any],
-        default_set: bool,
-        default: Any,
-    ) -> tuple[str, Any]:
-        for resolver in [*additional_resolvers, *self._arg_resolvers, self._default_resolver]:
+    ) -> Any:
+        if t.cls is Type:
+            return Type(t.vars[0])
+        if t.cls is type:
+            return t.vars[0]
+
+        if self.is_registered(t):
+            return self._resolve_type_default(t, context, circular_guard, additional_resolvers)
+
+        all_resolvers = [*additional_resolvers, *self._arg_resolvers]
+        if len(all_resolvers):
             options = ArgResolverOptions(
                 self,
-                origin,
-                type_vars,
-                strategy,
-                p_name,
-                hint,
-                default_set,
-                default,
-                immediate,
+                t,
+                context,
                 circular_guard,
                 additional_resolvers,
             )
-            if resolver.supports(options):
-                return resolver.resolve(options)
-        raise Exception()
+            for resolver in all_resolvers:
+                if resolver.supports(options):
+                    return resolver.resolve(options)
+        if t.nullable:
+            return None
+        if context is not None and context.default_set:
+            return context.default
+        raise InjectionError(
+            f"Type {t} is not a registered type in the injection system",
+            func=context.origin if context else None,
+            param=context.arg_name if context else None,
+        )
 
-    def __hook_proxies__(self, instance: object) -> None:
-        hooks: dict[str, Type[Any]] = {}
+    def _resolve_type_default(
+        self,
+        t: Type[Any],
+        context: InjectionContext | None,
+        circular_guard: OrderedSet[Any],
+        additional_resolvers: list[ArgumentResolver],
+    ) -> Any:
+        r_type = self.registered_types[t.cls].get_type(t)
+
+        if r_type.strategy == "scoped":
+            if context and context.strategy in ["singleton", "transient"]:
+                raise InjectionError(
+                    f"Cannot instantiate a scoped service in a {context.strategy} service",
+                    func=context.origin,
+                    param=context.arg_name,
+                )
+            if not self.is_scoped:
+                raise InjectionError(f"Cannot instantiate scoped service {t} from a non scoped injection context")
+
+        if self._has_instance(r_type.implmt_t):
+            return self._get_instance(r_type.implmt_t)
+        return self._instantiate(r_type, circular_guard, additional_resolvers)
+
+    def __hook_proxies__(self, t: Type[Any], strategy: InjectionStrategy, instance: object) -> None:
+        hooks: dict[str, InjectionHook[Any]] = {}
         cls = type(instance)
         cls_attrs: dict[str, Any] = dict(vars(cls))
         attr: InjectionHook[Any] | Any
         for name, attr in cls_attrs.items():
             if isinstance(attr, InjectionHook):
                 delattr(cls, name)
-                hooks[name] = attr.t
+                hooks[name] = attr
         instance_attrs: dict[str, Any] = dict(vars(instance))
         for name, attr in instance_attrs.items():
             if isinstance(attr, InjectionHook):
                 delattr(instance, name)
-                hooks[name] = attr.t
-        for name, t in hooks.items():
-            r_type = self._types[t.cls].get_type(t)
-            setattr(cls, name, InjectionProxy(name, r_type, t))
+                hooks[name] = attr
+        for name, hook in hooks.items():
+            setattr(
+                cls,
+                name,
+                InjectionProxy(hook.t, InjectionContext(t, strategy, name, hook.default_set, hook.default)),
+            )
 
     def _run_init_recursive[InstanceT](
         self,
@@ -310,22 +343,22 @@ class Injection:
     ):
         for method in r_type.before_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
-        self._run_init_recursive(r_type.t.cls, instance, vars_lookup, circular_guard, set(), additional_resolvers)
+        self._run_init_recursive(
+            r_type.implmt_t.cls, instance, vars_lookup, circular_guard, set(), additional_resolvers
+        )
         for method in r_type.after_init:
             self.call(method, args=[instance], circular_guard=circular_guard)
 
-    def __instantiate__[InstanceT](
+    def _instantiate[InstanceT](
         self,
         r_type: RegisteredType[InstanceT],
-        t: Type[InstanceT],
         circular_guard: OrderedSet[Any],
         additional_resolvers: list[ArgumentResolver],
     ) -> InstanceT:
-        vars_lookup = TypeVarLookup(t)
+        vars_lookup = TypeVarLookup(r_type.implmt_t)
         func_args = self._resolve_args(
-            r_type.t,
-            t.vars,
-            r_type.strategy,  # pyright: ignore
+            r_type.implmt_t,
+            r_type.strategy,  # pyright: ignore[reportArgumentType]
             vars_lookup,
             False,
             circular_guard,
@@ -333,15 +366,25 @@ class Injection:
             r_type.named_args,
             additional_resolvers,
         )
-        instance = r_type.t.cls(**func_args)
-        self.__hook_proxies__(instance)
+        instance: InstanceT = r_type.implmt_t.cls(**func_args)
+        self.__hook_proxies__(
+            r_type.implmt_t,
+            r_type.strategy,  # pyright: ignore[reportArgumentType]
+            instance,
+        )
         meta.set(instance, self, cls=Injection)
-        meta.set(instance, GenericMeta(t.vars))
         self._run_init_methods(r_type, instance, vars_lookup, circular_guard, additional_resolvers)
-        self.__set_instance__(r_type, instance)
+        self._set_instance(r_type, instance)
         if isinstance(instance, HasEnter):
             instance.__enter__()
-        self._notify_callbacks({"event": "instantiated", "strategy": r_type.strategy, "type": t, "instance": instance})  # pyright: ignore[reportArgumentType]
+        self._notify_callbacks(
+            {
+                "event": "instantiated",
+                "strategy": r_type.strategy,  # pyright: ignore[reportArgumentType]
+                "type": r_type.implmt_t,
+                "instance": instance,
+            }
+        )
         return instance
 
     def is_registered(self, cls: type[Any] | Type[Any]) -> bool:
@@ -369,7 +412,6 @@ class Injection:
     ) -> FuncT:
         func_args = self._resolve_args(
             self._wrap_function(func),
-            None,
             "singleton",
             vars_lookup,
             True,
@@ -392,149 +434,198 @@ class Injection:
         vars_lookup = TypeVarLookup(t)
         init_args = self._resolve_args(
             t,
-            t.vars,
             "immediate",
             vars_lookup,
-            True,
+            False,
             OrderedSet(),
             args or [],
             named_args or {},
             additional_resolvers or [],
         )
         instance = cls(**init_args)
-        self.__hook_proxies__(instance)
+        self.__hook_proxies__(t, "immediate", instance)
         meta.set(instance, self, cls=Injection)
-        meta.set(instance, GenericMeta(t.vars))
         self._run_init_recursive(cls, instance, vars_lookup, None, set(), additional_resolvers or [])
         if isinstance(instance, HasEnter):
             instance.__enter__()
         return instance
 
-    def _add_type_instance[InstanceT](
+    def _register_type[InstanceT](
         self,
-        super_t: Type[InstanceT],
-        t: Type[InstanceT],
+        intrfc_t: Type[InstanceT],
+        implmt_t: Type[Any],
         match_all: bool,
-        strategy: InjectionStrategy,
-        args: list[Any],
-        named_args: dict[str, Any],
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]],
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]],
-        instance: InstanceT | None,
+        strategy: AddStrategy,
+        options: RegistrationOptions[InstanceT],
         *,
+        instance: InstanceT | None = None,
         safe: bool = False,
     ) -> None:
-        if super_t.cls not in self._types:
-            self._types[super_t.cls] = RegisteredTypeBag(super_t)
-        type_bag = self._types[super_t.cls]
+        if instance is not None and strategy not in self._ADD_INSTANCE_STRATEGIES:
+            raise InjectionError(
+                f"Injection strategy for {intrfc_t} must be "
+                f"{' or '.join(self._ADD_INSTANCE_STRATEGIES)} if an instance is provided"
+            )
+        if intrfc_t.cls not in self._types:
+            self._types[intrfc_t.cls] = RegisteredTypeBag(intrfc_t.cls)
+        type_bag = self._types[intrfc_t.cls]
         r_type: RegisteredType[InstanceT] | None = None
         if match_all:
             if not safe or not type_bag.has_match_all():
-                r_type = type_bag.set_match_all(t, strategy, args, named_args, before_init, after_init)
+                r_type = type_bag.set_match_all(intrfc_t, implmt_t, strategy, options)
         else:
-            if not safe or not type_bag.has_type(super_t):
-                r_type = type_bag.add_type(super_t, t, strategy, args, named_args, before_init, after_init)
+            if not safe or not type_bag.has_type(intrfc_t):
+                r_type = type_bag.add_type(intrfc_t, implmt_t, strategy, options)
         if instance is not None:
             if r_type is None:
-                r_type = self._types[t.cls].get_type(t)
-            if not safe or not self.__has_instance__(r_type):
-                self.__set_instance__(r_type, instance)
+                r_type = self._types[intrfc_t.cls].get_type(implmt_t)
+            if not safe or not self._has_instance(implmt_t):
+                self._set_instance(r_type, instance)
 
     @overload
-    def add[InstanceT](
+    def add_singleton[InstanceT](
         self,
-        cls: type[InstanceT],
-        strategy: AddStrategy,
-        args: list[Any] | None = None,
-        named_args: dict[str, Any] | None = None,
-        instance: InstanceT | None = None,
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
-        match_all: bool = False,
-        super_cls: type[InstanceT] | None = None,
+        interface: type[InstanceT],
+        implementation: type[object],
+        /,
         *,
-        instantiate: Literal[True],
-    ) -> InstanceT:
-        pass
+        options: RegistrationOptions[InstanceT] | None = None,
+        instance: InstanceT | None = None,
+        match_all: bool = False,
+    ) -> None: ...
 
     @overload
-    def add[InstanceT](
+    def add_singleton[InstanceT](
         self,
-        cls: type[InstanceT],
-        strategy: AddStrategy,
-        args: list[Any] | None = None,
-        named_args: dict[str, Any] | None = None,
+        implementation: type[InstanceT],
+        /,
+        *,
+        options: RegistrationOptions[InstanceT] | None = None,
         instance: InstanceT | None = None,
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
         match_all: bool = False,
-        super_cls: type[InstanceT] | None = None,
+    ) -> None: ...
+
+    def add_singleton(
+        self,
+        *args: Any,
+        options: RegistrationOptions[object] | None = None,
+        instance: object | None = None,
+        match_all: bool = False,
     ) -> None:
-        pass
+        match args:
+            case (implementation,):
+                self._add("singleton", implementation, implementation, options or {}, instance, match_all)
+            case (interface, implementation):
+                self._add("singleton", interface, implementation, options or {}, instance, match_all)
+            case _:
+                raise TypeError()
 
-    def add[InstanceT](
+    @overload
+    def add_transient[InstanceT](
         self,
-        cls: type[InstanceT],
-        strategy: AddStrategy,
-        args: list[Any] | None = None,
-        named_args: dict[str, Any] | None = None,
-        instance: InstanceT | None = None,
-        before_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
-        after_init: list[Callable[Concatenate[InstanceT, ...], None]] | None = None,
-        match_all: bool = False,
-        super_cls: type[InstanceT] | None = None,
+        interface: type[InstanceT],
+        implementation: type[Any],
+        /,
         *,
-        instantiate: bool = False,
-    ) -> InstanceT | None:
-        if super_cls is None:
-            super_cls = cls
-        t = Type(cls)
-        if hasattr(t.cls, "__parameters__"):
-            if len(t.cls.__parameters__) != len(t.vars) and not match_all:  # pyright: ignore
-                raise InjectionError(
-                    f"Type {t} requires {len(t.cls.__parameters__)} "  # pyright: ignore
-                    f"generic parameters and {len(t.vars)} were given"
-                )
-        super_t: Type[InstanceT] = Type(super_cls)
-        if instance is not None:
-            if instantiate:
-                raise InjectionError(
-                    f"Cannot instantiate {t.cls} if an instance is provided",
-                )
-            if strategy not in self._ADD_INSTANCE_STRATEGIES:
-                formatted_strategies = StringUtils.format_list(self._ADD_INSTANCE_STRATEGIES, final_sep=" or ")
-                raise InjectionError(
-                    f"Injection strategy for {t.cls} must be {formatted_strategies} if an instance is provided"
-                )
-        self._add_type_instance(
-            super_t,
-            t,
-            match_all,
-            strategy,
-            args or [],
-            named_args or {},
-            before_init or [],
-            after_init or [],
-            instance,
-        )
-        if instantiate:
-            return self.require(t.cls)
-        return None
+        options: RegistrationOptions[InstanceT] | None = None,
+        instance: object | None = None,
+        match_all: bool = False,
+    ) -> None: ...
+
+    @overload
+    def add_transient[InstanceT](
+        self,
+        implementation: type[InstanceT],
+        /,
+        *,
+        options: RegistrationOptions[InstanceT] | None = None,
+        instance: object | None = None,
+        match_all: bool = False,
+    ) -> None: ...
+
+    def add_transient(
+        self,
+        *args: Any,
+        options: RegistrationOptions[object] | None = None,
+        instance: object | None = None,
+        match_all: bool = False,
+    ) -> None:
+        match args:
+            case (implementation,):
+                self._add("transient", implementation, implementation, options or {}, instance, match_all)
+            case (interface, implementation):
+                self._add("transient", interface, implementation, options or {}, instance, match_all)
+            case _:
+                raise TypeError()
+
+    @overload
+    def add_scoped[InstanceT](
+        self,
+        interface: type[InstanceT],
+        implementation: type[object],
+        /,
+        *,
+        options: RegistrationOptions[InstanceT] | None = None,
+        instance: InstanceT | None = None,
+        match_all: bool = False,
+    ) -> None: ...
+
+    @overload
+    def add_scoped[InstanceT](
+        self,
+        implementation: type[InstanceT],
+        /,
+        *,
+        options: RegistrationOptions[InstanceT] | None = None,
+        instance: InstanceT | None = None,
+        match_all: bool = False,
+    ) -> None: ...
+
+    def add_scoped(
+        self,
+        *args: Any,
+        options: RegistrationOptions[object] | None = None,
+        instance: object | None = None,
+        match_all: bool = False,
+    ) -> None:
+        match args:
+            case (implementation,):
+                self._add("scoped", implementation, implementation, options or {}, instance, match_all)
+            case (interface, implementation):
+                self._add("scoped", interface, implementation, options or {}, instance, match_all)
+            case _:
+                raise TypeError()
+
+    def _add(
+        self,
+        strategy: AddStrategy,
+        interface: type[Any],
+        implementation: type[Any],
+        options: RegistrationOptions[Any],
+        instance: Any | None,
+        match_all: bool,
+    ) -> None:
+        intrfc_t = Type(interface)
+        implmt_t = Type(implementation)
+        self._register_type(intrfc_t, implmt_t, match_all, strategy, options, instance=instance)
+
+    def __require__[InstanceT](self, t: Type[InstanceT], context: InjectionContext | None) -> InstanceT:
+        return self._resolve_type(t, context, OrderedSet(), [])
 
     def require[InstanceT](self, cls: type[InstanceT]) -> InstanceT:
-        return self._resolve_type(None, None, "immediate", True, OrderedSet(), [], "", Type(cls), False, None)[1]
+        return self.__require__(Type(cls), None)
 
     def get_scoped_session(self) -> "ScopedInjection":
-        return ScopedInjection(self.cache, self._global_ctx, InjectionContext(), self._types, self._arg_resolvers)
+        return ScopedInjection(self.cache, self._global_pool, InstancePool(), self._types, self._arg_resolvers)
 
     def get_async_scoped_session(self) -> "AsyncScopedSession":
-        return AsyncScopedSession(self.cache, self._global_ctx, InjectionContext(), self._types, self._arg_resolvers)
+        return AsyncScopedSession(self.cache, self._global_pool, InstancePool(), self._types, self._arg_resolvers)
 
     def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
-        for instance in self._global_ctx.get_instances():
+        for instance in self._global_pool.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):
@@ -542,22 +633,20 @@ class Injection:
 
 
 class ScopedInjection(Injection):
-    __slots__: list[str] = ["_scoped_ctx"]
-
     _ADD_INSTANCE_STRATEGIES = ("singleton", "scoped")
     _REQUIREABLE_STRATEGIES = ("singleton", "scoped", "transient")
 
     def __init__(
         self,
         cache: Cache,
-        global_ctx: InjectionContext,
-        scoped_ctx: InjectionContext,
+        global_pool: InstancePool,
+        scoped_pool: InstancePool,
         types: "dict[type[Any], RegisteredTypeBag[Any]]",
         resolvers: list[ArgumentResolver] | None = None,
     ) -> None:
-        self._scoped_ctx = scoped_ctx
-        super().__init__(cache, global_ctx, types, resolvers)
-        self._scoped_ctx.set_instance(Type(Injection), self)
+        self._scoped_pool = scoped_pool
+        super().__init__(cache, global_pool, types, resolvers)
+        self._scoped_pool.set_instance(Type(Injection), self)
 
     @property
     @override
@@ -565,24 +654,22 @@ class ScopedInjection(Injection):
         return True
 
     @override
-    def __has_instance__(self, r_type: "RegisteredType[Any]") -> bool:
-        return (r_type.strategy == "scoped" and self._scoped_ctx.has_instance(r_type.t)) or (
-            r_type.strategy == "singleton" and self._global_ctx.has_instance(r_type.t)
-        )
+    def _has_instance(self, t: Type[Any]) -> bool:
+        return self._scoped_pool.has_instance(t) or self._global_pool.has_instance(t)
 
     @override
-    def __get_instance__[InstanceT](self, r_type: RegisteredType[InstanceT]) -> InstanceT:
-        if self._scoped_ctx.has_instance(r_type.t):
-            return self._scoped_ctx.get_instance(r_type.t)
-        return self._global_ctx.get_instance(r_type.t)
+    def _get_instance[InstanceT](self, t: Type[InstanceT]) -> InstanceT:
+        if self._scoped_pool.has_instance(t):
+            return self._scoped_pool.get_instance(t)
+        return self._global_pool.get_instance(t)
 
     @override
-    def __set_instance__[InstanceT](self, r_type: RegisteredType[InstanceT], instance: InstanceT) -> None:
+    def _set_instance[InstanceT](self, r_type: RegisteredType[InstanceT], instance: InstanceT) -> None:
         strategy = r_type.strategy
         if strategy == "scoped":
-            self._scoped_ctx.set_instance(r_type.t, instance)
+            self._scoped_pool.set_instance(r_type.implmt_t, instance)
         if strategy == "singleton":
-            self._global_ctx.set_instance(r_type.t, instance)
+            self._global_pool.set_instance(r_type.implmt_t, instance)
 
     @override
     def _pickup_resolvers(
@@ -606,7 +693,6 @@ class ScopedInjection(Injection):
     ) -> FuncT:
         func_args = self._resolve_args(
             self._wrap_function(func),
-            None,
             "scoped",
             vars_lookup,
             True,
@@ -619,12 +705,13 @@ class ScopedInjection(Injection):
 
     @override
     def __enter__(self) -> Self:
-        return super().__enter__()
+        super().__enter__()
         self._notify_callbacks({"event": "session_open"})
+        return self
 
     @override
     def __exit__(self, *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None]) -> None:
-        for instance in self._scoped_ctx.get_instances():
+        for instance in self._scoped_pool.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):
@@ -636,12 +723,12 @@ class AsyncScopedSession(ScopedInjection):
     def __init__(
         self,
         cache: Cache,
-        global_ctx: InjectionContext,
-        scoped_ctx: InjectionContext,
+        global_pool: InstancePool,
+        scoped_pool: InstancePool,
         types: dict[type, RegisteredTypeBag[Any]],
         resolvers: list[ArgumentResolver] | None = None,
     ) -> None:
-        super().__init__(cache, global_ctx, scoped_ctx, types, resolvers)
+        super().__init__(cache, global_pool, scoped_pool, types, resolvers)
 
     async def __aenter__(self) -> Self:
         self._notify_callbacks({"event": "async_session_open"})
@@ -651,7 +738,7 @@ class AsyncScopedSession(ScopedInjection):
         self,
         *args: tuple[type[BaseException], Exception, TracebackType] | tuple[None, None, None],
     ) -> None:
-        for instance in self._scoped_ctx.get_instances():
+        for instance in self._scoped_pool.get_instances():
             if isinstance(instance, Injection):
                 continue
             if isinstance(instance, HasExit):

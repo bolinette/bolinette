@@ -2,20 +2,24 @@ from typing import Any, override
 
 from bolinette.core import injection, meta
 from bolinette.core.exceptions import InjectionError
-from bolinette.core.injection.registration import RegisteredType
+from bolinette.core.injection.context import InjectionContext
 from bolinette.core.types import Type
-from bolinette.core.utils import OrderedSet
 
 
 class InjectionHook[InstanceT]:
-    __slots__ = ("t",)
-
-    def __init__(self, t: Type[InstanceT]) -> None:
+    def __init__(
+        self,
+        t: Type[InstanceT],
+        default_set: bool,
+        default: Any,
+    ) -> None:
         self.t = t
+        self.default_set = default_set
+        self.default = default
 
     @override
     def __getattribute__(self, __name: str) -> Any:
-        if __name in ("t", "__class__"):
+        if __name in ("t", "default_set", "default", "__class__"):
             return object.__getattribute__(self, __name)
         raise InjectionError(
             f"Tried accessing member '{__name}' of an injected instance inside the __init__ method. "
@@ -27,23 +31,16 @@ class InjectionHook[InstanceT]:
 
 
 class InjectionProxy[InstanceT]:
-    __slots__ = ("name", "r_type", "t")
-
     def __init__(
         self,
-        name: str,
-        r_type: RegisteredType[InstanceT],
         t: Type[InstanceT],
+        context: InjectionContext,
     ) -> None:
-        self.name = name
-        self.r_type = r_type
-        self.t = t
+        self.t: Type[InstanceT] = t
+        self.context = context
 
     def __get__(self, instance: Any, _) -> Any:
         inject = meta.get(instance, injection.Injection)
-        if inject.__has_instance__(self.r_type):
-            obj = inject.__get_instance__(self.r_type)
-        else:
-            obj = inject.__instantiate__(self.r_type, self.t, OrderedSet(), [])
-        setattr(instance, self.name, obj)
+        obj = inject.__require__(self.t, self.context)
+        setattr(instance, self.context.arg_name, obj)
         return obj

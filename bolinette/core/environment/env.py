@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -9,46 +10,45 @@ from bolinette.core.environment.sections import EnvironmentSection, EnvSectionMe
 from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.expressions import ExpressionTree
 from bolinette.core.injection import Injection, init_method
-from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.types import Type
 
 
 class Environment:
     _OS_ENV_PREFIX = "BLNT_"
+    _UNINITIALIZED_PROFILE = "__uninitialized__"
+    _DEFAULT_PROFILE = "development"
 
-    def __init__(self, cache: Cache, inject: Injection, logger: "Logger[Environment]") -> None:
-        self._cache = cache
-        self._inject = inject
-        self._logger = logger
+    def __init__(self) -> None:
         self._env_folder = Path.cwd() / "env"
-        self.profile: str
+        self.profile: str = self._UNINITIALIZED_PROFILE
         self.config: dict[str, Any] = {}
 
     @init_method
-    def init_profile(self) -> None:
-        def read_profile() -> str:
-            try:
-                with open(self._env_folder / ".profile") as f:
-                    for line in f:
-                        return line.strip(" \n")
-            except FileNotFoundError:
-                self._logger.warning(".profile not found in env folder, defaulting to 'development'")
-            return "development"
-
-        self.profile = read_profile()
+    def _init_profile(self) -> None:
+        try:
+            with open(self._env_folder / ".profile") as f:
+                for line in f:
+                    self.profile = line.strip("\n")
+                    break
+        except FileNotFoundError:
+            pass
 
     @init_method
-    def init(self) -> None:
-        if EnvironmentSection in self._cache:
-            for cls in self._cache.get(EnvironmentSection, hint=type[Any]):
-                self._inject.add(cls, "singleton", before_init=[init_section])
+    def _init_config_sections(self, cache: Cache, inject: Injection) -> None:
+        if EnvironmentSection in cache:
+            for cls in cache.get(EnvironmentSection, hint=type[Any]):
+                inject.add_singleton(cls, options={"before_init": [init_section]})
+
+    @init_method
+    def _init_env_files(self) -> None:
+        profile = self._DEFAULT_PROFILE if self.profile == self._UNINITIALIZED_PROFILE else self.profile
 
         stack = [
             self._init_from_os(),
             self._init_from_file("env.yaml"),
-            self._init_from_file(f"env.{self.profile}.yaml"),
-            self._init_from_file(f"env.local.{self.profile}.yaml"),
+            self._init_from_file(f"env.{profile}.yaml"),
+            self._init_from_file(f"env.local.{profile}.yaml"),
         ]
 
         merged: dict[str, Any] = {}
@@ -59,6 +59,12 @@ class Environment:
                 for key, value in section.items():
                     merged[name][key] = value
         self.config = merged
+
+    @init_method
+    def _init_default_profile(self) -> None:
+        if self.profile == self._UNINITIALIZED_PROFILE:
+            self.profile = self._DEFAULT_PROFILE
+            warnings.warn(f".profile not found in env folder, defaulting to '{self._DEFAULT_PROFILE}'", stacklevel=1)
 
     @staticmethod
     def _init_from_os() -> dict[str, dict[str, Any]]:

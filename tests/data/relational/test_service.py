@@ -34,7 +34,7 @@ def test_create() -> None:
 
     mock.mock(Repository[_Entity]).setup_callable(lambda r: r.add, lambda entity: entity)
     mock.mock(Mapper).setup(lambda m: m.map, _map)
-    mock.injection.add(Service[_Entity], "singleton")
+    mock.injection.add_singleton(Service[_Entity])
 
     service = mock.injection.require(Service[_Entity])
 
@@ -68,7 +68,7 @@ def test_update() -> None:
 
     mock.mock(Repository[_Entity])
     mock.mock(Mapper).setup(lambda m: m.map, _map)
-    mock.injection.add(Service[_Entity], "singleton")
+    mock.injection.add_singleton(Service[_Entity])
 
     service = mock.injection.require(Service[_Entity])
 
@@ -104,7 +104,7 @@ def test_fail_validate_non_nullable_column() -> None:
 
     mock.mock(Repository[_Entity]).setup_callable(lambda r: r.add, lambda entity: entity)
     mock.mock(Mapper).setup(lambda m: m.map, _map)
-    mock.injection.add(Service[_Entity], "singleton")
+    mock.injection.add_singleton(Service[_Entity])
 
     service = mock.injection.require(Service[_Entity])
 
@@ -138,7 +138,7 @@ def test_fail_validate_wrong_column_type() -> None:
 
     mock.mock(Repository[_Entity]).setup_callable(lambda r: r.add, lambda entity: entity)
     mock.mock(Mapper).setup(lambda m: m.map, _map)
-    mock.injection.add(Service[_Entity], "singleton")
+    mock.injection.add_singleton(Service[_Entity])
 
     service = mock.injection.require(Service[_Entity])
 

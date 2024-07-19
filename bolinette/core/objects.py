@@ -1,24 +1,18 @@
-from typing import Any, override
+from dataclasses import dataclass
+from typing import Literal
 
 
-class GenericMeta:
-    def __init__(self, args: tuple[Any, ...]) -> None:
-        self._args = args
+@dataclass(init=False)
+class StreamLoggingConfig:
+    type: Literal["stderr"]
 
-    def __len__(self, /) -> int:
-        return len(self._args)
 
-    def __getitem__(self, index: int, /) -> Any:
-        return self._args[index]
+@dataclass(init=False)
+class FileLoggingConfig:
+    type: Literal["file"]
+    path: str
 
-    @override
-    def __hash__(self) -> int:
-        return hash(self._args)
 
-    @override
-    def __eq__(self, value: object, /) -> bool:
-        if isinstance(value, GenericMeta):
-            return self._args == value._args
-        if isinstance(value, tuple):
-            return self._args == value
-        raise TypeError(type(value))
+class CoreSection:
+    debug: bool = False
+    logging: list[StreamLoggingConfig] | None = None

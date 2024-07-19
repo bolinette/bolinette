@@ -285,7 +285,7 @@ def test_typed_dict() -> None:
 
 
 def _setup_type_checkers(mock: Mock):
-    mock.injection.add(TypeChecker, "singleton")
+    mock.injection.add_singleton(TypeChecker)
     type_checker(priority=-800, cache=mock.injection.cache)(ProtocolTypeChecker)
     type_checker(priority=-900, cache=mock.injection.cache)(TypedDictChecker)
     type_checker(priority=-1000, cache=mock.injection.cache)(DefaultTypeChecker)

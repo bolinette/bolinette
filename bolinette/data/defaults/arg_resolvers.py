@@ -14,11 +14,13 @@ class AsyncSessionArgResolver:
     def supports(self, options: ArgResolverOptions) -> bool:
         return options.t.cls is EntitySession
 
-    def resolve(self, options: ArgResolverOptions) -> tuple[str, Any]:
+    def resolve(self, options: ArgResolverOptions) -> Any:
         entity_type = options.t.vars[0]
         if not self.entities.is_entity_type(entity_type):
             raise InjectionError(
-                f"Type {entity_type} is not registered as an entity", func=options.caller, param=options.name
+                f"Type {entity_type} is not registered as an entity",
+                func=options.context.origin if options.context else None,
+                param=options.context.arg_name if options.context else None,
             )
         engine = meta.get(entity_type, AbstractDatabase)
-        return options.name, self.transaction.get(engine.name)
+        return self.transaction.get(engine.name)

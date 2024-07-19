@@ -5,8 +5,7 @@ from http import HTTPStatus
 from io import BytesIO
 from typing import Annotated, Any
 
-from bolinette.core import Cache
-from bolinette.core.environment import CoreSection
+from bolinette.core import Cache, CoreSection
 from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.testing import Mock
@@ -91,7 +90,7 @@ async def test_call_route_returns_str() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.mock(Logger[WebResources]).dummy()
-    mock.mock(CoreSection).dummy()
+    mock.mock(CoreSection).dummy().setup(lambda s: s.debug, True)
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
@@ -103,7 +102,7 @@ async def test_call_route_returns_str() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     resources = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -132,7 +131,7 @@ async def test_call_route_returns_int() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     resources = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -160,7 +159,7 @@ async def test_call_route_returns_bytes() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     resources = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -188,7 +187,7 @@ async def test_call_route_int_param() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -216,7 +215,7 @@ async def test_call_route_int_asyncgenerator() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -244,7 +243,7 @@ async def test_call_route_int_generator() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -273,7 +272,7 @@ async def test_call_route_returns_coroutine() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -304,7 +303,7 @@ async def test_call_route_returns_asyncgen() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -327,7 +326,7 @@ async def test_fail_route_not_found() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -354,7 +353,7 @@ async def test_fail_route_method_not_allowed() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -382,7 +381,7 @@ async def test_fail_route_raises_exception() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -422,7 +421,7 @@ async def test_fail_route_raises_exception_debug() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -481,7 +480,7 @@ async def test_call_many_routes() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
 
     await res.dispatch(MockRequest("GET", "/entity/get"), MockResponse())
@@ -525,7 +524,7 @@ async def test_call_route_with_class_payload() -> None:
 
     mock.mock(Mapper).setup(lambda m: m.map, mock_map)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
@@ -556,7 +555,7 @@ async def test_set_response_status() -> None:
 
     controller("/", cache=cache)(Controller)
 
-    mock.injection.add(WebResources, strategy="singleton")
+    mock.injection.add_singleton(WebResources)
     resources = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 

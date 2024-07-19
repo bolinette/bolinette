@@ -45,7 +45,12 @@ class _DataExtension(Extension):
 
         startup(cache=cache)(create_tables_for_memory_db)
 
-        command("db init", summary="Creates the tables in database", cache=cache)(create_db_tables)
+        command(
+            "db init",
+            summary="Creates the tables in database",
+            cache=cache,
+            run_startup=True,
+        )(create_db_tables)
 
 
 data_ext = _DataExtension()
