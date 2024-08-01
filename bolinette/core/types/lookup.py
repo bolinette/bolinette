@@ -13,8 +13,6 @@ class TypeVarMapping(Protocol):
 
 
 class TypeVarLookup[T]:
-    __slots__ = ("t", "_lookup")
-
     def __init__(self, arg: Type[T], /) -> None:
         self.t = arg
         self._lookup = TypeVarLookup.get_lookup(arg)

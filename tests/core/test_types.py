@@ -244,7 +244,7 @@ def test_nullable_type() -> None:
 
     assert t.cls is int
     assert not t.is_union
-    assert t.union == set()
+    assert t.union == ()
     assert t.nullable
 
 
@@ -253,7 +253,7 @@ def test_union() -> None:
 
     assert t.cls is str
     assert t.is_union
-    assert t.union == {Type(int), Type(str)}
+    assert t.union == (Type(str), Type(int))
     assert not t.nullable
 
 
@@ -262,7 +262,7 @@ def test_nullable_union() -> None:
 
     assert t.cls is str
     assert t.is_union
-    assert t.union == {Type(int), Type(str)}
+    assert t.union == (Type(str), Type(int))
     assert t.nullable
 
 

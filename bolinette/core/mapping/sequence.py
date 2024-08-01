@@ -7,15 +7,11 @@ from bolinette.core.types import Type
 
 
 class ForAttributeMapping:
-    __slots__ = "dest_expr"
-
     def __init__(self, dest_expr: ExpressionNode) -> None:
         self.dest_expr = dest_expr
 
 
 class MapFromAttribute(ForAttributeMapping):
-    __slots__ = ("src_expr", "use_type")
-
     def __init__(self, src_expr: ExpressionNode, dest_expr: ExpressionNode) -> None:
         ForAttributeMapping.__init__(self, dest_expr)
         self.src_expr = src_expr
@@ -23,30 +19,22 @@ class MapFromAttribute(ForAttributeMapping):
 
 
 class IgnoreAttribute(ForAttributeMapping):
-    __slots__ = "func"
-
     def __init__(self, dest_expr: ExpressionNode) -> None:
         ForAttributeMapping.__init__(self, dest_expr)
 
 
 class MappingFunction[SrcT, DestT]:
-    __slots__ = "func"
-
     def __init__(self, func: Callable[[SrcT, DestT], None]) -> None:
         self.func = func
 
 
 class IncludeFromBase[SrcT, DestT]:
-    __slots__ = ("src_t", "dest_t")
-
     def __init__(self, src_t: Type[SrcT], dest_t: Type[DestT]) -> None:
         self.src_t = src_t
         self.dest_t = dest_t
 
 
 class MappingSequence[SrcT, DestT]:
-    __slots__ = ("src_t", "dest_t", "head", "for_attrs", "tail", "includes")
-
     def __init__(self, src: type[SrcT], dest: type[DestT]) -> None:
         self.src_t = Type(src)
         self.dest_t = Type(dest)

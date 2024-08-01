@@ -1,3 +1,4 @@
+import traceback
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -40,8 +41,8 @@ class AsgiApplication:
             await self._blnt.startup()
             self._blnt.injection.add_singleton(AsgiApplication, instance=self)
             await send({"type": "lifespan.startup.complete"})
-        except BaseException as err:
-            self._blnt.logger.critical("Application startup failed", exc_info=err)
+        except BaseException:
+            traceback.print_exc()
             await send({"type": "lifespan.startup.failed"})
 
     async def _handle_shutdown(

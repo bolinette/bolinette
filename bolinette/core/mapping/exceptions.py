@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 from bolinette.core.exceptions import BolinetteError, ParameterError
@@ -85,7 +85,36 @@ class ConvertionError(MappingError):
         self.target = target
 
 
+class LiteralMatchingError(MappingError):
+    src: ExpressionNode
+    dest: ExpressionNode
+
+    def __init__(self, src: ExpressionNode, dest: ExpressionNode, matched: Any, values: Iterable[Any]) -> None:
+        super().__init__(f"Could not match value {matched} to possible values {values}", src=src, dest=dest)
+        self.matched = matched
+        self.values = values
+
+
 class ValidationError(MappingError):
     def __init__(self, errors: Sequence[MappingError]) -> None:
-        super().__init__("Mapping errors raised during validation")
+        message = "Mapping errors raised during validation"
+        for error in errors:
+            message += f"\n\t{error}"
+        super().__init__(message)
+        self.errors = errors
+
+
+class UnionError(MappingError):
+    src: ExpressionNode
+
+    def __init__(
+        self,
+        src: ExpressionNode,
+        union: Type[Any],
+        errors: dict[Type[Any], list[MappingError]],
+    ) -> None:
+        message = f"Mapping failed to {union}"
+        for t, error_list in errors.items():
+            message += f"\n\tErrors for {t}:\n" + ("\n".join("\t\t" + str(e) for e in error_list))
+        super().__init__(message, src=src)
         self.errors = errors

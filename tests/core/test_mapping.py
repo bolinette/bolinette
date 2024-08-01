@@ -1,30 +1,36 @@
 # pyright: reportUninitializedInstanceVariable=false
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, override
 
 import pytest
 
 from bolinette.core import Cache
 from bolinette.core.expressions import ExpressionNode
 from bolinette.core.expressions.exceptions import MaxDepthExpressionError
-from bolinette.core.mapping import Mapper, MappingRunner, Profile, mapping, type_mapper
+from bolinette.core.mapping import Mapper, MappingRunner, MappingWorker, Profile, mapping, mapping_worker
 from bolinette.core.mapping.exceptions import MappingError
 from bolinette.core.mapping.mapper import (
-    BoolTypeMapper,
-    DefaultTypeMapper,
-    FloatTypeMapper,
-    IntegerTypeMapper,
-    StringTypeMapper,
+    BoolMapper,
+    DictMapper,
+    FloatMapper,
+    IntegerMapper,
+    LiteralMapper,
+    ObjectMapper,
+    SequenceMapper,
+    StringMapper,
 )
 from bolinette.core.testing import Mock
 from bolinette.core.types import Type
 
 
 def load_default_mappers(mapper: Mapper) -> None:
-    mapper.set_default_type_mapper(DefaultTypeMapper)
-    mapper.add_type_mapper(Type(int), IntegerTypeMapper)
-    mapper.add_type_mapper(Type(str), StringTypeMapper)
-    mapper.add_type_mapper(Type(float), FloatTypeMapper)
-    mapper.add_type_mapper(Type(bool), BoolTypeMapper)
+    mapper.set_default_type_mapper(ObjectMapper)
+    mapper.add_type_mapper(Type(IntegerMapper), match_all=False)
+    mapper.add_type_mapper(Type(StringMapper), match_all=False)
+    mapper.add_type_mapper(Type(FloatMapper), match_all=False)
+    mapper.add_type_mapper(Type(BoolMapper), match_all=False)
+    mapper.add_type_mapper(Type(LiteralMapper), match_all=True)
+    mapper.add_type_mapper(Type(DictMapper), match_all=True)
+    mapper.add_type_mapper(Type(SequenceMapper), match_all=True)
 
 
 def test_init_type_mappers_from_cache() -> None:
@@ -35,10 +41,11 @@ def test_init_type_mappers_from_cache() -> None:
     class _Destination:
         value: int
 
-    class TestTypeMapper:
+    class TestTypeMapper(MappingWorker[_Destination]):
         def __init__(self, runner: MappingRunner) -> None:
             self.runner = runner
 
+        @override
         def map(
             self,
             src_expr: ExpressionNode,
@@ -56,7 +63,7 @@ def test_init_type_mappers_from_cache() -> None:
             return dest
 
     cache = Cache()
-    type_mapper(_Destination, cache=cache)(TestTypeMapper)
+    mapping_worker(cache=cache)(TestTypeMapper)
     mock = Mock(cache=cache)
     mock.injection.add_singleton(Mapper)
     mapper = mock.injection.require(Mapper)
@@ -728,7 +735,7 @@ def test_map_to_any() -> None:
     assert d2.n is not s2.n
 
 
-def test_map_to_union_type() -> None:
+def test_map_to_union_type_select_type() -> None:
     class _NestedSource:
         pass
 
@@ -765,7 +772,7 @@ def test_map_to_union_type() -> None:
     assert isinstance(d.n, _NestedDest2)
 
 
-def test_fail_map_to_union_type() -> None:
+def test_map_to_union_type_first_matched() -> None:
     class _NestedSource:
         pass
 
@@ -789,14 +796,39 @@ def test_fail_map_to_union_type() -> None:
     load_default_mappers(mapper)
 
     s = _Source(_NestedSource())
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, _Destination, s)
+    d = mapper.map(_Source, _Destination, s)
 
-    assert (
-        "Destination path 'test_fail_map_to_union_type.<locals>._Destination.n', "
-        f"Destination type {Type(_NestedDest1 | _NestedDest2)} is a union,"
-        " please use use_type(...) in profile" == info.value.message
-    )
+    assert isinstance(d.n, _NestedDest1)
+
+
+def test_map_to_union_type_second_matched() -> None:
+    class _NestedSource:
+        def __init__(self, v: int) -> None:
+            self.v = v
+
+    class _Source:
+        def __init__(self, n: _NestedSource) -> None:
+            self.n = n
+
+    class _NestedDest1:
+        k: str
+
+    class _NestedDest2:
+        v: int
+
+    class _Destination:
+        n: _NestedDest1 | _NestedDest2
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add_singleton(Mapper)
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s = _Source(_NestedSource(3))
+    d = mapper.map(_Source, _Destination, s)
+
+    assert isinstance(d.n, _NestedDest2)
 
 
 def test_fail_map_use_type_not_in_union() -> None:
@@ -1212,3 +1244,38 @@ def test_map_typed_dict_non_total_dict() -> None:
 
     assert "value" in dest and dest["value"] == 4
     assert "content" not in dest
+
+
+def test_map_literal() -> None:
+    class _Destination:
+        type: Literal[0, "value"]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add_singleton(Mapper)
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    dest = mapper.map(dict, _Destination, {"type": "value"})
+
+    assert dest.type == "value"
+
+
+def test_fail_map_literal_no_match() -> None:
+    class _Destination:
+        type: Literal[0, "value"]
+
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.injection.add_singleton(Mapper)
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    with pytest.raises(MappingError) as info:
+        mapper.map(dict, _Destination, {"type": 4.5})
+
+    assert (
+        "Destination path 'test_fail_map_literal_no_match.<locals>._Destination.type', "
+        "From source path 'dict[Any, Any]['type']', "
+        "Could not match value 4.5 to possible values (0, 'value')" == info.value.message
+    )

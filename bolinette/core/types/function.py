@@ -7,8 +7,6 @@ from bolinette.core.types import Type, TypeVarLookup
 
 
 class Function[**FuncP, FuncT]:
-    __slots__: list[str] = ["func", "bound_to"]
-
     def __init__(self, func: Callable[FuncP, FuncT]) -> None:
         if isinstance(func, Function):
             raise TypeError(f"Cannot wrap {func}, already wrapped")

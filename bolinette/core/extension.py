@@ -7,14 +7,16 @@ from bolinette.core.environment import Environment, environment
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, injectable, injection_arg_resolver
 from bolinette.core.injection.injection import InjectionEvent, injection_callback
-from bolinette.core.injection.resolver import LoggerArgResolver
-from bolinette.core.logging import Logger
-from bolinette.core.mapping import Mapper, type_mapper
+from bolinette.core.logging import Logger, LoggerArgResolver
+from bolinette.core.mapping import Mapper, mapping_worker
 from bolinette.core.mapping.mapper import (
-    BoolTypeMapper,
-    FloatTypeMapper,
-    IntegerTypeMapper,
-    StringTypeMapper,
+    BoolMapper,
+    DictMapper,
+    FloatMapper,
+    IntegerMapper,
+    LiteralMapper,
+    SequenceMapper,
+    StringMapper,
 )
 from bolinette.core.types.checker import (
     DefaultTypeChecker,
@@ -73,11 +75,13 @@ class _CoreExtension(Extension):
         type_checker(priority=-1000, cache=cache)(DefaultTypeChecker)
 
         injectable(strategy="singleton", cache=cache)(Mapper)
-        type_mapper(int, cache=cache)(IntegerTypeMapper)
-        type_mapper(float, cache=cache)(FloatTypeMapper)
-        type_mapper(bool, cache=cache)(BoolTypeMapper)
-        type_mapper(str, cache=cache)(StringTypeMapper)
-        type_mapper(str, cache=cache)(StringTypeMapper)
+        mapping_worker(cache=cache)(IntegerMapper)
+        mapping_worker(cache=cache)(FloatMapper)
+        mapping_worker(cache=cache)(BoolMapper)
+        mapping_worker(cache=cache)(StringMapper)
+        mapping_worker(cache=cache, match_all=True)(LiteralMapper)
+        mapping_worker(cache=cache, match_all=True)(DictMapper)
+        mapping_worker(cache=cache, match_all=True)(SequenceMapper)
 
         command(
             "debug injection",

@@ -24,25 +24,11 @@ from bolinette.core.exceptions import TypingError
 
 
 class Type[T]:
-    __slots__: list[str] = [
-        "origin",
-        "cls",
-        "vars",
-        "lookup",
-        "nullable",
-        "union",
-        "annotated",
-        "required",
-        "total",
-        "_hash",
-        "_bases",
-    ]
-
     origin: type[T] | UnionType
     annotated: tuple[Any, ...]
     required: bool
     nullable: bool
-    union: "set[Type[Any]]"
+    union: "tuple[Type[Any], ...]"
     total: bool
     cls: type[T]
     vars: tuple[Any, ...]
@@ -89,7 +75,7 @@ class Type[T]:
         self.annotated = ()
         self.required = True
         self.nullable = False
-        self.union = set()
+        self.union = ()
         cls = self._unpack_annotations(origin)
         self.total = getattr(cls, "__total__", True)
         self.cls, self.vars = Type.get_generics(cls, lookup, raise_on_string, raise_on_typevar)
@@ -117,7 +103,7 @@ class Type[T]:
             args = tuple(a for a in args if a not in (None, NoneType))
             cls, *additional_cls = args
             if len(additional_cls):
-                self.union.update([Type(cls)], (Type(c) for c in additional_cls))
+                self.union = (Type(cls), *(Type(c) for c in additional_cls))
             return self._unpack_annotations(cls)
         return cls  # pyright: ignore[reportReturnType]
 

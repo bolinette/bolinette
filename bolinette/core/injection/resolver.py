@@ -1,10 +1,8 @@
-import logging
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from bolinette.core import Cache, CoreSection, __user_cache__, injection, meta
+from bolinette.core import Cache, __user_cache__, injection, meta
 from bolinette.core.injection.context import InjectionContext
-from bolinette.core.logging import ColorFormatter, Logger
 from bolinette.core.types import Type
 from bolinette.core.utils import OrderedSet
 
@@ -49,21 +47,3 @@ def injection_arg_resolver[ArgResolverT: ArgumentResolver](
         return cls
 
     return decorator
-
-
-class LoggerArgResolver:
-    def __init__(self, core_config: CoreSection) -> None:
-        self.config = core_config
-
-    def supports(self, options: ArgResolverOptions) -> bool:
-        return options.t.cls is Logger
-
-    def resolve(self, options: ArgResolverOptions) -> logging.Logger:
-        logger = logging.getLogger(f"__blnt_logger__.{options.t}")
-        if not logger.hasHandlers():
-            print(self.config.logging)
-            handler = logging.StreamHandler()
-            handler.setFormatter(ColorFormatter(options.t.vars[0].__qualname__))
-            logger.addHandler(handler)
-            logger.setLevel(logging.DEBUG)
-        return logger

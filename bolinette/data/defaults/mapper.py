@@ -3,17 +3,12 @@ from typing import Any, override
 from sqlalchemy.orm import Mapped
 
 from bolinette.core.expressions import ExpressionNode
+from bolinette.core.mapping import MappingWorker
 from bolinette.core.mapping.exceptions import MappingError
-from bolinette.core.mapping.mapper import MappingRunner, TypeMapper
 from bolinette.core.types import Type
 
 
-class OrmColumnTypeMapper(TypeMapper[Mapped[Any]]):
-    __slots__ = "runner"
-
-    def __init__(self, runner: MappingRunner) -> None:
-        self.runner = runner
-
+class OrmColumnTypeMapper(MappingWorker[Mapped[Any]]):
     @override
     def map[SrcT](
         self,
