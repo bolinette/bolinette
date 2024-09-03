@@ -1,135 +1,116 @@
+# pyright: reportUnknownMemberType=false, reportInvalidTypeForm=false, reportUnknownParameterType=false
+# pyright: reportUnknownVariableType=false, reportArgumentType=false, reportUnknownArgumentType=false
 from collections.abc import Awaitable, Callable
-from typing import Annotated, Any
+from typing import Annotated, Any, Concatenate
 
 from bolinette.api import ApiController
 from bolinette.core.mapping.mapper import NoInitDestination
+from bolinette.core.types import Function, Type
 from bolinette.data.relational import DeclarativeBase
 from bolinette.web import Payload, delete, get, patch, post, put
 
 
 class _Autoroute:
-    def get_all[
-        ClsT: ApiController[DeclarativeBase],
-        DtoT: NoInitDestination,
-    ](
+    def get_all[DtoT: NoInitDestination](
         self,
-        dto_cls: type[DtoT],
-    ) -> Callable[[Callable[[Any], Awaitable[None]]], Callable[[Any], Awaitable[list[DtoT]]]]:
-        def decorator(
-            func: Callable[[ClsT], Awaitable[None]],
-        ) -> Callable[[ClsT], Awaitable[list[DtoT]]]:
-            @get("")
-            async def _inner(self: ClsT) -> list[dto_cls]:
-                entity = await self.service.get_all()
-                return self.mapper.map(list[self.cls], list[dto_cls], entity)
+        func: Callable[[Any], Awaitable[list[DtoT]]],
+    ) -> Callable[[Any], Awaitable[list[DtoT]]]:
+        func_f = Function(func)
+        dto_t = func_f.return_type
 
-            return _inner
+        @get("")
+        async def _inner(self: ApiController[DeclarativeBase]) -> list[dto_t.origin]:
+            entity = await self.service.get_all()
+            return self.mapper.map(list[self.cls], dto_t.origin, entity)
 
-        return decorator
+        return _inner
 
-    def get_one[
-        ClsT: ApiController[DeclarativeBase],
-        DtoT: NoInitDestination,
-    ](
+    def get_one[DtoT: NoInitDestination](
         self,
-        dto_cls: type[DtoT],
-    ) -> Callable[[Callable[[Any], Awaitable[None]]], Callable[[Any, str], Awaitable[DtoT]]]:
-        def decorator(
-            func: Callable[[ClsT], Awaitable[None]],
-        ) -> Callable[[ClsT, str], Awaitable[DtoT]]:
-            @get(r"{id}")
-            async def _inner(self: ClsT, id: str) -> dto_cls:
-                entity = await self.service.get_by_primary(id)
-                return self.mapper.map(self.cls, dto_cls, entity)
+        func: Callable[[Any], Awaitable[DtoT]],
+    ) -> Callable[[Any, str], Awaitable[DtoT]]:
+        func_f = Function(func)
+        dto_t = func_f.return_type
 
-            return _inner
+        @get(r"{id}")
+        async def _inner(self: ApiController[DeclarativeBase], id: str) -> dto_t.origin:
+            entity = await self.service.get_by_primary(id)
+            return self.mapper.map(self.cls, dto_t.origin, entity)
 
-        return decorator
+        return _inner
 
-    def create[
-        ClsT: ApiController[DeclarativeBase],
-        PayloadT: NoInitDestination,
-        DtoT: NoInitDestination,
-    ](
+    def create[PayloadT: NoInitDestination, DtoT: NoInitDestination](
         self,
-        payload_cls: type[PayloadT],
-        dto_cls: type[DtoT],
-    ) -> Callable[[Callable[[Any], Awaitable[None]]], Callable[[Any, PayloadT], Awaitable[DtoT]]]:
-        def decorator(
-            func: Callable[[ClsT], Awaitable[None]],
-        ) -> Callable[[ClsT, PayloadT], Awaitable[DtoT]]:
-            @post("")
-            async def _inner(self: ClsT, payload: Annotated[payload_cls, Payload]) -> dto_cls:
-                entity = self.service.create(payload)
-                return self.mapper.map(self.cls, dto_cls, entity)
+        func: Callable[Concatenate[Any, PayloadT, ...], Awaitable[DtoT]],
+    ) -> Callable[[Any, PayloadT], Awaitable[DtoT]]:
+        func_f = Function(func)
+        payload_t: Type[PayloadT] = func_f.anno_at(1)
+        dto_t = func_f.return_type
 
-            return _inner
+        @post("")
+        async def _inner(
+            self: ApiController[DeclarativeBase],
+            payload: Annotated[payload_t.origin, Payload],
+        ) -> dto_t.origin:
+            entity = self.service.create(payload)
+            return self.mapper.map(self.cls, dto_t.origin, entity)
 
-        return decorator
+        return _inner
 
-    def update[
-        ClsT: ApiController[DeclarativeBase],
-        PayloadT: NoInitDestination,
-        DtoT: NoInitDestination,
-    ](
+    def update[PayloadT: NoInitDestination, DtoT: NoInitDestination](
         self,
-        payload_cls: type[PayloadT],
-        dto_cls: type[DtoT],
-    ) -> Callable[[Callable[[Any], Awaitable[None]]], Callable[[Any, str, PayloadT], Awaitable[DtoT]]]:
-        def decorator(
-            func: Callable[[ClsT], Awaitable[None]],
-        ) -> Callable[[ClsT, str, PayloadT], Awaitable[DtoT]]:
-            @put(r"{id}")
-            async def _inner(self: ClsT, id: str, payload: Annotated[payload_cls, Payload]) -> dto_cls:
-                entity = await self.service.get_by_primary(id)
-                entity = self.service.update(entity, payload)
-                return self.mapper.map(self.cls, dto_cls, entity)
+        func: Callable[Concatenate[Any, PayloadT, ...], Awaitable[DtoT]],
+    ) -> Callable[[Any, str, PayloadT], Awaitable[DtoT]]:
+        func_f = Function(func)
+        payload_t: Type[PayloadT] = func_f.anno_at(1)
+        dto_t = func_f.return_type
 
-            return _inner
+        @put(r"{id}")
+        async def _inner(
+            self: ApiController[DeclarativeBase],
+            id: str,
+            payload: Annotated[payload_t.origin, Payload],
+        ) -> dto_t.origin:
+            entity = await self.service.get_by_primary(id)
+            entity = self.service.update(entity, payload)
+            return self.mapper.map(self.cls, dto_t.origin, entity)
 
-        return decorator
+        return _inner
 
-    def patch[
-        ClsT: ApiController[DeclarativeBase],
-        PayloadT: NoInitDestination,
-        DtoT: NoInitDestination,
-    ](
+    def patch[PayloadT: NoInitDestination, DtoT: NoInitDestination](
         self,
-        payload_cls: type[PayloadT],
-        dto_cls: type[DtoT],
-    ) -> Callable[[Callable[[Any], Awaitable[None]]], Callable[[Any, str, PayloadT], Awaitable[DtoT]]]:
-        def decorator(
-            func: Callable[[ClsT], Awaitable[None]],
-        ) -> Callable[[ClsT, str, PayloadT], Awaitable[DtoT]]:
-            @patch(r"{id}")
-            async def _inner(self: ClsT, id: str, payload: Annotated[payload_cls, Payload]) -> dto_cls:
-                entity = await self.service.get_by_primary(id)
-                entity = self.service.update(entity, payload)
-                return self.mapper.map(self.cls, dto_cls, entity)
+        func: Callable[Concatenate[Any, PayloadT, ...], Awaitable[DtoT]],
+    ) -> Callable[[Any, str, PayloadT], Awaitable[DtoT]]:
+        func_f = Function(func)
+        payload_t: Type[PayloadT] = func_f.anno_at(1)
+        dto_t = func_f.return_type
 
-            return _inner
+        @patch(r"{id}")
+        async def _inner(
+            self: ApiController[DeclarativeBase],
+            id: str,
+            payload: Annotated[payload_t.origin, Payload],
+        ) -> dto_t.origin:
+            entity = await self.service.get_by_primary(id)
+            entity = self.service.update(entity, payload)
+            return self.mapper.map(self.cls, dto_t.origin, entity)
 
-        return decorator
+        return _inner
 
-    def delete[
-        ClsT: ApiController[DeclarativeBase],
-        DtoT: NoInitDestination,
-    ](
+    def delete[DtoT: NoInitDestination](
         self,
-        dto_cls: type[DtoT],
-    ) -> Callable[[Callable[[Any], Awaitable[None]]], Callable[[Any, str], Awaitable[DtoT]]]:
-        def decorator(
-            func: Callable[[ClsT], Awaitable[None]],
-        ) -> Callable[[ClsT, str], Awaitable[DtoT]]:
-            @delete(r"{id}")
-            async def _inner(self: ClsT, id: str) -> dto_cls:
-                entity = await self.service.get_by_primary(id)
-                await self.service.delete(entity)
-                return self.mapper.map(self.cls, dto_cls, entity)
+        func: Callable[[Any], Awaitable[DtoT]],
+    ) -> Callable[[Any, str], Awaitable[DtoT]]:
+        func_f = Function(func)
+        dto_t = func_f.return_type
 
-            return _inner
+        @delete(r"{id}")
+        async def _inner(self: ApiController[DeclarativeBase], id: str) -> dto_t.origin:
+            entity = await self.service.get_by_primary(id)
+            await self.service.delete(entity)
+            return self.mapper.map(self.cls, dto_t.origin, entity)
 
-        return decorator
+        return _inner
 
 
 autoroute = _Autoroute()

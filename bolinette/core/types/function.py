@@ -12,18 +12,39 @@ class Function[**FuncP, FuncT]:
             raise TypeError(f"Cannot wrap {func}, already wrapped")
         self.func = func
         self.bound_to = getattr(self.func, "__self__", None)
+        self._annotations: dict[str, Any] | None = None
+        self._signature: inspect.Signature | None = None
+        self._parameters: dict[str, inspect.Parameter] | None = None
 
     @property
     def name(self) -> str:
         return self.func.__name__ if hasattr(self.func, "__name__") else str(self.func)
 
     def parameters(self) -> dict[str, inspect.Parameter]:
-        return {**inspect.signature(self.func).parameters}
+        if self._parameters is None:
+            if self._signature is None:
+                self._signature = inspect.signature(self.func)
+            self._parameters = {**self._signature.parameters}
+        return self._parameters
+
+    def param_at(self, index: int) -> inspect.Parameter:
+        all_params = [*self.parameters().values()]
+        return all_params[index]
 
     def annotations(self, *, lookup: TypeVarLookup[Any] | None = None) -> dict[str, Any]:
-        return {
-            n: self._transform_annotation(c, lookup) for n, c in get_type_hints(self.func, include_extras=True).items()
-        }
+        if self._annotations is None:
+            self._annotations = {
+                n: self._transform_annotation(c, lookup)
+                for n, c in get_type_hints(self.func, include_extras=True).items()
+            }
+        return self._annotations
+
+    def anno_at(self, index: int) -> Any:
+        return self.annotations()[self.param_at(index).name]
+
+    @property
+    def return_type(self) -> Type[FuncT]:
+        return self.annotations()["return"]
 
     def __call__(self, *args: FuncP.args, **kwargs: FuncP.kwargs) -> FuncT:
         return self.func(*args, **kwargs)

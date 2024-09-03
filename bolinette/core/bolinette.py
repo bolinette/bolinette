@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from collections.abc import Callable
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Self
 
 from bolinette import core
 from bolinette.core import __user_cache__, meta
@@ -41,14 +41,15 @@ class Bolinette:
     @require(Parser)
     def _parser(self): ...
 
-    async def _run_startup_funcs(self) -> None:
+    async def startup(self) -> Self:
         funcs: list[Callable[..., Any]] = self._cache.get(STARTUP_CACHE_KEY, raises=False)
         async with self._inject.get_async_scoped_session() as scoped_inject:
             for func in funcs:
                 if asyncio.iscoroutine(res := scoped_inject.call(func)):
                     await res
+        return self
 
-    async def startup(self) -> None:
+    def build(self) -> Self:
         if self._initialized:
             raise InitError("Bolinette has already been initialized")
         self._extensions = Extension.sort_extensions(self._extensions)
@@ -69,15 +70,17 @@ class Bolinette:
         self.logger.info(f"Loaded Bolinette with extensions: {', '.join(e.name for e in self._extensions)}")
         self._initialized = True
 
+        return self
+
     @property
     def injection(self) -> Injection:
         return self._inject
 
     async def exec_args(self, args: list[str]) -> NoReturn:
         if not self._initialized:
-            await self.startup()
+            self.build()
         cmd, cmd_args = self._parser.parse_command(args)
         if cmd.run_startup:
-            await self._run_startup_funcs()
+            await self.startup()
         result = await self._inject.call(cmd.func, named_args=cmd_args)
         sys.exit(result or 0)
