@@ -28,7 +28,7 @@ class ParameterError:
     def _format_params(self, message: str, **values: Any) -> str:
         f_strings: list[str] = []
         for param, f_string in self._error_params.items():
-            if param in values and values[param]:
+            if values.get(param):
                 f_strings.append(f_string.replace("{}", str(values[param])))
         return ", ".join([*f_strings, message])
 
