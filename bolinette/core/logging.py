@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar, Protocol, override
 
+from bolinette.core import meta
 from bolinette.core.injection.resolver import ArgResolverOptions
 from bolinette.core.objects import CoreSection, FileLoggingConfig, StreamLoggingConfig
 
@@ -93,7 +94,8 @@ class LoggerArgResolver:
 
     def resolve(self, options: ArgResolverOptions) -> logging.Logger:
         logger = logging.getLogger(f"__blnt_logger__.{options.t}")
-        if not logger.hasHandlers():
+        if not meta.has(logger, LoggerArgResolver):
+            meta.set(logger, self)
             logger.setLevel(logging.DEBUG)
             logger_name = options.t.vars[0].__qualname__
             if self.config.logging is None:

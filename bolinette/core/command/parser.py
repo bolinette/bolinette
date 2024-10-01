@@ -1,8 +1,8 @@
 import inspect
 import sys
-from argparse import ArgumentParser
-from collections.abc import Awaitable
-from typing import Any, Literal, Protocol
+from argparse import Action, ArgumentParser, FileType, Namespace
+from collections.abc import Awaitable, Callable, Iterable, Sequence
+from typing import Any, Literal, Protocol, override
 
 from bolinette.core import Cache, meta
 from bolinette.core.command.command import Argument, CommandMeta
@@ -115,6 +115,17 @@ class Parser:
             kwargs["type"] = int
         elif type.cls is float:
             kwargs["type"] = float
+        elif type.cls is bytes:
+            kwargs["action"] = BytesArgparserAction
+        elif type.cls is bool:
+            if "default" in kwargs:
+                if kwargs["default"] is False:
+                    kwargs["action"] = "store_true"
+                else:
+                    kwargs["action"] = "store_false"
+                del kwargs["default"]
+            else:
+                kwargs["action"] = "store_true"
         elif type.cls is Literal:
             if len(type.vars) == 1:
                 if type.vars == (True,):
@@ -158,3 +169,33 @@ class Parser:
     def _build_help(command_tree: dict[str, Any], path: list[str]):
         commands = [f'"{" ".join([*path, x])}"' for x in command_tree]
         return "Sub-commands: " + ", ".join(commands)
+
+
+class BytesArgparserAction[_T](Action):
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str,
+        nargs: int | str | None = None,
+        const: _T | None = None,
+        default: _T | str | None = None,
+        type: Callable[[str], _T] | FileType | None = None,
+        choices: Iterable[_T] | None = None,
+        required: bool = False,
+        help: str | None = None,
+        metavar: str | tuple[str, ...] | None = None,
+    ) -> None:
+        super().__init__(option_strings, dest, nargs, const, default, type, choices, required, help, metavar)
+
+    @override
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
+        if isinstance(values, str):
+            setattr(namespace, self.dest, values.encode())
+            return
+        raise TypeError()

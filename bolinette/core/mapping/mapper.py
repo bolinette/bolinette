@@ -304,7 +304,7 @@ class ObjectMapper(MappingWorker[Any]):
                     continue
             new_value = self.runner.map(
                 field_src_expr,
-                Type(type(value)),
+                Type(type(value)),  # pyright: ignore[reportUnknownArgumentType]
                 field_dest_expr,
                 anno_t,
                 value,
@@ -411,6 +411,29 @@ class StringMapper(MappingWorker[str]):
         exc_grp: list[MappingError] | None,
     ) -> str:
         return str(src)
+
+
+class BytesMapper(MappingWorker[bytes]):
+    @override
+    def map[SrcT](
+        self,
+        src_expr: ExpressionNode,
+        src_t: Type[SrcT],
+        dest_expr: ExpressionNode,
+        dest_t: Type[bytes],
+        src: SrcT,
+        dest: bytes | None,
+        exc_grp: list[MappingError] | None,
+    ) -> bytes:
+        if isinstance(src, str):
+            return src.encode("utf-8")
+        if isinstance(src, bytes):
+            return bytes(src)
+        exc = ConvertionError(src_expr, dest_expr, src, Type(bytes))
+        if exc_grp is None:
+            raise exc
+        exc_grp.append(exc)
+        return None  # pyright: ignore[reportReturnType]
 
 
 class LiteralMapper(MappingWorker[Literal]):  # pyright: ignore[reportMissingTypeArgument]

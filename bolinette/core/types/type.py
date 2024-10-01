@@ -130,7 +130,7 @@ class Type[T]:
         if self._bases is None:
             if hasattr(self.cls, "__orig_bases__"):
                 self._bases = tuple(
-                    Type(c, lookup=self.lookup)
+                    Type(c, lookup=self.lookup)  # pyright: ignore
                     for c in self.cls.__orig_bases__  # pyright: ignore
                     if get_origin(c) is not Generic  # pyright: ignore
                 )

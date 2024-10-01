@@ -393,25 +393,6 @@ async def test_command_arg_types() -> None:
     mock.injection.require(Parser)
 
 
-async def test_fail_wrong_arg_type() -> None:
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Parser)
-    mock.mock(Logger[Parser])
-
-    @command("command sub", "This is a test command", cache=cache)
-    async def _(p1: Annotated[bool, Argument]) -> None:
-        pass
-
-    with pytest.raises(InitError) as info:
-        mock.injection.require(Parser)
-
-    assert (
-        "Command test_fail_wrong_arg_type.<locals>._, Argument 'p1', Type bool is not allowed as a command argument"
-        == info.value.message
-    )
-
-
 async def test_fail_wrong_arg_literal_type() -> None:
     cache = Cache()
     mock = Mock(cache=cache)

@@ -11,6 +11,7 @@ from bolinette.core.logging import Logger, LoggerArgResolver
 from bolinette.core.mapping import Mapper, mapping_worker
 from bolinette.core.mapping.mapper import (
     BoolMapper,
+    BytesMapper,
     DictMapper,
     FloatMapper,
     IntegerMapper,
@@ -79,6 +80,7 @@ class _CoreExtension(Extension):
         mapping_worker(cache=cache)(FloatMapper)
         mapping_worker(cache=cache)(BoolMapper)
         mapping_worker(cache=cache)(StringMapper)
+        mapping_worker(cache=cache)(BytesMapper)
         mapping_worker(cache=cache, match_all=True)(LiteralMapper)
         mapping_worker(cache=cache, match_all=True)(DictMapper)
         mapping_worker(cache=cache, match_all=True)(SequenceMapper)
