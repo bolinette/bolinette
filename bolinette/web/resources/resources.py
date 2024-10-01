@@ -10,7 +10,8 @@ from bolinette.core.mapping import Mapper
 from bolinette.core.types import Function, Type, TypeChecker, TypeVarLookup
 from bolinette.core.utils import AttributeUtils
 from bolinette.web.abstract import Request, Response, ResponseState
-from bolinette.web.config import WebConfig
+from bolinette.web.auth import AuthProviders, BolinetteAuthProvider
+from bolinette.web.config import BlntAuthProps, WebConfig
 from bolinette.web.controller import Controller, ControllerMeta
 from bolinette.web.exceptions import (
     MethodNotAllowedDispatchError,
@@ -45,6 +46,18 @@ class WebResources:
         self.ws_handler: WebSocketHandler | None
 
     @init_method
+    def _init_blnt_auth(self, config: WebConfig, providers: AuthProviders, inject: Injection) -> None:
+        if config.blnt_auth is not None:
+            inject.add_singleton(BlntAuthProps, instance=config.blnt_auth)
+            providers.add_provider(BolinetteAuthProvider)
+
+    @init_method
+    def _init_sockets(self, config: WebConfig, inject: Injection) -> None:
+        if config.use_sockets:
+            inject.add_singleton(WebSocketHandler)
+            self.ws_handler = inject.require(WebSocketHandler)
+
+    @init_method
     def _init_ctrls(self, cache: Cache) -> None:
         for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller], raises=False):
             ctrl_meta = meta.get(ctrl_cls, ControllerMeta)
@@ -55,12 +68,6 @@ class WebResources:
                 bucket = meta.get(attr, RouteBucket)
                 for props in bucket.routes:
                     self.add_route(ctrl_cls, ctrl_meta.path, attr, props.method, props.path)
-
-    @init_method
-    def _init_sockets(self, config: WebConfig, inject: Injection) -> None:
-        if config.use_sockets:
-            inject.add_singleton(WebSocketHandler)
-            self.ws_handler = inject.require(WebSocketHandler)
 
     def add_route(
         self,
@@ -117,8 +124,11 @@ class WebResources:
                 result = await self._middleware_chain(route, request, scoped_inject, mdlws)
                 await writer.write_result(result, data)
         except Exception as err:
-            self.logger.error(str(type(err)), str(err))
             status, content = WebErrorHandler.create_error_payload(err, self.core_section.debug)
+            if status == 500:
+                self.logger.error(str(type(err)), exc_info=err)
+            else:
+                self.logger.error(str(type(err)))
             if response.state != ResponseState.Idle:
                 self.logger.error("Response has already started, unable to send error")
             else:
@@ -147,7 +157,7 @@ class WebResources:
             return await self._call_controller(route, request, scoped)
         else:
             mdlw = mdlws[index]
-            self.logger.debug(f"Calling middleware {mdlw}")
+            self.logger.debug(f"Calling middleware {mdlw.__class__.__qualname__}")
             return await scoped.call(mdlw.handle, args=[_next_handle])
 
     async def _call_controller(

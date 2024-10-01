@@ -12,6 +12,7 @@ from bolinette.core.testing import Mock
 from bolinette.core.types import TypeChecker
 from bolinette.web import Payload, controller, delete, get, patch, post, put
 from bolinette.web.abstract import ResponseState
+from bolinette.web.auth import AuthProviders
 from bolinette.web.config import WebConfig
 from bolinette.web.resources import HttpHeaders, ResponseData, WebResources
 
@@ -32,6 +33,9 @@ class MockRequest:
         self.query_params = query_params or {}
         self.path_params = path_params or {}
         self._payload = payload
+
+    def has_header(self, key: str, /) -> bool: ...
+    def get_header(self, key: str, /) -> str: ...
 
     async def raw(self) -> bytes:
         return self._payload or b""
@@ -94,6 +98,7 @@ async def test_call_route_returns_str() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get("")
@@ -123,6 +128,7 @@ async def test_call_route_returns_int() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get("")
@@ -151,6 +157,7 @@ async def test_call_route_returns_bytes() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get("")
@@ -179,6 +186,7 @@ async def test_call_route_int_param() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"{id}")
@@ -205,6 +213,7 @@ async def test_call_route_int_asyncgenerator() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"")
@@ -233,6 +242,7 @@ async def test_call_route_int_generator() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"")
@@ -261,6 +271,7 @@ async def test_call_route_returns_coroutine() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"")
@@ -290,6 +301,7 @@ async def test_call_route_returns_asyncgen() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"")
@@ -321,6 +333,7 @@ async def test_fail_route_not_found() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller: ...
 
@@ -346,6 +359,7 @@ async def test_fail_route_method_not_allowed() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"")
@@ -373,6 +387,7 @@ async def test_fail_route_raises_exception() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get(r"")
@@ -411,6 +426,7 @@ async def test_fail_route_raises_exception_debug() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class CustomError(Exception): ...
 
@@ -454,6 +470,7 @@ async def test_call_many_routes() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     order: list[str] = []
 
@@ -499,6 +516,7 @@ async def test_call_route_with_class_payload() -> None:
     mock.mock(CoreSection).setup(lambda c: c.debug, True)
     mock.mock(TypeChecker).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     @dataclass()
     class TestPayload:
@@ -546,6 +564,7 @@ async def test_set_response_status() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(Mapper).dummy()
     mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
 
     class Controller:
         @get("")

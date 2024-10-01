@@ -68,6 +68,32 @@ class BadRequestError(WebError):
         super().__init__(message, error_code, HTTPStatus.BAD_REQUEST, error_args, ctrl=ctrl, route=route)
 
 
+class ForbiddenError(WebError):
+    def __init__(
+        self,
+        message: str,
+        error_code: str,
+        error_args: dict[str, Any] | None = None,
+        *,
+        ctrl: Type[Controller] | None = None,
+        route: Function[..., Any] | None = None,
+    ) -> None:
+        super().__init__(message, error_code, HTTPStatus.FORBIDDEN, error_args, ctrl=ctrl, route=route)
+
+
+class UnauthorizedError(WebError):
+    def __init__(
+        self,
+        message: str,
+        error_code: str,
+        error_args: dict[str, Any] | None = None,
+        *,
+        ctrl: Type[Controller] | None = None,
+        route: Function[..., Any] | None = None,
+    ) -> None:
+        super().__init__(message, error_code, HTTPStatus.UNAUTHORIZED, error_args, ctrl=ctrl, route=route)
+
+
 class MissingParameterError(BadRequestError):
     def __init__(
         self,

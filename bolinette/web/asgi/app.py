@@ -76,7 +76,13 @@ class AsgiApplication:
         if self._resources is None:
             self._resources = self._blnt.injection.require(WebResources)
 
-        request = AsgiRequest(scope["method"], scope["path"], {}, {}, received, receive)
+        headers = {k.decode(): v.decode() for (k, v) in scope["headers"]}
+        if scope["query_string"]:
+            query = {k.decode(): v.decode() for k, v in [p.split(b"=", 1) for p in scope["query_string"].split(b"&")]}
+        else:
+            query = {}
+        request = AsgiRequest(scope["method"], scope["path"], headers, query, received, receive)
+
         response = AsgiResponse(send)
         await self._resources.dispatch(request, response)
 

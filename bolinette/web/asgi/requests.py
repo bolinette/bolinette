@@ -35,7 +35,7 @@ class AsgiRequest:
     ) -> None:
         self.method = method
         self.path = path
-        self.headers = headers
+        self.headers = {k.lower(): v for k, v in headers.items()}
         self.query_params = query_params
         self.path_params: dict[str, str] = {}
         self._body = AsgiAsyncBody(received, receive)
@@ -48,6 +48,12 @@ class AsgiRequest:
 
     async def json(self, *, cls: type[json.JSONDecoder] | None = None) -> Any:
         return json.loads(await self._body.read(), cls=cls)
+
+    def has_header(self, key: str, /) -> bool:
+        return key.lower() in self.headers
+
+    def get_header(self, key: str, /) -> str:
+        return self.headers[key.lower()]
 
 
 class AsgiSocketRequest:
