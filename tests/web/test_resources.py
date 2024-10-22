@@ -178,7 +178,7 @@ async def test_call_route_returns_bytes() -> None:
     assert resp.headers[HttpHeaders.ContentType] == "application/octet-stream"
 
 
-async def test_call_route_int_param() -> None:
+async def test_call_route_params() -> None:
     cache = Cache()
     mock = Mock(cache=cache)
     mock.mock(Logger[WebResources]).dummy()
@@ -189,9 +189,9 @@ async def test_call_route_int_param() -> None:
     mock.mock(AuthProviders).dummy()
 
     class Controller:
-        @get(r"{id}")
-        async def test_route(self, id: int) -> int:
-            return id + 1
+        @get(r"{_int}/{_float}/{_bool}/{_str}")
+        async def test_route(self, _int: int, _float: float, _bool: bool, _str: str) -> list[Any]:
+            return [_int + 1, _float * 2, not _bool, "".join(reversed(_str))]
 
     controller("/", cache=cache)(Controller)
 
@@ -199,10 +199,48 @@ async def test_call_route_int_param() -> None:
     res = mock.injection.instantiate(WebResources)
     buffer = BytesIO()
 
-    await res.dispatch(MockRequest("GET", "/1"), MockResponse(buffer))
+    await res.dispatch(MockRequest("GET", "/1/1.6/false/test"), MockResponse(buffer))
 
     buffer.seek(0)
-    assert buffer.read() == b"2"
+    assert buffer.read() == b'[2, 3.2, true, "tset"]'
+
+
+async def test_fail_call_route_param_wrong_type() -> None:
+    cache = Cache()
+    mock = Mock(cache=cache)
+    mock.mock(Logger[WebResources]).dummy()
+    mock.mock(CoreSection).dummy()
+    mock.mock(TypeChecker).dummy()
+    mock.mock(Mapper).dummy()
+    mock.mock(WebConfig).dummy()
+    mock.mock(AuthProviders).dummy()
+
+    class Controller:
+        @get(r"{param}")
+        async def test_route(self, param: int) -> Any: ...
+
+    controller("/", cache=cache)(Controller)
+
+    mock.injection.add_singleton(WebResources)
+    res = mock.injection.instantiate(WebResources)
+    buffer = BytesIO()
+
+    response = MockResponse(buffer)
+    await res.dispatch(MockRequest("GET", "/test"), response)
+
+    buffer.seek(0)
+    assert response.status == 400
+    assert json.loads(buffer.read()) == {
+        "status": 400,
+        "reason": "Bad Request",
+        "errors": [
+            {
+                "message": "Unable to convert param to type int",
+                "code": "web.route.param.wrong_type",
+                "params": {},
+            }
+        ],
+    }
 
 
 async def test_call_route_int_asyncgenerator() -> None:

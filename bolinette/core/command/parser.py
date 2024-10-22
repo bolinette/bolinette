@@ -76,7 +76,13 @@ class Parser:
                         if anno is Argument or isinstance(anno, Argument):
                             if anno is Argument:
                                 anno = Argument()
-                            flags, kwargs = self._create_argument(elem.func, p_name, param, param_t, anno)
+                            flags, kwargs = self._create_argument(
+                                elem.func,
+                                p_name,
+                                param,
+                                param_t,
+                                anno,  # pyright: ignore[reportArgumentType]
+                            )
                             sub_parser.add_argument(*flags, **kwargs)
                 sub_parser.set_defaults(__blnt_cmd__=_cmd.path)
             elif isinstance(elem, dict):

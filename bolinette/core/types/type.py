@@ -30,7 +30,7 @@ class Type[T]:
     nullable: bool
     union: "tuple[Type[Any], ...]"
     total: bool
-    cls: type[T]
+    cls: Any
     vars: tuple[Any, ...]
     lookup: "types.TypeVarLookup[T]"
 
@@ -87,7 +87,7 @@ class Type[T]:
         self._hash = hash((self.cls, self.vars))
         self._bases: tuple[Type[Any], ...] | None = None
 
-    def _unpack_annotations(self, cls: type[T] | UnionType) -> type[T]:
+    def _unpack_annotations(self, cls: Any) -> Any:
         if isinstance(cls, TypeAliasType):
             return self._unpack_annotations(cls.__value__)
         origin = get_origin(cls)
@@ -105,7 +105,7 @@ class Type[T]:
             if len(additional_cls):
                 self.union = (Type(cls), *(Type(c) for c in additional_cls))
             return self._unpack_annotations(cls)
-        return cls  # pyright: ignore[reportReturnType]
+        return cls
 
     @staticmethod
     def _format_type(v: Any) -> str:

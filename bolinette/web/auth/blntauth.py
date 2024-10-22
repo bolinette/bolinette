@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol
 from bolinette.core import Cache, __user_cache__
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, init_method
-from bolinette.core.types import Function, Type
+from bolinette.core.types import Function, Type, TypeChecker
 from bolinette.web import Payload, controller, post
 from bolinette.web.auth import JwtClaims, NotSupportedTokenError
 from bolinette.web.config import BlntAuthProps
@@ -236,7 +236,7 @@ class BolinetteAuthProvider:
             self._create_token("refresh", dt, dt + timedelta(days=30), {}, payload),
         )
 
-    def validate(self, token: str) -> dict[str, Any]:
+    def validate(self, token: str) -> Any:
         token_b = token.encode()
         if self.encrypt_cipher is not None and self.cipher_aad is not None:
             if not token_b.startswith(b"blntauth:"):
@@ -250,15 +250,18 @@ class BolinetteAuthProvider:
                 nonce, token_b = token_b[:12], token_b[12:]
                 token_b = self.encrypt_cipher.decrypt(nonce, token_b, self.cipher_aad)
         try:
-            jwt: dict[str, Any] | Any = self.crypto.jwt.decode(
-                jwt=token_b,
-                key=self.decode_key,  # pyright: ignore[reportArgumentType]
-                algorithms=[self.algorithm],
-                audience=self.audience,
-            )
+            if self.algorithm == "none":
+                jwt_decode_args: dict[str, Any] = {"options": {"verify_signature": False}}
+            else:
+                jwt_decode_args = {"key": self.decode_key, "algorithms": [self.algorithm], "audience": self.audience}
+            jwt: dict[str, Any] | Any = self.crypto.jwt.decode(jwt=token_b, **jwt_decode_args)
         except self.crypto.jwt_errors.PyJWTError as err:
             raise ForbiddenError(f"Invalid auth token: {', '.join(err.args)}", "auth.token.invalid") from err
-        if not isinstance(jwt, dict) or JwtClaims.Issuer not in jwt or jwt[JwtClaims.Issuer] != self.issuer:
+        if (
+            not TypeChecker.basic_check(jwt, dict[str, Any])
+            or JwtClaims.Issuer not in jwt
+            or jwt[JwtClaims.Issuer] != self.issuer
+        ):
             raise NotSupportedTokenError()
         return self.transformer.user_from_claims(jwt.get(JwtClaims.Payload, {}))
 

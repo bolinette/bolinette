@@ -15,6 +15,7 @@ from bolinette.web.abstract import Request
 from bolinette.web.exceptions import (
     BadRequestError,
     GroupedWebError,
+    InternalServerError,
     MissingParameterError,
     ParameterNotNullableError,
     WebError,
@@ -33,19 +34,23 @@ class RouteParamArgResolver:
 
     def resolve(self, options: ArgResolverOptions) -> Any:
         assert options.context
-        value = self.request.path_params[options.context.arg_name]
+        param_name = options.context.arg_name
+        value = self.request.path_params[param_name]
         t = options.t
-        match t.cls:
-            case cls if cls is int:
-                value = int(value)
-            case cls if cls is float:
-                value = float(value)
-            case cls if cls is bool:
-                value = bool(value)
-            case cls if cls is not str:
-                raise Exception()  # TODO: Lever une vraie exception
-            case _:
-                pass
+        try:
+            match t.cls:
+                case cls if cls is int:
+                    value = int(value)
+                case cls if cls is float:
+                    value = float(value)
+                case cls if cls is bool:
+                    value = value.lower() in ("1", "true")
+                case cls if cls is str:
+                    pass
+                case _:
+                    raise InternalServerError(f"Could not inject param '{param_name}' of type {t}")
+        except ValueError as err:
+            raise BadRequestError(f"Unable to convert {param_name} to type {t}", "web.route.param.wrong_type") from err
         return value
 
 

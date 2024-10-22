@@ -8,7 +8,6 @@ from bolinette.core import Cache, meta
 from bolinette.core.exceptions import InitError
 from bolinette.core.logging import Logger
 from bolinette.core.testing import Mock
-from bolinette.core.utils import StringUtils
 from bolinette.data import DatabaseManager
 from bolinette.data.databases import DatabaseConnection
 from bolinette.data.exceptions import EntityError
@@ -49,7 +48,7 @@ def mock_db_manager(mock: Mock, engine_type: type[AsyncRelationalDatabase] | Non
 
 def mock_entities(cache: Cache, name: str, base: type[DeclarativeBase]) -> type[DeclarativeBase]:
     entity_type = type(
-        StringUtils.capitalize(name),
+        name.capitalize(),
         (base,),
         {"__tablename__": name, "id": mapped_column(Integer, primary_key=True)},
     )

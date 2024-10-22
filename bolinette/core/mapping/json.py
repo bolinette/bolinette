@@ -12,5 +12,5 @@ class JsonObjectEncoder(json.JSONEncoder):
         if isinstance(o, int | float | bool | str):
             return o
         if isinstance(o, Iterable):
-            return list(*o)
+            return [*o]
         return {k: v for k, v in vars(o).items()}

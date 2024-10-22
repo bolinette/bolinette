@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, Literal, Protocol, TypeGuard, overload
+from typing import Any, Literal, Protocol, TypeGuard, get_origin, overload
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection import init_method
@@ -31,6 +31,12 @@ class TypeChecker:
         for validator in self.validators:
             if validator.supports(of_type):
                 return validator.validate(value, of_type)
+
+    @staticmethod
+    def basic_check[T](value: Any, of_type: type[T]) -> TypeGuard[T]:
+        if origin := get_origin(of_type):
+            return isinstance(value, origin)
+        return isinstance(value, of_type)
 
 
 class TypeCheckerWorkerMeta:

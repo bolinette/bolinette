@@ -1,7 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase
 
 from bolinette.core import Cache, __user_cache__, meta
-from bolinette.core.utils import StringUtils
 
 
 def get_base(name: str, *, cache: Cache | None = None) -> type[DeclarativeBase]:
@@ -13,7 +12,7 @@ def get_base(name: str, *, cache: Cache | None = None) -> type[DeclarativeBase]:
         _m = meta.get(base, DeclarativeMeta)
         if _m.name == name:
             return base
-    base = type(f"{StringUtils.capitalize(name)}Database", (DeclarativeBase,), {})
+    base = type(f"{name.capitalize()}Database", (DeclarativeBase,), {})
     meta.set(base, DeclarativeMeta(name))
     cache.add(DeclarativeMeta, base)
     return base
