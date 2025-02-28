@@ -6,7 +6,7 @@ import pytest
 
 from bolinette.core import Cache
 from bolinette.core.exceptions import InjectionError, TypingError
-from bolinette.core.injection import Injection, after_init, before_init, init_method, injectable, require
+from bolinette.core.injection import Injection, after_init, before_init, injectable, post_init, require
 from bolinette.core.injection.resolver import ArgResolverOptions, injection_arg_resolver
 from bolinette.core.types.type import Type
 
@@ -350,19 +350,19 @@ def test_no_annotation() -> None:
     )
 
 
-def test_use_init_method() -> None:
+def test_use_post_init() -> None:
     class _TestClass:
         def __init__(self) -> None:
             self.value: str | None = None
             self.cls_name: str | None = None
 
-        @init_method
+        @post_init
         def init(self, b: InjectableClassB) -> None:
             self.value = b.func()
             self.cls_name = type(self).__name__
 
     class _ChildClass1(_TestClass):
-        @init_method
+        @post_init
         def sub_init(self, c: InjectableClassC) -> None:
             self.value = self.value + c.func() if self.value else c.func()
 
@@ -384,36 +384,36 @@ def test_use_init_method() -> None:
     assert t2.cls_name == _ChildClass2.__name__
 
 
-def test_init_method_call_order() -> None:
+def test_post_init_call_order() -> None:
     order: list[str] = []
 
     class _S1:
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("s1")
 
     class _S21:
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("s21")
 
     class _S22:
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("s22")
 
     class _S2(_S21, _S22):
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("s2")
 
     class _Service1(_S1, _S2):
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("s")
 
     class _Service2(_S2, _S1):
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("s")
 
@@ -468,18 +468,18 @@ def test_self_circular_init_reference() -> None:
 
 
 class Service4:
-    @init_method
+    @post_init
     def init(self, s5: "Service5") -> None:
         pass
 
 
 class Service5:
-    @init_method
+    @post_init
     def init(self, s4: Service4) -> None:
         pass
 
 
-def test_fail_circular_init_method_reference() -> None:
+def test_fail_circular_post_init_reference() -> None:
     inject = Injection(Cache())
     inject.add_singleton(Service4)
     inject.add_singleton(Service5)
@@ -494,19 +494,19 @@ def test_fail_circular_init_method_reference() -> None:
 
 
 class Service6:
-    @init_method
+    @post_init
     def init(self, s8: "Service8") -> None:
         pass
 
 
 class Service7:
-    @init_method
+    @post_init
     def init(self, s6: Service6) -> None:
         pass
 
 
 class Service8:
-    @init_method
+    @post_init
     def init(self, s7: Service7) -> None:
         pass
 
@@ -1068,7 +1068,7 @@ def test_instantiate_type() -> None:
         def __init__(self) -> None:
             calls.append("__init__")
 
-        @init_method
+        @post_init
         def _init(self) -> None:
             calls.append("_init")
 
@@ -1212,7 +1212,7 @@ def test_require_from_typevar() -> None:
     assert isinstance(ctrl2.sub.res, _SpecificResource)
 
 
-def test_init_method_with_typevar() -> None:
+def test_post_init_with_typevar() -> None:
     class _Entity:
         pass
 
@@ -1221,7 +1221,7 @@ def test_init_method_with_typevar() -> None:
             self.e = e
 
     class _Controller[T: _Entity]:
-        @init_method
+        @post_init
         def init(self, s: _Service[T]) -> None:
             self.s = s  # pyright: ignore
 
@@ -1371,7 +1371,7 @@ def test_before_after_init() -> None:
     order: list[tuple[str, object]] = []
 
     class _Service:
-        @init_method
+        @post_init
         def _init(self) -> None:
             order.append(("init", self))
 
@@ -1525,7 +1525,7 @@ def test_resolve_typevar_in_super_class_init() -> None:
     data: list[Type[Any]] = []
 
     class Service[T]:
-        @init_method
+        @post_init
         def init(self, t: Type[T]) -> None:
             data.append(t)
 
@@ -1546,7 +1546,7 @@ def test_before_and_after_init() -> None:
 
     @injectable(cache=cache)
     class Service:
-        @init_method
+        @post_init
         def init(self) -> None:
             order.append("init")
 
@@ -1565,12 +1565,12 @@ def test_before_and_after_init() -> None:
     assert order == ["before", "init", "after"]
 
 
-def test_init_method_called_once() -> None:
+def test_post_init_called_once() -> None:
     cache = Cache()
     passed = {"count": 0}
 
     class BaseService:
-        @init_method
+        @post_init
         def init(self) -> None:
             passed["count"] += 1
 

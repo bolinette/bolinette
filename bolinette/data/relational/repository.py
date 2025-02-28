@@ -6,7 +6,7 @@ from sqlalchemy.sql.elements import NamedColumn
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from bolinette.core import Cache, __user_cache__, meta
-from bolinette.core.injection import init_method
+from bolinette.core.injection import post_init
 from bolinette.core.types import Type
 from bolinette.data.exceptions import DataError, EntityNotFoundError
 from bolinette.data.relational import DeclarativeBase, EntitySession
@@ -18,7 +18,7 @@ class Repository[EntityT: DeclarativeBase]:
         self._session: EntitySession[EntityT]
         self._primary_key: Iterable[NamedColumn[Any]]
 
-    @init_method
+    @post_init
     def _init_session(self, entity: type[EntityT], session: EntitySession[EntityT]) -> None:
         self._entity = entity
         self._session = session
@@ -65,7 +65,7 @@ class Repository[EntityT: DeclarativeBase]:
         query = select(self._entity)
         for col, value in zip(self._primary_key, values, strict=True):
             query = query.where(col == value)
-        return await self.first(query, raises=raises)  # pyright: ignore
+        return await self.first(query, raises=raises)
 
     def add(self, entity: EntityT) -> None:
         self._session.add(entity)

@@ -130,9 +130,7 @@ class Type[T]:
         if self._bases is None:
             if hasattr(self.cls, "__orig_bases__"):
                 self._bases = tuple(
-                    Type(c, lookup=self.lookup)  # pyright: ignore
-                    for c in self.cls.__orig_bases__  # pyright: ignore
-                    if get_origin(c) is not Generic  # pyright: ignore
+                    Type(c, lookup=self.lookup) for c in self.cls.__orig_bases__ if get_origin(c) is not Generic
                 )
             else:
                 self._bases = tuple(Type(c, lookup=self.lookup) for c in self.cls.__bases__)
@@ -163,11 +161,7 @@ class Type[T]:
 
     @override
     def __eq__(self, __value: object) -> bool:
-        return (
-            isinstance(__value, Type)
-            and __value.cls is self.cls  # pyright: ignore[reportUnknownMemberType]
-            and __value.vars == self.vars
-        )
+        return isinstance(__value, Type) and __value.cls is self.cls and __value.vars == self.vars
 
     @property
     def init(self):

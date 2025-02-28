@@ -1,5 +1,5 @@
 from bolinette.core.injection.decorators import (
-    init_method as init_method,
+    post_init as post_init,
     require as require,
     injectable as injectable,
     before_init as before_init,

@@ -7,7 +7,7 @@ from typing import Any, Literal, Protocol, override
 from bolinette.core import Cache, meta
 from bolinette.core.command.command import Argument, CommandMeta
 from bolinette.core.exceptions import InitError
-from bolinette.core.injection import init_method
+from bolinette.core.injection import post_init
 from bolinette.core.logging import Logger
 from bolinette.core.types import Function, Type
 
@@ -34,7 +34,7 @@ class Parser:
         self._sub_commands: dict[str, Any] = {}
         self._parser = ArgumentParser(description="Bolinette Framework")
 
-    @init_method
+    @post_init
     def _parse_commands(self) -> None:
         functions = self._cache.get(CommandMeta, hint=Function[..., Awaitable[None]], raises=False)
         commands: dict[str, Command] = {}

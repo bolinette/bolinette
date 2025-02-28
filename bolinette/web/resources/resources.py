@@ -4,7 +4,7 @@ from http import HTTPStatus
 from typing import Any
 
 from bolinette.core import Cache, CoreSection, meta
-from bolinette.core.injection import Injection, ScopedInjection, init_method
+from bolinette.core.injection import Injection, ScopedInjection, post_init
 from bolinette.core.logging import Logger
 from bolinette.core.mapping import Mapper
 from bolinette.core.types import Function, Type, TypeChecker, TypeVarLookup
@@ -43,21 +43,19 @@ class WebResources:
         self.core_section = core_section
         self.checker = checker
         self.router = Router()
-        self.ws_handler: WebSocketHandler | None
 
-    @init_method
+    @post_init
     def _init_blnt_auth(self, config: WebConfig, providers: AuthProviders, inject: Injection) -> None:
         if config.blnt_auth is not None:
             inject.add_singleton(BlntAuthProps, instance=config.blnt_auth)
             providers.add_provider(BolinetteAuthProvider)
 
-    @init_method
+    @post_init
     def _init_sockets(self, config: WebConfig, inject: Injection) -> None:
         if config.use_sockets:
             inject.add_singleton(WebSocketHandler)
-            self.ws_handler = inject.require(WebSocketHandler)
 
-    @init_method
+    @post_init
     def _init_ctrls(self, cache: Cache) -> None:
         for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller], raises=False):
             ctrl_meta = meta.get(ctrl_cls, ControllerMeta)

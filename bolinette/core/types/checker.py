@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any, Literal, Protocol, TypeGuard, get_origin, overload
 
 from bolinette.core import Cache, __user_cache__, meta
-from bolinette.core.injection import init_method
+from bolinette.core.injection import post_init
 from bolinette.core.types import Type
 
 
@@ -10,7 +10,7 @@ class TypeChecker:
     def __init__(self) -> None:
         self.validators: list[TypeCheckerWorker] = []
 
-    @init_method
+    @post_init
     def _init_validators(self, cache: Cache) -> None:
         validators: dict[float, TypeCheckerWorker] = {}
         for cls in cache.get(TypeCheckerWorkerMeta, hint=type[TypeCheckerWorker], raises=True):

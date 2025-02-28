@@ -3,7 +3,7 @@ import json
 from typing import Any, TypeGuard
 
 from bolinette.core import Cache, CoreSection, meta
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.core.logging import Logger
 from bolinette.core.mapping.json import JsonObjectEncoder
 from bolinette.core.types import Type, TypeChecker
@@ -37,14 +37,14 @@ class WebSocketHandler:
         self.core_section = core_section
         self.subscriptions: dict[WebSocketResponse, dict[str, set[str]]] = {}
 
-    @init_method
+    @post_init
     def _init_topics(self, cache: Cache) -> None:
         self.topics = {}
         for cls in cache.get(WebSocketTopic, hint=type[WebSocketTopic[...]], raises=False):
             topic_meta = meta.get(cls, WebSocketTopicMeta)
             self.add_topic(topic_meta.name, cls)
 
-    @init_method
+    @post_init
     def _add_context_to_inject(self) -> None:
         self.inject.add_singleton(WebSocketContext, options={"args": [self]})
 

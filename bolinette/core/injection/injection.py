@@ -7,10 +7,10 @@ from bolinette.core.exceptions import InjectionError
 from bolinette.core.injection import RegistrationOptions
 from bolinette.core.injection.context import InjectionContext
 from bolinette.core.injection.decorators import (
-    InitMethodMeta,
     InjectionInitFuncMeta,
     InjectionParamsMeta,
     InjectionSymbol,
+    PostInitMeta,
 )
 from bolinette.core.injection.hook import InjectionHook, InjectionProxy
 from bolinette.core.injection.pool import InstancePool
@@ -315,15 +315,15 @@ class Injection:
         instance: InstanceT,
         vars_lookup: TypeVarLookup[InstanceT] | None,
         circular_guard: OrderedSet[Any] | None,
-        init_meth_guard: set[Callable[..., Any]],
+        post_init_guard: set[Callable[..., Any]],
         additional_resolvers: list[ArgumentResolver],
     ) -> None:
         for base in cls.__bases__:
             if base in (object, Generic):
                 continue
-            self._run_init_recursive(base, instance, vars_lookup, circular_guard, init_meth_guard, additional_resolvers)
+            self._run_init_recursive(base, instance, vars_lookup, circular_guard, post_init_guard, additional_resolvers)
         for _, attr in vars(cls).items():
-            if meta.has(attr, InitMethodMeta) and attr not in init_meth_guard:
+            if meta.has(attr, PostInitMeta) and attr not in post_init_guard:
                 self.call(
                     attr,
                     args=[instance],
@@ -331,9 +331,9 @@ class Injection:
                     additional_resolvers=additional_resolvers,
                     circular_guard=circular_guard,
                 )
-                init_meth_guard.add(attr)
+                post_init_guard.add(attr)
 
-    def _run_init_methods[InstanceT](
+    def _run_post_inits[InstanceT](
         self,
         r_type: RegisteredType[InstanceT],
         instance: InstanceT,
@@ -373,7 +373,7 @@ class Injection:
             instance,
         )
         meta.set(instance, self, cls=Injection)
-        self._run_init_methods(r_type, instance, vars_lookup, circular_guard, additional_resolvers)
+        self._run_post_inits(r_type, instance, vars_lookup, circular_guard, additional_resolvers)
         self._set_instance(r_type, instance)
         if isinstance(instance, HasEnter):
             instance.__enter__()

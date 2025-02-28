@@ -23,7 +23,7 @@ class InjectionHook[InstanceT]:
             return object.__getattribute__(self, __name)
         raise InjectionError(
             f"Tried accessing member '{__name}' of an injected instance inside the __init__ method. "
-            "Use @init_method to process logic at instantiation."
+            "Use @post_init to process logic at instantiation."
         )
 
     def __get__(self, *_) -> InstanceT:

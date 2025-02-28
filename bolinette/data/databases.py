@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any, Protocol
 
 from bolinette.core import Cache, __user_cache__
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.core.logging import Logger
 from bolinette.data import DataSection
 from bolinette.data.exceptions import DatabaseError
@@ -39,7 +39,7 @@ class DatabaseManager:
     def get_connection(self, name: str) -> "DatabaseConnection":
         return next(s for s in self._connections if s.name == name)
 
-    @init_method
+    @post_init
     def _init_systems(self) -> None:
         systems = [t() for t in self._cache.get(DatabaseSystem, hint=type[DatabaseSystem], raises=False)]
         if not systems:
@@ -54,7 +54,7 @@ class DatabaseManager:
                 ) from e
             self._systems.append(system)
 
-    @init_method
+    @post_init
     def _init_connections(self, section: DataSection) -> None:
         for db_config in section.databases:
             re_match = self.DBMS_RE.match(db_config.url)

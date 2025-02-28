@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol
 
 from bolinette.core import Cache, __user_cache__
 from bolinette.core.exceptions import InitError
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.core.types import Function, Type, TypeChecker
 from bolinette.web import Payload, controller, post
 from bolinette.web.auth import JwtClaims, NotSupportedTokenError
@@ -66,11 +66,11 @@ class BolinetteAuthProvider:
         self.encrypt_cipher: AESGCM | ChaCha20Poly1305 | AESCCM | AESSIV | AESOCB3 | AESGCMSIV | None
         self.cipher_aad: bytes | None
 
-    @init_method
+    @post_init
     def _init_props(self, props: BlntAuthProps) -> None:
         self.paths = (props.ctrl_path, props.route_path)
 
-    @init_method
+    @post_init
     def _init_transformer(self, cache: Cache, inject: Injection) -> None:
         classes = cache.get(
             BlntAuthUserTransformer,
@@ -86,7 +86,7 @@ class BolinetteAuthProvider:
         inject.add_singleton(transformer_cls, transformer_cls)
         self.transformer = inject.require(transformer_cls)
 
-    @init_method
+    @post_init
     def _init_sign_method(self, config: "BlntAuthConfig") -> None:
         self.issuer = config.issuer
         self.audience = config.audience
@@ -134,7 +134,7 @@ class BolinetteAuthProvider:
                     )
         self.algorithm = config.signing.type
 
-    @init_method
+    @post_init
     def _init_encrypt_method(self, config: "BlntAuthConfig") -> None:
         if config.encryption is None:
             self.encrypt_cipher = None
@@ -158,7 +158,7 @@ class BolinetteAuthProvider:
             key = f.read()
         self.encrypt_cipher = cipher_cls(key)
 
-    @init_method
+    @post_init
     def _init_auth_controller(self, cache: Cache) -> None:
         ctrl = self.get_login_controller()
         controller(self.paths[0], cache=cache)(ctrl)

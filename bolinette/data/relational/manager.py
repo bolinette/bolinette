@@ -2,7 +2,7 @@ from typing import Any
 
 from bolinette.core import Cache, meta
 from bolinette.core.exceptions import InitError
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.core.logging import Logger
 from bolinette.data import DatabaseManager
 from bolinette.data.exceptions import EntityError
@@ -30,7 +30,7 @@ class EntityManager:
     def engines(self) -> dict[type[DeclarativeBase], AbstractDatabase]:
         return {**self._engines}
 
-    @init_method
+    @post_init
     def _init_engines(self, cache: Cache, databases: DatabaseManager) -> None:
         for base in cache.get(DeclarativeMeta, hint=type[DeclarativeBase], raises=False):
             _m = meta.get(base, DeclarativeMeta)
@@ -41,7 +41,7 @@ class EntityManager:
                 raise EntityError(f"Database connection '{_m.name}' is not a relational system")
             self._engines[base] = conn.manager(base, conn.name, conn.url, conn.echo)
 
-    @init_method
+    @post_init
     def _init_entities(self, cache: Cache) -> None:
         for entity in cache.get(EntityMeta, hint=type[DeclarativeBase], raises=False):
             self._entities.add(entity)
@@ -55,7 +55,7 @@ class EntityManager:
             if not found:
                 raise EntityError(f"Entity {entity} has no known bases as its parents")
 
-    @init_method
+    @post_init
     def _init_repositories(self, cache: Cache, inject: Injection) -> None:
         repo_classes = cache.get(RepositoryMeta, hint=type[Repository[Any]], raises=False)
         custom_repos: set[type[DeclarativeBase]] = set()
@@ -75,7 +75,7 @@ class EntityManager:
             if entity not in custom_repos:
                 inject.add_scoped(Repository[entity])
 
-    @init_method
+    @post_init
     def _init_services(self, cache: Cache, inject: Injection) -> None:
         service_classes = cache.get(ServiceMeta, hint=type[Service[Any]], raises=False)
         custom_services: set[type[DeclarativeBase]] = set()

@@ -9,7 +9,7 @@ from bolinette.core import Cache, meta
 from bolinette.core.environment.sections import EnvironmentSection, EnvSectionMeta
 from bolinette.core.exceptions import EnvironmentError
 from bolinette.core.expressions import ExpressionTree
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.core.mapping import Mapper
 from bolinette.core.types import Type
 
@@ -24,7 +24,7 @@ class Environment:
         self.profile: str = self._UNINITIALIZED_PROFILE
         self.config: dict[str, Any] = {}
 
-    @init_method
+    @post_init
     def _init_profile(self) -> None:
         try:
             with open(self._env_folder / ".profile") as f:
@@ -34,13 +34,13 @@ class Environment:
         except FileNotFoundError:
             pass
 
-    @init_method
+    @post_init
     def _init_config_sections(self, cache: Cache, inject: Injection) -> None:
         if EnvironmentSection in cache:
             for cls in cache.get(EnvironmentSection, hint=type[Any]):
                 inject.add_singleton(cls, options={"before_init": [init_section]})
 
-    @init_method
+    @post_init
     def _init_env_files(self) -> None:
         profile = self._DEFAULT_PROFILE if self.profile == self._UNINITIALIZED_PROFILE else self.profile
 
@@ -60,7 +60,7 @@ class Environment:
                     merged[name][key] = value
         self.config = merged
 
-    @init_method
+    @post_init
     def _init_default_profile(self) -> None:
         if self.profile == self._UNINITIALIZED_PROFILE:
             self.profile = self._DEFAULT_PROFILE

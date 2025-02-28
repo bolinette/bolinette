@@ -9,14 +9,14 @@ from bolinette.core.types import Type
 InjectionSymbol = object()
 
 
-class InitMethodMeta:
+class PostInitMeta:
     pass
 
 
-def init_method[InstanceT](
+def post_init[InstanceT](
     func: Callable[Concatenate[InstanceT, ...], None],
 ) -> Callable[Concatenate[InstanceT, ...], None]:
-    meta.set(func, InitMethodMeta())
+    meta.set(func, PostInitMeta())
     return func
 
 

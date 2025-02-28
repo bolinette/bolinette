@@ -3,7 +3,7 @@ from typing import Self
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from bolinette.core.injection import init_method
+from bolinette.core.injection import post_init
 from bolinette.core.logging import Logger
 from bolinette.data import relational
 from bolinette.data.relational import DeclarativeBase, EntitySession
@@ -24,7 +24,7 @@ class AsyncTransaction:
     def get(self, key: str) -> EntitySession[DeclarativeBase]:
         return self._sessions[key]
 
-    @init_method
+    @post_init
     def open_sessions(self) -> None:
         for engine in self._entities.engines.values():
             engine.open_session(self)

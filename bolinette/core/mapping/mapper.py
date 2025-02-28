@@ -5,7 +5,7 @@ from typing import TypedDict as TypedDict
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.expressions import ExpressionNode, ExpressionTree
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.core.mapping.exceptions import (
     ConvertionError,
     DestinationNotNullableError,
@@ -36,7 +36,7 @@ class Mapper:
         self._type_mappers: TypeCollection[type[MappingWorker[Any]]] = TypeCollection()
         self._default_mapper: type[MappingWorker[object]] = ObjectMapper
 
-    @init_method
+    @post_init
     def _init_profiles(self, cache: Cache, inject: Injection) -> None:
         completed: dict[int, MappingSequence[Any, Any]] = {}
         for cls in cache.get(Profile, hint=type[Profile], raises=False):
@@ -46,7 +46,7 @@ class Mapper:
                 completed[hash(sequence)] = sequence
         self._sequences = completed
 
-    @init_method
+    @post_init
     def _init_type_mappers(self, cache: Cache) -> None:
         for cls in cache.get(MappingWorkerMeta, hint=type[MappingWorker[Any]], raises=False):
             _m = meta.get(cls, MappingWorkerMeta)

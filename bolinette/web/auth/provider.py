@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any, Protocol
 
 from bolinette.core import Cache, __user_cache__
-from bolinette.core.injection import Injection, init_method
+from bolinette.core.injection import Injection, post_init
 from bolinette.web.exceptions import UnauthorizedError
 
 
@@ -28,7 +28,7 @@ class AuthProviders:
         self.providers: dict[str, AuthProvider]
         self.inject = inject
 
-    @init_method
+    @post_init
     def _init_providers(self, cache: Cache) -> None:
         providers: dict[str, AuthProvider] = {}
         for cls in cache.get(AuthProvider, hint=type[AuthProvider], raises=False):
