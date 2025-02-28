@@ -63,7 +63,7 @@ class BolinetteAuthProvider:
         self.encode_key: str | bytes | PrivateKeyTypes | None
         self.passphrase: bytes | None
         self.decode_key: str | bytes | PublicKeyTypes | None
-        self.encrypt_cipher: "AESGCM | ChaCha20Poly1305 | AESCCM | AESSIV | AESOCB3 | AESGCMSIV | None"
+        self.encrypt_cipher: AESGCM | ChaCha20Poly1305 | AESCCM | AESSIV | AESOCB3 | AESGCMSIV | None
         self.cipher_aad: bytes | None
 
     @init_method

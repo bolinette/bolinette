@@ -29,7 +29,7 @@ class WebError(BolinetteError, ParameterError):
     def __str__(self) -> str:
         if not self.error_args:
             return self.error_code
-        return f"{self.error_code}|{'|'.join(f'{k}:{v}' for k,v in self.error_args.items())}"
+        return f"{self.error_code}|{'|'.join(f'{k}:{v}' for k, v in self.error_args.items())}"
 
 
 class GroupedWebError(WebError):

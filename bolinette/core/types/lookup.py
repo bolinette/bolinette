@@ -42,7 +42,7 @@ class TypeVarLookup[T]:
 
     @override
     def __str__(self) -> str:
-        return f"{self.t.base_name}[{", ".join(f"{k}: {v.__qualname__}" for k,v in self._lookup.items())}]"
+        return f"{self.t.base_name}[{', '.join(f'{k}: {v.__qualname__}' for k, v in self._lookup.items())}]"
 
     @override
     def __repr__(self) -> str:
