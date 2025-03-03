@@ -71,44 +71,46 @@ class Injection:
             return {}
         types: dict[type[Any], RegisteredTypeBag[Any]] = {}
         for cls in cache.get(InjectionSymbol, hint=type[Any]):
-            t = Type(cls)
-            if t.cls not in types:
-                types[t.cls] = RegisteredTypeBag(t.cls)
-            type_bag = types[t.cls]
-            inject_meta: InjectionParamsMeta = meta.get(t.cls, InjectionParamsMeta)
+            implmt_t = Type(cls)
+            inject_meta: InjectionParamsMeta = meta.get(implmt_t.cls, InjectionParamsMeta)
 
-            if meta.has(t.cls, InjectionInitFuncMeta):
-                func_meta: InjectionInitFuncMeta[Any] = meta.get(t.cls, InjectionInitFuncMeta)
+            if meta.has(implmt_t.cls, InjectionInitFuncMeta):
+                func_meta: InjectionInitFuncMeta[Any] = meta.get(implmt_t.cls, InjectionInitFuncMeta)
                 before_init = func_meta.before_init
                 after_init = func_meta.after_init
             else:
                 before_init = []
                 after_init = []
 
-            if inject_meta.match_all:
-                type_bag.set_match_all(
-                    t,
-                    t,
-                    inject_meta.strategy,  # pyright: ignore[reportArgumentType]
-                    {
-                        "args": inject_meta.args,
-                        "named_args": inject_meta.named_args,
-                        "before_init": before_init,
-                        "after_init": after_init,
-                    },
-                )
-            else:
-                type_bag.add_type(
-                    t,
-                    t,
-                    inject_meta.strategy,  # pyright: ignore[reportArgumentType]
-                    {
-                        "args": inject_meta.args,
-                        "named_args": inject_meta.named_args,
-                        "before_init": before_init,
-                        "after_init": after_init,
-                    },
-                )
+            for intrfc_t in [implmt_t, *[Type(_cls) for _cls in inject_meta.interfaces]]:
+                if intrfc_t.cls not in types:
+                    types[intrfc_t.cls] = RegisteredTypeBag(intrfc_t.cls)
+                type_bag = types[intrfc_t.cls]
+
+                if inject_meta.match_all:
+                    type_bag.set_match_all(
+                        intrfc_t,
+                        implmt_t,
+                        inject_meta.strategy,  # pyright: ignore[reportArgumentType]
+                        {
+                            "args": inject_meta.args,
+                            "named_args": inject_meta.named_args,
+                            "before_init": before_init,
+                            "after_init": after_init,
+                        },
+                    )
+                else:
+                    type_bag.add_type(
+                        intrfc_t,
+                        implmt_t,
+                        inject_meta.strategy,  # pyright: ignore[reportArgumentType]
+                        {
+                            "args": inject_meta.args,
+                            "named_args": inject_meta.named_args,
+                            "before_init": before_init,
+                            "after_init": after_init,
+                        },
+                    )
         return types
 
     def _pickup_resolvers(

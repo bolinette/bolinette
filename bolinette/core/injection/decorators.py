@@ -24,11 +24,13 @@ class InjectionParamsMeta:
     def __init__(
         self,
         strategy: AddStrategy,
+        interfaces: list[type[Any]] | None,
         args: list[Any] | None,
         named_args: dict[str, Any] | None,
         match_all: bool,
     ) -> None:
         self.strategy = strategy
+        self.interfaces = interfaces or []
         self.args = args or []
         self.named_args = named_args or {}
         self.match_all = match_all
@@ -43,6 +45,7 @@ class InjectionInitFuncMeta[InstanceT]:
 def injectable[InstanceT](
     *,
     strategy: AddStrategy = "singleton",
+    interfaces: list[type[Any]] | None = None,
     args: list[Any] | None = None,
     named_args: dict[str, Any] | None = None,
     cache: Cache | None = None,
@@ -53,7 +56,7 @@ def injectable[InstanceT](
             _cls = origin
         else:
             _cls = cls
-        meta.set(_cls, InjectionParamsMeta(strategy, args, named_args, match_all))
+        meta.set(_cls, InjectionParamsMeta(strategy, interfaces, args, named_args, match_all))
         (cache or __user_cache__).add(InjectionSymbol, cls)
         return cls
 

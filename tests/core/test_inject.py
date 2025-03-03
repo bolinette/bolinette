@@ -1146,6 +1146,39 @@ def test_register_with_interface_type_complete() -> None:
     assert rs1 is rs2
 
 
+def test_register_with_interface_type_with_decorator() -> None:
+    class _Service[T]:
+        pass
+
+    class _User:
+        pass
+
+    class _Role:
+        pass
+
+    class _UserService(_Service[_User]):
+        pass
+
+    class _RoleService(_Service[_Role]):
+        pass
+
+    cache = Cache()
+    injectable(cache=cache, interfaces=[_Service[_User]])(_UserService)
+    injectable(cache=cache, interfaces=[_Service[_Role]])(_RoleService)
+
+    inject = Injection(cache)
+
+    assert inject.is_registered(_Service[_User])
+    assert inject.is_registered(_UserService)
+    us = inject.require(_Service[_User])
+    assert isinstance(us, _UserService)
+
+    assert inject.is_registered(_Service[_Role])
+    assert inject.is_registered(_RoleService)
+    rs = inject.require(_Service[_Role])
+    assert isinstance(rs, _RoleService)
+
+
 def test_register_match_all() -> None:
     class _ServiceA:
         pass
