@@ -6,5 +6,4 @@ class BlntAuthProps:
 
 class WebConfig:
     def __init__(self) -> None:
-        self.use_sockets = False
         self.blnt_auth: BlntAuthProps | None = None

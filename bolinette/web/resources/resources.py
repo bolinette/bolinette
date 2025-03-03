@@ -10,8 +10,6 @@ from bolinette.core.mapping import Mapper
 from bolinette.core.types import Function, Type, TypeChecker, TypeVarLookup
 from bolinette.core.utils import AttributeUtils
 from bolinette.web.abstract import Request, Response, ResponseState
-from bolinette.web.auth import AuthProviders, BolinetteAuthProvider
-from bolinette.web.config import BlntAuthProps, WebConfig
 from bolinette.web.controller import Controller, ControllerMeta
 from bolinette.web.exceptions import (
     MethodNotAllowedDispatchError,
@@ -27,7 +25,6 @@ from bolinette.web.resources import (
     RoutePayloadArgResolver,
 )
 from bolinette.web.routing import Route, RouteBucket, Router
-from bolinette.web.ws import WebSocketHandler
 
 
 class WebResources:
@@ -45,27 +42,19 @@ class WebResources:
         self.router = Router()
 
     @post_init
-    def _init_blnt_auth(self, config: WebConfig, providers: AuthProviders, inject: Injection) -> None:
-        if config.blnt_auth is not None:
-            inject.add_singleton(BlntAuthProps, instance=config.blnt_auth)
-            providers.add_provider(BolinetteAuthProvider)
-
-    @post_init
-    def _init_sockets(self, config: WebConfig, inject: Injection) -> None:
-        if config.use_sockets:
-            inject.add_singleton(WebSocketHandler)
-
-    @post_init
     def _init_ctrls(self, cache: Cache) -> None:
         for ctrl_cls in cache.get(ControllerMeta, hint=type[Controller], raises=False):
             ctrl_meta = meta.get(ctrl_cls, ControllerMeta)
-            attr: Any
-            for attr in AttributeUtils.get_cls_attrs(ctrl_cls).values():
-                if not meta.has(attr, RouteBucket):
-                    continue
-                bucket = meta.get(attr, RouteBucket)
-                for props in bucket.routes:
-                    self.add_route(ctrl_cls, ctrl_meta.path, attr, props.method, props.path)
+            self.add_controller(ctrl_cls, ctrl_meta.path)
+
+    def add_controller(self, ctrl_cls: type[Controller], path: str) -> None:
+        attr: Any
+        for attr in AttributeUtils.get_cls_attrs(ctrl_cls).values():
+            if not meta.has(attr, RouteBucket):
+                continue
+            bucket = meta.get(attr, RouteBucket)
+            for props in bucket.routes:
+                self.add_route(ctrl_cls, path, attr, props.method, props.path)
 
     def add_route(
         self,

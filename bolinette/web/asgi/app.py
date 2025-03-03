@@ -41,6 +41,7 @@ class AsgiApplication:
             await self._blnt.startup()
             self._blnt.injection.add_singleton(AsgiApplication, instance=self)
             await send({"type": "lifespan.startup.complete"})
+            await self._blnt.dispatch_event("server_started")
         except BaseException:
             traceback.print_exc()
             await send({"type": "lifespan.startup.failed"})
@@ -75,6 +76,7 @@ class AsgiApplication:
     ) -> None:
         if self._resources is None:
             self._resources = self._blnt.injection.require(WebResources)
+            await self._blnt.dispatch_event("http_initialized")
 
         headers = {k.decode(): v.decode() for (k, v) in scope["headers"]}
         if scope["query_string"]:
@@ -117,6 +119,7 @@ class AsgiApplication:
         response = AsgiSocketResponse(send)
         if self._ws_handler is None:
             self._ws_handler = self._blnt.injection.require(WebSocketHandler)
+            await self._blnt.dispatch_event("ws_initialized")
         while True:
             received = await receive()
             match received["type"]:

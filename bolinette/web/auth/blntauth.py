@@ -10,10 +10,11 @@ from bolinette.core import Cache, __user_cache__
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, post_init
 from bolinette.core.types import Function, Type, TypeChecker
-from bolinette.web import Payload, controller, post
+from bolinette.web import Payload, post
 from bolinette.web.auth import JwtClaims, NotSupportedTokenError
 from bolinette.web.config import BlntAuthProps
 from bolinette.web.exceptions import ForbiddenError
+from bolinette.web.resources import WebResources
 
 if TYPE_CHECKING:
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
@@ -78,7 +79,9 @@ class BolinetteAuthProvider:
             hint=type[BlntAuthUserTransformer[Any, dict[str, Any], Any]],
         )
         if len(classes) < 1:
-            raise InitError(f"Bolinette auth: no token transformer was registered with @{blnt_auth_user_transformer}")
+            raise InitError(
+                f"Bolinette auth: no token transformer was registered with @{blnt_auth_user_transformer.__name__}"
+            )
         if len(classes) > 1:
             raise InitError("Bolinette auth: too many token transformer were registered")
         transformer_cls = classes[0]
@@ -159,9 +162,9 @@ class BolinetteAuthProvider:
         self.encrypt_cipher = cipher_cls(key)
 
     @post_init
-    def _init_auth_controller(self, cache: Cache) -> None:
+    def _init_auth_controller(self, web_resources: WebResources) -> None:
         ctrl = self.get_login_controller()
-        controller(self.paths[0], cache=cache)(ctrl)
+        web_resources.add_controller(ctrl, self.paths[1])
 
     def _load_private_pem_key(self, key: bytes | Path) -> "PrivateKeyTypes":
         if isinstance(key, Path):

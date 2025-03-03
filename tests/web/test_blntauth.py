@@ -14,6 +14,7 @@ from bolinette.web.auth import BolinetteAuthProvider, blnt_auth_user_transformer
 from bolinette.web.auth.blntauth import BlntAuthConfig
 from bolinette.web.commands import new_rsa_key
 from bolinette.web.config import BlntAuthProps
+from bolinette.web.resources import WebResources
 
 JWT_INSTALLED = importlib.util.find_spec("jwt")
 
@@ -22,8 +23,11 @@ JWT_INSTALLED = importlib.util.find_spec("jwt")
 def test_blntauth_generate_tokens() -> None:
     import jwt
 
+    def mock_add_controller(ctrl_cls: type, path: str) -> None: ...
+
     cache = Cache()
     mock = Mock(cache=cache)
+    mock.mock(WebResources).setup(lambda wr: wr.add_controller, mock_add_controller)
     mock.mock(BlntAuthProps).setup(lambda p: p.ctrl_path, "auth").setup(lambda p: p.route_path, "")
     (
         mock.mock(BlntAuthConfig)
@@ -79,11 +83,14 @@ def test_blntauth_generate_tokens() -> None:
 async def test_blnt_token_with_rsa() -> None:
     import jwt
 
+    def mock_add_controller(ctrl_cls: type, path: str) -> None: ...
+
     with TemporaryDirectory() as tmp_dir:
         await new_rsa_key(outdir=str(Path(tmp_dir)), passphrase=b"testpass")
 
         cache = Cache()
         mock = Mock(cache=cache)
+        mock.mock(WebResources).setup(lambda wr: wr.add_controller, mock_add_controller)
         mock.mock(BlntAuthProps).setup(lambda p: p.ctrl_path, "auth").setup(lambda p: p.route_path, "")
         (
             mock.mock(BlntAuthConfig)
