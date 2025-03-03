@@ -4,6 +4,7 @@ from typing import Final, Protocol, TypeVar, override
 from bolinette.core import Cache, CoreSection, command
 from bolinette.core.command import Parser, debug_injection_command
 from bolinette.core.environment import Environment, environment
+from bolinette.core.events import EventDispatcher
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, injectable, injection_arg_resolver
 from bolinette.core.injection.injection import InjectionEvent, injection_callback
@@ -66,6 +67,7 @@ class _CoreExtension(Extension):
         injectable(strategy="singleton", cache=cache)(Injection)
         injectable(strategy="singleton", cache=cache)(Parser)
         injectable(strategy="singleton", cache=cache)(Environment)
+        injectable(strategy="singleton", cache=cache)(EventDispatcher)
 
         injection_arg_resolver()(LoggerArgResolver)
 

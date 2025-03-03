@@ -3,7 +3,7 @@ from types import TracebackType
 from typing import Any, Generic, Literal, Protocol, Self, TypedDict, overload, override, runtime_checkable
 
 from bolinette.core import Cache, __user_cache__, meta
-from bolinette.core.exceptions import InjectionError
+from bolinette.core.exceptions import InjectionError, UnregisteredTypeError
 from bolinette.core.injection import RegistrationOptions
 from bolinette.core.injection.context import InjectionContext
 from bolinette.core.injection.decorators import (
@@ -48,6 +48,22 @@ class Injection:
     @property
     def is_scoped(self) -> bool:
         return False
+
+    def is_registered(self, cls: type[Any] | Type[Any]) -> bool:
+        if not isinstance(cls, Type):
+            t = Type(cls)
+        else:
+            t = cls
+        return t.cls in self._types and self._types[t.cls].is_registered(t)
+
+    def get_registered_type[InstanceT](self, cls: type[InstanceT] | Type[InstanceT]) -> RegisteredTypeBag[InstanceT]:
+        if not isinstance(cls, Type):
+            t = Type(cls)
+        else:
+            t = cls
+        if not self.is_registered(t):
+            raise UnregisteredTypeError(str(t))
+        return self._types[t.cls]
 
     @staticmethod
     def _pickup_types(cache: Cache) -> "dict[type[Any], RegisteredTypeBag[Any]]":
@@ -259,8 +275,8 @@ class Injection:
             return None
         if context is not None and context.default_set:
             return context.default
-        raise InjectionError(
-            f"Type {t} is not a registered type in the injection system",
+        raise UnregisteredTypeError(
+            str(t),
             func=context.origin if context else None,
             param=context.arg_name if context else None,
         )
@@ -386,13 +402,6 @@ class Injection:
             }
         )
         return instance
-
-    def is_registered(self, cls: type[Any] | Type[Any]) -> bool:
-        if not isinstance(cls, Type):
-            t = Type(cls)
-        else:
-            t = cls
-        return t.cls in self._types and self._types[t.cls].is_registered(t)
 
     @staticmethod
     def _wrap_function[**FuncP, FuncT](func: Callable[FuncP, FuncT]) -> Function[FuncP, FuncT]:

@@ -57,6 +57,24 @@ class InjectionError(BolinetteError, ParameterError):
         BolinetteError.__init__(self, self._format_params(message, cls=cls, func=func, param=param))
 
 
+class UnregisteredTypeError(InjectionError):
+    def __init__(
+        self,
+        t: str,
+        *,
+        cls: type[Any] | None = None,
+        func: Any | None = None,
+        param: str | None = None,
+    ) -> None:
+        InjectionError.__init__(
+            self,
+            f"Type {t} is not a registered type in the injection system",
+            cls=cls,
+            func=func,
+            param=param,
+        )
+
+
 class EnvironmentError(BolinetteError):
     pass
 

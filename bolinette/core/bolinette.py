@@ -8,6 +8,7 @@ from bolinette.core import __user_cache__, meta
 from bolinette.core.cache import Cache
 from bolinette.core.command import Parser
 from bolinette.core.environment import Environment
+from bolinette.core.events import EventDispatcher
 from bolinette.core.exceptions import InitError
 from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import Injection, require
@@ -17,8 +18,8 @@ from bolinette.core.types.type import Type
 
 
 class Bolinette:
-    def __init__(self) -> None:
-        self._cache = Cache()
+    def __init__(self, *, cache: Cache | None = None) -> None:
+        self._cache = cache or Cache()
         self._initialized = False
         self._extensions: list[Extension] = [core.__blnt_ext__]
         self._inject: Injection
@@ -41,12 +42,19 @@ class Bolinette:
     @require(Parser)
     def _parser(self): ...
 
+    @require(EventDispatcher)
+    def _events(self): ...
+
+    async def dispatch_event(self, event: str) -> None:
+        await self._events.dispatch(event, self._inject.call)
+
     async def startup(self) -> Self:
         funcs: list[Callable[..., Any]] = self._cache.get(STARTUP_CACHE_KEY, raises=False)
         async with self._inject.get_async_scoped_session() as scoped_inject:
             for func in funcs:
                 if asyncio.iscoroutine(res := scoped_inject.call(func)):
                     await res
+        await self._events.dispatch("started", self._inject.call)
         return self
 
     def build(self) -> Self:

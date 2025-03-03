@@ -5,7 +5,7 @@ from typing import Any, Protocol, Self, TypeVar
 import pytest
 
 from bolinette.core import Cache
-from bolinette.core.exceptions import InjectionError, TypingError
+from bolinette.core.exceptions import InjectionError, TypingError, UnregisteredTypeError
 from bolinette.core.injection import Injection, after_init, before_init, injectable, post_init, require
 from bolinette.core.injection.resolver import ArgResolverOptions, injection_arg_resolver
 from bolinette.core.types.type import Type
@@ -203,7 +203,7 @@ async def test_fail_injection() -> None:
     inject = Injection(Cache())
     inject.add_singleton(InjectableClassB)
 
-    with pytest.raises(InjectionError) as info:
+    with pytest.raises(UnregisteredTypeError) as info:
         inject.require(InjectableClassC)
 
     assert "Type InjectableClassC is not a registered type in the injection system" == info.value.message

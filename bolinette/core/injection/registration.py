@@ -36,6 +36,12 @@ class RegisteredType[InstanceT]:
     def __repr__(self) -> str:
         return f"<RegisteredType {self.intrfc_t} -> {self.implmt_t} ({self.strategy})>"
 
+    def add_before_init(self, fn: Callable[Concatenate[InstanceT, ...], None]) -> None:
+        self.before_init.append(fn)
+
+    def add_after_init(self, fn: Callable[Concatenate[InstanceT, ...], None]) -> None:
+        self.after_init.append(fn)
+
 
 class RegisteredTypeBag[InstanceT]:
     def __init__(self, cls: type[InstanceT]) -> None:
