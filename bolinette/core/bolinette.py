@@ -10,7 +10,7 @@ from bolinette.core.command import Parser
 from bolinette.core.environment import Environment
 from bolinette.core.events import EventDispatcher
 from bolinette.core.exceptions import InitError
-from bolinette.core.extension import Extension, ExtensionModule
+from bolinette.core.extension import Extension, ExtensionModule, sort_extensions
 from bolinette.core.injection import Injection, require
 from bolinette.core.logging import Logger
 from bolinette.core.startup import STARTUP_CACHE_KEY
@@ -21,22 +21,26 @@ class Bolinette:
     def __init__(self, *, cache: Cache | None = None) -> None:
         self._cache = cache or Cache()
         self._initialized = False
-        self._extensions: list[Extension] = [core.__blnt_ext__]
+        self._extensions: list[Extension] = [core.__blnt_ext__(self._cache)]
         self._inject: Injection
         self._env: Environment
         self.logger: Logger[Bolinette]
 
-    def use_extension[ExtT: Extension](self, ext: ExtensionModule[ExtT] | ExtT) -> ExtT:
+    def use_extension[ExtT: Extension](self, module: ExtensionModule[ExtT]) -> ExtT:
         if self._initialized:
             raise InitError("Cannot use extension after Bolinette startup")
-        if not isinstance(ext, Extension):
-            ext = ext.__blnt_ext__
+        ext_type = module.__blnt_ext__
+        ext = ext_type(self._cache)
         if ext in self._extensions:
             raise InitError(f"Bolinette extension {ext.name} is already in use")
-        self._extensions.append(ext)
-        for dep_ext in ext.dependencies:
-            if dep_ext not in self._extensions:
-                self._extensions.append(dep_ext)
+        new_extentions: list[Extension] = [ext]
+        for dep_module in ext.dependencies:
+            ext_type = dep_module.__blnt_ext__
+            dep_ext = next((e for e in self._extensions if isinstance(e, ext_type)), None)
+            if dep_ext is None:
+                dep_ext = ext_type(self._cache)
+                new_extentions.append(dep_ext)
+        self._extensions = sort_extensions([*self._extensions, *new_extentions])
         return ext
 
     @require(Parser)
@@ -60,9 +64,6 @@ class Bolinette:
     def build(self) -> Self:
         if self._initialized:
             raise InitError("Bolinette has already been initialized")
-        self._extensions = Extension.sort_extensions(self._extensions)
-        for ext in self._extensions:
-            ext.add_cached(self._cache)
 
         self._cache |= __user_cache__
 

@@ -12,4 +12,4 @@ from bolinette.web.middleware import (
     without_middleware as without_middleware,
 )
 from bolinette.web.payload import Payload as Payload
-from bolinette.web.extension import web_ext as __blnt_ext__
+from bolinette.web.extension import WebExtension as __blnt_ext__

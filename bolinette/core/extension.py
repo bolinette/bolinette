@@ -1,5 +1,5 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Final, Protocol, TypeVar, override
+from typing import Final, Protocol
 
 from bolinette.core import Cache, CoreSection, command
 from bolinette.core.command import Parser, debug_injection_command
@@ -29,38 +29,35 @@ from bolinette.core.types.checker import (
     type_checker,
 )
 
-ExtT = TypeVar("ExtT", bound="Extension")
+
+class ExtensionModule[ExtT: "Extension"](Protocol):
+    __blnt_ext__: Final[type[ExtT]]
 
 
-class ExtensionModule(Protocol[ExtT]):
-    __blnt_ext__: ExtT
+class Extension(Protocol):
+    name: str
+    dependencies: "list[ExtensionModule[Extension]]"
+
+    def __init__(self, cache: Cache) -> None: ...
 
 
-class Extension:
-    def __init__(self, name: str, dependencies: "list[ExtensionModule[Extension]] | None" = None) -> None:
-        self.name = name
-        self.dependencies = [m.__blnt_ext__ for m in dependencies] if dependencies else []
-
-    def add_cached(self, cache: Cache) -> None:
-        pass
-
-    @staticmethod
-    def sort_extensions(extensions: "list[Extension]") -> "list[Extension]":
-        sorter: TopologicalSorter[Extension] = TopologicalSorter()
-        for ext in extensions:
-            sorter.add(ext, *ext.dependencies)
-        try:
-            return list(sorter.static_order())
-        except CycleError as e:
-            raise InitError("A circular dependency was detected in the loaded extensions") from e
+def sort_extensions(extensions: list[Extension]) -> list[Extension]:
+    sorter: TopologicalSorter[type[Extension]] = TopologicalSorter()
+    for ext in extensions:
+        sorter.add(type(ext), *[m.__blnt_ext__ for m in ext.dependencies])
+    try:
+        ordered_types = list(sorter.static_order())
+        instance_map = {type(ext): ext for ext in extensions}
+        return [instance_map[t] for t in ordered_types]
+    except CycleError as e:
+        raise InitError("A circular dependency was detected in the loaded extensions") from e
 
 
-class _CoreExtension(Extension):
-    def __init__(self) -> None:
-        super().__init__("core")
+class CoreExtension:
+    def __init__(self, cache: Cache) -> None:
+        self.name = "core"
+        self.dependencies: list[ExtensionModule[Extension]] = []
 
-    @override
-    def add_cached(self, cache: Cache) -> None:
         environment("core", cache=cache)(CoreSection)
 
         injection_callback(cache=cache)(InjectionLogger)
@@ -93,9 +90,6 @@ class _CoreExtension(Extension):
             cache=cache,
             run_startup=False,
         )(debug_injection_command)
-
-
-core_ext: Final[Extension] = _CoreExtension()
 
 
 class InjectionLogger:

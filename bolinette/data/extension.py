@@ -1,10 +1,8 @@
-from typing import override
-
 from bolinette import core
 from bolinette.core import Cache, startup
 from bolinette.core.command import command
 from bolinette.core.environment import environment
-from bolinette.core.extension import Extension
+from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import injectable, injection_arg_resolver
 from bolinette.core.mapping import mapping_worker
 from bolinette.data import DatabaseManager, DataSection, database_system
@@ -21,12 +19,11 @@ from bolinette.data.relational import AsyncTransaction, EntityManager
 from bolinette.data.relational.manager import create_tables_for_memory_db
 
 
-class _DataExtension(Extension):
-    def __init__(self) -> None:
-        super().__init__("data", [core])
+class DataExtension:
+    def __init__(self, cache: Cache) -> None:
+        self.name = "data"
+        self.dependencies: list[ExtensionModule[Extension]] = [core]
 
-    @override
-    def add_cached(self, cache: Cache) -> None:
         environment("data", cache=cache)(DataSection)
 
         injectable(strategy="singleton", cache=cache)(DatabaseManager)
@@ -49,6 +46,3 @@ class _DataExtension(Extension):
             cache=cache,
             run_startup=True,
         )(create_db_tables)
-
-
-data_ext = _DataExtension()

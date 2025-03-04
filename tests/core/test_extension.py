@@ -1,40 +1,70 @@
 import pytest
 
+from bolinette.core import Cache
 from bolinette.core.exceptions import InitError
-from bolinette.core.extension import Extension
+from bolinette.core.extension import Extension, ExtensionModule, sort_extensions
 
 
 class _MockModule:
-    def __init__(self, ext: Extension) -> None:
+    def __init__(self, ext: type[Extension]) -> None:
         self.__blnt_ext__ = ext
 
 
 def test_sort_extensions() -> None:
-    e1 = Extension("e1")
-    e2 = Extension("e2", [_MockModule(e1)])
+    class _Ext1:
+        def __init__(self, cache: Cache) -> None:
+            self.name = "e1"
+            self.dependencies: list[ExtensionModule[Extension]] = []
 
-    extensions = [e1, e2]
-    sorted_extensions = Extension.sort_extensions(extensions)
+    class _Ext2:
+        def __init__(self, cache: Cache) -> None:
+            self.name = "e2"
+            self.dependencies: list[ExtensionModule[Extension]] = [_MockModule(_Ext1)]
 
-    assert sorted_extensions == extensions
+    e1 = _Ext1(Cache())
+    e2 = _Ext2(Cache())
+
+    extensions: list[Extension] = [e1, e2]
+    sorted_extensions = sort_extensions(extensions)
+
+    assert sorted_extensions == [e1, e2]
 
 
 def test_sort_extensions_reversed() -> None:
-    e1 = Extension("e1")
-    e2 = Extension("e2", [_MockModule(e1)])
+    class _Ext1:
+        def __init__(self, cache: Cache) -> None:
+            self.name = "e1"
+            self.dependencies: list[ExtensionModule[Extension]] = []
 
-    extensions = [e2, e1]
-    sorted_extensions = Extension.sort_extensions(extensions)
+    class _Ext2:
+        def __init__(self, cache: Cache) -> None:
+            self.name = "e2"
+            self.dependencies: list[ExtensionModule[Extension]] = [_MockModule(_Ext1)]
+
+    e1 = _Ext1(Cache())
+    e2 = _Ext2(Cache())
+
+    extensions: list[Extension] = [e2, e1]
+    sorted_extensions = sort_extensions(extensions)
 
     assert sorted_extensions == [e1, e2]
 
 
 def test_fail_circular_dependencies() -> None:
-    e1 = Extension("e1")
-    e2 = Extension("e2", [_MockModule(e1)])
-    e1.dependencies = [e2]
+    class _Ext1:
+        def __init__(self, cache: Cache) -> None:
+            self.name = "e1"
+            self.dependencies: list[ExtensionModule[Extension]] = [_MockModule(_Ext2)]
+
+    class _Ext2:
+        def __init__(self, cache: Cache) -> None:
+            self.name = "e2"
+            self.dependencies: list[ExtensionModule[Extension]] = [_MockModule(_Ext1)]
+
+    e1 = _Ext1(Cache())
+    e2 = _Ext2(Cache())
 
     with pytest.raises(InitError) as info:
-        Extension.sort_extensions([e2, e1])
+        sort_extensions([e2, e1])
 
     assert "A circular dependency was detected in the loaded extensions" == info.value.message
