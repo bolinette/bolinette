@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette-web"
-version = "0.18.2"
+version = "0.19.0"
 description = "The Bolinette web package, an async Http and Websocket framework, based on Bolinette"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
@@ -20,4 +20,4 @@ packages = [{ include = "bolinette/web" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-bolinette = "^0.18.2"
+bolinette = "^0.19.0"

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette-api"
-version = "0.18.2"
+version = "0.19.0"
 description = "The Bolinette api package, based on bolinette-data and bolinette-web"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]
@@ -20,5 +20,5 @@ packages = [{ include = "bolinette/api" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-bolinette-data = "^0.18.2"
-bolinette-web = "^0.18.2"
+bolinette-data = "^0.19.0"
+bolinette-web = "^0.19.0"
