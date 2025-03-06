@@ -1,10 +1,10 @@
 import base64
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol, cast
 
 from bolinette.core import Cache, __user_cache__
 from bolinette.core.exceptions import InitError
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, AESGCMSIV, AESOCB3, AESSIV, ChaCha20Poly1305
 
 
-class BlntAuthUserTransformer[InfoT, ClaimsT: dict[str, Any], PayloadT](Protocol):
+class BlntAuthUserTransformer[InfoT, ClaimsT: Mapping[str, Any], PayloadT](Protocol):
     def check_user(self, payload: PayloadT, /) -> InfoT: ...
     def user_from_claims(self, claims: ClaimsT, /) -> InfoT: ...
     def user_to_claims(self, user_info: InfoT, /) -> ClaimsT: ...
@@ -99,9 +99,10 @@ class BolinetteAuthProvider:
                 self.encode_key = None
                 self.decode_key = None
             case "HS256" | "HS384" | "HS512":
-                key = config.signing.key
+                signing_config = cast(BlntAuthSignHMACConfig, config.signing)
+                key = signing_config.key
                 if key is None:
-                    keyfile = config.signing.key_file
+                    keyfile = signing_config.key_file
                     if keyfile is None:
                         raise InitError(
                             "Bolinette auth: HMAC algorithm must specify a "
@@ -112,24 +113,25 @@ class BolinetteAuthProvider:
                 self.passphrase = None
                 self.encode_key = self.decode_key = key
             case "RS256" | "RS384" | "RS512":
-                self.passphrase = config.signing.passphrase
-                if config.signing.private_key:
-                    self.encode_key = self._load_private_pem_key(config.signing.private_key)
-                elif config.signing.private_key_file:
-                    self.encode_key = self._load_private_pem_key(Path(config.signing.private_key_file))
-                elif config.signing.private_jwk_file:
-                    self.encode_key = self._load_private_rsa_jwk_key(Path(config.signing.private_jwk_file))
+                signing_config = cast(BlntAuthSignRSAConfig, config.signing)
+                self.passphrase = signing_config.passphrase
+                if signing_config.private_key:
+                    self.encode_key = self._load_private_pem_key(signing_config.private_key)
+                elif signing_config.private_key_file:
+                    self.encode_key = self._load_private_pem_key(Path(signing_config.private_key_file))
+                elif signing_config.private_jwk_file:
+                    self.encode_key = self._load_private_rsa_jwk_key(Path(signing_config.private_jwk_file))
                 if self.encode_key is None:
                     raise InitError(
                         "Bolinette auth: RSA algorithm must specify a "
                         "'private_key, 'private_key_file' or 'private_jwk_file' in the 'blntauth' config."
                     )
-                if config.signing.public_key:
-                    self.decode_key = self._load_public_pem_key(config.signing.public_key)
-                elif config.signing.public_key_file:
-                    self.decode_key = self._load_public_pem_key(Path(config.signing.public_key_file))
-                elif config.signing.public_jwk_file:
-                    self.decode_key = self._load_public_rsa_jwk_key(Path(config.signing.public_jwk_file))
+                if signing_config.public_key:
+                    self.decode_key = self._load_public_pem_key(signing_config.public_key)
+                elif signing_config.public_key_file:
+                    self.decode_key = self._load_public_pem_key(Path(signing_config.public_key_file))
+                elif signing_config.public_jwk_file:
+                    self.decode_key = self._load_public_rsa_jwk_key(Path(signing_config.public_jwk_file))
                 if self.decode_key is None:
                     raise InitError(
                         "Bolinette auth: RSA algorithm must specify a "
@@ -290,7 +292,7 @@ class BolinetteAuthProvider:
         return BlntAuthLoginController
 
 
-def blnt_auth_user_transformer[TransT: BlntAuthUserTransformer[Any, dict[str, Any], Any]](
+def blnt_auth_user_transformer[TransT: BlntAuthUserTransformer[Any, Any, Any]](
     *, cache: Cache | None = None
 ) -> Callable[[type[TransT]], type[TransT]]:
     def decorator(func: type[TransT]) -> type[TransT]:

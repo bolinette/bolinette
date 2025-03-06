@@ -1,7 +1,7 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Final, Protocol
+from typing import TYPE_CHECKING, Final, Protocol
 
-from bolinette.core import Cache, CoreSection, command
+from bolinette.core import Cache, CoreSection, command, startup
 from bolinette.core.command import Parser, debug_injection_command
 from bolinette.core.environment import Environment, environment
 from bolinette.core.events import EventDispatcher
@@ -28,6 +28,9 @@ from bolinette.core.types.checker import (
     TypedDictChecker,
     type_checker,
 )
+
+if TYPE_CHECKING:
+    from jinja2 import BaseLoader
 
 
 class ExtensionModule[ExtT: "Extension"](Protocol):
@@ -57,6 +60,7 @@ class CoreExtension:
     def __init__(self, cache: Cache) -> None:
         self.name = "core"
         self.dependencies: list[ExtensionModule[Extension]] = []
+        self.cache = cache
 
         environment("core", cache=cache)(CoreSection)
 
@@ -90,6 +94,18 @@ class CoreExtension:
             cache=cache,
             run_startup=False,
         )(debug_injection_command)
+
+    def use_jinja_templating(self, loader: "BaseLoader | None" = None) -> "CoreExtension":
+        from bolinette.core.templating.jinja import JinjaResolver
+
+        async def register_config(inject: Injection) -> None:
+            from bolinette.core.templating.jinja import JinjaConfig
+
+            inject.add_singleton(JinjaConfig, instance=JinjaConfig(loader=loader))
+
+        injection_arg_resolver(cache=self.cache)(JinjaResolver)
+        startup(cache=self.cache)(register_config)
+        return self
 
 
 class InjectionLogger:

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolinette"
-version = "0.18.2"
+version = "0.19.0"
 description = "An inversion of control framework in Python"
 readme = "README.md"
 authors = ["Pierre Chat <pierrechat@outlook.com>"]

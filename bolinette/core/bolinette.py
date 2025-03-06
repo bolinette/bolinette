@@ -3,14 +3,13 @@ import sys
 from collections.abc import Callable
 from typing import Any, NoReturn, Self
 
-from bolinette import core
 from bolinette.core import __user_cache__, meta
 from bolinette.core.cache import Cache
 from bolinette.core.command import Parser
 from bolinette.core.environment import Environment
 from bolinette.core.events import EventDispatcher
 from bolinette.core.exceptions import InitError
-from bolinette.core.extension import Extension, ExtensionModule, sort_extensions
+from bolinette.core.extension import CoreExtension, Extension, ExtensionModule, sort_extensions
 from bolinette.core.injection import Injection, require
 from bolinette.core.logging import Logger
 from bolinette.core.startup import STARTUP_CACHE_KEY
@@ -21,7 +20,7 @@ class Bolinette:
     def __init__(self, *, cache: Cache | None = None) -> None:
         self._cache = cache or Cache()
         self._initialized = False
-        self._extensions: list[Extension] = [core.__blnt_ext__(self._cache)]
+        self._extensions: list[Extension] = [CoreExtension(self._cache)]
         self._inject: Injection
         self._env: Environment
         self.logger: Logger[Bolinette]
@@ -42,6 +41,10 @@ class Bolinette:
                 new_extentions.append(dep_ext)
         self._extensions = sort_extensions([*self._extensions, *new_extentions])
         return ext
+
+    @property
+    def core_extension(self) -> CoreExtension:
+        return next(e for e in self._extensions if isinstance(e, CoreExtension))
 
     @require(Parser)
     def _parser(self): ...
