@@ -1,6 +1,7 @@
 import inspect
 import json
-from collections.abc import AsyncIterator, Callable, Coroutine, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
+from types import CoroutineType
 from typing import Any, Protocol
 
 from bolinette.core.injection import Injection
@@ -93,27 +94,29 @@ class ResponseWriter:
         await self._write_chunk(result, value_writer)
         await self._close_writer(value_writer)
 
-    def _write_chunk(self, value: object, value_writer: "ValueWriter[object]") -> Coroutine[Any, Any, None]:
+    def _write_chunk(self, value: object, value_writer: "ValueWriter[object]") -> CoroutineType[Any, Any, None]:
         return value_writer.write(self.response.write, value)
 
-    def _close_writer(self, value_writer: "ValueWriter[object]") -> Coroutine[Any, Any, None]:
+    def _close_writer(self, value_writer: "ValueWriter[object]") -> CoroutineType[Any, Any, None]:
         return value_writer.close(self.response.write)
 
 
 class ValueWriter[T](Protocol):
     def default_content_type(self) -> str: ...
-    async def write(self, write: Callable[[bytes], Coroutine[Any, Any, None]], value: T) -> None: ...
-    async def close(self, write: Callable[[bytes], Coroutine[Any, Any, None]]) -> None: ...
+    async def write(self, write: Callable[[bytes], CoroutineType[Any, Any, None]], value: T) -> None: ...
+    async def close(self, write: Callable[[bytes], CoroutineType[Any, Any, None]]) -> None: ...
 
 
 class RawValueTransformer:
     def default_content_type(self) -> str:
         return "application/octet-stream"
 
-    def write(self, write: Callable[[bytes], Coroutine[Any, Any, None]], value: bytes) -> Coroutine[Any, Any, None]:
+    def write(
+        self, write: Callable[[bytes], CoroutineType[Any, Any, None]], value: bytes
+    ) -> CoroutineType[Any, Any, None]:
         return write(value)
 
-    async def close(self, write: Callable[[bytes], Coroutine[Any, Any, None]]) -> None:
+    async def close(self, write: Callable[[bytes], CoroutineType[Any, Any, None]]) -> None:
         pass
 
 
@@ -121,10 +124,12 @@ class StringValueTransformer:
     def default_content_type(self) -> str:
         return "text/plain"
 
-    def write(self, write: Callable[[bytes], Coroutine[Any, Any, None]], value: str) -> Coroutine[Any, Any, None]:
+    def write(
+        self, write: Callable[[bytes], CoroutineType[Any, Any, None]], value: str
+    ) -> CoroutineType[Any, Any, None]:
         return write(value.encode())
 
-    async def close(self, write: Callable[[bytes], Coroutine[Any, Any, None]]) -> None:
+    async def close(self, write: Callable[[bytes], CoroutineType[Any, Any, None]]) -> None:
         pass
 
 
@@ -135,10 +140,12 @@ class JsonValueTransformer:
     def default_content_type(self) -> str:
         return "application/json"
 
-    def write(self, write: Callable[[bytes], Coroutine[Any, Any, None]], value: Any) -> Coroutine[Any, Any, None]:
+    def write(
+        self, write: Callable[[bytes], CoroutineType[Any, Any, None]], value: Any
+    ) -> CoroutineType[Any, Any, None]:
         return write(json.dumps(value, cls=JsonObjectEncoder, separators=(", ", ": ")).encode())
 
-    async def close(self, write: Callable[[bytes], Coroutine[Any, Any, None]]) -> None:
+    async def close(self, write: Callable[[bytes], CoroutineType[Any, Any, None]]) -> None:
         pass
 
 
@@ -149,7 +156,7 @@ class JsonListValueTransformer:
     def default_content_type(self) -> str:
         return "application/json"
 
-    async def write(self, write: Callable[[bytes], Coroutine[Any, Any, None]], value: Any) -> None:
+    async def write(self, write: Callable[[bytes], CoroutineType[Any, Any, None]], value: Any) -> None:
         if self.item == 0:
             await write(b"[")
         else:
@@ -157,5 +164,5 @@ class JsonListValueTransformer:
         await write(json.dumps(value, cls=JsonObjectEncoder, separators=(", ", ": ")).encode())
         self.item += 1
 
-    def close(self, write: Callable[[bytes], Coroutine[Any, Any, None]]) -> Coroutine[Any, Any, None]:
+    def close(self, write: Callable[[bytes], CoroutineType[Any, Any, None]]) -> CoroutineType[Any, Any, None]:
         return write(b"]")

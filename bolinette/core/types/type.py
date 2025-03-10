@@ -25,7 +25,7 @@ from bolinette.core.exceptions import TypingError
 
 class Type[T]:
     origin: type[T] | UnionType
-    annotated: tuple[Any, ...]
+    annotated: list[Any]
     required: bool
     nullable: bool
     union: "tuple[Type[Any], ...]"
@@ -72,7 +72,7 @@ class Type[T]:
         raise_on_typevar: bool = True,
     ) -> None:
         self.origin = origin
-        self.annotated = ()
+        self.annotated = []
         self.required = True
         self.nullable = False
         self.union = ()

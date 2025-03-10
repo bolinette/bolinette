@@ -20,8 +20,8 @@ class MiddlewareMeta:
 
 class MiddlewareBag:
     def __init__(self) -> None:
-        self.added: dict[Type[Middleware[...]], MiddlewareMeta] = {}
-        self.removed: list[Type[Middleware[...]]] = []
+        self.added: dict[Type[Any], MiddlewareMeta] = {}
+        self.removed: list[Type[Any]] = []
 
 
 def with_middleware[CtrlT: Controller | Callable[..., Any], **MdlwInitP](

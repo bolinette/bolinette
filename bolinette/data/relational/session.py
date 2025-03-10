@@ -1,4 +1,5 @@
-from collections.abc import Callable, Coroutine, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from types import CoroutineType
 from typing import Any
 
 from sqlalchemy import Result
@@ -43,7 +44,7 @@ class EntitySession[EntityT: DeclarativeBase]:
     async def close(self) -> None: ...
 
 
-def _to_async[**P, T](func: Callable[P, T]) -> Callable[P, Coroutine[Any, Any, T]]:
+def _to_async[**P, T](func: Callable[P, T]) -> Callable[P, CoroutineType[Any, Any, T]]:
     async def _call(*args: P.args, **kwargs: P.kwargs) -> T:
         return func(*args, **kwargs)
 
