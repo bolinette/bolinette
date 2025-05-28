@@ -3,21 +3,25 @@ from typing import Any
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from bolinette.core import Cache, meta
 from bolinette.core.testing import Mock
 from bolinette.core.types import Type
 from bolinette.data.exceptions import DataError, EntityNotFoundError
-from bolinette.data.relational import EntitySession, Repository, entity, get_base, repository
+from bolinette.data.relational import EntitySession, Repository, declarative_base, entity, repository
 from bolinette.data.relational.repository import RepositoryMeta
 
 
 def test_init_repo() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -34,8 +38,12 @@ def test_init_repo() -> None:
 async def test_iterate() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -66,8 +74,12 @@ async def test_iterate() -> None:
 async def test_find_all() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -98,8 +110,12 @@ async def test_find_all() -> None:
 async def test_first() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -127,8 +143,12 @@ async def test_first() -> None:
 async def test_first_none() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -154,8 +174,12 @@ async def test_first_none() -> None:
 async def test_fail_first_none() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -182,8 +206,12 @@ async def test_fail_first_none() -> None:
 async def test_get_by_primary() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -211,8 +239,12 @@ async def test_get_by_primary() -> None:
 async def test_get_by_primary_none() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -238,8 +270,12 @@ async def test_get_by_primary_none() -> None:
 async def test_fail_get_by_primary_none() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -266,8 +302,12 @@ async def test_fail_get_by_primary_none() -> None:
 async def test_fail_get_by_primary_values_mismatch() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -287,8 +327,12 @@ async def test_fail_get_by_primary_values_mismatch() -> None:
 async def test_add() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -313,8 +357,12 @@ async def test_add() -> None:
 async def test_delete() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -339,8 +387,12 @@ async def test_delete() -> None:
 async def test_commit() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -365,8 +417,12 @@ async def test_commit() -> None:
 def test_custom_repo() -> None:
     cache = Cache()
 
+    @declarative_base("tests", cache=cache)
+    class TestBase(DeclarativeBase):
+        pass
+
     @entity(cache=cache)
-    class Entity(get_base("tests", cache=cache)):
+    class Entity(TestBase):
         __tablename__ = "entities"
         id: Mapped[int] = mapped_column(primary_key=True)
 

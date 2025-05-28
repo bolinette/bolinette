@@ -38,12 +38,12 @@ def test_blntauth_generate_tokens() -> None:
     )
     mock.injection.add_singleton(BolinetteAuthProvider)
 
-    @dataclass(init=False)
+    @dataclass
     class LoginPayload:
         username: str
         password: str
 
-    @dataclass()
+    @dataclass
     class User:
         username: str
         password: str
@@ -114,12 +114,12 @@ async def test_blnt_token_with_rsa() -> None:
         )
         mock.injection.add_singleton(BolinetteAuthProvider)
 
-        @dataclass(init=False)
+        @dataclass
         class LoginPayload:
             username: str
             password: str
 
-        @dataclass()
+        @dataclass
         class User:
             username: str
             password: str

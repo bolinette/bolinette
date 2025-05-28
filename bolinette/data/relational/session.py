@@ -4,10 +4,8 @@ from typing import Any
 
 from sqlalchemy import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.sql.selectable import TypedReturnsRows
-
-from bolinette.data.relational import DeclarativeBase
 
 
 class EntitySession[EntityT: DeclarativeBase]:

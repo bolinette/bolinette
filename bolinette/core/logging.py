@@ -99,9 +99,7 @@ class LoggerArgResolver:
             logger.setLevel(logging.DEBUG)
             logger_name = options.t.vars[0].__qualname__
             if self.config.logging is None:
-                config = StreamLoggingConfig()
-                config.type = "stderr"
-                config.color = True
+                config = StreamLoggingConfig(type="stderr", color=True, level="INFO")
                 self._add_console_logger(logger, logger_name, config)
             else:
                 for config in self.config.logging:

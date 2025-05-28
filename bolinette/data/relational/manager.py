@@ -1,5 +1,7 @@
 from typing import Any
 
+from sqlalchemy.orm import DeclarativeBase
+
 from bolinette.core import Cache, meta
 from bolinette.core.exceptions import InitError
 from bolinette.core.injection import Injection, post_init
@@ -8,7 +10,6 @@ from bolinette.data import DatabaseManager
 from bolinette.data.exceptions import EntityError
 from bolinette.data.relational import (
     AbstractDatabase,
-    DeclarativeBase,
     DeclarativeMeta,
     EntityMeta,
     Repository,
@@ -60,7 +61,7 @@ class EntityManager:
         repo_classes = cache.get(RepositoryMeta, hint=type[Repository[Any]], raises=False)
         custom_repos: set[type[DeclarativeBase]] = set()
         for repo_cls in repo_classes:
-            repo_meta: RepositoryMeta[Any] = meta.get(repo_cls, RepositoryMeta)
+            repo_meta = meta.get(repo_cls, RepositoryMeta[Any])
             base_t = next((b for b in repo_meta.repo_t.bases if b.cls is Repository), None)
             if base_t is None:
                 raise InitError(f"Repository {repo_meta.repo_t}, class must inherit from Repository[Entity]")
@@ -80,7 +81,7 @@ class EntityManager:
         service_classes = cache.get(ServiceMeta, hint=type[Service[Any]], raises=False)
         custom_services: set[type[DeclarativeBase]] = set()
         for service_cls in service_classes:
-            service_meta: ServiceMeta[Any] = meta.get(service_cls, ServiceMeta)
+            service_meta = meta.get(service_cls, ServiceMeta[Any])
             base_t = next((b for b in service_meta.service_t.bases if b.cls is Service), None)
             if base_t is None:
                 raise InitError(f"Service {service_meta.service_t}, class must inherit from Service[Entity]")

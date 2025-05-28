@@ -42,7 +42,7 @@ class _MockWrapper[MockedT]:
     def _get_mocked_attr(_cls: type[MockedT], instance: MockedT, name: str) -> Any:
         if name == "__class__":
             return _cls
-        _meta: _MockedMeta[Any] = meta.get(type(instance), _MockedMeta)
+        _meta = meta.get(type(instance), _MockedMeta[Any])
         if name in _meta:
             return _meta[name]
         raise KeyError(f"'{name}' attribute has not been mocked in {_cls}")
@@ -71,12 +71,12 @@ class _MockWrapper[MockedT]:
         expr: ExpressionNode = func(ExpressionTree.new())  # pyright: ignore
         ExpressionTree.ensure_attribute_chain(expr)
         name = ExpressionTree.get_attribute(expr)
-        _meta: _MockedMeta[Any] = meta.get(self._cls, _MockedMeta)
+        _meta = meta.get(self._cls, _MockedMeta[Any])
         _meta[name] = value
         return self
 
     def dummy(self, value: bool = True) -> "_MockWrapper[MockedT]":
-        _meta: _MockedMeta[Any] = meta.get(self._cls, _MockedMeta)
+        _meta = meta.get(self._cls, _MockedMeta[Any])
         _meta.dummy = value
         return self
 

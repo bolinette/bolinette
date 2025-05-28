@@ -1,11 +1,9 @@
 from collections.abc import Callable, Iterable
-from typing import Any, Concatenate, Literal, NotRequired, TypedDict, override
+from typing import Any, Concatenate, NotRequired, TypedDict, override
 
 from bolinette.core.exceptions import InjectionError
+from bolinette.core.injection.context import InjectionStrategy
 from bolinette.core.types import Type
-
-InjectionStrategy = Literal["singleton", "scoped", "transient", "immediate"]
-AddStrategy = Literal["singleton", "scoped", "transient"]
 
 
 class RegistrationOptions[InstanceT](TypedDict):

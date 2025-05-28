@@ -166,7 +166,7 @@ class _WSTypeBag:
     def match(self, channel: str) -> WebSocketChannelMeta[Any, Any, ..., Any] | None:
         for attr in AttributeUtils.get_cls_attrs(self.t.cls).values():
             if meta.has(attr, WebSocketChannelMeta):
-                chan_meta: WebSocketChannelMeta[Any, Any, ..., Any] = meta.get(attr, WebSocketChannelMeta)
+                chan_meta = meta.get(attr, WebSocketChannelMeta[Any, Any, ..., Any])
                 if chan_meta.pattern.match(channel):
                     return chan_meta
         return None

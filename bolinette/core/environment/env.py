@@ -1,17 +1,11 @@
 import os
-import warnings
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from bolinette.core import Cache, meta
-from bolinette.core.environment.sections import EnvironmentSection, EnvSectionMeta
 from bolinette.core.exceptions import EnvironmentError
-from bolinette.core.expressions import ExpressionTree
-from bolinette.core.injection import Injection, post_init
-from bolinette.core.mapping import Mapper
-from bolinette.core.types import Type
+from bolinette.core.injection import post_init
 
 
 class Environment:
@@ -19,8 +13,9 @@ class Environment:
     _UNINITIALIZED_PROFILE = "__uninitialized__"
     _DEFAULT_PROFILE = "development"
 
-    def __init__(self) -> None:
+    def __init__(self, base: "EnvironmentBaseSection | None") -> None:
         self._env_folder = Path.cwd() / "env"
+        self._base_config = base
         self.profile: str = self._UNINITIALIZED_PROFILE
         self.config: dict[str, Any] = {}
 
@@ -35,16 +30,11 @@ class Environment:
             pass
 
     @post_init
-    def _init_config_sections(self, cache: Cache, inject: Injection) -> None:
-        if EnvironmentSection in cache:
-            for cls in cache.get(EnvironmentSection, hint=type[Any]):
-                inject.add_singleton(cls, options={"before_init": [init_section]})
-
-    @post_init
     def _init_env_files(self) -> None:
         profile = self._DEFAULT_PROFILE if self.profile == self._UNINITIALIZED_PROFILE else self.profile
 
         stack = [
+            self._base_config.config if self._base_config is not None else {},
             self._init_from_os(),
             self._init_from_file("env.yaml"),
             self._init_from_file(f"env.{profile}.yaml"),
@@ -64,7 +54,6 @@ class Environment:
     def _init_default_profile(self) -> None:
         if self.profile == self._UNINITIALIZED_PROFILE:
             self.profile = self._DEFAULT_PROFILE
-            warnings.warn(f".profile not found in env folder, defaulting to '{self._DEFAULT_PROFILE}'", stacklevel=1)
 
     @staticmethod
     def _init_from_os() -> dict[str, dict[str, Any]]:
@@ -96,14 +85,6 @@ class Environment:
             return {}
 
 
-def init_section(section: object, env: Environment, mapper: Mapper) -> None:
-    section_name = meta.get(type(section), EnvSectionMeta).name
-    if section_name not in env.config:
-        raise EnvironmentError(f"No '{section_name}' section was found in the environment files")
-    mapper.map(
-        dict[str, Any],
-        type(section),
-        env.config[section_name],
-        section,
-        src_expr=ExpressionTree.new(Type(Environment))[section_name],
-    )
+class EnvironmentBaseSection:
+    def __init__(self, config: dict[str, dict[str, Any]]) -> None:
+        self.config = config

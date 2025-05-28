@@ -2,6 +2,7 @@ from collections.abc import AsyncIterable, Callable, Iterable
 from typing import Any, Literal, overload
 
 from sqlalchemy import select
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.elements import NamedColumn
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
@@ -9,7 +10,7 @@ from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.injection import post_init
 from bolinette.core.types import Type
 from bolinette.data.exceptions import DataError, EntityNotFoundError
-from bolinette.data.relational import DeclarativeBase, EntitySession
+from bolinette.data.relational import EntitySession
 
 
 class Repository[EntityT: DeclarativeBase]:

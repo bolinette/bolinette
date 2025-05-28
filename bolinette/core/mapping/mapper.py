@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from typing import Any, Literal, Protocol, TypeGuard, overload, override
+from typing import Any, Literal, TypeGuard, override
 from typing import TypedDict as TypedDict
 
 from bolinette.core import Cache, __user_cache__, meta
@@ -23,11 +23,6 @@ from bolinette.core.mapping.exceptions import (
 from bolinette.core.mapping.profiles import Profile
 from bolinette.core.mapping.sequence import IgnoreAttribute, MapFromAttribute, MappingSequence
 from bolinette.core.types import Type, TypeCollection
-
-
-class NoInitDestination(Protocol):
-    def __init__(self) -> None:
-        pass
 
 
 class Mapper:
@@ -63,33 +58,6 @@ class Mapper:
 
     def set_default_type_mapper(self, mapper: "type[MappingWorker[object]]") -> None:
         self._default_mapper = mapper
-
-    @overload
-    def map[SrcT, DestT: NoInitDestination](
-        self,
-        src_cls: type[SrcT],
-        dest_cls: type[DestT],
-        src: SrcT,
-        *,
-        src_expr: ExpressionNode | None = None,
-        dest_expr: ExpressionNode | None = None,
-        validate: bool = False,
-    ) -> DestT:
-        pass
-
-    @overload
-    def map[SrcT, DestT](
-        self,
-        src_cls: type[SrcT],
-        dest_cls: type[DestT],
-        src: SrcT,
-        dest: DestT,
-        *,
-        src_expr: ExpressionNode | None = None,
-        dest_expr: ExpressionNode | None = None,
-        validate: bool = False,
-    ) -> DestT:
-        pass
 
     def map[SrcT, DestT](
         self,
@@ -241,89 +209,171 @@ class ObjectMapper(MappingWorker[Any]):
 
         if dest_t.is_any:
             return self.runner.map(src_expr, src_t, dest_expr, src_t, src, None, exc_grp)
-        if dest is None:
-            try:
-                dest = dest_t.new()
-            except TypeError as e:
-                exc = InstantiationError(dest_expr, dest_t)
-                if exc_grp is None:
-                    raise exc from e
-                exc_grp.append(exc)
-                return None
+
         sequence: MappingSequence[SrcT, object] | None = self.runner.sequences.get(
             MappingSequence.get_hash(src_t, dest_t), None
         )
+        mapped_fields: dict[str, Any] = {}
+
+        if dest is None:
+            try:
+                init_parameters = dest_t.parameters()
+            except ValueError:
+                init_parameters = {}
+
+            init_args: list[Any] = []
+            init_kwargs: dict[str, Any] = {}
+            for name, param in init_parameters.items():
+                if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+                    continue
+                param_t = Type(param.annotation)
+                param_t, value = self._get_value(
+                    src_expr,
+                    src_t,
+                    src,
+                    dest_t,
+                    dest_expr,
+                    name,
+                    param_t,
+                    sequence,
+                    exc_grp,
+                )
+                new_value = self._map_value(
+                    self._get_expr(src_expr, src, name),
+                    getattr(dest_expr, name),
+                    param_t,
+                    value,
+                    exc_grp,
+                )
+                if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD):
+                    init_args.append(new_value)
+                elif param.kind in (param.KEYWORD_ONLY,):
+                    init_kwargs[name] = new_value
+                mapped_fields[name] = new_value
+
+            try:
+                dest = dest_t.new(*init_args, **init_kwargs)
+            except Exception as err:
+                exc = InstantiationError(dest_expr, dest_t)
+                if exc_grp is None:
+                    raise exc from err
+                exc_grp.append(exc)
+                return None
+
         if sequence is not None:
             for func in sequence.head:
                 func.func(src, dest)
+
         for dest_name, anno_t in dest_t.annotations().items():
-            src_name = dest_name
-            field_src_expr = self._get_expr(src_expr, src, src_name)
-            field_dest_expr: ExpressionNode = getattr(dest_expr, dest_name)
-            selected_t: Type[Any] | None = None
-            src_value_expr = self._get_expr(ExpressionTree.new(src_t), src, src_name)
-            if sequence is not None and dest_name in sequence.for_attrs:
-                for_attr = sequence.for_attrs[dest_name]
-                if isinstance(for_attr, IgnoreAttribute):
-                    if not anno_t.nullable:
-                        exc = IgnoreImpossibleError(field_dest_expr, anno_t)
-                        if exc_grp is None:
-                            raise exc
-                        exc_grp.append(exc)
-                        continue
-                    setattr(dest, dest_name, None)
+            if dest_name in mapped_fields:
+                new_value = mapped_fields[dest_name]
+            else:
+                try:
+                    anno_t, value = self._get_value(
+                        src_expr,
+                        src_t,
+                        src,
+                        dest_t,
+                        dest_expr,
+                        dest_name,
+                        anno_t,
+                        sequence,
+                        exc_grp,
+                    )
+                except _StopFieldMappingError:
                     continue
-                if isinstance(for_attr, MapFromAttribute):
-                    src_value_expr = for_attr.src_expr
-                    selected_t = for_attr.use_type
-            if anno_t.is_union and selected_t is not None:
-                if selected_t not in anno_t.union:
-                    exc = TypeMismatchError(field_src_expr, field_dest_expr, selected_t, anno_t)
-                    if exc_grp is None:
-                        raise exc
-                    exc_grp.append(exc)
-                    continue
-                anno_t = selected_t
-            try:
-                value = ExpressionTree.get_value(src_value_expr, src)
-            except (AttributeError, KeyError) as err:
-                if not anno_t.required or not dest_t.total:
-                    continue
-                if not self._has_default_value(dest, dest_name):
-                    if not anno_t.nullable:
-                        exc = SourceNotFoundError(field_src_expr, field_dest_expr, anno_t)
-                        if exc_grp is None:
-                            raise exc from err
-                        exc_grp.append(exc)
-                        continue
-                    else:
-                        setattr(dest, dest_name, None)
-                        continue
-                else:
-                    setattr(dest, dest_name, self._get_default_value(dest, dest_name))
-                    continue
-            new_value = self.runner.map(
-                field_src_expr,
-                Type(type(value)),  # pyright: ignore[reportUnknownArgumentType]
-                field_dest_expr,
-                anno_t,
-                value,
-                None,
-                exc_grp,
-            )
+                new_value = self._map_value(
+                    self._get_expr(src_expr, src, dest_name),
+                    getattr(dest_expr, dest_name),
+                    anno_t,
+                    value,
+                    exc_grp,
+                )
             self._set_attr(dest, dest_name, new_value)
+
         if sequence is not None:
             for func in sequence.tail:
                 func.func(src, dest)
+
         return dest
 
-    @staticmethod
-    def _has_default_value(obj: object, attr: str) -> bool:
-        return hasattr(type(obj), attr)
+    def _get_value[SrcT](
+        self,
+        src_expr: ExpressionNode,
+        src_t: Type[SrcT],
+        src: SrcT,
+        recipient_dest_t: Type[Any],
+        dest_expr: ExpressionNode,
+        dest_name: str,
+        dest_t: Type[Any],
+        sequence: MappingSequence[SrcT, object] | None,
+        exc_grp: list[MappingError] | None,
+    ) -> tuple[Type[Any], Any]:
+        src_name = dest_name
+        field_src_expr = self._get_expr(src_expr, src, src_name)
+        field_dest_expr: ExpressionNode = getattr(dest_expr, dest_name)
+        selected_t: Type[Any] | None = None
+        src_value_expr = self._get_expr(ExpressionTree.new(src_t), src, src_name)
+        if sequence is not None and dest_name in sequence.for_attrs:
+            for_attr = sequence.for_attrs[dest_name]
+            if isinstance(for_attr, IgnoreAttribute):
+                if not dest_t.nullable:
+                    exc = IgnoreImpossibleError(field_dest_expr, dest_t)
+                    if exc_grp is None:
+                        raise exc
+                    exc_grp.append(exc)
+                return dest_t, None
+            if isinstance(for_attr, MapFromAttribute):
+                src_value_expr = for_attr.src_expr
+                selected_t = for_attr.use_type
+        if dest_t.is_union and selected_t is not None:
+            if selected_t not in dest_t.union:
+                exc = TypeMismatchError(field_src_expr, field_dest_expr, selected_t, dest_t)
+                if exc_grp is None:
+                    raise exc
+                exc_grp.append(exc)
+                return dest_t, None
+            dest_t = selected_t
+        try:
+            return dest_t, ExpressionTree.get_value(src_value_expr, src)
+        except (AttributeError, KeyError) as err:
+            if not dest_t.required or not recipient_dest_t.total:
+                raise _StopFieldMappingError from err
+            if not self._has_default_value(recipient_dest_t.cls, dest_name):
+                if not dest_t.nullable:
+                    exc = SourceNotFoundError(field_src_expr, field_dest_expr, dest_t)
+                    if exc_grp is None:
+                        raise exc from err
+                    exc_grp.append(exc)
+                return dest_t, None
+            else:
+                return dest_t, self._get_default_value(recipient_dest_t.cls, dest_name)
+
+    def _map_value(
+        self,
+        field_src_expr: ExpressionNode,
+        field_dest_expr: ExpressionNode,
+        anno_t: Type[Any],
+        value: Any,
+        exc_grp: list[MappingError] | None,
+    ) -> Any:
+        return self.runner.map(
+            field_src_expr,
+            Type(type(value)),  # pyright: ignore[reportUnknownArgumentType]
+            field_dest_expr,
+            anno_t,
+            value,
+            None,
+            exc_grp,
+        )
 
     @staticmethod
-    def _get_default_value(obj: object, attr: str) -> Any:
-        return getattr(type(obj), attr)
+    def _has_default_value(obj: type[Any], attr: str) -> bool:
+        return hasattr(obj, attr)
+
+    @staticmethod
+    def _get_default_value(obj: type[Any], attr: str) -> Any:
+        return getattr(obj, attr)
 
     @staticmethod
     def _get_expr(path: ExpressionNode, obj: Any, attr: str) -> ExpressionNode:
@@ -553,3 +603,6 @@ class SequenceMapper(MappingWorker[list[Any] | tuple[Any, ...] | set[Any] | froz
     @staticmethod
     def _is_iterable(obj: Any) -> TypeGuard[Iterable[Any]]:
         return hasattr(obj, "__iter__")
+
+
+class _StopFieldMappingError(Exception): ...

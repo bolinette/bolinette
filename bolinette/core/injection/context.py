@@ -1,7 +1,9 @@
-from typing import Any
+from typing import Any, Literal
 
-from bolinette.core.injection.registration import InjectionStrategy
 from bolinette.core.types import Function, Type
+
+InjectionStrategy = Literal["singleton", "scoped", "transient", "immediate"]
+AddStrategy = Literal["singleton", "scoped", "transient"]
 
 
 class InjectionContext:

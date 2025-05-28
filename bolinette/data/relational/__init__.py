@@ -1,6 +1,5 @@
 from bolinette.data.relational.base import (
-    get_base as get_base,
-    DeclarativeBase as DeclarativeBase,
+    declarative_base as declarative_base,
     DeclarativeMeta as DeclarativeMeta,
 )
 from bolinette.data.relational.entity import entity as entity, EntityMeta as EntityMeta

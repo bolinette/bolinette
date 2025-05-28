@@ -9,14 +9,8 @@ from bolinette.core.types import Type
 class ExpressionNode:
     @override
     def __getattribute__(self, __name: str) -> Any:
-        if __name == "__class__":
-            return object.__getattribute__(self, "__class__")
-        if __name == "__dict__":
-            return object.__getattribute__(self, "__dict__")
-        if __name == "__str__":
-            return object.__getattribute__(self, "__str__")
-        if __name == "__repr__":
-            return object.__getattribute__(self, "__repr__")
+        if __name in ("__class__", "__dict__", "__str__", "__repr__"):
+            return object.__getattribute__(self, __name)
         return AttributeNode(self, __name)
 
     def __getitem__(self, key: Any) -> "ElementNode[Any]":

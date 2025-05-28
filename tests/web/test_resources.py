@@ -540,7 +540,7 @@ async def test_call_route_with_class_payload() -> None:
     mock.mock(TypeChecker).dummy()
     mock.mock(AuthProviders).dummy()
 
-    @dataclass()
+    @dataclass
     class TestPayload:
         name: str
         quantity: int

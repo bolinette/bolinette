@@ -27,6 +27,7 @@ black = "^24.3.0"
 mypy = "^1.15.0"
 ruff = "^0.9.8"
 uvicorn = { version = "^0.34.0", extras = ["standard"] }
+pyright = "^1.1.396"
 
 [tool.poetry.group.test.dependencies]
 coverage = "^7.6.12"
@@ -104,6 +105,3 @@ asyncio_mode = "auto"
 
 [tool.coverage.report]
 exclude_lines = ['pass', 'if TYPE_CHECKING:', '\.\.\.$']
-
-[tool.bolinette]
-app_factory = "example:make_bolinette"

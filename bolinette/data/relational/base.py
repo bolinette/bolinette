@@ -1,23 +1,20 @@
+from collections.abc import Callable
+from dataclasses import dataclass
+
 from sqlalchemy.orm import DeclarativeBase
 
 from bolinette.core import Cache, __user_cache__, meta
 
 
-def get_base(name: str, *, cache: Cache | None = None) -> type[DeclarativeBase]:
-    cache = cache or __user_cache__
-    if DeclarativeMeta not in cache:
-        cache.init(DeclarativeMeta)
-    bases = cache.get(DeclarativeMeta, hint=type[DeclarativeBase])
-    for base in bases:
-        _m = meta.get(base, DeclarativeMeta)
-        if _m.name == name:
-            return base
-    base = type(f"{name.capitalize()}Database", (DeclarativeBase,), {})
-    meta.set(base, DeclarativeMeta(name))
-    cache.add(DeclarativeMeta, base)
-    return base
-
-
+@dataclass
 class DeclarativeMeta:
-    def __init__(self, name: str) -> None:
-        self.name = name
+    name: str
+
+
+def declarative_base[T: DeclarativeBase](name: str, *, cache: Cache | None = None) -> Callable[[type[T]], type[T]]:
+    def decorator(cls: type[T]) -> type[T]:
+        meta.set(cls, DeclarativeMeta(name))
+        (cache or __user_cache__).add(DeclarativeMeta, cls)
+        return cls
+
+    return decorator

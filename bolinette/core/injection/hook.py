@@ -40,6 +40,8 @@ class InjectionProxy[InstanceT]:
         self.context = context
 
     def __get__(self, instance: Any, _) -> Any:
+        if instance is None:
+            return self
         inject = meta.get(instance, injection.Injection)
         obj = inject.__require__(self.t, self.context)
         setattr(instance, self.context.arg_name, obj)

@@ -3,15 +3,15 @@
 from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, Concatenate
 
+from sqlalchemy.orm import DeclarativeBase
+
 from bolinette.api import ApiController
-from bolinette.core.mapping.mapper import NoInitDestination
 from bolinette.core.types import Function, Type
-from bolinette.data.relational import DeclarativeBase
 from bolinette.web import Payload, delete, get, patch, post, put
 
 
 class _Autoroute:
-    def get_all[DtoT: NoInitDestination](
+    def get_all[DtoT](
         self,
         func: Callable[[Any], Awaitable[list[DtoT]]],
     ) -> Callable[[Any], Awaitable[list[DtoT]]]:
@@ -25,7 +25,7 @@ class _Autoroute:
 
         return _inner
 
-    def get_one[DtoT: NoInitDestination](
+    def get_one[DtoT](
         self,
         func: Callable[[Any], Awaitable[DtoT]],
     ) -> Callable[[Any, str], Awaitable[DtoT]]:
@@ -39,7 +39,7 @@ class _Autoroute:
 
         return _inner
 
-    def create[PayloadT: NoInitDestination, DtoT: NoInitDestination](
+    def create[PayloadT, DtoT](
         self,
         func: Callable[Concatenate[Any, PayloadT, ...], Awaitable[DtoT]],
     ) -> Callable[[Any, PayloadT], Awaitable[DtoT]]:
@@ -57,7 +57,7 @@ class _Autoroute:
 
         return _inner
 
-    def update[PayloadT: NoInitDestination, DtoT: NoInitDestination](
+    def update[PayloadT, DtoT](
         self,
         func: Callable[Concatenate[Any, PayloadT, ...], Awaitable[DtoT]],
     ) -> Callable[[Any, str, PayloadT], Awaitable[DtoT]]:
@@ -77,7 +77,7 @@ class _Autoroute:
 
         return _inner
 
-    def patch[PayloadT: NoInitDestination, DtoT: NoInitDestination](
+    def patch[PayloadT, DtoT](
         self,
         func: Callable[Concatenate[Any, PayloadT, ...], Awaitable[DtoT]],
     ) -> Callable[[Any, str, PayloadT], Awaitable[DtoT]]:
@@ -97,7 +97,7 @@ class _Autoroute:
 
         return _inner
 
-    def delete[DtoT: NoInitDestination](
+    def delete[DtoT](
         self,
         func: Callable[[Any], Awaitable[DtoT]],
     ) -> Callable[[Any, str], Awaitable[DtoT]]:

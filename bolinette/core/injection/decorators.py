@@ -2,8 +2,8 @@ from collections.abc import Callable
 from typing import Any, Concatenate, get_origin
 
 from bolinette.core import Cache, __user_cache__, meta
+from bolinette.core.injection.context import AddStrategy
 from bolinette.core.injection.hook import InjectionHook
-from bolinette.core.injection.registration import AddStrategy
 from bolinette.core.types import Type
 
 InjectionSymbol = object()
@@ -72,7 +72,7 @@ def before_init[InstanceT](
             func_meta = InjectionInitFuncMeta()
             meta.set(cls, func_meta)
         else:
-            func_meta = meta.get(cls, InjectionInitFuncMeta)
+            func_meta = meta.get(cls, InjectionInitFuncMeta[InstanceT])
         func_meta.before_init.append(func)
         return cls
 
@@ -88,7 +88,7 @@ def after_init[InstanceT](
             func_meta = InjectionInitFuncMeta()
             meta.set(cls, func_meta)
         else:
-            func_meta = meta.get(cls, InjectionInitFuncMeta)
+            func_meta = meta.get(cls, InjectionInitFuncMeta[InstanceT])
         func_meta.after_init.append(func)
         return cls
 

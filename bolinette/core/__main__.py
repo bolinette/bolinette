@@ -4,12 +4,17 @@ import re
 import sys
 import tomllib
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
-from bolinette.core.bolinette import Bolinette
+from bolinette.core import Bolinette
 
 
 def main() -> None:
+    cwd = Path.cwd()
+    if cwd not in sys.path:
+        sys.path.append(str(cwd))
+
     manifest = _parse_pyprojet_toml()
     blnt: Bolinette | None = None
     if "tool" in manifest and "bolinette" in manifest["tool"]:

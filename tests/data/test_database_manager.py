@@ -77,11 +77,7 @@ def test_init_connections() -> None:
     database_system(cache=cache)(SQLite)
 
     def get_sections() -> list[DatabaseSection]:
-        conn = DatabaseSection()
-        conn.name = "test-connection"
-        conn.url = "sqlite+aiosqlite://"
-        conn.echo = False
-        return [conn]
+        return [DatabaseSection(name="test-connection", url="sqlite+aiosqlite://", echo=False)]
 
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, get_sections())
@@ -105,11 +101,7 @@ def test_fail_init_connections_invalid_url() -> None:
     database_system(cache=cache)(SQLite)
 
     def get_sections() -> list[DatabaseSection]:
-        conn = DatabaseSection()
-        conn.name = "test-connection"
-        conn.url = "invalid url!"
-        conn.echo = False
-        return [conn]
+        return [DatabaseSection(name="test-connection", url="invalid url!", echo=False)]
 
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, get_sections())
@@ -127,11 +119,7 @@ def test_fail_init_connections_system_not_found() -> None:
     database_system(cache=cache)(SQLite)
 
     def get_sections() -> list[DatabaseSection]:
-        conn = DatabaseSection()
-        conn.name = "test-connection"
-        conn.url = "protocol://"
-        conn.echo = False
-        return [conn]
+        return [DatabaseSection(name="test-connection", url="protocol://", echo=False)]
 
     mock = Mock(cache=cache)
     mock.mock(DataSection).setup(lambda s: s.databases, get_sections())

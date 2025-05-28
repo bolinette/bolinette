@@ -1,6 +1,8 @@
+from sqlalchemy.orm import DeclarativeBase
+
 from bolinette.core.injection import post_init
 from bolinette.core.mapping import Mapper
-from bolinette.data.relational import DeclarativeBase, Service
+from bolinette.data.relational import Service
 
 
 class ApiController[EntityT: DeclarativeBase]:

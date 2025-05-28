@@ -2,12 +2,13 @@ from collections.abc import Callable
 from typing import Any, Literal, overload
 
 from sqlalchemy import Table
+from sqlalchemy.orm import DeclarativeBase
 
 from bolinette.core import Cache, __user_cache__, meta
 from bolinette.core.mapping import Mapper
 from bolinette.core.types import Type
 from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
-from bolinette.data.relational import DeclarativeBase, Repository
+from bolinette.data.relational import Repository
 
 
 class Service[EntityT: DeclarativeBase]:

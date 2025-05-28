@@ -99,6 +99,30 @@ def test_map_simple_attr() -> None:
     assert d is not s
 
 
+def test_map_dest_with_init() -> None:
+    class _Source:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    class _Destination:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    mock = Mock()
+    mock.injection.add_singleton(Mapper)
+    mapper = mock.injection.require(Mapper)
+    load_default_mappers(mapper)
+
+    s = _Source("test")
+
+    d = mapper.map(_Source, _Destination, s)
+
+    assert isinstance(s, _Source)
+    assert isinstance(d, _Destination)
+    assert d.value == s.value
+    assert d is not s
+
+
 def test_map_with_map_from() -> None:
     class _Source:
         def __init__(self, value: str) -> None:

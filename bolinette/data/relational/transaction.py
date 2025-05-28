@@ -2,11 +2,12 @@ from types import TracebackType
 from typing import Self
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import DeclarativeBase
 
 from bolinette.core.injection import post_init
 from bolinette.core.logging import Logger
 from bolinette.data import relational
-from bolinette.data.relational import DeclarativeBase, EntitySession
+from bolinette.data.relational import EntitySession
 
 
 class AsyncTransaction:

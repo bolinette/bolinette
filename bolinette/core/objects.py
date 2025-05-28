@@ -2,23 +2,24 @@ from dataclasses import dataclass
 from typing import Literal
 
 
-@dataclass(init=False)
+@dataclass
 class LoggingConfig:
     level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 
 
-@dataclass(init=False)
+@dataclass
 class StreamLoggingConfig(LoggingConfig):
     type: Literal["stderr"]
     color: bool = False
 
 
-@dataclass(init=False)
+@dataclass
 class FileLoggingConfig(LoggingConfig):
     type: Literal["file"]
     path: str
 
 
+@dataclass
 class CoreSection:
     debug: bool = False
     logging: list[StreamLoggingConfig | FileLoggingConfig] | None = None

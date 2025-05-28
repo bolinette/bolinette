@@ -243,7 +243,7 @@ class Type[T]:
                             f"Generic parameter ~{arg.__name__} cannot be a TypeVar", cls=origin.__qualname__
                         )
                 if isinstance(arg, list):
-                    arg = tuple(*arg)  # pyright: ignore[reportUnknownArgumentType]
+                    arg = tuple(*arg)  # pyright: ignore[reportUnknownArgumentType, reportUnknownVariableType]
                 type_vars = (*type_vars, arg)
             return origin, type_vars
         return _cls, ()

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, get_origin
 
 from bolinette.core.exceptions import InternalError
 
@@ -38,6 +38,8 @@ def get_meta_container(obj: Any) -> BolinetteMetadata:
 class _MetaFunctions:
     @staticmethod
     def has(obj: Any, cls: type[Any], /) -> bool:
+        if (origin := get_origin(cls)) is not None:
+            cls = origin
         if not hasattr(obj, "__dict__"):
             return False
         container = get_meta_container(obj)
@@ -45,6 +47,8 @@ class _MetaFunctions:
 
     @staticmethod
     def set[T](obj: Any, _meta: T, /, *, cls: type[T] | None = None) -> None:
+        if (origin := get_origin(cls)) is not None:
+            cls = origin
         if cls is None:
             cls = type(_meta)
         else:
@@ -55,6 +59,8 @@ class _MetaFunctions:
 
     @staticmethod
     def get[T](obj: Any, cls: type[T], /, *, default: T | None = None) -> T:
+        if (origin := get_origin(cls)) is not None:
+            cls = origin
         container = get_meta_container(obj)
         if cls not in container and default is not None:
             return default

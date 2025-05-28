@@ -302,19 +302,19 @@ def blnt_auth_user_transformer[TransT: BlntAuthUserTransformer[Any, Any, Any]](
     return decorator
 
 
-@dataclass(init=False)
+@dataclass
 class BlntAuthSignNoneConfig:
     type: Literal["none"]
 
 
-@dataclass(init=False)
+@dataclass
 class BlntAuthSignHMACConfig:
     type: Literal["HS256", "HS384", "HS512"]
     key: str | None = None
     key_file: str | None = None
 
 
-@dataclass(init=False)
+@dataclass
 class BlntAuthSignRSAConfig:
     type: Literal["RS256", "RS384", "RS512"]
     passphrase: bytes | None = None
@@ -327,14 +327,14 @@ class BlntAuthSignRSAConfig:
     encrypt_tokens: Literal[False, "AESGCMSIV"] = False
 
 
-@dataclass(init=False)
+@dataclass
 class BlntAuthEncryptConfig:
     type: Literal["AESGCM", "ChaCha20Poly1305", "AESCCM", "AESSIV", "AESOCB3", "AESGCMSIV"]
     file: str
     associated_data: bytes
 
 
-@dataclass(init=False)
+@dataclass
 class BlntAuthConfig:
     issuer: str
     audience: list[str]

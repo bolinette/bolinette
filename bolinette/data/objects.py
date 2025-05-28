@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
 
-@dataclass(init=False)
+@dataclass
 class DatabaseSection:
     name: str
     url: str
     echo: bool = False
 
 
-@dataclass(init=False)
+@dataclass
 class DataSection:
     databases: list[DatabaseSection]

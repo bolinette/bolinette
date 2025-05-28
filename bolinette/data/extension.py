@@ -6,6 +6,7 @@ from bolinette.core.extension import Extension, ExtensionModule
 from bolinette.core.injection import injectable, injection_arg_resolver
 from bolinette.core.mapping import mapping_worker
 from bolinette.data import DatabaseManager, DataSection, database_system
+from bolinette.data.commands.new_project import register_new_project_hooks
 from bolinette.data.defaults import (
     AsyncPostgreSQL,
     AsyncSessionArgResolver,
@@ -21,7 +22,7 @@ from bolinette.data.relational.manager import create_tables_for_memory_db
 
 class DataExtension:
     def __init__(self, cache: Cache) -> None:
-        self.name = "data"
+        self.name: str = "data"
         self.dependencies: list[ExtensionModule[Extension]] = [core]
 
         environment("data", cache=cache)(DataSection)
@@ -46,3 +47,5 @@ class DataExtension:
             cache=cache,
             run_startup=True,
         )(create_db_tables)
+
+        register_new_project_hooks(cache)

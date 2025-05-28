@@ -2,13 +2,13 @@
 from typing import Any
 
 import pytest
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from bolinette.core import Cache
 from bolinette.core.mapping import Mapper
 from bolinette.core.testing import Mock
 from bolinette.data.exceptions import ColumnNotNullableError, WrongColumnTypeError
-from bolinette.data.relational import Repository, Service, get_base
+from bolinette.data.relational import Repository, Service
 
 
 def test_create() -> None:
@@ -16,7 +16,10 @@ def test_create() -> None:
 
     mock = Mock(cache=cache)
 
-    class _Entity(get_base("tests", cache=cache)):
+    class TestBase(DeclarativeBase):
+        pass
+
+    class _Entity(TestBase):
         __tablename__ = "entity"
 
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -49,7 +52,10 @@ def test_update() -> None:
 
     mock = Mock(cache=cache)
 
-    class _Entity(get_base("tests", cache=cache)):
+    class TestBase(DeclarativeBase):
+        pass
+
+    class _Entity(TestBase):
         __tablename__ = "entity"
 
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -86,7 +92,10 @@ def test_fail_validate_non_nullable_column() -> None:
 
     mock = Mock(cache=cache)
 
-    class _Entity(get_base("tests", cache=cache)):
+    class TestBase(DeclarativeBase):
+        pass
+
+    class _Entity(TestBase):
         __tablename__ = "entity"
 
         id: Mapped[int] = mapped_column(primary_key=True)
@@ -119,7 +128,10 @@ def test_fail_validate_wrong_column_type() -> None:
 
     mock = Mock(cache=cache)
 
-    class _Entity(get_base("tests", cache=cache)):
+    class TestBase(DeclarativeBase):
+        pass
+
+    class _Entity(TestBase):
         __tablename__ = "entity"
 
         id: Mapped[int] = mapped_column(primary_key=True)

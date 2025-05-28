@@ -151,6 +151,9 @@ class Parser:
                 else:
                     raise InitError(f"Command {func}, Argument '{p_name}', {type} is not a valid argument type")
                 kwargs["choices"] = type.vars
+        elif type.cls is list:
+            flags, kwargs = Parser._create_argument(func, p_name, param, Type(type.vars[0]), argument)
+            kwargs["action"] = "append"
         else:
             raise InitError(f"Command {func}, Argument '{p_name}', Type {type} is not allowed as a command argument")
         if argument.summary:
