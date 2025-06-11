@@ -166,7 +166,7 @@ class BolinetteAuthProvider:
     @post_init
     def _init_auth_controller(self, web_resources: WebResources) -> None:
         ctrl = self.get_login_controller()
-        web_resources.add_controller(ctrl, self.paths[1])
+        web_resources.add_controller(ctrl, self.paths[0])
 
     def _load_private_pem_key(self, key: bytes | Path) -> "PrivateKeyTypes":
         if isinstance(key, Path):
@@ -324,7 +324,6 @@ class BlntAuthSignRSAConfig:
     public_key: bytes | None = None
     public_key_file: str | None = None
     public_jwk_file: str | None = None
-    encrypt_tokens: Literal[False, "AESGCMSIV"] = False
 
 
 @dataclass

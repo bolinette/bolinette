@@ -41,10 +41,11 @@ class AsgiApplication:
             await self._blnt.startup()
             self._blnt.injection.add_singleton(AsgiApplication, instance=self)
             await send({"type": "lifespan.startup.complete"})
-            await self._blnt.dispatch_event("server_started")
-        except BaseException:
+            await self._blnt.dispatch_event("server_startup_complete")
+        except BaseException as err:
             traceback.print_exc()
             await send({"type": "lifespan.startup.failed"})
+            await self._blnt.dispatch_event("server_startup_failed", err)
 
     async def _handle_shutdown(
         self,

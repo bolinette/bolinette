@@ -87,7 +87,7 @@ def _load_dependencies(cache: Cache, extension: Extension, loaded_extensions: li
 def _load_extensions(cache: Cache, extension_names: list[str] | None) -> list[Extension]:
     blnt_modules = _detect_extension_modules()
     if not extension_names:
-        return [module.__blnt_ext__(cache) for module in blnt_modules.values()]
+        return sort_extensions([module.__blnt_ext__(cache) for module in blnt_modules.values()])
     loaded_extensions: list[Extension] = []
     for name in extension_names:
         if name in blnt_modules:
@@ -189,7 +189,7 @@ async def create_env_files(context: NewProjectHookContext) -> None:
             ],
         }
     }
-    env_folder.add_file(".gitignore").append("env.local.*.yaml\n")
+    env_folder.add_file(".gitignore").append("env.local.*.yaml")
 
 
 async def create_gitignore(context: NewProjectHookContext) -> None:

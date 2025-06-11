@@ -91,17 +91,6 @@ async def test_fail_bad_message() -> None:
 
     mock.injection.add_singleton(WebSocketHandler)
 
-    class TestTopic:
-        async def subscribe(self, sub: WebSocketSubscription) -> WebSocketSubResult:
-            return sub.accept()
-
-        @channel(".*")
-        async def test_channel(self, message: ChannelMessage[str]) -> None:
-            assert message.channel == "message"
-            assert message.value == "hello"
-
-    topic("test", cache=cache)(TestTopic)
-
     ws_handler = mock.injection.require(WebSocketHandler)
 
     response = MockResponse()

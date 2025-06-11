@@ -1,5 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import Any
 
 from bolinette.core import Cache, meta
 from bolinette.core.events import EventListener
@@ -31,6 +32,8 @@ class EventDispatcher:
     async def dispatch(
         self,
         event: str,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
         *,
         session: Injection | None = None,
         cache: Cache | None = None,
@@ -44,4 +47,4 @@ class EventDispatcher:
         else:
             listeners = self._listeners.get(event, [])
         for listener in sorted(listeners, key=lambda listener: listener.priority):
-            await (session or self._inject).call(listener.callback)
+            await (session or self._inject).call(listener.callback, args=args, named_args=kwargs)

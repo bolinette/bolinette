@@ -7,7 +7,7 @@ from bolinette.core import __user_cache__, meta
 from bolinette.core.cache import Cache
 from bolinette.core.command import Parser
 from bolinette.core.environment import Environment, EnvironmentBaseSection
-from bolinette.core.events import BLNT_STARTED_EVENT, EventDispatcher
+from bolinette.core.events import BLNT_STARTED_EVENT, EventDispatcher, EventListener
 from bolinette.core.exceptions import InitError
 from bolinette.core.extension import CoreExtension
 from bolinette.core.extensions import Extension, ExtensionModule, sort_extensions
@@ -32,13 +32,17 @@ class Bolinette:
         self._base_env = base_env
         self.logger: Logger[Bolinette]
 
+    @property
+    def _loaded_extension_types(self) -> set[type[Extension]]:
+        return {type(e) for e in self._extensions}
+
     def use_extension[ExtT: Extension](self, module: ExtensionModule[ExtT]) -> ExtT:
         if self._initialized:
             raise InitError("Cannot use extension after Bolinette startup")
         ext_type = module.__blnt_ext__
+        if ext_type in self._loaded_extension_types:
+            return next(e for e in self._extensions if isinstance(e, module.__blnt_ext__))
         ext = ext_type(self._cache)
-        if ext in self._extensions:
-            raise InitError(f"Bolinette extension {ext.name} is already in use")
         new_extentions: list[Extension] = [ext]
         for dep_module in ext.dependencies:
             ext_type = dep_module.__blnt_ext__
@@ -59,8 +63,11 @@ class Bolinette:
     @require(EventDispatcher)
     def _events(self): ...
 
-    async def dispatch_event(self, event: str) -> None:
-        await self._events.dispatch(event)
+    def add_event_listener(self, event: str, listener: EventListener) -> None:
+        self._events.add_listener(event, listener)
+
+    async def dispatch_event(self, event: str, *args: Any, **kwargs: Any) -> None:
+        await self._events.dispatch(event, args=[*args], kwargs=kwargs)
 
     async def startup(self) -> Self:
         funcs: list[Callable[..., Any]] = self._cache.get(STARTUP_CACHE_KEY, raises=False)
