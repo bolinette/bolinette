@@ -48,7 +48,7 @@ requires-dist = [
     { name = "escondite", specifier = ">=0.1.2" },
     { name = "hafersack", specifier = ">=0.1.0" },
     { name = "mirino", specifier = ">=0.1.0" },
-    { name = "muotti", extras = ["pydantic"], editable = "../muotti" },
+    { name = "muotti", extras = ["pydantic"], specifier = ">=0.1.0" },
     { name = "peritype", specifier = ">=0.8.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "soupape", specifier = ">=0.10.0" },
@@ -451,35 +451,20 @@ wheels = [
 [[package]]
 name = "muotti"
 version = "0.1.0"
-source = { editable = "../muotti" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "escondite" },
     { name = "mirino" },
     { name = "peritype" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/b4/fd/242fccb32c989878f8cdd46bb197b52d0502c2bca26c229b2817ff5e6481/muotti-0.1.0.tar.gz", hash = "sha256:3f6c1001f1b07e6a8172b33ffda68dc58b3731653937fab1dcec36eebca834e5", size = 16326, upload-time = "2026-09-18T15:59:07.108Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/0b/eb8073b6462cd916817d56afc7af0e55f5736cc9c8a41ba8ef45fbd554f0/muotti-0.1.0-py3-none-any.whl", hash = "sha256:9500a3a3a29e67b3e0ec784425a885c1edbfa6762d123bd46dfed9682d3f5054", size = 25202, upload-time = "2026-09-18T15:59:05.69Z" },
+]
 
 [package.optional-dependencies]
 pydantic = [
     { name = "pydantic" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "escondite", specifier = ">=0.1.2" },
-    { name = "mirino", specifier = ">=0.1.0" },
-    { name = "peritype", specifier = ">=0.8.0" },
-    { name = "pydantic", marker = "extra == 'pydantic'", specifier = ">=2.12.5" },
-]
-provides-extras = ["pydantic"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.414" },
-    { name = "ruff", specifier = ">=0.16.8" },
-]
-test = [
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 
 [[package]]

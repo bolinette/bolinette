@@ -34,8 +34,6 @@ bolinette = { workspace = true }
 bolinette-data = { workspace = true }
 bolinette-web = { workspace = true }
 bolinette-api = { workspace = true }
-# Temporary: muotti 0.1.0 is not published yet, drop this once it is on PyPI.
-muotti = { path = "../muotti", editable = true }
 
 [tool.pyright]
 include = ["packages", "tests", "scripts"]
@@ -101,6 +99,7 @@ known-first-party = ["bolinette"]
 "**/__init__.py" = ["I001"]
 "**/__main__.py" = ["T201"]
 "**/_bundled/*" = ["T201"]
+"scripts/*" = ["T201"]
 "tests/**" = ["ASYNC240"]
 
 [tool.coverage.run]
