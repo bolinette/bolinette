@@ -1,0 +1,28 @@
+[project]
+name = "bolinette"
+version = "0.20.0"
+description = "The Bolinette core package: application bootstrap, extensions, environment, commands, events and logging."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "escondite>=0.1.2",
+    "hafersack>=0.1.0",
+    "soupape>=0.10.0",
+    "peritype>=0.8.0",
+    "pydantic>=2.12.5",
+]
+
+[project.scripts]
+blnt = "bolinette.core.__main__:main"
+
+[project.entry-points."bolinette.extensions"]
+core = "bolinette.core:CoreExtension"
+
+[build-system]
+requires = ["uv_build>=0.9.23,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "bolinette.core"
+module-root = ""
+namespace = true

@@ -1,0 +1,23 @@
+[project]
+name = "bolinette-api"
+version = "0.20.0"
+description = "The Bolinette api extension."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bolinette==0.20.0",
+    "bolinette-data==0.20.0",
+    "bolinette-web==0.20.0",
+]
+
+[project.entry-points."bolinette.extensions"]
+api = "bolinette.api:ApiExtension"
+
+[build-system]
+requires = ["uv_build>=0.9.23,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "bolinette.api"
+module-root = ""
+namespace = true

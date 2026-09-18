@@ -1,0 +1,38 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Build all packages
+        run: uv build --all-packages
+
+      - name: Check wheel contents
+        run: uv run --no-project python scripts/check_wheels.py dist
+
+      - name: Publish
+        run: uv publish

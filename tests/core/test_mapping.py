@@ -1,1305 +1,1431 @@
-# pyright: reportUninitializedInstanceVariable=false
-from typing import Any, Literal, NotRequired, TypedDict, override
+"""Object mapping: protocols, field decisions, conversions, merging and mapping profiles."""
+
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, NotRequired, TypedDict, cast, override
 
 import pytest
+from escondite import Cache
+from peritype import TWrap, wrap_type
+from pydantic import BaseModel
 
-from bolinette.core import Cache
+from bolinette.core import startup
 from bolinette.core.expressions import ExpressionNode
-from bolinette.core.expressions.exceptions import MaxDepthExpressionError
-from bolinette.core.mapping import Mapper, MappingRunner, MappingWorker, Profile, mapping, mapping_worker
-from bolinette.core.mapping.exceptions import MappingError
-from bolinette.core.mapping.mapper import (
-    BoolMapper,
-    DictMapper,
-    FloatMapper,
-    IntegerMapper,
-    LiteralMapper,
-    ObjectMapper,
-    SequenceMapper,
-    StringMapper,
+from bolinette.core.mapping import (
+    ABSENT,
+    DataclassProtocol,
+    FieldOverride,
+    FieldSpec,
+    MapMode,
+    Mapper,
+    MappingProtocol,
+    ObjectProtocol,
+    PlainObjectProtocol,
+    Profile,
+    ProtocolRegistry,
+    PydanticProtocol,
+    SequenceProtocol,
+    SetProtocol,
+    TypedDictProtocol,
+    is_present,
+    mapping,
+    mapping_protocol,
 )
-from bolinette.core.testing import Mock
-from bolinette.core.types import Type
+from bolinette.core.mapping._absence import Maybe
+from bolinette.core.mapping._decision import Action, decide
+from bolinette.core.mapping._paths import read_expr
+from bolinette.core.mapping._spec import NO_OVERRIDE
+from bolinette.core.mapping._utils import dict_value_type, element_type, is_value_type
+from bolinette.core.mapping.exceptions import (
+    ConversionError,
+    DestinationNotNullableError,
+    InstantiationError,
+    MappingConfigurationError,
+    NoProtocolError,
+    SourceNotFoundError,
+    ValidationError,
+)
+from tests.core.conftest import AppFactory
 
 
-def load_default_mappers(mapper: Mapper) -> None:
-    mapper.set_default_type_mapper(ObjectMapper)
-    mapper.add_type_mapper(Type(IntegerMapper), match_all=False)
-    mapper.add_type_mapper(Type(StringMapper), match_all=False)
-    mapper.add_type_mapper(Type(FloatMapper), match_all=False)
-    mapper.add_type_mapper(Type(BoolMapper), match_all=False)
-    mapper.add_type_mapper(Type(LiteralMapper), match_all=True)
-    mapper.add_type_mapper(Type(DictMapper), match_all=True)
-    mapper.add_type_mapper(Type(SequenceMapper), match_all=True)
+@dataclass
+class AddressDC:
+    city: str
+    zip_code: str | None = None
 
 
-def test_init_type_mappers_from_cache() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
-
-    class _Destination:
-        value: int
-
-    class TestTypeMapper(MappingWorker[_Destination]):
-        def __init__(self, runner: MappingRunner) -> None:
-            self.runner = runner
-
-        @override
-        def map(
-            self,
-            src_expr: ExpressionNode,
-            src_t: Type[Any],
-            dest_expr: ExpressionNode,
-            dest_t: Type[_Destination],
-            src: Any,
-            dest: _Destination | None,
-            exc_grp: list[MappingError] | None,
-        ) -> _Destination:
-            assert isinstance(src, _Source)
-            if dest is None:
-                dest = _Destination()
-            dest.value = src.value + 1
-            return dest
-
-    cache = Cache()
-    mapping_worker(cache=cache)(TestTypeMapper)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-
-    src = _Source(1)
-    dest = mapper.map(_Source, _Destination, src)
-
-    assert dest.value == 2
+@dataclass
+class PersonDC:
+    name: str
+    age: int
+    address: AddressDC | None = None
+    tags: list[str] = field(default_factory=list[str])
 
 
-def test_map_simple_attr() -> None:
-    class _Source:
-        value: str
-
-        def __init__(self, value: str) -> None:
-            self.value = value
-
-    class _Destination:
-        value: str
-
-    mock = Mock()
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    s = _Source("test")
-
-    d = mapper.map(_Source, _Destination, s)
-
-    assert isinstance(s, _Source)
-    assert isinstance(d, _Destination)
-    assert d.value == s.value
-    assert d is not s
+@dataclass
+class PersonWithAddressesDC:
+    name: str
+    addresses: list[AddressDC] = field(default_factory=list[AddressDC])
 
 
-def test_map_dest_with_init() -> None:
-    class _Source:
-        def __init__(self, value: str) -> None:
-            self.value = value
-
-    class _Destination:
-        def __init__(self, value: str) -> None:
-            self.value = value
-
-    mock = Mock()
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    s = _Source("test")
-
-    d = mapper.map(_Source, _Destination, s)
-
-    assert isinstance(s, _Source)
-    assert isinstance(d, _Destination)
-    assert d.value == s.value
-    assert d is not s
+class AddressModel(BaseModel):
+    city: str
+    zip_code: str | None = None
 
 
-def test_map_with_map_from() -> None:
-    class _Source:
-        def __init__(self, value: str) -> None:
-            self.value = value
+class PersonModel(BaseModel):
+    name: str
+    age: int
+    address: AddressModel | None = None
+    tags: list[str] = []
 
-    class _Destination:
-        content: str
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
+class PersonDict(TypedDict):
+    name: str
+    age: int
+    nickname: NotRequired[str]
+
+
+class PlainPerson:
+    name: str
+    age: int
+    role: str = "user"
+
+    def __init__(self, name: str, age: int) -> None:
+        self.name = name
+        self.age = age
+
+
+class PlainWithoutInit:
+    name: str
+    age: int
+
+
+@pytest.fixture
+def mapper() -> Mapper:
+    """A mapper with the seven built-in protocols and no profile."""
+    instance = Mapper()
+    for protocol in (
+        PydanticProtocol(),
+        TypedDictProtocol(),
+        DataclassProtocol(),
+        MappingProtocol(),
+        SequenceProtocol(),
+        SetProtocol(),
+        PlainObjectProtocol(),
+    ):
+        instance.add_protocol(protocol)
+    return instance
+
+
+class TestAbsence:
+    def test_absent_is_a_falsy_singleton(self) -> None:
+        """`ABSENT` is unique, falsy and prints as its name."""
+        assert type(ABSENT)() is ABSENT
+        assert not ABSENT
+        assert repr(ABSENT) == "ABSENT"
+
+    def test_is_present(self) -> None:
+        """`is_present` is false for `ABSENT` only, `None` counts as present."""
+        assert not is_present(ABSENT)
+        assert is_present(None)
+        assert is_present(0)
+
+
+class TestProtocolRegistry:
+    def test_resolution_by_priority(self, mapper: Mapper) -> None:
+        """Each built-in protocol claims the kind of type it was made for."""
+        registry = mapper.registry
+
+        assert isinstance(registry.resolve(wrap_type(PersonModel)), PydanticProtocol)
+        assert isinstance(registry.resolve(wrap_type(PersonDict)), TypedDictProtocol)
+        assert isinstance(registry.resolve(wrap_type(PersonDC)), DataclassProtocol)
+        assert isinstance(registry.resolve(wrap_type(dict[str, Any])), MappingProtocol)
+        assert isinstance(registry.resolve(wrap_type(PlainPerson)), PlainObjectProtocol)
+
+    def test_union_has_no_protocol(self, mapper: Mapper) -> None:
+        """A union of several classes matches no protocol."""
+        assert mapper.registry.resolve(wrap_type(int | str)) is None
+
+    def test_nullable_type_uses_the_inner_class(self, mapper: Mapper) -> None:
+        """An optional type is resolved through its non-null member."""
+        assert isinstance(mapper.registry.resolve(wrap_type(PersonDC | None)), DataclassProtocol)
+
+    def test_custom_protocol_priority(self) -> None:
+        """A protocol with a higher priority is tried first."""
+
+        class Everything(ObjectProtocol):
+            priority = 1000
+
+            @override
+            def matches(self, t: TWrap[Any]) -> bool:
+                return True
+
+            @override
+            def fields(self, t: TWrap[Any]) -> Mapping[str, FieldSpec]:
+                return {}
+
+            @override
+            def read_field(self, obj: Any, spec: FieldSpec) -> Maybe[Any]:
+                return ABSENT
+
+            @override
+            def construct(self, t: TWrap[Any], values: Mapping[str, Any]) -> Any:
+                return None
+
+        registry = ProtocolRegistry()
+        registry.register(DataclassProtocol())
+        registry.register(Everything())
+
+        assert isinstance(registry.resolve(wrap_type(PersonDC)), Everything)
+
+
+class TestProtocolFields:
+    def test_dataclass_fields(self) -> None:
+        """Dataclass fields report nullability and default presence."""
+        specs = DataclassProtocol().fields(wrap_type(PersonDC))
+
+        assert set(specs) == {"name", "age", "address", "tags"}
+        assert not specs["name"].has_default
+        assert specs["address"].nullable
+        assert specs["address"].has_default
+        assert specs["tags"].has_default
+
+    def test_pydantic_fields(self) -> None:
+        """Pydantic fields report default presence from the field info."""
+        specs = PydanticProtocol().fields(wrap_type(PersonModel))
+
+        assert not specs["age"].has_default
+        assert specs["tags"].has_default
+        assert specs["address"].nullable
+
+    def test_pydantic_read_field_skips_unset(self) -> None:
+        """Only fields explicitly set on a model are read, defaults are `ABSENT`."""
+        specs = PydanticProtocol().fields(wrap_type(PersonModel))
+        model = PersonModel(name="Bob", age=3)
+
+        assert PydanticProtocol().read_field(model, specs["name"]) == "Bob"
+        assert PydanticProtocol().read_field(model, specs["tags"]) is ABSENT
+
+    def test_typed_dict_fields(self) -> None:
+        """Optional keys of a `TypedDict` count as having a default."""
+        specs = TypedDictProtocol().fields(wrap_type(PersonDict))
+
+        assert not specs["name"].has_default
+        assert specs["nickname"].has_default
+
+    def test_plain_object_fields(self) -> None:
+        """Plain classes expose their annotated attributes, class values count as defaults."""
+        specs = PlainObjectProtocol().fields(wrap_type(PlainPerson))
+
+        assert set(specs) == {"name", "age", "role"}
+        assert not specs["name"].has_default
+        assert specs["role"].has_default
+
+    def test_mapping_has_no_fields(self) -> None:
+        """A plain `dict` has no declared fields and says so through `knows_fields`."""
+        assert MappingProtocol().fields(wrap_type(dict[str, Any])) == {}
+        assert not MappingProtocol().knows_fields
+        assert DataclassProtocol().knows_fields
+
+
+class TestMapSignature:
+    def test_source_class_defaults_to_the_source_type(self, mapper: Mapper) -> None:
+        """`map(dest_cls, src)` uses `type(src)` as the source class."""
+        assert mapper.map(PersonModel, PersonDC("Bob", 3)) == PersonModel(name="Bob", age=3)
+
+    def test_explicit_source_class(self, mapper: Mapper) -> None:
+        """`map(src_cls, dest_cls, src)` is needed when `type(src)` is not the intended class, like a dict."""
+        assert mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": 3}) == PersonDC("Bob", 3)
+
+    def test_merge_short_form(self, mapper: Mapper) -> None:
+        """`merge(src, dest)` uses `type(src)` as the source class."""
+        dest = PersonDC("Ann", 1)
+
+        assert mapper.merge(PersonDC("Bob", 3), dest) is dest
+        assert dest.name == "Bob"
+
+    def test_wrong_arity_raises(self, mapper: Mapper) -> None:
+        """Any other number of positional arguments is a programming error."""
+        with pytest.raises(TypeError):
+            mapper.map(PersonDC)  # pyright: ignore[reportCallIssue]
+        with pytest.raises(TypeError):
+            mapper.merge(PersonDC("Bob", 3))  # pyright: ignore[reportCallIssue]
+
+
+class TestCreate:
+    def test_dataclass_to_dataclass(self, mapper: Mapper) -> None:
+        """Fields with the same name are copied into a new instance."""
+        result = mapper.map(PersonDC, PersonDC, PersonDC("Bob", 3, tags=["a"]))
+
+        assert result == PersonDC("Bob", 3, tags=["a"])
+
+    def test_dict_to_dataclass(self, mapper: Mapper) -> None:
+        """A plain dictionary is a valid source for any destination."""
+        result = mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": 3})
+
+        assert result == PersonDC("Bob", 3)
+
+    def test_dataclass_to_pydantic(self, mapper: Mapper) -> None:
+        """A dataclass maps to a pydantic model, nested objects included."""
+        result = mapper.map(PersonDC, PersonModel, PersonDC("Bob", 3, AddressDC("Paris")))
+
+        assert result == PersonModel(name="Bob", age=3, address=AddressModel(city="Paris"))
+
+    def test_pydantic_to_typed_dict(self, mapper: Mapper) -> None:
+        """A `TypedDict` destination is built as a dictionary."""
+        result = mapper.map(PersonModel, PersonDict, PersonModel(name="Bob", age=3))
+
+        assert result == {"name": "Bob", "age": 3}
+
+    def test_to_plain_object(self, mapper: Mapper) -> None:
+        """A plain class is instantiated through its constructor and extra fields are set."""
+        result = mapper.map(dict[str, Any], PlainPerson, {"name": "Bob", "age": 3, "role": "admin"})
+
+        assert (result.name, result.age, result.role) == ("Bob", 3, "admin")
+
+    def test_to_plain_object_without_init(self, mapper: Mapper) -> None:
+        """A plain class without constructor gets its attributes assigned."""
+        result = mapper.map(dict[str, Any], PlainWithoutInit, {"name": "Bob", "age": 3})
+
+        assert (result.name, result.age) == ("Bob", 3)
+
+    def test_values_are_converted(self, mapper: Mapper) -> None:
+        """Values are coerced to the destination field type."""
+        result = mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": "3"})
+
+        assert result.age == 3
+
+    def test_conversion_failure_raises(self, mapper: Mapper) -> None:
+        """A value that cannot be coerced raises a `ConversionError` with both paths."""
+        with pytest.raises(ConversionError, match=r"Destination path 'PersonDC\.age'.*From source path") as info:
+            mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": "old"})
+
+        assert str(info.value.dest) == "PersonDC.age"
+
+    def test_missing_source_raises(self, mapper: Mapper) -> None:
+        """A required destination field with no source and no default is an error."""
+        with pytest.raises(SourceNotFoundError, match="source path not found"):
+            mapper.map(dict[str, Any], PersonDC, {"name": "Bob"})
+
+    def test_missing_source_uses_default(self, mapper: Mapper) -> None:
+        """A destination field with a default is left to the constructor when the source lacks it."""
+        result = mapper.map(dict[str, Any], PlainPerson, {"name": "Bob", "age": 3})
+
+        assert result.role == "user"
+
+    def test_missing_source_nullable_becomes_none(self, mapper: Mapper) -> None:
+        """A nullable destination field without default is set to `None` when the source lacks it."""
+
+        @dataclass
+        class Dest:
+            value: int | None
+
+        result = mapper.map(dict[str, Any], Dest, {})
+
+        assert result.value is None
+
+    def test_none_to_non_nullable_raises(self, mapper: Mapper) -> None:
+        """A `None` source value cannot be bound to a non-nullable field."""
+        with pytest.raises(DestinationNotNullableError):
+            mapper.map(dict[str, Any], PersonDC, {"name": None, "age": 3})
+
+    def test_none_to_nullable(self, mapper: Mapper) -> None:
+        """A `None` source value is assigned to a nullable field."""
+        result = mapper.map(dict[str, Any], AddressDC, {"city": "Paris", "zip_code": None})
+
+        assert result.zip_code is None
+
+    def test_pydantic_defaults_are_not_copied(self, mapper: Mapper) -> None:
+        """Unset pydantic fields are absent, so the destination keeps its own default."""
+
+        @dataclass
+        class Dest:
+            name: str
+            tags: list[str] = field(default_factory=lambda: ["default"])
+
+        result = mapper.map(PersonModel, Dest, PersonModel(name="Bob", age=3))
+
+        assert result.tags == ["default"]
+
+    def test_no_protocol_for_destination_raises(self, mapper: Mapper) -> None:
+        """A destination type no protocol handles is an error."""
+        with pytest.raises(NoProtocolError):
+            mapper.map(dict[str, Any], int | str, {})  # pyright: ignore[reportArgumentType]
+
+    def test_instantiation_failure_raises(self, mapper: Mapper) -> None:
+        """A constructor that fails is wrapped into an `InstantiationError`."""
+
+        @dataclass
+        class Picky:
+            value: int
+
+            def __post_init__(self) -> None:
+                raise ValueError("nope")
+
+        with pytest.raises(InstantiationError):
+            mapper.map(dict[str, Any], Picky, {"value": 1})
+
+
+class TestNested:
+    def test_nested_object(self, mapper: Mapper) -> None:
+        """Nested structures are mapped recursively."""
+        result = mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": 3, "address": {"city": "Paris"}})
+
+        assert result.address == AddressDC("Paris")
+
+    def test_nested_none(self, mapper: Mapper) -> None:
+        """A `None` nested value is kept as `None`."""
+        result = mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": 3, "address": None})
+
+        assert result.address is None
+
+    def test_list_of_scalars_is_converted(self, mapper: Mapper) -> None:
+        """Items of a scalar list are converted to the item type."""
+
+        @dataclass
+        class Dest:
+            ids: list[int]
+
+        result = mapper.map(dict[str, Any], Dest, {"ids": ["1", "2"]})
+
+        assert result.ids == [1, 2]
+
+    def test_list_of_objects(self, mapper: Mapper) -> None:
+        """Items of a structured list are mapped one by one."""
+        result = mapper.map(
+            dict[str, Any],
+            PersonWithAddressesDC,
+            {"name": "Bob", "addresses": [{"city": "Paris"}, {"city": "Lyon"}]},
+        )
+
+        assert result.addresses == [AddressDC("Paris"), AddressDC("Lyon")]
+
+    def test_non_iterable_for_list_raises(self, mapper: Mapper) -> None:
+        """A scalar where a list of objects is expected is a conversion error."""
+        with pytest.raises(ConversionError, match="expected an iterable"):
+            mapper.map(dict[str, Any], PersonWithAddressesDC, {"name": "Bob", "addresses": "Paris"})
+
+    def test_nested_error_path(self, mapper: Mapper) -> None:
+        """Errors inside nested items carry the full destination path."""
+        with pytest.raises(SourceNotFoundError) as info:
+            mapper.map(dict[str, Any], PersonWithAddressesDC, {"name": "Bob", "addresses": [{}]})
+
+        assert str(info.value.dest) == "PersonWithAddressesDC.addresses[0].city"
+
+
+class TestValidate:
+    def test_errors_are_collected(self, mapper: Mapper) -> None:
+        """With `validate=True` every field error is collected into one `ValidationError`."""
+        with pytest.raises(ValidationError) as info:
+            mapper.map(dict[str, Any], PersonDC, {"age": "old"}, validate=True)
+
+        assert len(info.value.errors) == 2
+        assert {type(e) for e in info.value.errors} == {SourceNotFoundError, ConversionError}
+        assert "2 mapping error(s)" in info.value.message
+
+    def test_nested_errors_are_collected(self, mapper: Mapper) -> None:
+        """Errors from nested objects are collected too."""
+        with pytest.raises(ValidationError) as info:
+            mapper.map(
+                dict[str, Any],
+                PersonWithAddressesDC,
+                {"name": "Bob", "addresses": [{}, {}]},
+                validate=True,
             )
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        assert [str(e.dest) for e in info.value.errors] == [
+            "PersonWithAddressesDC.addresses[0].city",
+            "PersonWithAddressesDC.addresses[1].city",
+        ]
 
-    s = _Source("test")
+    def test_valid_input_maps_normally(self, mapper: Mapper) -> None:
+        """Validation mode does not change the result of a valid mapping."""
+        result = mapper.map(dict[str, Any], PersonDC, {"name": "Bob", "age": 3}, validate=True)
 
-    d = mapper.map(_Source, _Destination, s)
+        assert result == PersonDC("Bob", 3)
 
-    assert isinstance(s, _Source)
-    assert isinstance(d, _Destination)
-    assert d.content == s.value
-    assert d is not s
 
+class TestMerge:
+    def test_present_fields_are_overwritten(self, mapper: Mapper) -> None:
+        """Merging assigns the present source fields on the existing destination."""
+        dest = PersonDC("Bob", 3, tags=["a"])
 
-def test_map_source_no_hint() -> None:
-    class _Source:
-        def __init__(self, value: str) -> None:
-            self.value = value
+        result = mapper.merge(dict[str, Any], {"age": 4}, dest)
 
-    class _Destination:
-        value: str
+        assert result is dest
+        assert dest == PersonDC("Bob", 4, tags=["a"])
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination)
+    def test_missing_fields_are_kept(self, mapper: Mapper) -> None:
+        """A field absent from the source keeps its value, even without default."""
+        dest = PersonDC("Bob", 3)
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.merge(dict[str, Any], {}, dest)
 
-    s = _Source("test")
+        assert dest.name == "Bob"
 
-    d = mapper.map(_Source, _Destination, s)
+    def test_nested_object_is_merged_in_place(self, mapper: Mapper) -> None:
+        """An existing nested object is updated instead of being replaced."""
+        address = AddressDC("Paris", "75000")
+        dest = PersonDC("Bob", 3, address)
 
-    assert isinstance(s, _Source)
-    assert isinstance(d, _Destination)
-    assert d.value == s.value
-    assert d is not s
+        mapper.merge(dict[str, Any], {"address": {"city": "Lyon"}}, dest)
 
+        assert dest.address is address
+        assert address == AddressDC("Lyon", "75000")
 
-def test_map_default_value_none() -> None:
-    class _Source:
-        pass
+    def test_list_is_replaced_in_place(self, mapper: Mapper) -> None:
+        """An existing list keeps its identity and receives the mapped items."""
+        addresses = [AddressDC("Paris")]
+        dest = PersonWithAddressesDC("Bob", addresses)
 
-    class _Destination:
-        value: str | None
+        mapper.merge(dict[str, Any], {"addresses": [{"city": "Lyon"}]}, dest)
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        assert dest.addresses is addresses
+        assert addresses == [AddressDC("Lyon")]
 
-    d = mapper.map(_Source, _Destination, _Source())
+    def test_merge_into_typed_dict(self, mapper: Mapper) -> None:
+        """Merging into a dictionary destination assigns keys."""
+        dest: PersonDict = {"name": "Bob", "age": 3}
 
-    assert d.value is None
+        mapper.map(dict[str, Any], PersonDict, {"nickname": "bobby"}, dest=dest)
 
+        assert dest == {"name": "Bob", "age": 3, "nickname": "bobby"}
 
-def test_fail_no_default_value() -> None:
-    class _Source:
-        pass
 
-    class _Value:
-        def __init__(self, value: Any) -> None:
-            self.value = value
+class TestProfiles:
+    def test_map_from_renames_a_field(self, mapper: Mapper) -> None:
+        """`map_from` reads the destination field from another source expression."""
 
-    class _Destination:
-        value: _Value
+        @dataclass
+        class Src:
+            full_name: str
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        @dataclass
+        class Dest:
+            name: str
 
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, _Destination, _Source())
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(Src, Dest).for_attr(lambda d: d.name, lambda o: o.map_from(lambda s: s.full_name))
 
-    assert (
-        "Destination path 'test_fail_no_default_value.<locals>._Destination.value', "
-        "From source path 'test_fail_no_default_value.<locals>._Source.value', "
-        "Source path not found, could not bind a None "
-        "value to non nullable type test_fail_no_default_value.<locals>._Value" == info.value.message
-    )
+        mapper.load_profiles([MyProfile()])
 
+        assert mapper.map(Src, Dest, Src("Bob")) == Dest("Bob")
 
-def test_map_default_value() -> None:
-    class _Source:
-        pass
+    def test_map_from_nested_expression(self, mapper: Mapper) -> None:
+        """`map_from` can walk attributes and items of the source."""
 
-    class _Destination:
-        value: int = 1
+        @dataclass
+        class Dest:
+            city: str
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(
+                    lambda d: d.city,
+                    lambda o: o.map_from(lambda s: s.address.city),  # pyright: ignore[reportOptionalMemberAccess]
+                )
 
-    dest = mapper.map(_Source, _Destination, _Source())
+        mapper.load_profiles([MyProfile()])
 
-    assert dest.value == 1
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3, AddressDC("Paris"))) == Dest("Paris")
 
+    def test_map_from_missing_path_is_absent(self, mapper: Mapper) -> None:
+        """A source expression that hits `None` on the way yields an absent value."""
 
-def test_map_explicit_ignore() -> None:
-    class _Source:
-        name: str
+        @dataclass
+        class Dest:
+            city: str | None
 
-        def __init__(self, name: str) -> None:
-            self.name = name
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(
+                    lambda d: d.city,
+                    lambda o: o.map_from(lambda s: s.address.city),  # pyright: ignore[reportOptionalMemberAccess]
+                )
 
-    class _Destination:
-        name: str | None
+        mapper.load_profiles([MyProfile()])
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(lambda dest: dest.name, lambda opt: opt.ignore())
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest(None)
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    def test_ignore(self, mapper: Mapper) -> None:
+        """An ignored field is never assigned, even when the source has it."""
 
-    s = _Source("test")
+        @dataclass
+        class Dest:
+            name: str
+            age: int = 0
 
-    d = mapper.map(_Source, _Destination, s)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(lambda d: d.age, lambda o: o.ignore())
 
-    assert s.name == "test"
-    assert d.name is None
+        mapper.load_profiles([MyProfile()])
 
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest("Bob", 0)
 
-def test_fail_map_ignore_non_nullable() -> None:
-    class _Source:
-        name: str
+    def test_read_only(self, mapper: Mapper) -> None:
+        """A read-only field is skipped."""
 
-        def __init__(self, name: str) -> None:
-            self.name = name
+        @dataclass
+        class Dest:
+            name: str
+            age: int = 0
 
-    class _Destination:
-        name: str
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(lambda d: d.age, lambda o: o.read_only())
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(lambda dest: dest.name, lambda opt: opt.ignore())
+        mapper.load_profiles([MyProfile()])
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest("Bob", 0)
 
-    s = _Source("test")
+    def test_default_factory(self, mapper: Mapper) -> None:
+        """A default factory fills a field absent from the source."""
 
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, _Destination, s)
+        @dataclass
+        class Dest:
+            name: str
+            role: str
 
-    assert (
-        "Destination path 'test_fail_map_ignore_non_nullable.<locals>._Destination.name', "
-        "Could not ignore attribute, type str is not nullable" == info.value.message
-    )
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(lambda d: d.role, lambda o: o.default(lambda: "guest"))
 
+        mapper.load_profiles([MyProfile()])
 
-def test_fail_invalid_int_cast() -> None:
-    class _Source:
-        def __init__(self, value: str) -> None:
-            self.value = value
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest("Bob", "guest")
 
-    class _Destination:
-        value: int
+    def test_default_factory_is_not_used_when_present(self, mapper: Mapper) -> None:
+        """A present source value wins over the default factory."""
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        @dataclass
+        class Dest:
+            name: str
 
-    src = _Source("test")
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(lambda d: d.name, lambda o: o.default(lambda: "guest"))
 
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, _Destination, src)
+        mapper.load_profiles([MyProfile()])
 
-    assert (
-        "Destination path 'test_fail_invalid_int_cast.<locals>._Destination.value', "
-        "From source path 'test_fail_invalid_int_cast.<locals>._Source.value', "
-        "Could not convert value 'test' to int" == info.value.message
-    )
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest("Bob")
 
+    def test_use_type_changes_conversion(self, mapper: Mapper) -> None:
+        """`use_type` converts the value with another annotation than the declared one."""
 
-def test_fail_invalid_float_cast() -> None:
-    class _Source:
-        def __init__(self, value: str) -> None:
-            self.value = value
+        @dataclass
+        class Dest:
+            age: Any
 
-    class _Destination:
-        value: float
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(dict[str, Any], Dest).for_attr(lambda d: d.age, lambda o: o.use_type(int))
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.load_profiles([MyProfile()])
 
-    src = _Source("test")
+        assert mapper.map(dict[str, Any], Dest, {"age": "3"}) == Dest(3)
 
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, _Destination, src)
+    def test_before_and_after_hooks_on_create(self, mapper: Mapper) -> None:
+        """Both hooks run once the destination exists when creating."""
+        calls: list[tuple[str, str]] = []
 
-    assert (
-        "Destination path 'test_fail_invalid_float_cast.<locals>._Destination.value', "
-        "From source path 'test_fail_invalid_float_cast.<locals>._Source.value', "
-        "Could not convert value 'test' to float" == info.value.message
-    )
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, PersonDC).before_mapping(
+                    lambda s, d: calls.append(("before", d.name))
+                ).after_mapping(lambda s, d: calls.append(("after", d.name)))
 
+        mapper.load_profiles([MyProfile()])
+        mapper.map(PersonDC, PersonDC, PersonDC("Bob", 3))
 
-def test_cast_to_bool() -> None:
-    class _Source:
-        def __init__(self, value1: str, value2: int) -> None:
-            self.value1 = value1
-            self.value2 = value2
+        assert calls == [("before", "Bob"), ("after", "Bob")]
 
-    class _Destination:
-        value1: bool
-        value2: bool
+    def test_before_hook_runs_before_merge(self, mapper: Mapper) -> None:
+        """When merging, the before hook sees the destination before assignment."""
+        calls: list[tuple[str, str]] = []
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, PersonDC).before_mapping(
+                    lambda s, d: calls.append(("before", d.name))
+                ).after_mapping(lambda s, d: calls.append(("after", d.name)))
 
-    src = _Source("test", 0)
-    dest = mapper.map(_Source, _Destination, src)
+        mapper.load_profiles([MyProfile()])
+        mapper.merge(PersonDC, PersonDC("Ann", 3), PersonDC("Bob", 3))
 
-    assert dest.value1 is True
-    assert dest.value2 is False
+        assert calls == [("before", "Bob"), ("after", "Ann")]
 
+    def test_include_inherits_overrides(self, mapper: Mapper) -> None:
+        """`include` copies the overrides and hooks of a base mapping."""
 
-def test_map_with_custom_dest() -> None:
-    class _Source:
-        name: str
+        @dataclass
+        class Src:
+            full_name: str
 
-        def __init__(self, name: str) -> None:
-            self.name = name
+        @dataclass
+        class Base:
+            name: str
 
-    class _Destination:
-        name: str
+        @dataclass
+        class Child(Base):
+            role: str = "user"
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_Source, _Destination)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(Src, Base).for_attr(lambda d: d.name, lambda o: o.map_from(lambda s: s.full_name))
+                self.register(Src, Child).include(Src, Base)
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.load_profiles([MyProfile()])
 
-    src = _Source("test")
-    dest = _Destination()
+        assert mapper.map(Src, Child, Src("Bob")) == Child("Bob")
 
-    mapped = mapper.map(_Source, _Destination, src, dest)
+    def test_include_missing_base_raises(self, mapper: Mapper) -> None:
+        """Including a mapping that was not registered is a configuration error."""
 
-    assert mapped is dest
-    assert mapped.name == dest.name == src.name
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, PersonDC).include(AddressDC, AddressDC)
 
+        with pytest.raises(MappingConfigurationError, match="missing base mapping"):
+            mapper.load_profiles([MyProfile()])
 
-def test_map_include_base() -> None:
-    class _ParentSource:
-        def __init__(self, name: str) -> None:
-            self.name = name
+    def test_include_across_profiles(self, mapper: Mapper) -> None:
+        """A base mapping loaded earlier can be included by a later profile."""
 
-    class _ParentDestination:
-        id: str
+        @dataclass
+        class Src:
+            full_name: str
 
-    class _Source(_ParentSource):
-        def __init__(self, name: str, value: int) -> None:
-            super().__init__(name)
-            self.value = value
+        @dataclass
+        class Base:
+            name: str
 
-    class _Destination(_ParentDestination):
-        content: int
+        @dataclass
+        class Child(Base):
+            pass
 
-    class TestProfile1(Profile):
-        def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_ParentSource, _ParentDestination).for_attr(
-                lambda dest: dest.id, lambda opt: opt.map_from(lambda src: src.name)
+        class First(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(Src, Base).for_attr(lambda d: d.name, lambda o: o.map_from(lambda s: s.full_name))
+
+        class Second(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(Src, Child).include(Src, Base)
+
+        mapper.load_profiles([First()])
+        mapper.load_profiles([Second()])
+
+        assert mapper.map(Src, Child, Src("Bob")) == Child("Bob")
+
+    def test_for_attr_requires_direct_attribute(self, mapper: Mapper) -> None:
+        """Overrides only target direct attributes of the destination."""
+        with pytest.raises(Exception, match="exceeds allowed depth"):
+            Profile().register(PersonDC, PersonDC).for_attr(
+                lambda d: d.address.city,  # pyright: ignore[reportOptionalMemberAccess]
+                lambda o: o.ignore(),
             )
 
-    class TestProfile2(Profile):
-        def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_Source, _Destination).include(_ParentSource, _ParentDestination).for_attr(
-                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
-            )
-
-    cache = Cache()
-    mapping(cache=cache)(TestProfile1)
-    mapping(cache=cache)(TestProfile2)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
 
-    src = _Source("test", 42)
+class TestConfigurationCheck:
+    def test_valid_configuration_passes(self, mapper: Mapper) -> None:
+        """A mapping whose required fields all have a source is valid."""
 
-    dest = mapper.map(_Source, _Destination, src)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, PersonModel)
 
-    assert dest is not src
-    assert dest.id == src.name
-    assert dest.content == src.value
-
+        mapper.load_profiles([MyProfile()])
 
-def test_fail_included_base_not_found() -> None:
-    class _ParentSource:
-        def __init__(self, name: str) -> None:
-            self.name = name
+        mapper.assert_configuration_valid()
 
-    class _ParentDestination:
-        id: str
+    def test_missing_required_field_is_reported(self, mapper: Mapper) -> None:
+        """A required destination field the source cannot provide is reported with a hint."""
 
-    class _Source(_ParentSource):
-        def __init__(self, name: str, value: int) -> None:
-            super().__init__(name)
-            self.value = value
+        @dataclass
+        class Dest:
+            name: str
+            role: str
 
-    class _Destination(_ParentDestination):
-        content: int
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest)
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_Source, _Destination).include(_ParentSource, _ParentDestination).for_attr(
-                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
-            )
+        mapper.load_profiles([MyProfile()])
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
+        with pytest.raises(MappingConfigurationError, match=r"'role' is required.*for_attr\(lambda d: d\.role") as info:
+            mapper.assert_configuration_valid()
 
-    with pytest.raises(MappingError) as info:
-        mock.injection.require(Mapper)
+        assert len(info.value.problems) == 1
 
-    assert (
-        "Mapping (test_fail_included_base_not_found.<locals>._Source -> "
-        "test_fail_included_base_not_found.<locals>._Destination): "
-        "Could not find base mapping (test_fail_included_base_not_found.<locals>._ParentSource -> "
-        "test_fail_included_base_not_found.<locals>._ParentDestination). "
-        "Make sure the mappings are declared in the right order."
-    ) == info.value.message
+    def test_override_satisfies_required_field(self, mapper: Mapper) -> None:
+        """A default factory or source expression makes a required field valid."""
 
+        @dataclass
+        class Dest:
+            name: str
+            role: str
 
-def test_map_before_after() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
-
-    class _Destination:
-        value: int
-
-    order: list[str] = []
-
-    def before_map(src: _Source, dest: _Destination) -> None:
-        assert src.value == 1
-        assert not hasattr(dest, "value")
-        order.append("before")
-
-    def after_map(src: _Source, dest: _Destination) -> None:
-        assert src.value == dest.value
-        order.append("after")
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(lambda d: d.role, lambda o: o.default(lambda: "x"))
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            Profile.__init__(self)
-            self.register(_Source, _Destination).before_mapping(before_map).after_mapping(after_map)
+        mapper.load_profiles([MyProfile()])
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.assert_configuration_valid()
 
-    src = _Source(1)
+    def test_untyped_source_is_not_checked(self, mapper: Mapper) -> None:
+        """A protocol that does not know its fields, like the `dict` one, disables the source check."""
 
-    mapper.map(_Source, _Destination, src)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(dict[str, Any], PersonDC)
 
-    assert order == ["before", "after"]
+        mapper.load_profiles([MyProfile()])
 
+        mapper.assert_configuration_valid()
 
-def test_nested_mapping_no_profile() -> None:
-    class _NestedSource:
-        def __init__(self, value: str) -> None:
-            self.value = value
 
-    class _NestedDestination:
-        value: str
+class TestMapperInApp:
+    async def test_mapper_is_a_core_service(self, make_app: AppFactory, cache: Cache) -> None:
+        """The core extension registers a `Mapper` with the built-in protocols."""
+        seen: list[Mapper] = []
 
-    class _Source:
-        def __init__(self, nested: _NestedSource) -> None:
-            self.content = nested
+        @startup(cache=cache)
+        async def init(mapper: Mapper) -> None:
+            seen.append(mapper)
 
-    class _Destination:
-        content: _NestedDestination
+        blnt = await make_app()
+        await blnt.startup()
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        assert seen[0].map(dict[str, Any], PersonDC, {"name": "Bob", "age": 3}) == PersonDC("Bob", 3)
 
-    src = _Source(_NestedSource("test"))
+    async def test_decorated_profiles_are_loaded(self, make_app: AppFactory, cache: Cache) -> None:
+        """Profiles decorated with `mapping` are loaded into the application mapper."""
 
-    d = mapper.map(_Source, _Destination, src)
-
-    assert src is not d
-    assert src.content is not d.content
-    assert src.content.value == d.content.value
-    assert isinstance(d.content, _NestedDestination)
+        @dataclass
+        class Dest:
+            name: str
+            role: str
 
+        @mapping(cache=cache)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(lambda d: d.role, lambda o: o.default(lambda: "guest"))
 
-def test_nested_mapping_with_profile() -> None:
-    class _NestedSource:
-        def __init__(self, value: str) -> None:
-            self.value = value
-
-    class _NestedDestination:
-        content: str
+        seen: list[Mapper] = []
 
-    class _Source:
-        def __init__(self, nested: _NestedSource) -> None:
-            self.nested = nested
-
-    class _Destination:
-        content: _NestedDestination
-
-    class TestProfile1(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_NestedSource, _NestedDestination).for_attr(
-                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.value)
-            )
-
-    class TestProfile2(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest.content, lambda opt: opt.map_from(lambda src: src.nested)
-            )
-
-    cache = Cache()
-    mapping(cache=cache)(TestProfile1)
-    mapping(cache=cache)(TestProfile2)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    src = _Source(_NestedSource("test"))
-
-    d = mapper.map(_Source, _Destination, src)
-
-    assert src is not d
-    assert src.nested is not d.content
-    assert src.nested.value == d.content.content
-    assert isinstance(d.content, _NestedDestination)
-
-
-def test_mapping_list() -> None:
-    class _Source:
-        def __init__(self, values: list[int]) -> None:
-            self.values = values
-
-    class _Destination:
-        values: list[int]
-
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    src = _Source([1, 2, 3])
-    dest = mapper.map(_Source, _Destination, src)
-
-    assert dest.values == src.values
-    assert dest.values is not src.values
-
-
-def test_mapping_iterables() -> None:
-    class _Source:
-        def __init__(self, values: list[int]) -> None:
-            self.values = values
-
-    class _Destination:
-        v1: list[int]
-        v2: set[int]
-        v3: tuple[int]
-
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            (
-                self.register(_Source, _Destination)
-                .for_attr(lambda dest: dest.v1, lambda opt: opt.map_from(lambda src: src.values))
-                .for_attr(lambda dest: dest.v2, lambda opt: opt.map_from(lambda src: src.values))
-                .for_attr(lambda dest: dest.v3, lambda opt: opt.map_from(lambda src: src.values))
-            )
-
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    src = _Source([1, 2, 3])
-    dest = mapper.map(_Source, _Destination, src)
-
-    assert isinstance(dest.v1, list)
-    assert dest.v1 == [1, 2, 3]
-    assert isinstance(dest.v2, set)
-    assert dest.v2 == {1, 2, 3}
-    assert isinstance(dest.v3, tuple)
-    assert dest.v3 == (1, 2, 3)
-
-
-def test_map_to_str_dict() -> None:
-    class _Source:
-        def __init__(self, values: tuple[int, str, float]) -> None:
-            self.a = values[0]
-            self.b = values[1]
-            self.c = values[2]
-
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    src = _Source((1, "2", 3.3))
-    dest = mapper.map(_Source, dict[str, str], src)
-
-    assert len(dest) == 3
-    assert dest["a"] == "1"
-    assert dest["b"] == "2"
-    assert dest["c"] == "3.3"
+        @startup(cache=cache)
+        async def init(mapper: Mapper) -> None:
+            seen.append(mapper)
 
+        blnt = await make_app()
+        await blnt.startup()
 
-def test_map_to_dict_mixed() -> None:
-    class _Source:
-        def __init__(self, values: tuple[int, str, float]) -> None:
-            self.a = values[0]
-            self.b = values[1]
-            self.c = values[2]
+        assert seen[0].map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest("Bob", "guest")
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    async def test_decorated_protocols_are_loaded(self, make_app: AppFactory, cache: Cache) -> None:
+        """Protocols decorated with `mapping_protocol` are registered in the application mapper."""
 
-    src = _Source((1, "2", 3.3))
-    dest = mapper.map(_Source, dict[str, Any], src)
+        class Marker:
+            pass
 
-    assert len(dest) == 3
-    assert dest["a"] == 1
-    assert dest["b"] == "2"
-    assert dest["c"] == 3.3
+        @mapping_protocol(cache=cache)
+        class MarkerProtocol(ObjectProtocol):
+            priority = 500
 
+            @override
+            def matches(self, t: TWrap[Any]) -> bool:
+                return bool(t.match(Marker))
 
-def test_map_to_any() -> None:
-    class _Nested1:
-        pass
+            @override
+            def fields(self, t: TWrap[Any]) -> Mapping[str, FieldSpec]:
+                return {}
 
-    class _Source1:
-        def __init__(self, n: _Nested1) -> None:
-            self.n = n
+            @override
+            def read_field(self, obj: Any, spec: FieldSpec) -> Maybe[Any]:
+                return ABSENT
 
-    class _Nested2:
-        pass
+            @override
+            def construct(self, t: TWrap[Any], values: Mapping[str, Any]) -> Any:
+                return Marker()
 
-    class _Source2:
-        def __init__(self, n: _Nested2) -> None:
-            self.n = n
+        seen: list[Mapper] = []
 
-    class _Destination:
-        n: Any
+        @startup(cache=cache)
+        async def init(mapper: Mapper) -> None:
+            seen.append(mapper)
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        blnt = await make_app()
+        await blnt.startup()
 
-    s1 = _Source1(_Nested1())
-    d1 = mapper.map(_Source1, _Destination, s1)
-    assert isinstance(d1.n, _Nested1)
-    assert d1.n is not s1.n
+        assert isinstance(seen[0].registry.resolve(wrap_type(Marker)), MarkerProtocol)
 
-    s2 = _Source2(_Nested2())
-    d2 = mapper.map(_Source2, _Destination, s2)
-    assert isinstance(d2.n, _Nested2)
-    assert d2.n is not s2.n
+    def test_mapping_decorator_forms(self, cache: Cache) -> None:
+        """`mapping` and `mapping_protocol` accept both the bare and the parametrized forms."""
 
+        @mapping
+        class Bare(Profile):
+            pass
 
-def test_map_to_union_type_select_type() -> None:
-    class _NestedSource:
-        pass
+        @mapping(cache=cache)
+        class Parametrized(Profile):
+            pass
 
-    class _Source:
-        def __init__(self, n: _NestedSource) -> None:
-            self.n = n
+        assert Bare.__name__ == "Bare"
+        assert Parametrized.__name__ == "Parametrized"
+        Cache.with_fallback(None).clear()
 
-    class _NestedDest1:
-        pass
+        with pytest.raises(TypeError):
+            mapping(Bare, Parametrized)  # pyright: ignore[reportCallIssue]
+        with pytest.raises(TypeError):
+            mapping_protocol(1, 2)  # pyright: ignore[reportCallIssue]
 
-    class _NestedDest2:
-        pass
 
-    class _Destination:
-        n: _NestedDest1 | _NestedDest2
+@dataclass(frozen=True)
+class Tag:
+    name: str
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest.n, lambda opt: opt.map_from(lambda src: src.n).use_type(_NestedDest2)
-            )
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+@dataclass
+class WithSetDC:
+    tags: set[Tag] = field(default_factory=set[Tag])
 
-    s = _Source(_NestedSource())
-    d = mapper.map(_Source, _Destination, s)
 
-    assert isinstance(d.n, _NestedDest2)
+@dataclass
+class WithTupleDC:
+    tags: tuple[Tag, ...] = ()
 
 
-def test_map_to_union_type_first_matched() -> None:
-    class _NestedSource:
-        pass
+@dataclass
+class WithInitFalseDC:
+    a: int
+    b: int = field(init=False, default=0)
 
-    class _Source:
-        def __init__(self, n: _NestedSource) -> None:
-            self.n = n
 
-    class _NestedDest1:
-        pass
+class ReadOnlyProtocol(ObjectProtocol):
+    """Wraps the dataclass protocol and marks the `age` field as not writable."""
 
-    class _NestedDest2:
-        pass
+    priority = 100
 
-    class _Destination:
-        n: _NestedDest1 | _NestedDest2
+    def __init__(self) -> None:
+        self._inner = DataclassProtocol()
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    @override
+    def matches(self, t: TWrap[Any]) -> bool:
+        return self._inner.matches(t)
 
-    s = _Source(_NestedSource())
-    d = mapper.map(_Source, _Destination, s)
+    @override
+    def fields(self, t: TWrap[Any]) -> Mapping[str, FieldSpec]:
+        specs = dict(self._inner.fields(t))
+        if "age" in specs:
+            spec = specs["age"]
+            specs["age"] = FieldSpec(key=spec.key, type=spec.type, nullable=spec.nullable, writable=False)
+        return specs
 
-    assert isinstance(d.n, _NestedDest1)
+    @override
+    def read_field(self, obj: Any, spec: FieldSpec) -> Maybe[Any]:
+        return self._inner.read_field(obj, spec)
 
+    @override
+    def construct(self, t: TWrap[Any], values: Mapping[str, Any]) -> Any:
+        return self._inner.construct(t, values)
 
-def test_map_to_union_type_second_matched() -> None:
-    class _NestedSource:
-        def __init__(self, v: int) -> None:
-            self.v = v
 
-    class _Source:
-        def __init__(self, n: _NestedSource) -> None:
-            self.n = n
+class TestDecide:
+    def _spec(self, **kwargs: Any) -> FieldSpec:
+        return FieldSpec.from_type("x", int, **kwargs)
 
-    class _NestedDest1:
-        k: str
+    def test_ignore_skips(self) -> None:
+        """An ignored override skips the field whatever the source holds."""
+        assert decide(1, self._spec(), MapMode.CREATE, FieldOverride(ignore=True)).action is Action.SKIP
 
-    class _NestedDest2:
-        v: int
+    def test_not_writable_skips(self) -> None:
+        """A non-writable field is skipped unless the override allows writing."""
+        spec = self._spec(writable=False)
 
-    class _Destination:
-        n: _NestedDest1 | _NestedDest2
+        assert decide(1, spec, MapMode.CREATE, NO_OVERRIDE).action is Action.SKIP
+        assert decide(1, spec, MapMode.CREATE, FieldOverride(allow_write=True)).action is Action.ASSIGN
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    def test_read_only_wins_over_allow_write(self) -> None:
+        """`read_only` disables writing even when `allow_write` is set."""
+        override = FieldOverride(read_only=True, allow_write=True)
 
-    s = _Source(_NestedSource(3))
-    d = mapper.map(_Source, _Destination, s)
+        assert decide(1, self._spec(), MapMode.CREATE, override).action is Action.SKIP
 
-    assert isinstance(d.n, _NestedDest2)
 
+class TestUtils:
+    def test_is_value_type(self) -> None:
+        """Scalars, dates, enums, unions and `None` are values; user classes are not."""
+        assert is_value_type(wrap_type(int))
+        assert is_value_type(wrap_type(datetime))
+        assert is_value_type(wrap_type(int | str))
+        assert is_value_type(wrap_type(None))
+        assert not is_value_type(wrap_type(PersonDC))
 
-def test_fail_map_use_type_not_in_union() -> None:
-    class _NestedSource:
-        pass
+    def test_dict_value_type(self) -> None:
+        """`dict_value_type` returns the value wrap of a dict type, and `Any` for anything else."""
+        assert dict_value_type(wrap_type(dict[str, int])).matches(int)
+        assert dict_value_type(wrap_type(dict[Any, Any])).match(Any).is_exact
+        assert dict_value_type(wrap_type(PersonDC)).match(Any).is_exact
 
-    class _Source:
-        def __init__(self, n: _NestedSource) -> None:
-            self.n = n
+    def test_element_type(self) -> None:
+        """`element_type` returns the item wrap of a collection type, or `None`."""
+        elem = element_type(wrap_type(list[AddressDC]))
 
-    class _NestedDest1:
-        pass
+        assert elem is not None
+        assert elem.matches(AddressDC)
+        bare = element_type(wrap_type(list[Any]))
+        assert bare is not None
+        assert bare.matches(Any)
+        assert element_type(wrap_type(PersonDC)) is None
+        assert element_type(wrap_type(int | str)) is None
 
-    class _NestedDest2:
-        pass
 
-    class _NestedDest3:
-        pass
+class TestProtocolEdges:
+    def test_fields_of_unsupported_types_are_empty(self) -> None:
+        """Asking a protocol for the fields of a type it does not handle yields nothing."""
+        for protocol in (DataclassProtocol(), PydanticProtocol(), TypedDictProtocol(), PlainObjectProtocol()):
+            assert protocol.fields(wrap_type(int | str)) == {}
 
-    class _Destination:
-        n: _NestedDest1 | _NestedDest2
+    def test_plain_fields_with_unresolved_forward_ref(self) -> None:
+        """A plain class whose hints cannot be resolved has no fields."""
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest.n, lambda opt: opt.map_from(lambda src: src.n).use_type(_NestedDest3)
-            )
+        class Broken:
+            value: "Missing"  # noqa: F821  # pyright: ignore[reportUndefinedVariable]
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        assert PlainObjectProtocol().fields(wrap_type(Broken)) == {}
 
-    s = _Source(_NestedSource())
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, _Destination, s)
+    def test_read_field_on_wrong_object_kinds(self) -> None:
+        """Reading a field from an object of the wrong kind yields `ABSENT`."""
+        spec = FieldSpec.from_type("name", str)
 
-    assert (
-        "Destination path 'test_fail_map_use_type_not_in_union.<locals>._Destination.n', "
-        "From source path 'test_fail_map_use_type_not_in_union.<locals>._Source.n', "
-        "Selected type test_fail_map_use_type_not_in_union.<locals>._NestedDest3 is not assignable to "
-        f"{Type(_NestedDest1 | _NestedDest2)}" == info.value.message
-    )
+        assert MappingProtocol().read_field(object(), spec) is ABSENT
+        assert TypedDictProtocol().read_field(object(), spec) is ABSENT
+        assert PydanticProtocol().read_field(object(), spec) is ABSENT
+        assert PlainObjectProtocol().read_field(PlainPerson("x", 1), spec) == "x"
+        assert PlainObjectProtocol().read_field(object(), spec) is ABSENT
 
+    def test_construct_on_wrong_types_raises(self) -> None:
+        """Constructing an unsupported type is a programming error."""
+        with pytest.raises(TypeError):
+            DataclassProtocol().construct(wrap_type(int), {})
+        with pytest.raises(TypeError):
+            PydanticProtocol().construct(wrap_type(int | str), {})
+        with pytest.raises(InstantiationError):
+            PlainObjectProtocol().construct(wrap_type(int | str), {})
 
-def test_map_collection() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
+    def test_mapping_protocol_dict_operations(self) -> None:
+        """The `dict` protocol constructs and assigns plain dictionaries."""
+        spec = FieldSpec.from_type("k", int)
+        built = MappingProtocol().construct(wrap_type(dict[str, Any]), {"k": 1})
+        MappingProtocol().assign(built, spec, 2)
 
-    class _Destination:
-        value: int
+        assert built == {"k": 2}
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    def test_plain_construct_skips_variadic_parameters(self) -> None:
+        """Variadic constructor parameters are ignored and remaining values are set as attributes."""
 
-    sources = [_Source(1), _Source(2), _Source(3)]
-    destinations = mapper.map(list[_Source], list[_Destination], sources)
+        class Flexible:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.args = args
 
-    assert len(destinations) == 3
-    assert destinations is not sources
-    assert all(isinstance(d, _Destination) for d in destinations)
-    assert destinations[0].value == 1
-    assert destinations[1].value == 2
-    assert destinations[2].value == 3
+        result: Any = PlainObjectProtocol().construct(wrap_type(Flexible), {"name": "x"})
 
+        assert result.args == ()
+        assert result.name == "x"
 
-def test_fail_map_collection_from_not_iter() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
+    def test_plain_construct_without_signature(self) -> None:
+        """A class whose signature cannot be inspected is built without arguments."""
+        result = PlainObjectProtocol().construct(wrap_type(dict[str, Any]), {})
 
-    class _Destination:
-        value: int
+        assert result == {}
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    source = _Source(1)
-    with pytest.raises(MappingError) as info:
-        mapper.map(_Source, list[_Destination], source)
-
-    assert (
-        "Destination path 'list[test_fail_map_collection_from_not_iter.<locals>._Destination]', "
-        "From source path 'test_fail_map_collection_from_not_iter.<locals>._Source', "
-        "Could not map non iterable type test_fail_map_collection_from_not_iter.<locals>._Source "
-        "to list[test_fail_map_collection_from_not_iter.<locals>._Destination]" == info.value.message
-    )
-
-
-def test_map_existing_collection() -> None:
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    sources = [1, 2, 3]
-    dest_l: list[int] = []
-    dest_s: set[int] = set()
-    dest_t: tuple[int, ...] = ()
-    n_dest_l = mapper.map(list[int], list[int], sources, dest_l)
-    n_dest_s = mapper.map(list[int], set[int], sources, dest_s)
+    def test_plain_construct_failure(self, mapper: Mapper) -> None:
+        """A constructor that raises is reported as an `InstantiationError`."""
 
-    assert dest_l is n_dest_l
-    assert dest_l == n_dest_l == [1, 2, 3]
-    assert dest_s is n_dest_s
-    assert dest_s == n_dest_s == {1, 2, 3}
-
-    with pytest.raises(MappingError) as info:
-        mapper.map(list[int], tuple[int, ...], sources, dest_t)
+        class Picky:
+            name: str
 
-    assert (
-        "Destination path 'tuple[int, ...]', "
-        "Could not use an existing tuple instance, tuples are immutable" == info.value.message
-    )
-
-
-def test_map_from_dict() -> None:
-    class _Destination:
-        id: int
-        name: str
-
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    dest = mapper.map(dict[str, Any], _Destination, {"id": 1, "name": "test"})
-
-    assert dest.id == 1
-    assert dest.name == "test"
-
+            def __init__(self, name: str) -> None:
+                raise ValueError(name)
 
-def test_fail_map_from_dict() -> None:
-    class _Destination:
-        id: int
-        name: str
+        with pytest.raises(InstantiationError):
+            mapper.map(dict[str, Any], Picky, {"name": "x"})
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    def test_dataclass_init_false_field_is_assigned(self, mapper: Mapper) -> None:
+        """A dataclass field excluded from the constructor is set after construction."""
+        result = mapper.map(dict[str, Any], WithInitFalseDC, {"a": 1, "b": 2})
 
-    with pytest.raises(MappingError) as info:
-        mapper.map(dict[str, Any], _Destination, {"id": 1})
+        assert (result.a, result.b) == (1, 2)
 
-    assert (
-        "Destination path 'test_fail_map_from_dict.<locals>._Destination.name', "
-        "From source path 'dict[str, Any]['name']', "
-        "Source path not found, could not bind a None value to non nullable type str" == info.value.message
-    )
+    def test_typed_dict_source(self, mapper: Mapper) -> None:
+        """A `TypedDict` source reads its keys, missing optional keys are absent."""
+        result = mapper.map(PersonDict, PersonDC, {"name": "Bob", "age": 3})
 
+        assert result == PersonDC("Bob", 3)
 
-def test_map_from_dict_nested() -> None:
-    class _SubDestination:
-        value: float
-        active: bool
-
-    class _Destination:
-        id: int
-        name: str
-        subs: list[_SubDestination]
-
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+    def test_untyped_source(self, mapper: Mapper) -> None:
+        """A source declared as `Any` has no protocol and is read with `getattr`."""
 
-    dest = mapper.map(
-        dict[str, Any],
-        _Destination,
-        {"id": 1, "name": "test", "subs": [{"value": 1.1, "active": True}, {"value": 2.2, "active": False}]},
-    )
+        class Anything:
+            def __init__(self) -> None:
+                self.name = "Bob"
+                self.age = 3
 
-    assert dest.id == 1
-    assert dest.name == "test"
-    assert len(dest.subs) == 2
-    assert all(isinstance(s, _SubDestination) for s in dest.subs)
-    assert dest.subs[0].value == 1.1
-    assert dest.subs[0].active is True
-    assert dest.subs[1].value == 2.2
-    assert dest.subs[1].active is False
-
+        result = mapper.map(cast(type[Any], Any), PersonDC, Anything())
 
-def test_map_dict_to_dict() -> None:
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    dest = mapper.map(dict[str, Any], dict[str, int], {"at1": 1, "at2": "2"})
-
-    assert dest["at1"] == 1
-    assert dest["at2"] == 2
+        assert result == PersonDC("Bob", 3)
 
 
-def test_map_attr_from_child() -> None:
-    class _NestedSource:
-        def __init__(self, value: int) -> None:
-            self.value = value
+class TestMergeCollections:
+    def test_set_is_replaced_in_place(self, mapper: Mapper) -> None:
+        """An existing set keeps its identity and receives the mapped items."""
+        tags: set[Tag] = {Tag("old")}
+        dest = WithSetDC(tags)
 
-    class _Source:
-        def __init__(self, nested: _NestedSource) -> None:
-            self.nested = nested
+        mapper.merge(dict[str, Any], {"tags": [{"name": "new"}]}, dest)
 
-    class _Destination:
-        value: int
+        assert dest.tags is tags
+        assert tags == {Tag("new")}
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest.value, lambda opt: opt.map_from(lambda src: src.nested.value)
-            )
+    def test_other_collections_are_replaced(self, mapper: Mapper) -> None:
+        """A collection that cannot be updated in place is replaced by the mapped list."""
+        dest = WithTupleDC((Tag("old"),))
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
-
-    src = _Source(_NestedSource(1))
-
-    d = mapper.map(_Source, _Destination, src)
-
-    assert src is not d
-    assert src.nested.value == d.value
+        mapper.merge(dict[str, Any], {"tags": [{"name": "new"}]}, dest)
 
+        assert list(dest.tags) == [Tag("new")]
 
-def test_fail_map_from_nested() -> None:
-    class _NestedSource:
-        def __init__(self, value: int) -> None:
-            self.value = value
 
-    class _NestedDestination:
-        def __init__(self, value: int) -> None:
-            self.value = value
+class TestValidateInstantiation:
+    def test_instantiation_error_is_collected(self, mapper: Mapper) -> None:
+        """In validation mode a failing constructor is collected instead of raised."""
 
-    class _Source:
-        def __init__(self, nested: _NestedSource) -> None:
-            self.nested = nested
+        @dataclass
+        class Picky:
+            value: int
 
-    class _Destination:
-        nested: _NestedDestination
+            def __post_init__(self) -> None:
+                raise ValueError("nope")
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest.nested.value, lambda opt: opt.map_from(lambda src: src.nested.value)
-            )
-
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-
-    with pytest.raises(MaxDepthExpressionError) as info:
-        mock.injection.require(Mapper)
+        with pytest.raises(ValidationError) as info:
+            mapper.map(dict[str, Any], Picky, {"value": 1}, validate=True)
 
-    assert (
-        info.value.message == "Expression test_fail_map_from_nested.<locals>._Destination.nested.value, "
-        "Expression exceeds allowed depth"
-    )
+        assert [type(e) for e in info.value.errors] == [InstantiationError]
 
 
-def test_map_typed_dict() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
-
-    class _Destination(TypedDict):
-        content: int
+class TestReadExpr:
+    def test_item_access(self, mapper: Mapper) -> None:
+        """`map_from` can index into dictionaries and lists of the source."""
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest["content"], lambda opt: opt.map_from(lambda src: src.value)
-            )
+        @dataclass
+        class Src:
+            extra: dict[str, Any]
+            tags: list[str]
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        @dataclass
+        class Dest:
+            first: str
+            key: int
 
-    src = _Source(4)
-    dest = mapper.map(_Source, _Destination, src)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(Src, Dest).for_attr(
+                    lambda d: d.first, lambda o: o.map_from(lambda s: s.tags[0])
+                ).for_attr(lambda d: d.key, lambda o: o.map_from(lambda s: s.extra["k"]))
 
-    assert dest["content"] == 4
+        mapper.load_profiles([MyProfile()])
 
+        assert mapper.map(Src, Dest, Src({"k": 1}, ["a"])) == Dest("a", 1)
 
-def test_map_typed_dict_from_nested() -> None:
-    class _NestedSource:
-        def __init__(self, value: int) -> None:
-            self.value = value
+    def test_missing_item_is_absent(self, mapper: Mapper) -> None:
+        """A missing key or index yields an absent value."""
 
-    class _Source:
-        def __init__(self, nested: _NestedSource) -> None:
-            self.nested = nested
+        @dataclass
+        class Src:
+            extra: dict[str, Any]
 
-    class _Destination(TypedDict):
-        content: int
+        @dataclass
+        class Dest:
+            key: int | None
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest["content"], lambda opt: opt.map_from(lambda src: src.nested.value)
-            )
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(Src, Dest).for_attr(lambda d: d.key, lambda o: o.map_from(lambda s: s.extra["k"]))
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.load_profiles([MyProfile()])
 
-    src = _Source(_NestedSource(4))
-    dest = mapper.map(_Source, _Destination, src)
+        assert mapper.map(Src, Dest, Src({})) == Dest(None)
 
-    assert dest["content"] == 4
+    def test_attribute_outside_protocol_fields(self, mapper: Mapper) -> None:
+        """An attribute the protocol does not declare is read with `getattr`, absent when missing."""
 
+        @dataclass
+        class Dest:
+            real: int
+            missing: str | None
 
-def test_fail_map_from_nested_typed_dict() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, Dest).for_attr(
+                    lambda d: d.real, lambda o: o.map_from(lambda s: s.age.real)
+                ).for_attr(lambda d: d.missing, lambda o: o.map_from(lambda s: getattr(s, "nope")))  # noqa: B009
 
-    class _NestedDestination:
-        value: int
+        mapper.load_profiles([MyProfile()])
 
-    class _Destination(TypedDict):
-        nested: _NestedDestination
+        assert mapper.map(PersonDC, Dest, PersonDC("Bob", 3)) == Dest(3, None)
 
-    class TestProfile(Profile):
-        def __init__(self) -> None:
-            super().__init__()
-            self.register(_Source, _Destination).for_attr(
-                lambda dest: dest["nested"].value, lambda opt: opt.map_from(lambda src: src.value)
-            )
+    def test_unsupported_node_raises(self, mapper: Mapper) -> None:
+        """Only attribute and item access can be evaluated on a source."""
 
-    cache = Cache()
-    mapping(cache=cache)(TestProfile)
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
+        class Call(ExpressionNode):
+            @override
+            def __expr_get_value__(self, obj: object) -> Any:
+                return None
 
-    with pytest.raises(MaxDepthExpressionError) as info:
-        mock.injection.require(Mapper)
+            @override
+            def __expr_format__(self, depth: int | None) -> str:
+                return "call()"
 
-    assert (
-        info.value.message == "Expression test_fail_map_from_nested_typed_dict.<locals>._Destination['nested'].value, "
-        "Expression exceeds allowed depth"
-    )
+            @override
+            def __expr_get_parents__(self) -> Iterable[ExpressionNode]:
+                return []
 
+        with pytest.raises(TypeError, match="only attribute and item access"):
+            read_expr(Call(), object(), mapper.registry)
 
-def test_map_typed_dict_not_required_attr() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
 
-    class _Destination(TypedDict):
-        value: int
-        content: NotRequired[int]
+class TestAllowWrite:
+    def test_allow_write_overrides_protocol(self, mapper: Mapper) -> None:
+        """`allow_write` maps a field the protocol declares as not writable."""
+        mapper.add_protocol(ReadOnlyProtocol())
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        @dataclass
+        class Dest:
+            name: str
+            age: int = 0
 
-    src = _Source(4)
-    dest = mapper.map(_Source, _Destination, src)
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(dict[str, Any], Dest).for_attr(lambda d: d.age, lambda o: o.allow_write())
 
-    assert dest["value"] == 4
-    assert "content" not in dest
+        assert mapper.map(dict[str, Any], Dest, {"name": "Bob", "age": 3}).age == 0
+        mapper.load_profiles([MyProfile()])
+        assert mapper.map(dict[str, Any], Dest, {"name": "Bob", "age": 3}).age == 3
 
 
-def test_map_typed_dict_non_total_dict() -> None:
-    class _Source:
-        def __init__(self, value: int) -> None:
-            self.value = value
+class TestConfigurationEdges:
+    def test_destination_without_protocol_is_reported(self, mapper: Mapper) -> None:
+        """A mapping to a type no protocol handles is an invalid configuration."""
 
-    class _Destination(TypedDict, total=False):
-        value: int
-        content: int
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, int | str)  # pyright: ignore[reportArgumentType]
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.load_profiles([MyProfile()])
 
-    src = _Source(4)
-    dest = mapper.map(_Source, _Destination, src)
+        with pytest.raises(MappingConfigurationError, match="no protocol for destination"):
+            mapper.assert_configuration_valid()
 
-    assert "value" in dest and dest["value"] == 4
-    assert "content" not in dest
+    def test_skipped_fields_are_not_required(self, mapper: Mapper) -> None:
+        """Ignored and read-only fields need no source."""
 
+        @dataclass
+        class Dest:
+            name: str
+            role: str
 
-def test_map_literal() -> None:
-    class _Destination:
-        type: Literal[0, "value"]
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(AddressDC, Dest).for_attr(lambda d: d.name, lambda o: o.ignore()).for_attr(
+                    lambda d: d.role, lambda o: o.read_only()
+                )
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.load_profiles([MyProfile()])
 
-    dest = mapper.map(dict, _Destination, {"type": "value"})
+        mapper.assert_configuration_valid()
 
-    assert dest.type == "value"
+    def test_optional_fields_are_not_required(self, mapper: Mapper) -> None:
+        """Nullable fields and fields with defaults need no source."""
 
+        @dataclass
+        class Dest:
+            name: str
+            role: str | None
+            tags: list[str] = field(default_factory=list[str])
 
-def test_fail_map_literal_no_match() -> None:
-    class _Destination:
-        type: Literal[0, "value"]
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(AddressDC, Dest).for_attr(lambda d: d.name, lambda o: o.map_from(lambda s: s.city))
 
-    cache = Cache()
-    mock = Mock(cache=cache)
-    mock.injection.add_singleton(Mapper)
-    mapper = mock.injection.require(Mapper)
-    load_default_mappers(mapper)
+        mapper.load_profiles([MyProfile()])
 
-    with pytest.raises(MappingError) as info:
-        mapper.map(dict, _Destination, {"type": 4.5})
+        mapper.assert_configuration_valid()
 
-    assert (
-        "Destination path 'test_fail_map_literal_no_match.<locals>._Destination.type', "
-        "From source path 'dict[Any, Any]['type']', "
-        "Could not match value 4.5 to possible values (0, 'value')" == info.value.message
-    )
+
+class TestDictDestination:
+    def test_object_to_dict_copies_every_field(self, mapper: Mapper) -> None:
+        """Mapping to a plain `dict` copies every readable source field under its key."""
+        result = mapper.map(PersonDC, dict[str, Any], PersonDC("Bob", 3, tags=["a"]))
+
+        assert result == {"name": "Bob", "age": 3, "address": None, "tags": ["a"]}
+
+    def test_nested_objects_are_copied_as_is(self, mapper: Mapper) -> None:
+        """With untyped values a nested object is placed in the dict without conversion."""
+        address = AddressDC("Paris")
+
+        result = mapper.map(PersonDC, dict[str, Any], PersonDC("Bob", 3, address))
+
+        assert result["address"] is address
+
+    def test_dict_to_dict(self, mapper: Mapper) -> None:
+        """A dictionary source enumerates its own keys."""
+        assert mapper.map(dict[str, Any], dict[str, Any], {"a": 1, "b": None}) == {"a": 1, "b": None}
+
+    def test_typed_values_are_converted(self, mapper: Mapper) -> None:
+        """The value type of the destination dict drives conversion."""
+        assert mapper.map(dict[str, Any], dict[str, int], {"a": "1"}) == {"a": 1}
+
+    def test_typed_values_reject_none_and_structures(self, mapper: Mapper) -> None:
+        """A typed value dict refuses `None` and values that cannot be converted."""
+        with pytest.raises(DestinationNotNullableError):
+            mapper.map(dict[str, Any], dict[str, int], {"a": None})
+        with pytest.raises(ConversionError):
+            mapper.map(PersonDC, dict[str, int], PersonDC("Bob", 3, AddressDC("Paris")))
+
+    def test_merge_into_dict_keeps_other_keys(self, mapper: Mapper) -> None:
+        """Merging into an existing dict assigns the source keys and keeps the others."""
+        dest: dict[str, Any] = {"kept": 1, "name": "Ann"}
+
+        result = mapper.merge(PersonDC, PersonDC("Bob", 3), dest)
+
+        assert result is dest
+        assert dest == {"kept": 1, "name": "Bob", "age": 3, "address": None, "tags": []}
+
+    def test_pydantic_unset_fields_are_not_copied(self, mapper: Mapper) -> None:
+        """Fields not set on a pydantic source stay absent from the dict."""
+        assert mapper.map(PersonModel, dict[str, Any], PersonModel(name="Bob", age=3)) == {"name": "Bob", "age": 3}
+
+    def test_overrides_apply_to_dict_destinations(self, mapper: Mapper) -> None:
+        """Profile overrides on source keys work when the destination is a dict."""
+
+        class MyProfile(Profile):
+            def __init__(self) -> None:
+                super().__init__()
+                self.register(PersonDC, dict[str, Any]).for_attr(lambda d: d["age"], lambda o: o.ignore())
+
+        mapper.load_profiles([MyProfile()])
+
+        assert "age" not in mapper.map(PersonDC, dict[str, Any], PersonDC("Bob", 3))
+
+    def test_instance_fields_on_non_dict(self) -> None:
+        """The dict protocol has no instance fields for anything but a dictionary."""
+        assert MappingProtocol().instance_fields(object(), wrap_type(dict[str, Any])) == {}
+        assert DataclassProtocol().instance_fields(PersonDC("Bob", 3), wrap_type(PersonDC)).keys() == {
+            "name",
+            "age",
+            "address",
+            "tags",
+        }
+
+
+class TestSequenceDestination:
+    def test_list_of_dicts_to_list_of_dataclasses(self, mapper: Mapper) -> None:
+        result = mapper.map(
+            list[dict[str, Any]], list[PersonDC], [{"name": "Bob", "age": 3}, {"name": "Ann", "age": 4}]
+        )
+
+        assert result == [PersonDC("Bob", 3), PersonDC("Ann", 4)]
+
+    def test_tuple_and_set_destinations(self, mapper: Mapper) -> None:
+        assert mapper.map(list[Any], tuple[int, ...], ["1", "2"]) == (1, 2)
+        assert mapper.map(list[Any], set[int], ["1", "1", "2"]) == {1, 2}
+        assert mapper.map(list[Any], frozenset[str], ["a", "a", "b"]) == frozenset({"a", "b"})
+
+    def test_set_source_is_enumerated(self, mapper: Mapper) -> None:
+        assert sorted(mapper.map(set[str], list[int], {"1", "2"})) == [1, 2]
+
+    def test_untyped_elements_pass_through(self, mapper: Mapper) -> None:
+        person = PersonDC("Bob", 3)
+
+        assert mapper.map(list[Any], [person, 1])[0] is person
+
+    def test_nested_sequences(self, mapper: Mapper) -> None:
+        result = mapper.map(list[Any], list[list[PersonDC]], [[{"name": "Bob", "age": 3}]])
+
+        assert result == [[PersonDC("Bob", 3)]]
+
+    def test_errors_carry_the_index_path(self, mapper: Mapper) -> None:
+        with pytest.raises(ValidationError) as info:
+            mapper.map(list[Any], list[PersonDC], [{"name": "Bob", "age": 3}, {"name": "Ann"}], validate=True)
+
+        assert len(info.value.errors) == 1
+        assert isinstance(info.value.errors[0], SourceNotFoundError)
+        assert str(info.value.errors[0].dest).endswith("[1].age")
+
+    def test_non_iterable_source_has_no_fields(self, mapper: Mapper) -> None:
+        assert mapper.map(int, list[int], 1) == []
+        assert SequenceProtocol().instance_fields("abc", wrap_type(list[str])) == {}
+        assert SequenceProtocol().read_field(object(), FieldSpec.from_type("0", int)) is ABSENT
+
+    def test_merge_into_a_list_assigns_by_index_and_appends(self, mapper: Mapper) -> None:
+        dest: list[int] = [9, 9]
+
+        result = mapper.merge(list[Any], [1, 2, 3], dest)
+
+        assert result is dest
+        assert dest == [1, 2, 3]
+
+    def test_merge_into_a_set_adds(self, mapper: Mapper) -> None:
+        dest: set[int] = {9}
+
+        mapper.merge(list[Any], [1], dest)
+
+        assert dest == {9, 1}
+
+    def test_merge_into_immutable_collections_fails(self, mapper: Mapper) -> None:
+        with pytest.raises(TypeError):
+            mapper.merge(list[Any], [1], (9,))
+        with pytest.raises(TypeError):
+            mapper.merge(list[Any], [1], frozenset({9}))
+
+    def test_protocol_shape(self) -> None:
+        assert SequenceProtocol().fields(wrap_type(list[int])) == {}
+        assert not SequenceProtocol().knows_fields
+        assert str(SequenceProtocol().value_type(wrap_type(list[int]))) == "int"
+        assert str(SequenceProtocol().value_type(wrap_type(cast(Any, list)))) == "Any"
+        assert str(dict_value_type(wrap_type(cast(Any, dict)))) == "Any"
+        assert str(ObjectProtocol.value_type(PlainObjectProtocol(), wrap_type(PersonDC))) == "Any"
+        assert SequenceProtocol().construct(wrap_type(cast(Any, list[int] | tuple[int, ...])), {"1": 2, "0": 1}) == [
+            1,
+            2,
+        ]
