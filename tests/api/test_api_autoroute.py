@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, get_args, get_origin
+from typing import Any, get_args, get_origin, override
 
 import pytest
 import sqlalchemy as sa
@@ -19,6 +19,7 @@ from bolinette.web._routing import RouteBucket
 
 
 class OpaqueType(sa.types.UserDefinedType[Any]):
+    @override
     def get_col_spec(self, **kwargs: Any) -> str:
         return "BLOB"
 

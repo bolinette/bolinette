@@ -2,10 +2,10 @@ import traceback
 from http import HTTPStatus
 from typing import Any, NotRequired, TypedDict, override
 
+from mirino import ExpressionNode, ExpressionTree
 from peritype import FWrap, TWrap
 
 from bolinette.core.exceptions import BolinetteError, ParameterError
-from bolinette.core.expressions import ExpressionNode, ExpressionTree
 
 
 class WebError(BolinetteError, ParameterError):

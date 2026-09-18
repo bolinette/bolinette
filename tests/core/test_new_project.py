@@ -20,6 +20,7 @@ class DemoExtension(Extension):
     name = "demo"
     dependencies: Sequence[type[Extension]] = ()
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 

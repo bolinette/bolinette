@@ -3,6 +3,9 @@ name = "bolinette-workspace"
 version = "0.20.0"
 description = "The Bolinette workspace, not published: see the packages in packages/"
 readme = "README.md"
+authors = [{ name = "Pierre Chat", email = "pierrechat@outlook.com" }]
+license = "MIT"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.13"
 dependencies = [
     "bolinette",
@@ -12,7 +15,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.14.2", "pyright>=1.1.407"]
+dev = ["ruff>=0.16.8", "pyright>=1.1.414"]
 test = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
@@ -31,17 +34,64 @@ bolinette = { workspace = true }
 bolinette-data = { workspace = true }
 bolinette-web = { workspace = true }
 bolinette-api = { workspace = true }
+# Temporary: muotti 0.1.0 is not published yet, drop this once it is on PyPI.
+muotti = { path = "../muotti", editable = true }
 
 [tool.pyright]
 include = ["packages", "tests", "scripts"]
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
 typeCheckingMode = "strict"
+deprecateTypingAliases = true
+reportCallInDefaultInitializer = "error"
+reportImplicitOverride = "error"
+reportPropertyTypeMismatch = "error"
+reportUninitializedInstanceVariable = "error"
 reportUnnecessaryTypeIgnoreComment = "error"
+reportUnreachable = "error"
+
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+extraPaths = ["."]
+reportUninitializedInstanceVariable = "none"
+reportDeprecated = "none"
 
 [tool.ruff]
 line-length = 120
 
 [tool.ruff.lint]
-extend-select = ["E", "W", "F", "B", "Q", "I", "N", "RUF", "UP"]
+extend-select = [
+    "E",
+    "W",
+    "F",
+    "B",
+    "Q",
+    "I",
+    "N",
+    "RUF",
+    "UP",
+    "BLE",
+    "DTZ",
+    "ERA",
+    "FLY",
+    "FURB",
+    "LOG",
+    "PIE",
+    "PLE",
+    "SLOT",
+    "TID",
+    "YTT",
+    "ASYNC",
+    "C4",
+    "G",
+    "PERF",
+    "PGH",
+    "PT",
+    "RET",
+    "RSE",
+    "T20",
+]
 fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
@@ -49,6 +99,9 @@ known-first-party = ["bolinette"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/__init__.py" = ["I001"]
+"**/__main__.py" = ["T201"]
+"**/_bundled/*" = ["T201"]
+"tests/**" = ["ASYNC240"]
 
 [tool.coverage.run]
 concurrency = ["greenlet", "thread"]

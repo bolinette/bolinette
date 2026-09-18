@@ -5,6 +5,7 @@ from typing import ClassVar, override
 
 import pytest
 from escondite import Cache
+from muotti.errors import SourceNotFoundError, ValidationError
 from pydantic import BaseModel
 from soupape import AsyncInjector
 from sqlalchemy import select
@@ -12,7 +13,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from bolinette.core.exceptions import InitError
-from bolinette.core.mapping.exceptions import SourceNotFoundError, ValidationError
 from bolinette.data import Database, database_system
 from bolinette.data.exceptions import DatabaseError, DataError, EntityError, EntityNotFoundError
 from bolinette.data.relational import (
@@ -247,7 +247,8 @@ class TestEntityManager:
 
         with pytest.raises(InitError, match=r"already has repository \w+, only one") as info:
             await make_app()
-        assert "UserRepository" in str(info.value) and "OtherUserRepository" in str(info.value)
+        assert "UserRepository" in str(info.value)
+        assert "OtherUserRepository" in str(info.value)
 
     async def test_single_service_per_entity(self, make_app: AppFactory, cache: Cache) -> None:
         """Two services registered for the same entity are rejected, naming both classes."""
@@ -256,7 +257,8 @@ class TestEntityManager:
 
         with pytest.raises(InitError, match=r"already has service \w+, only one") as info:
             await make_app()
-        assert "UserService" in str(info.value) and "OtherUserService" in str(info.value)
+        assert "UserService" in str(info.value)
+        assert "OtherUserService" in str(info.value)
 
     async def test_repository_and_service_can_be_indirect_subclasses(self, make_app: AppFactory, cache: Cache) -> None:
         declarative_base("default", cache=cache)(Base)
@@ -340,7 +342,7 @@ class TestRepository:
         _register(cache)
         blnt = await make_app()
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError):  # noqa: PT012  the raise must happen inside the scope
             async with blnt.injector.get_scoped_injector() as scope:
                 repo = await scope.require(UserRepository)
                 user = User(name="Bob")
@@ -357,7 +359,7 @@ class TestRepository:
         _register(cache)
         blnt = await make_app()
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError):  # noqa: PT012  the raise must happen inside the scope
             async with blnt.injector.get_scoped_injector() as scope:
                 repo = await scope.require(UserRepository)
                 transaction = await scope.require(AsyncTransaction)
@@ -513,7 +515,7 @@ class TestTransaction:
         _register(cache)
         blnt = await make_app()
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError):  # noqa: PT012  the raise must happen inside the scope
             async with blnt.injector.get_scoped_injector() as scope:
                 repo = await scope.require(UserRepository)
                 repo.add(User(name="Bob"))
@@ -527,7 +529,7 @@ class TestTransaction:
         _register(cache)
         blnt = await make_app()
 
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError):  # noqa: PT012  the scope must close to flush
             async with blnt.injector.get_scoped_injector() as scope:
                 repo = await scope.require(UserRepository)
                 repo.add(User(id=1, name="Bob"))

@@ -3,11 +3,11 @@
 from datetime import datetime
 
 import pytest
+from muotti import ABSENT, Generation
 from peritype import wrap_type
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, column_property, mapped_column, relationship
 
-from bolinette.core.mapping import ABSENT, Generation
 from bolinette.data import SqlAlchemyProtocol
 from bolinette.data._mapping import validate_entity
 from bolinette.data.exceptions import ColumnNotNullableError, EntityValidationError
@@ -98,7 +98,8 @@ class TestProtocol:
         protocol = SqlAlchemyProtocol()
 
         author = protocol.construct(wrap_type(Author), {"name": "Ann"})
-        assert isinstance(author, Author) and author.name == "Ann"
+        assert isinstance(author, Author)
+        assert author.name == "Ann"
         with pytest.raises(TypeError):
             protocol.construct(wrap_type(int | str), {})
 

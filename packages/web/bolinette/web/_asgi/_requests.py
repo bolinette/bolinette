@@ -85,3 +85,4 @@ class AsgiSocketRequest:
             return json.loads(self._bytes, cls=cls)
         if self._text is not None:
             return json.loads(self._text, cls=cls)
+        return None

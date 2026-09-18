@@ -66,7 +66,7 @@ class ResourceNode:
         self.subnodes = subnodes
 
     def match(self, path: str, path_params: dict[str, str]) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def set_resource(self, resource: Resource | None, /) -> None:
         self.resource = resource
@@ -104,14 +104,11 @@ class ResourceNode:
     @staticmethod
     def merge(n1: "ResourceNode", n2: "ResourceNode") -> "ResourceNode":
         def merge_resources(r1: Resource | None, r2: Resource | None) -> Resource | None:
-            if r1 is None and r2 is None:
-                return None
-            if r1 is not None and r2 is None:
-                return r1
-            if r1 is None and r2 is not None:
+            if r1 is None:
                 return r2
-            if r1 is not None and r2 is not None:
-                return r1 | r2
+            if r2 is None:
+                return r1
+            return r1 | r2
 
         if isinstance(n1, PatternResourceNode) and isinstance(n2, PatternResourceNode):
             if n1.param_name != n2.param_name and n1.norm_pattern != n2.norm_pattern:
@@ -144,7 +141,7 @@ class ResourceNode:
                     ]
                 ),
             )
-        elif common_path == n2.path:
+        if common_path == n2.path:
             return StaticResourceNode(
                 common_path,
                 n2.resource,
@@ -155,15 +152,14 @@ class ResourceNode:
                     ]
                 ),
             )
-        else:
-            return StaticResourceNode(
-                common_path,
-                None,
-                [
-                    StaticResourceNode(n1.path[len(common_path) :], n1.resource, n1.subnodes),
-                    StaticResourceNode(n2.path[len(common_path) :], n2.resource, n2.subnodes),
-                ],
-            )
+        return StaticResourceNode(
+            common_path,
+            None,
+            [
+                StaticResourceNode(n1.path[len(common_path) :], n1.resource, n1.subnodes),
+                StaticResourceNode(n2.path[len(common_path) :], n2.resource, n2.subnodes),
+            ],
+        )
 
     @staticmethod
     def merge_subnodes(nodes: "list[ResourceNode]") -> "list[ResourceNode]":

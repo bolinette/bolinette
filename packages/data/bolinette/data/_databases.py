@@ -121,4 +121,4 @@ class DatabaseManager:
                     connection=db_config.name,
                 ) from e
             self._databases[db_config.name] = system.create(db_config.name, db_config.url, db_config.echo)
-            self._logger.debug(f"Registered connection '{db_config.name}' on {scheme}")
+            self._logger.debug("Registered connection '%s' on %s", db_config.name, scheme)

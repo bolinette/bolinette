@@ -5,8 +5,9 @@ from typing import Any
 
 import pytest
 from escondite import Cache
+from muotti import Mapper
 
-from bolinette.core.mapping import BolinetteModel, Mapper
+from bolinette.core.mapping import BolinetteModel
 from bolinette.web import AsgiApplication, Controller, HttpHeaders, ResponseData, controller, get
 from bolinette.web._json import to_json_value
 from tests.web.conftest import AppFactory, AsgiClient
@@ -249,7 +250,7 @@ class TestUnpackedResults:
     async def test_an_empty_async_generator_is_an_empty_list(self, make_app: AppFactory, cache: Cache) -> None:
         async def gen() -> AsyncIterator[str]:
             return
-            yield "never"
+            yield "never"  # pyright: ignore[reportUnreachable]
 
         @controller("w", cache=cache)
         class Ctrl(Controller):
@@ -266,7 +267,7 @@ class TestUnpackedResults:
     async def test_an_empty_sync_generator_is_an_empty_list(self, make_app: AppFactory, cache: Cache) -> None:
         def gen() -> Iterator[str]:
             return
-            yield "never"
+            yield "never"  # pyright: ignore[reportUnreachable]
 
         @controller("w", cache=cache)
         class Ctrl(Controller):

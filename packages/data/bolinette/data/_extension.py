@@ -2,13 +2,13 @@ from collections.abc import Sequence
 from typing import override
 
 from escondite import Cache
+from muotti import mapping_protocol
 from soupape import ServiceCollection, injectable
 
 from bolinette.core import CoreExtension, startup
 from bolinette.core.commands import command
 from bolinette.core.events import on_stopped
 from bolinette.core.extensions import Extension, NewProjectHook
-from bolinette.core.mapping import mapping_protocol
 from bolinette.data._databases import DatabaseManager, DatabaseSystem, database_system
 from bolinette.data._mapping import SqlAlchemyProtocol
 from bolinette.data._scaffold import create_data_packages, create_database_config

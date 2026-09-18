@@ -56,4 +56,4 @@ def command(
             _set_meta(cache, func, name, summary, run_startup)
             return func
         case _:
-            raise TypeError()
+            raise TypeError

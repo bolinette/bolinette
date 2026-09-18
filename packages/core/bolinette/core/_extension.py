@@ -3,6 +3,16 @@ from pathlib import Path
 from typing import override
 
 from escondite import Cache
+from muotti import (
+    DataclassProtocol,
+    MappingProtocol,
+    PlainObjectProtocol,
+    SequenceProtocol,
+    SetProtocol,
+    TypedDictProtocol,
+    mapping_protocol,
+)
+from muotti.pydantic import PydanticProtocol
 from soupape import ServiceCollection, injectable
 
 from bolinette.core._logging import resolve_logger
@@ -25,17 +35,7 @@ from bolinette.core.configuration import (
 )
 from bolinette.core.events import EventDispatcher
 from bolinette.core.extensions import Extension, NewProjectHook
-from bolinette.core.mapping import (
-    DataclassProtocol,
-    Mapper,
-    MappingProtocol,
-    PlainObjectProtocol,
-    PydanticProtocol,
-    SequenceProtocol,
-    SetProtocol,
-    TypedDictProtocol,
-    mapping_protocol,
-)
+from bolinette.core.mapping import resolve_mapper
 
 
 def _make_cache_resolver(cache: Cache) -> Callable[[], Cache]:
@@ -79,7 +79,7 @@ class CoreExtension(Extension):
         injectable.singleton(CommandRunner, cache=cache)
         injectable.singleton(Bolinette, cache=cache)
 
-        injectable.singleton(Mapper, cache=cache)
+        injectable.singleton(resolve_mapper, cache=cache)
         mapping_protocol(PydanticProtocol, cache=cache)
         mapping_protocol(TypedDictProtocol, cache=cache)
         mapping_protocol(DataclassProtocol, cache=cache)

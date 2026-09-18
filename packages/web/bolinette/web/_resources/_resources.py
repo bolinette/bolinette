@@ -2,12 +2,12 @@ from http import HTTPStatus
 from typing import Any
 
 from escondite import Cache
+from muotti import Mapper
 from peritype import FWrap, TWrap, wrap_func, wrap_type
 from soupape import AsyncInjector
 
 from bolinette.core import Logger, meta
 from bolinette.core.configuration import ConfigSection, CoreConfigSection
-from bolinette.core.mapping import Mapper
 from bolinette.web._abstract import Request, Response, ResponseState
 from bolinette.web._controller import Controller, ControllerMeta
 from bolinette.web._headers import HttpHeaders
@@ -87,7 +87,7 @@ class WebResources:
         scoped.services.add_scoped(instance_resolver(Route, route))
 
     async def _handle_request(self, route: Route, request: Request, response: Response) -> None:
-        self.logger.info(f"Received request on {request.path}")
+        self.logger.info("Received request on %s", request.path)
         writer = ResponseWriter(self.injector, self.mapper, response)
         try:
             async with self.injector.get_scoped_injector() as scoped:
@@ -126,12 +126,12 @@ class WebResources:
         if index >= len(mdlws):
             return await self._call_controller(route, scoped)
         mdlw = mdlws[index]
-        self.logger.debug(f"Calling middleware {mdlw.__class__.__qualname__}")
+        self.logger.debug("Calling middleware %s", mdlw.__class__.__qualname__)
         return await scoped.call(mdlw.handle, positional_args=[_next_handle])
 
     async def _call_controller(self, route: Route, scoped: AsyncInjector) -> Any:
         ctrl = await scoped.require(route.controller)
-        self.logger.debug(f"Calling controller route {route.func}(...)")
+        self.logger.debug("Calling controller route %s(...)", route.func)
         return await scoped.call(route.func, positional_args=[ctrl])
 
     @staticmethod

@@ -3,11 +3,11 @@ name = "bolinette-data"
 version = "0.20.0"
 description = "The Bolinette data extension: SQLAlchemy based relational layer."
 readme = "README.md"
+authors = [{ name = "Pierre Chat", email = "pierrechat@outlook.com" }]
+license = "MIT"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.13"
-dependencies = [
-    "bolinette==0.20.0",
-    "sqlalchemy>=2.0.51",
-]
+dependencies = ["bolinette==0.20.0", "sqlalchemy>=2.0.51"]
 
 [project.entry-points."bolinette.extensions"]
 data = "bolinette.data:DataExtension"

@@ -177,10 +177,9 @@ class CommandParser:
             if "__blnt_path__" in parsed:
                 del parsed["__blnt_path__"]
             return RunnableCommand(self._commands[cmd], parsed)
-        elif "__blnt_path__" in parsed:
+        if "__blnt_path__" in parsed:
             raise CommandHelpError(self._sub_commands[parsed["__blnt_path__"]].format_help())
-        else:
-            raise CommandHelpError(self._parser.format_help())
+        raise CommandHelpError(self._parser.format_help())
 
     @staticmethod
     def _build_help(command_tree: dict[str, Any], path: list[str]):
@@ -215,4 +214,4 @@ class BytesArgparserAction[T](Action):
         if isinstance(values, str):
             setattr(namespace, self.dest, values.encode())
             return
-        raise TypeError()
+        raise TypeError

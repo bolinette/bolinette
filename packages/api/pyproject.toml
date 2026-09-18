@@ -3,6 +3,9 @@ name = "bolinette-api"
 version = "0.20.0"
 description = "The Bolinette api extension."
 readme = "README.md"
+authors = [{ name = "Pierre Chat", email = "pierrechat@outlook.com" }]
+license = "MIT"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.13"
 dependencies = [
     "bolinette==0.20.0",

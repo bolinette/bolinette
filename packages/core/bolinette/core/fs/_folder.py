@@ -17,8 +17,7 @@ class FSFolder(FSNode):
     def _to_node(path: Path, parent: "FSFolder | None") -> FSNode:
         if path.is_dir():
             return FSFolder(path, parent)
-        else:
-            return FSFile(path, parent)
+        return FSFile(path, parent)
 
     def __getitem__(self, child_name: str) -> FSNode:
         for child in self.children:

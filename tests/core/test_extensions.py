@@ -1,6 +1,7 @@
 """Extension resolution, ordering and registration into the application."""
 
 from collections.abc import Sequence
+from typing import override
 
 import pytest
 from escondite import Cache
@@ -16,6 +17,7 @@ class ExtA(Extension):
     name = "a"
     dependencies: Sequence[type[Extension]] = ()
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 
@@ -24,6 +26,7 @@ class ExtB(Extension):
     name = "b"
     dependencies: Sequence[type[Extension]] = (ExtA,)
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 
@@ -32,6 +35,7 @@ class ExtC(Extension):
     name = "c"
     dependencies: Sequence[type[Extension]] = (ExtB,)
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 
@@ -43,6 +47,7 @@ class ExtWithOption(Extension):
     def __init__(self, value: int = 0) -> None:
         self.value = value
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 
@@ -54,6 +59,7 @@ class ExtWithoutDefault(Extension):
     def __init__(self, value: int) -> None:
         self.value = value
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 
@@ -62,6 +68,7 @@ class ExtNeedsNoDefault(Extension):
     name = "needs_no_default"
     dependencies: Sequence[type[Extension]] = (ExtWithoutDefault,)
 
+    @override
     def register_services(self, services: ServiceCollection, cache: Cache) -> None:
         pass
 
@@ -92,6 +99,7 @@ class TestSortExtensions:
             name = "left"
             dependencies: Sequence[type[Extension]] = ()
 
+            @override
             def register_services(self, services: ServiceCollection, cache: Cache) -> None:
                 pass
 
@@ -99,6 +107,7 @@ class TestSortExtensions:
             name = "right"
             dependencies: Sequence[type[Extension]] = (Left,)
 
+            @override
             def register_services(self, services: ServiceCollection, cache: Cache) -> None:
                 pass
 
@@ -131,6 +140,7 @@ class TestResolveExtensions:
             name = "dependent"
             dependencies: Sequence[type[Extension]] = (ExtWithOption,)
 
+            @override
             def register_services(self, services: ServiceCollection, cache: Cache) -> None:
                 pass
 
@@ -225,6 +235,7 @@ class TestAppExtensions:
             name = "recording"
             dependencies: Sequence[type[Extension]] = ()
 
+            @override
             def register_services(self, services: ServiceCollection, cache: Cache) -> None:
                 seen.append(cache)
 
@@ -243,6 +254,7 @@ class TestAppExtensions:
             name = "registering"
             dependencies: Sequence[type[Extension]] = ()
 
+            @override
             def register_services(self, services: ServiceCollection, cache: Cache) -> None:
                 services.add_singleton(Service)
 

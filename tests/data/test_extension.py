@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 from escondite import Cache
+from muotti import Mapper
 from peritype import wrap_type
 from soupape import ServiceCollection
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from bolinette.core import CoreExtension, startup
-from bolinette.core.mapping import Mapper
 from bolinette.data import DatabaseManager, DataExtension, SqlAlchemyProtocol
 from bolinette.data.relational import AsyncTransaction, EntityManager, Repository, Service, declarative_base
 from tests.data.conftest import AppFactory

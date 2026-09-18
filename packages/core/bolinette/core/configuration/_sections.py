@@ -59,4 +59,4 @@ def config_section(*args: Any) -> Any:
             _set_env_meta(cls, name)
             return cls
         case _:
-            raise TypeError()
+            raise TypeError

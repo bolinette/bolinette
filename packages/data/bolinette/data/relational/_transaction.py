@@ -21,7 +21,7 @@ class AsyncTransaction:
     def get(self, name: str) -> EntitySession[DeclarativeBase]:
         if name not in self._sessions:
             self._sessions[name] = self._entities.get_engine_by_name(name).open_session()
-            self._logger.debug(f"Opened session to database '{name}'")
+            self._logger.debug("Opened session to database '%s'", name)
         return self._sessions[name]
 
     async def __aenter__(self) -> Self:

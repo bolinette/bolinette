@@ -2,12 +2,12 @@ import inspect
 from typing import Any, TypeGuard
 
 from escondite import Cache
+from muotti import Mapper
 from peritype import TWrap, wrap_type
 from soupape import AsyncInjector
 
 from bolinette.core import Logger, meta
 from bolinette.core.configuration import ConfigSection, CoreConfigSection
-from bolinette.core.mapping import Mapper
 from bolinette.web._abstract import WebSocketRequest, WebSocketResponse
 from bolinette.web._json import to_json_value
 from bolinette.web._utils import get_cls_attrs

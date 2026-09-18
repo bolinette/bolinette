@@ -4,9 +4,9 @@ from collections.abc import AsyncIterator, Callable, Iterator
 from types import CoroutineType
 from typing import Any, Protocol
 
+from muotti import Mapper
 from soupape import AsyncInjector
 
-from bolinette.core.mapping import Mapper
 from bolinette.web._abstract import Response
 from bolinette.web._headers import HttpHeaders
 from bolinette.web._json import to_json_value
@@ -42,7 +42,7 @@ class ResponseWriter:
             return await self._unpack_result(await self.injector.call(result), data)
         if inspect.isasyncgenfunction(result) or callable(result):
             return await self._unpack_result(await self.injector.call(result), data)
-        await self._write_single(result, data)
+        return await self._write_single(result, data)
 
     def to_json_value(self, value: Any) -> Any:
         return to_json_value(self.mapper, value)

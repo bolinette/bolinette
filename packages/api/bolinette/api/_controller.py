@@ -1,7 +1,7 @@
+from muotti import Mapper
 from soupape import post_init
 from sqlalchemy.orm import DeclarativeBase
 
-from bolinette.core.mapping import Mapper
 from bolinette.data.relational import Service
 from bolinette.web import Controller
 

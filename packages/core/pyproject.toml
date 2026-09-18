@@ -3,10 +3,15 @@ name = "bolinette"
 version = "0.20.0"
 description = "The Bolinette core package: application bootstrap, extensions, environment, commands, events and logging."
 readme = "README.md"
+authors = [{ name = "Pierre Chat", email = "pierrechat@outlook.com" }]
+license = "MIT"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.13"
 dependencies = [
     "escondite>=0.1.2",
     "hafersack>=0.1.0",
+    "mirino>=0.1.0",
+    "muotti[pydantic]>=0.1.0",
     "soupape>=0.10.0",
     "peritype>=0.8.0",
     "pydantic>=2.12.5",

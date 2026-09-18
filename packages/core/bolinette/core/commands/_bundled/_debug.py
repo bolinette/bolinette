@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, override
 
 from peritype import TWrap
 from soupape import AsyncInjector, ServiceCollection
@@ -14,6 +14,7 @@ class _RegisteredType:
         self.interface = interface
         self.resolver = resolver
 
+    @override
     def __str__(self) -> str:
         registered = self.resolver.registered
         scope = self.resolver.scope.name.lower()
@@ -55,8 +56,7 @@ def format_type_tree(tree: _TypeTree, depth: int = 0) -> list[str]:
             lines.append(f"{indent}{key}")
             lines.extend(format_type_tree(value, depth + 1))
         else:
-            for registered in sorted(value, key=lambda r: str(r.interface)):
-                lines.append(f"{indent}{registered}")
+            lines.extend(f"{indent}{registered}" for registered in sorted(value, key=lambda r: str(r.interface)))
     return lines
 
 

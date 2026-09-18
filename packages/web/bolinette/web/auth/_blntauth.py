@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol, cast
 
 import pydantic
 from escondite import Cache
+from muotti import Mapper
+from muotti.errors import ValidationError
 from peritype import TWrap, wrap_func, wrap_type
 from pydantic import Field
 from soupape import AsyncInjector, ServiceCollection
@@ -14,8 +16,7 @@ from soupape import AsyncInjector, ServiceCollection
 from bolinette.core import startup
 from bolinette.core.configuration import ConfigSection, Configuration, resolve_config_section
 from bolinette.core.exceptions import InitError
-from bolinette.core.mapping import BolinetteModel, Mapper
-from bolinette.core.mapping.exceptions import ValidationError
+from bolinette.core.mapping import BolinetteModel
 from bolinette.web._config import BlntAuthOptions
 from bolinette.web._resources import Payload, WebResources
 from bolinette.web._resources._resolvers import build_payload_error
@@ -302,7 +303,7 @@ class BolinetteAuthProvider:
         token_b = token.encode()
         if self.encrypt_cipher is not None and self.cipher_aad is not None:
             if not token_b.startswith(b"blntauth:"):
-                raise NotSupportedTokenError()
+                raise NotSupportedTokenError
             token_b = base64.b64decode(token_b[len("blntauth:") :], altchars=b"_-")
             if isinstance(self.encrypt_cipher, self.crypto.aead.AESSIV):
                 nonce, token_b = token_b[:16], token_b[16:]
@@ -319,10 +320,10 @@ class BolinetteAuthProvider:
         except self.crypto.jwt_errors.PyJWTError as err:
             raise ForbiddenError(f"Invalid auth token: {', '.join(err.args)}", "auth.token.invalid") from err
         if not isinstance(jwt, dict):
-            raise NotSupportedTokenError()
+            raise NotSupportedTokenError
         claims: dict[str, Any] = jwt  # pyright: ignore[reportUnknownVariableType]
         if JwtClaims.Issuer not in claims or claims[JwtClaims.Issuer] != self.issuer:
-            raise NotSupportedTokenError()
+            raise NotSupportedTokenError
         return self.transformer.user_from_claims(claims.get(JwtClaims.Payload, {}))
 
 

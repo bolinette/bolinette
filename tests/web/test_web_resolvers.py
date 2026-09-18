@@ -434,9 +434,9 @@ class TestPayloadErrorTranslation:
         return Route("POST", "/x", wrap_type(Ctrl), wrap_func(Ctrl.handler))
 
     def test_an_error_without_a_destination_is_an_invalid_payload(self) -> None:
+        from muotti.errors import NoProtocolError
         from peritype import wrap_type
 
-        from bolinette.core.mapping.exceptions import NoProtocolError
         from bolinette.web._resources._resolvers import _transform_error  # pyright: ignore[reportPrivateUsage]
 
         error = _transform_error(NoProtocolError("nope"), wrap_type(ItemPayload), self._route())
@@ -445,10 +445,10 @@ class TestPayloadErrorTranslation:
         assert error.error_args == {"type": str(wrap_type(ItemPayload))}
 
     def test_an_unknown_mapping_error_is_an_invalid_payload(self) -> None:
+        from mirino import ExpressionTree
+        from muotti.errors import ImmutableFieldError
         from peritype import wrap_type
 
-        from bolinette.core.expressions import ExpressionTree
-        from bolinette.core.mapping.exceptions import ImmutableFieldError
         from bolinette.web._resources._resolvers import _transform_error  # pyright: ignore[reportPrivateUsage]
 
         expr = ExpressionTree.new(ItemPayload).name
@@ -457,10 +457,10 @@ class TestPayloadErrorTranslation:
         assert error.error_code == "payload.invalid"
 
     def test_a_conversion_error_without_a_target_is_an_invalid_payload(self) -> None:
+        from mirino import ExpressionTree
+        from muotti.errors import ConversionError
         from peritype import wrap_type
 
-        from bolinette.core.expressions import ExpressionTree
-        from bolinette.core.mapping.exceptions import ConversionError
         from bolinette.web._resources._resolvers import _transform_error  # pyright: ignore[reportPrivateUsage]
 
         expr = ExpressionTree.new(ItemPayload).name

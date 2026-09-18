@@ -2,12 +2,10 @@ from collections.abc import Mapping
 from typing import Any, get_args, get_origin, get_type_hints, override
 
 import sqlalchemy as sa
+from muotti import ABSENT, FieldSpec, Generation, Maybe, ObjectProtocol, main_class
 from peritype import TWrap
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.orm import DeclarativeBase, Mapped
-
-from bolinette.core.mapping import ABSENT, FieldSpec, Generation, Maybe, ObjectProtocol
-from bolinette.core.mapping._utils import main_class
 
 
 class SqlAlchemyProtocol(ObjectProtocol):

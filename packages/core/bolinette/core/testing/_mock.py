@@ -1,10 +1,10 @@
 from collections.abc import Callable
 from typing import Any, get_args, get_origin
 
+from mirino import ExpressionNode, ExpressionTree
 from soupape import ServiceCollection
 
 from bolinette.core import meta
-from bolinette.core.expressions import ExpressionNode, ExpressionTree
 
 
 class _MockedMeta[MockedT]:
@@ -59,7 +59,7 @@ class _MockWrapper[MockedT]:
         _t.__repr__ = lambda _: f"<Mocked[{_cls.__name__}]>"  # pyright: ignore[reportAttributeAccessIssue]
         _t.__getattribute__ = _get_attr
         meta.set(_t, _MockedMeta.KEY, _MockedMeta(_cls))
-        return _t  # pyright: ignore
+        return _t  # pyright: ignore[reportReturnType]
 
     def setup_callable[**FuncP, FuncT](
         self,
@@ -70,7 +70,7 @@ class _MockWrapper[MockedT]:
         return self.setup(func, value)
 
     def setup[SetupT](self, func: Callable[[MockedT], SetupT], value: SetupT, /) -> "_MockWrapper[MockedT]":
-        expr: ExpressionNode = func(ExpressionTree.new())  # pyright: ignore
+        expr: ExpressionNode = func(ExpressionTree.new())  # pyright: ignore[reportAssignmentType, reportArgumentType]
         ExpressionTree.ensure_attribute_chain(expr)
         name = ExpressionTree.get_attribute(expr)
         _meta = meta.get(self._cls, _MockedMeta.KEY)

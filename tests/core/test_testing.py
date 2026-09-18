@@ -14,10 +14,10 @@ class Repository:
         self.url = url
 
     def fetch(self, key: str) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def count(self) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class Service:
@@ -27,7 +27,7 @@ class Service:
 
 class Generic[T]:
     def get(self) -> T:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class TestMock:

@@ -2,10 +2,10 @@ from collections.abc import Callable
 from typing import Any, ClassVar, Literal, overload
 
 from escondite import Cache
+from muotti import Mapper
 from peritype import TWrap, wrap_type
 from sqlalchemy.orm import DeclarativeBase
 
-from bolinette.core.mapping import Mapper
 from bolinette.data._mapping import validate_entity
 from bolinette.data.relational._repository import Repository
 

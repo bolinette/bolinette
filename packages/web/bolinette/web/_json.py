@@ -1,6 +1,6 @@
 from typing import Any
 
-from bolinette.core.mapping import Mapper
+from muotti import Mapper
 
 
 def to_json_value(mapper: Mapper, value: Any) -> Any:

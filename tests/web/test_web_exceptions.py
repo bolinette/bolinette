@@ -3,9 +3,9 @@ from http import HTTPStatus
 from typing import Any
 
 import pytest
+from mirino import ExpressionTree
 from peritype import FWrap, TWrap, wrap_func, wrap_type
 
-from bolinette.core.expressions import ExpressionTree
 from bolinette.web.exceptions import (
     BadRequestError,
     DispatchError,

@@ -30,7 +30,7 @@ async def new_project(
     print(f"Creating project {name} with extensions: {', '.join(extension_names)}")
 
     def on_failure(code: int) -> None:
-        logger.error(f"Failed to create project {name} with code {code}")
+        logger.error("Failed to create project %s with code %s", name, code)
         raise SystemExit(code)
 
     context = NewProjectHookContext(

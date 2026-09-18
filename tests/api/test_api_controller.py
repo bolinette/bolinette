@@ -1,12 +1,12 @@
 from typing import Any, cast
 
 from escondite import Cache
+from muotti import Mapper
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from bolinette.api import ApiController, autoroute
 from bolinette.core import Bolinette
-from bolinette.core.mapping import Mapper
 from bolinette.data.relational import Service, declarative_base, service
 from bolinette.web import controller
 from tests.api.conftest import AppFactory
